@@ -1,5 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_create_empty_title">Create cards</string>
-    <string name="feature_create_empty_message">Write cards by hand, or turn your notes into cards.</string>
+    <string name="feature_create_title_new">Write a card</string>
+    <string name="feature_create_title_edit">Edit note</string>
+    <string name="feature_create_subtitle">Manual create</string>
+    <string name="feature_create_deck">Destination deck</string>
+    <string name="feature_create_new_deck">New deck…</string>
+    <string name="feature_create_no_decks">No decks yet</string>
+    <string name="feature_create_type">Card type</string>
+    <string name="feature_create_type_basic">Basic</string>
+    <string name="feature_create_type_reversed">+ Reversed</string>
+    <string name="feature_create_type_cloze">Cloze</string>
+
+    <string name="feature_create_front">Front</string>
+    <string name="feature_create_back">Back</string>
+    <string name="feature_create_text">Text</string>
+    <string name="feature_create_extra">Extra (optional)</string>
+    <string name="feature_create_markdown_hint">Markdown: **bold**, *italic*, `code`, lists, ``` code blocks</string>
+    <string name="feature_create_cloze">Cloze</string>
+    <string name="feature_create_cloze_hint">Select a word, then tap Cloze to hide it: {{c1::answer}}</string>
+
+    <string name="feature_create_tags">Tags</string>
+    <string name="feature_create_add_tag">Add tag</string>
+    <string name="feature_create_remove_tag">Remove tag %s</string>
+
+    <plurals name="feature_create_add">
+        <item quantity="one">Add card</item>
+        <item quantity="other">Add %d cards</item>
+    </plurals>
+    <string name="feature_create_save">Save changes</string>
+    <plurals name="feature_create_added">
+        <item quantity="one">Card added</item>
+        <item quantity="other">%d cards added</item>
+    </plurals>
+    <string name="feature_create_problem_no_deck">Create a deck first.</string>
+    <string name="feature_create_problem_front">Write the front of the card.</string>
+    <string name="feature_create_problem_back">A reversed card needs both sides.</string>
+    <string name="feature_create_problem_cloze">Add at least one cloze deletion, e.g. {{c1::answer}}.</string>
+
+    <string name="feature_create_preview">Live preview</string>
+    <string name="feature_create_preview_front">Front</string>
+    <string name="feature_create_preview_back">Back</string>
+    <string name="feature_create_close">Close</string>
 </resources>

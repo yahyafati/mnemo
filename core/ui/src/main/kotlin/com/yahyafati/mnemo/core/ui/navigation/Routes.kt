@@ -9,11 +9,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object DecksRoute
 
-/** Top-level tab: study session. Phase 1 adds the deck selection. */
+/** Top-level tab: the Daily Mix study session across all decks. */
 @Serializable
 data object StudyRoute
 
-/** Top-level tab: manual and AI card creation. */
+/** Top-level tab: manual (and later AI) card creation. */
 @Serializable
 data object CreateRoute
 
@@ -24,3 +24,14 @@ data object AnalyticsRoute
 /** Settings, opened from the top-bar avatar. */
 @Serializable
 data object SettingsRoute
+
+/** A full-screen study session for one deck and its subdecks. */
+@Serializable
+data class StudySessionRoute(val deckId: String)
+
+/**
+ * The full-screen note editor: edits [noteId], or adds notes to [deckId] when [noteId] is null.
+ * Property names double as `SavedStateHandle` keys.
+ */
+@Serializable
+data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = null)

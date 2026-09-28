@@ -1,0 +1,54 @@
+package com.yahyafati.mnemo.feature.study
+
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
+import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+
+/**
+ * A focused session for one deck. Not a tab, so it gets the whole window: its own top bar with a
+ * close button, and no bottom bar.
+ */
+@Composable
+internal fun StudySessionScreen(
+    onClose: () -> Unit,
+    onEditNote: (noteId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: StudyViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            MnemoTopBar(
+                title = uiState.deckName.orEmpty(),
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(MnemoIcons.Close, stringResource(R.string.feature_study_close))
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        StudyScreen(
+            onEditNote = onEditNote,
+            onDone = onClose,
+            doneLabel = stringResource(R.string.feature_study_done),
+            viewModel = viewModel,
+            modifier = Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding),
+        )
+    }
+}

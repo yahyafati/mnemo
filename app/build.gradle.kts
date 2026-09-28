@@ -32,15 +32,23 @@ dependencies {
     implementation(projects.feature.study)
 
     implementation(projects.core.common)
+    implementation(projects.core.data)
     implementation(projects.core.designsystem)
+    implementation(projects.core.model)
     implementation(projects.core.ui)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
 
+    testImplementation(projects.core.database)
+    testImplementation(projects.core.datastore)
+    testImplementation(projects.core.testing)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

@@ -29,8 +29,13 @@ rootProject.name = "mnemo"
 include(":app")
 
 include(":core:common")
+include(":core:data")
+include(":core:database")
+include(":core:datastore")
 include(":core:designsystem")
+include(":core:domain")
 include(":core:model")
+include(":core:scheduler")
 include(":core:testing")
 include(":core:ui")
 

@@ -1,5 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_study_empty_title">Nothing to study</string>
-    <string name="feature_study_empty_message">Cards that are due for review will show up here.</string>
+    <string name="feature_study_empty_message">You\'re all caught up. Due and new cards will show up here.</string>
+    <plurals name="feature_study_later_message">
+        <item quantity="one">%d card is still in learning and comes back later today.</item>
+        <item quantity="other">%d cards are still in learning and come back later today.</item>
+    </plurals>
+    <string name="feature_study_back_to_decks">Back to decks</string>
+    <string name="feature_study_close">Close</string>
+    <string name="feature_study_check_again">Check again</string>
+
+    <string name="feature_study_daily_mix">Daily Mix</string>
+    <string name="feature_study_position">Card %1$d of %2$d</string>
+    <string name="feature_study_undo">Undo</string>
+    <string name="feature_study_star">Star card</string>
+    <string name="feature_study_unstar">Unstar card</string>
+    <string name="feature_study_more">More card actions</string>
+    <string name="feature_study_flag">Flag</string>
+    <string name="feature_study_unflag">Remove flag</string>
+    <string name="feature_study_bury">Bury until tomorrow</string>
+    <string name="feature_study_suspend">Suspend</string>
+    <string name="feature_study_edit">Edit note</string>
+
+    <string name="feature_study_kind_basic">Basic</string>
+    <string name="feature_study_kind_reversed">Reversed</string>
+    <string name="feature_study_kind_cloze">Cloze</string>
+
+    <string name="feature_study_show_answer">Show answer</string>
+    <string name="feature_study_flip">Flip card</string>
+    <string name="feature_study_again">Again</string>
+    <string name="feature_study_hard">Hard</string>
+    <string name="feature_study_good">Good</string>
+    <string name="feature_study_easy">Easy</string>
+    <string name="feature_study_rate_description">%1$s, next in %2$s</string>
+    <string name="feature_study_hint_before">Tap the card to see the answer</string>
+    <string name="feature_study_hint_swipe">Swipe left for Again • Tap card to flip • Swipe right for Good</string>
+
+    <string name="feature_study_finished_title">Session complete</string>
+    <plurals name="feature_study_finished_message">
+        <item quantity="one">You reviewed %1$d card in %2$s.</item>
+        <item quantity="other">You reviewed %1$d cards in %2$s.</item>
+    </plurals>
+    <string name="feature_study_stat_reviewed">Reviewed</string>
+    <string name="feature_study_stat_accuracy">Recalled</string>
+    <string name="feature_study_stat_time">Time</string>
+    <string name="feature_study_done">Done</string>
 </resources>

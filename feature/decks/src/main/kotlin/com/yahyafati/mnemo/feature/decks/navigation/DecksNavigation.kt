@@ -9,8 +9,12 @@ import com.yahyafati.mnemo.feature.decks.DecksScreen
 
 fun NavController.navigateToDecks(navOptions: NavOptions? = null) = navigate(DecksRoute, navOptions)
 
-fun NavGraphBuilder.decksScreen() {
+fun NavGraphBuilder.decksScreen(
+    onStudyDeck: (deckId: String) -> Unit,
+    onStartDailyMix: () -> Unit,
+    onAddCards: (deckId: String) -> Unit,
+) {
     composable<DecksRoute> {
-        DecksScreen()
+        DecksScreen(onStudyDeck = onStudyDeck, onStartDailyMix = onStartDailyMix, onAddCards = onAddCards)
     }
 }

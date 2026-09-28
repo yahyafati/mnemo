@@ -1,4 +1,5 @@
 import androidx.room.gradle.RoomExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.yahyafati.mnemo.buildlogic.libs
 import com.yahyafati.mnemo.buildlogic.library
 import com.yahyafati.mnemo.buildlogic.pluginId
@@ -19,6 +20,12 @@ class AndroidRoomConventionPlugin : Plugin<Project> {
 
             extensions.configure<RoomExtension> {
                 schemaDirectory("$projectDir/schemas")
+            }
+            // MigrationTestHelper reads the exported schemas as assets. Robolectric unit tests
+            // need them too, so migrations are checked by `testDebugUnitTest` without a device.
+            extensions.configure<LibraryExtension> {
+                sourceSets.getByName("test").assets.directories.add("$projectDir/schemas")
+                testOptions.unitTests.isIncludeAndroidResources = true
             }
 
             dependencies {

@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mnemo is a local-first spaced-repetition Android app (package `com.yahyafati.mnemo`). Read `docs/PROJECT_OVERVIEW.md` (product), `docs/ARCHITECTURE.md` (modules, layers, rules) and `docs/ROADMAP.md` (phases). Decisions are recorded in `docs/adr/`.
 
-**Phase 0 (Foundation) is done**: multi-module skeleton, design system, and the navigation shell. The four tabs (Decks · Study · Create · Analytics) and Settings are placeholder screens. There is no persistence, scheduler, or ViewModel yet; that is Phase 1.
+**Phase 0 (Foundation) is done and Phase 1 (Core SRS) is implemented** (its frame-rate exit check is still open): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, and scheduling/appearance settings, all offline. Analytics is still a placeholder (Phase 5). Next up: Phases 2, 3 and 5 (see ROADMAP).
 
-Modules today: `:app`, `:core:{common,designsystem,model,testing,ui}`, `:feature:{analytics,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
+Modules today: `:app`, `:core:{common,data,database,datastore,designsystem,domain,model,scheduler,testing,ui}`, `:feature:{analytics,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
 
 ## Commands
 
@@ -43,6 +43,23 @@ JVM modules (`:core:model`, `:core:common`) use `test`, not `testDebugUnitTest`.
 - All dependencies and plugins live in `gradle/libs.versions.toml`. Compose artifacts take versions from the BOM, except `material-icons-extended`, which is no longer in the BOM.
 - `settings.gradle.kts` uses `RepositoriesMode.FAIL_ON_PROJECT_REPOS`, so repositories go there, never in module build files. Type-safe project accessors are on (`projects.core.designsystem`).
 - Unit tests run on the JDK 25 toolchain. The Android convention adds the `--add-opens`/`--add-exports` flags Robolectric needs, and turns off `failOnNoDiscoveredTests` for modules with no tests yet. Robolectric runs on SDK 36 (`src/test/resources/robolectric.properties`) because it doesn't ship 37.
+
+## Data and scheduling
+
+- Layers follow ARCHITECTURE §2: Room (`:core:database`) and DataStore (`:core:datastore`) are only seen by `:core:data`, whose repositories (`*Repository` interfaces, `Offline*` implementations) map entities to `:core:model` types. Use cases live in `:core:domain`.
+- `:core:scheduler` is a pure-Kotlin port of py-fsrs 6 with its own `Fsrs*` types (it may not depend on `:core:model`). `FsrsTest` holds the reference vectors; keep it in sync if the port changes. `StudyScheduler` (`:core:domain`) maps model cards to it and seeds fuzz per card, so previews equal saved answers.
+- Room schema is exported to `core/database/schemas/`. A schema change needs a version bump, a migration in `migration/Migrations.kt` and a `MigrationTest` case (it runs under Robolectric in `testDebugUnitTest`). Never enable destructive migration.
+- Rows use UUID ids, epoch-millis timestamps and soft deletes (`deletedAt`); every query filters `deletedAt IS NULL`. Undo is the exception: it hard-deletes the review log.
+- Time goes through `Clock`; "today" is `StudyDay` (rolls over at 4 a.m. local, like Anki).
+- The study loop is optimistic: `StudyViewModel` computes the answer, shows the next card, then saves through a `Mutex` so saves and undos stay in order.
+- Card text is a Markdown subset plus Anki cloze, rendered by `:core:ui/card` (ADR 0002). Cloze parsing is `Cloze` in `:core:model`.
+
+## Tests
+
+- Fakes for every repository are in `:core:testing/repository`. ViewModel tests build real use cases on top of them. Create ViewModels lazily or inside the test, after `MainDispatcherRule` has set `Dispatchers.Main`.
+- In Android modules use `org.junit.Test` (`kotlin.test.Test` doesn't resolve there); `kotlin.test` assertions are fine.
+- Compose UI tests run on Robolectric in `src/test` (features and `:app`), so the exit check covers them. App tests are `@HiltAndroidTest` with `TestStorageModules` (in-memory DB, per-test DataStore file) and a phone-sized `@Config(qualifiers = …)`; Robolectric's default screen is too small for off-screen clicks.
+- Known Robolectric limit: a text field inside a Compose `AlertDialog` never lets the test go idle. Test dialog logic through the ViewModel instead.
 
 ## UI
 

@@ -1,39 +1,65 @@
 package com.yahyafati.mnemo.feature.create
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import com.yahyafati.mnemo.core.designsystem.component.EmptyState
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
-import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 
-// Placeholder until the Create screen is built (docs/ROADMAP.md).
+/** The Create tab: add new notes. AI Smart Extract joins this tab in Phase 4. */
 @Composable
-internal fun CreateScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        contentAlignment = Alignment.Center,
-    ) {
-        EmptyState(
-            icon = MnemoIcons.Create,
-            title = stringResource(R.string.feature_create_empty_title),
-            message = stringResource(R.string.feature_create_empty_message),
-        )
-    }
+internal fun CreateScreen(
+    modifier: Modifier = Modifier,
+    viewModel: NoteEditorViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    NoteEditorScreen(uiState = uiState, onAction = viewModel::onAction, modifier = modifier)
 }
 
-@Preview(showBackground = true)
+/**
+ * The editor as its own screen: adding cards to a given deck, or editing a note in place from a
+ * study session. Not a tab, so it owns its top bar.
+ */
 @Composable
-private fun CreateScreenPreview() {
-    MnemoTheme {
-        CreateScreen()
+internal fun NoteEditorFullScreen(
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: NoteEditorViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(uiState.closeRequested) {
+        if (uiState.closeRequested) onClose()
+    }
+    Scaffold(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            MnemoTopBar(
+                title = stringResource(if (uiState.isEditing) R.string.feature_create_title_edit else R.string.feature_create_title_new),
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(MnemoIcons.Close, stringResource(R.string.feature_create_close))
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        NoteEditorScreen(
+            uiState = uiState,
+            onAction = viewModel::onAction,
+            modifier = Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding),
+        )
     }
 }

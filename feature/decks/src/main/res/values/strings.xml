@@ -1,5 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_decks_empty_title">No decks yet</string>
-    <string name="feature_decks_empty_message">Decks you create or import will appear here, with what is due today.</string>
+    <string name="feature_decks_empty_message">Create a deck, add a few cards, and your first session is ready.</string>
+    <string name="feature_decks_no_match_title">No decks match</string>
+    <string name="feature_decks_no_match_message">Try another search or filter.</string>
+    <string name="feature_decks_clear_filters">Clear filters</string>
+
+    <string name="feature_decks_greeting_morning">Good morning</string>
+    <string name="feature_decks_greeting_afternoon">Good afternoon</string>
+    <string name="feature_decks_greeting_evening">Good evening</string>
+    <plurals name="feature_decks_headline_cards">
+        <item quantity="one">Ready for your daily card?</item>
+        <item quantity="other">Ready for your daily %d cards?</item>
+    </plurals>
+    <string name="feature_decks_headline_done">You\'re all caught up.</string>
+    <string name="feature_decks_headline_first">Let\'s build your first deck.</string>
+    <string name="feature_decks_estimate">Est. %d min</string>
+
+    <string name="feature_decks_mix_label">Spaced interval</string>
+    <string name="feature_decks_mix_title">Daily Retention Mix</string>
+    <string name="feature_decks_mix_message">Today\'s due and new cards from every deck, scheduled by FSRS.</string>
+    <string name="feature_decks_mix_done_message">Nothing is due right now. Add cards or come back later.</string>
+    <string name="feature_decks_due">Due</string>
+    <string name="feature_decks_new">New</string>
+    <string name="feature_decks_learning">Learning</string>
+    <string name="feature_decks_start_session">Start Session</string>
+
+    <string name="feature_decks_stat_streak">Streak</string>
+    <plurals name="feature_decks_stat_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <string name="feature_decks_stat_today">Today</string>
+    <plurals name="feature_decks_stat_reviews">
+        <item quantity="one">review</item>
+        <item quantity="other">reviews</item>
+    </plurals>
+    <string name="feature_decks_stat_cards">Cards</string>
+
+    <string name="feature_decks_search">Filter your library…</string>
+    <string name="feature_decks_filter_all">All Decks (%d)</string>
+    <string name="feature_decks_filter_due">Due Today (%d)</string>
+    <string name="feature_decks_filter_starred">Starred ★ (%d)</string>
+    <string name="feature_decks_library">Library</string>
+    <string name="feature_decks_new_deck">New Deck</string>
+
+    <plurals name="feature_decks_due_count">
+        <item quantity="one">%d due</item>
+        <item quantity="other">%d due</item>
+    </plurals>
+    <plurals name="feature_decks_new_count">
+        <item quantity="one">%d new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+    <string name="feature_decks_done">Done for today</string>
+    <plurals name="feature_decks_total_cards">
+        <item quantity="one">%d card</item>
+        <item quantity="other">%d cards</item>
+    </plurals>
+    <string name="feature_decks_last_review">Last rev: %s</string>
+    <string name="feature_decks_just_now">just now</string>
+    <string name="feature_decks_review">Review</string>
+    <string name="feature_decks_add_cards">Add cards</string>
+    <plurals name="feature_decks_subdecks">
+        <item quantity="one">%d subdeck</item>
+        <item quantity="other">%d subdecks</item>
+    </plurals>
+    <string name="feature_decks_star">Star deck</string>
+    <string name="feature_decks_unstar">Unstar deck</string>
+    <string name="feature_decks_options">Deck options</string>
+    <string name="feature_decks_edit">Edit deck</string>
+    <string name="feature_decks_delete">Delete deck</string>
+
+    <string name="feature_decks_delete_title">Delete “%s”?</string>
+    <plurals name="feature_decks_delete_message">
+        <item quantity="one">This deletes the deck, its subdecks and %d card, with its review history.</item>
+        <item quantity="other">This deletes the deck, its subdecks and %d cards, with their review history.</item>
+    </plurals>
+    <string name="feature_decks_delete_confirm">Delete</string>
+    <string name="feature_decks_cancel">Cancel</string>
 </resources>

@@ -7,7 +7,7 @@ import org.gradle.kotlin.dsl.dependencies
 
 /**
  * `mnemo.android.feature`: library + Compose + Hilt + serialization, plus the core modules every
- * feature uses. Features depend on `core` only, never on each other (ARCHITECTURE §3).
+ * feature uses (design system, shared UI, and the domain layer with its repositories). Features depend on `core` only, never on each other (ARCHITECTURE §3).
  */
 class AndroidFeatureConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -19,6 +19,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
 
             dependencies {
                 add("implementation", project(":core:designsystem"))
+                add("implementation", project(":core:domain"))
                 add("implementation", project(":core:ui"))
 
                 add("implementation", libs.library("androidx-navigation-compose"))
@@ -30,6 +31,9 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("testImplementation", project(":core:testing"))
                 add("testImplementation", libs.library("kotlinx-coroutines-test"))
                 add("testImplementation", libs.library("turbine"))
+                // Compose UI tests run on the JVM with Robolectric, inside `testDebugUnitTest`.
+                add("testImplementation", libs.library("androidx-compose-ui-test-junit4"))
+                add("testImplementation", libs.library("robolectric"))
                 add("androidTestImplementation", libs.library("androidx-compose-ui-test-junit4"))
                 add("debugImplementation", libs.library("androidx-compose-ui-test-manifest"))
             }

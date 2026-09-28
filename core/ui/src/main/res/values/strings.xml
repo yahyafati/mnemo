@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_ui_card_prompt">Prompt</string>
+    <string name="core_ui_card_answer">Answer</string>
+
+    <string name="core_ui_deck_new_title">New deck</string>
+    <string name="core_ui_deck_edit_title">Edit deck</string>
+    <string name="core_ui_deck_name">Name</string>
+    <string name="core_ui_deck_name_hint">Use Parent::Child to nest decks</string>
+    <string name="core_ui_deck_category">Category (optional)</string>
+    <string name="core_ui_deck_category_hint">e.g. Language, Exam Prep</string>
+    <string name="core_ui_deck_description">Description (optional)</string>
+    <string name="core_ui_deck_create">Create</string>
+    <string name="core_ui_deck_save">Save</string>
+    <string name="core_ui_cancel">Cancel</string>
+</resources>

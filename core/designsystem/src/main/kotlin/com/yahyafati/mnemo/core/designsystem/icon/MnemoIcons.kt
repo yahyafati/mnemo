@@ -25,6 +25,25 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Style
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DataArray
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PauseCircle
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -59,4 +78,25 @@ object MnemoIcons {
     val StarOutline: ImageVector = Icons.Outlined.StarOutline
     val Streak: ImageVector = Icons.Outlined.LocalFireDepartment
     val TrendingUp: ImageVector = Icons.AutoMirrored.Outlined.TrendingUp
+
+    // Study and editing
+    val Bury: ImageVector = Icons.Outlined.VisibilityOff
+    val Check: ImageVector = Icons.Outlined.Check
+    val Close: ImageVector = Icons.Outlined.Close
+    val Cloze: ImageVector = Icons.Outlined.DataArray
+    val Delete: ImageVector = Icons.Outlined.DeleteOutline
+    val Edit: ImageVector = Icons.Outlined.Edit
+    val ExpandLess: ImageVector = Icons.Outlined.ExpandLess
+    val ExpandMore: ImageVector = Icons.Outlined.ExpandMore
+    val Flag: ImageVector = Icons.Outlined.Flag
+    val FlagFilled: ImageVector = Icons.Filled.Flag
+    val Lightbulb: ImageVector = Icons.Outlined.Lightbulb
+    val MoreVert: ImageVector = Icons.Outlined.MoreVert
+    val Palette: ImageVector = Icons.Outlined.Palette
+    val School: ImageVector = Icons.Outlined.School
+    val Suspend: ImageVector = Icons.Outlined.PauseCircle
+    val Tag: ImageVector = Icons.AutoMirrored.Outlined.Label
+    val TouchApp: ImageVector = Icons.Outlined.TouchApp
+    val Tune: ImageVector = Icons.Outlined.Tune
+    val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
 }
