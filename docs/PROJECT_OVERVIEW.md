@@ -174,6 +174,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, dependency rules, fol
 
 ## 8. Roadmap
 
+Summary below. See [ROADMAP.md](ROADMAP.md) for each phase's scope and exit criteria.
+
 | Milestone | Scope |
 |---|---|
 | **M0 — Foundation** | Architecture, DI, Room schema, design system, bottom navigation, theme matching the mockups |
