@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-background":"#1d1b18","outline":"#777587","surface-tint":"#4d44e3","surface-container":"#f3ede7","on-tertiary-fixed-variant":"#653e00","on-tertiary-fixed":"#2a1700","secondary":"#006c49","outline-variant":"#c7c4d8","on-secondary-fixed-variant":"#005236","on-surface-variant":"#464555","on-primary-fixed-variant":"#3323cc","tertiary-container":"#885500","on-secondary":"#ffffff","surface-container-highest":"#e7e1dc","surface":"#fff8f3","on-tertiary-container":"#ffd4a4","primary-fixed":"#e2dfff","on-error-container":"#93000a","tertiary":"#684000","on-secondary-container":"#00714d","surface-variant":"#e7e1dc","secondary-container":"#6cf8bb","tertiary-fixed":"#ffddb8","secondary-fixed-dim":"#4edea3","on-tertiary":"#ffffff","on-primary":"#ffffff","inverse-on-surface":"#f6f0ea","on-secondary-fixed":"#002113","surface-container-lowest":"#ffffff","on-primary-container":"#dad7ff","background":"#fff8f3","primary":"#3525cd","error":"#ba1a1a","tertiary-fixed-dim":"#ffb95f","primary-container":"#4f46e5","on-error":"#ffffff","surface-container-low":"#f9f2ed","surface-dim":"#dfd9d4","surface-bright":"#fff8f3","secondary-fixed":"#6ffbbe","on-primary-fixed":"#0f0069","error-container":"#ffdad6","surface-container-high":"#ede7e2","on-surface":"#1d1b18","primary-fixed-dim":"#c3c0ff","inverse-surface":"#32302d","inverse-primary":"#c3c0ff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-sm":"0.5rem","margin-mobile":"1.25rem","space-xs":"0.25rem","space-xl":"2.5rem","space-lg":"1.5rem","margin":"3rem","gutter":"1.5rem","space-md":"1rem","gutter-mobile":"1rem"},"fontFamily":{"display-hero-mobile":["Newsreader"],"metric-mono-sm":["JetBrains Mono"],"metric-mono-lg":["JetBrains Mono"],"study-prompt":["Newsreader"],"label-md":["Hanken Grotesk"],"headline-lg":["Newsreader"],"body-md":["Hanken Grotesk"],"headline-md":["Newsreader"],"label-sm":["Hanken Grotesk"],"body-sm":["Hanken Grotesk"],"display-hero":["Newsreader"],"study-prompt-mobile":["Newsreader"],"body-lg":["Hanken Grotesk"],"headline-sm":["Newsreader"]},"fontSize":{"display-hero-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.01em","fontWeight":"400"}],"metric-mono-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"400"}],"metric-mono-lg":["18px",{"lineHeight":"22px","letterSpacing":"-0.02em","fontWeight":"500"}],"study-prompt":["28px",{"lineHeight":"38px","fontWeight":"400"}],"label-md":["14px",{"lineHeight":"18px","letterSpacing":"0.01em","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.015em","fontWeight":"400"}],"body-md":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-md":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"500"}],"label-sm":["12px",{"lineHeight":"16px","fontWeight":"500"}],"body-sm":["14px",{"lineHeight":"20px","fontWeight":"400"}],"display-hero":["48px",{"lineHeight":"56px","letterSpacing":"-0.02em","fontWeight":"400"}],"study-prompt-mobile":["22px",{"lineHeight":"30px","fontWeight":"400"}],"body-lg":["18px",{"lineHeight":"28px","fontWeight":"400"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"500"}]}}}};</script><style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-16 px-margin-mobile flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="Mnemo App Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Wc4_Ju7KyyLgGVsMTb16xu4FSe-4lHPlj-_qEoDAyf0iLyOnvuIepD2TzxNgQVnVYsxJ8lCV2bljv5Q-CVrBTrUjMRMetjS5zdRAHZxx_9hb0aZZAidGJshiAXPhF2F1Nsn9Hbcia8amHCGMlDoylOFTqGwpaB_9kBQkQRPHJsreiX_GBsUW6fWNn133gnp-iWq0kSP585cJoW8SaLXs10C6hYicYdObexbxou6I5AqINFqY4HDBzsH5I"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Mnemo</span><div class="inline-flex items-center px-space-xs py-0.5 rounded-full bg-surface-container font-metric-mono-sm text-metric-mono-sm text-tertiary font-medium"><span class="mr-1 text-[11px]">🔥</span>14d</div></div><div class="flex items-center gap-space-sm"><div class="text-right hidden xs:block"><span class="block font-label-sm text-label-sm text-on-surface-variant font-medium">Create Cards</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL1_ISuqtcxNocheDJCgxg-lhD2u-JPG1QujcyvaWfuvQuYgKX_A_jhRyYmRxV-742v2FS42h9d1YPoZQH2Z0qtwCYkLbFqgDZDxtUAX7FvTYBNVDL5nT1FwIfKa__acaJTrrJqmy_lHxryJcrR0qHBhkRzTaw0c6NILqLErWv5E4HkRsLPTWbDS532KDsTyH_oJj05QPc7NsOBSJvxDyLCGb7wh_fAR4hikY5IAUdqE0-JdsalFz_"/></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface min-h-screen"><div class="flex flex-col w-full">
+    <div class="px-margin-mobile pt-space-md pb-space-lg flex flex-col gap-space-lg max-w-[680px] mx-auto w-full">
+        <!-- Mode Selector: Tactile Editorial Segmented Rail -->
+        <div class="w-full bg-surface-container p-1 rounded-xl flex items-center justify-between shadow-sm">
+            <button class="w-1/2 py-2 text-center rounded-lg font-label-md text-label-md text-on-surface-variant transition-all hover:text-on-surface flex items-center justify-center gap-1.5" type="button">
+                <span class="material-symbols-outlined text-[18px]">edit_note</span>
+                Manual Create
+            </button>
+            <button class="w-1/2 py-2 text-center rounded-lg font-label-md text-label-md bg-surface-container-lowest text-primary shadow-sm flex items-center justify-center gap-1.5 transition-all" type="button">
+                <span class="material-symbols-outlined text-[18px] text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                AI Smart Extract
+            </button>
+        </div>
+        <!-- AI Generator Workshop Card -->
+        <section class="relative bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-md shadow-sm overflow-hidden">
+            <!-- Ambient Glow Scrim -->
+            <div class="absolute -top-12 -right-12 w-40 h-40 bg-surface-tint/10 rounded-full blur-2xl pointer-events-none"></div>
+            <!-- Header with editorial flourish -->
+            <div class="flex items-start gap-space-sm relative z-10">
+                <div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-on-primary shrink-0 shadow-sm">
+                    <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">psychology_alt</span>
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-label-sm text-label-sm text-primary font-semibold uppercase tracking-wider">AI Co-Author</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-metric-mono-sm text-[10px]">v3.2</span>
+                    </div>
+                    <h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight mt-0.5">Turn Notes, PDFs &amp; Audio into Smart Decks</h1>
+                </div>
+            </div>
+            <!-- Source Modality Chips -->
+            <div class="flex items-center gap-space-xs overflow-x-auto pb-1 relative z-10">
+                <button class="shrink-0 px-3 py-1.5 rounded-full bg-on-surface text-surface font-label-sm text-label-sm flex items-center gap-1 shadow-sm" type="button">
+                    <span class="material-symbols-outlined text-[16px]">content_paste</span>
+                    Paste Notes
+                </button>
+                <button class="shrink-0 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                    Upload PDF
+                </button>
+                <button class="shrink-0 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-[16px]">play_circle</span>
+                    Lecture Link
+                </button>
+                <button class="shrink-0 px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm flex items-center gap-1 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-[16px]">mic</span>
+                    Dictation
+                </button>
+            </div>
+            <!-- Editorial Parchment Input Area -->
+            <div class="relative bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col gap-2">
+                <div class="flex items-center justify-between text-on-surface-variant">
+<span class="font-label-sm text-label-sm font-medium flex items-center gap-1 text-on-surface">
+<span class="material-symbols-outlined text-[15px] text-secondary">verified</span>
+            Source Context (Neurobiology)
+          </span>
+                    <span class="font-metric-mono-sm text-metric-mono-sm">184 words</span>
+                </div>
+                <textarea class="w-full bg-transparent resize-none font-body-sm text-body-sm text-on-surface focus:outline-none placeholder-outline" id="source-snippet" placeholder="Paste study text, lecture summaries, or excerpts..." rows="4">The amygdala plays a primary role in processing emotional memories, particularly fear responses. The basolateral complex receives sensory inputs from cortical structures and sends projections to the central nucleus, orchestrating autonomic responses like heart-rate elevation and freezing behavior.</textarea>
+                <div class="flex items-center justify-between pt-1 text-outline">
+                    <div class="flex items-center gap-1 text-[11px] font-metric-mono-sm text-secondary">
+                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                        Key concepts detected: 4
+                    </div>
+                    <button class="text-on-surface-variant hover:text-on-surface text-[12px] font-label-sm flex items-center gap-0.5" type="button">
+                        <span class="material-symbols-outlined text-[14px]">refresh</span>
+                        Clear
+                    </button>
+                </div>
+            </div>
+            <!-- AI Controls Grid -->
+            <div class="flex flex-col gap-space-md pt-1">
+                <!-- Target Deck Selection -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant font-medium">Destination Deck</label>
+                    <div class="relative w-full bg-surface-container-lowest rounded-lg shadow-sm flex items-center justify-between px-space-md py-2.5 cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-secondary"></span>
+                            <span class="font-body-sm text-body-sm text-on-surface font-medium">Cognitive Neuroscience</span>
+                            <span class="font-metric-mono-sm text-[11px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">Current</span>
+                        </div>
+                        <span class="material-symbols-outlined text-outline text-[20px]">expand_more</span>
+                    </div>
+                </div>
+                <!-- Density Segmented Switch -->
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="font-label-sm text-label-sm text-on-surface-variant font-medium">Information Density</label>
+                        <span class="font-metric-mono-sm text-[11px] text-tertiary font-semibold">12 Flashcards</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 bg-surface-container p-1 rounded-lg">
+                        <button class="py-1.5 px-2 rounded-md font-label-sm text-label-sm bg-surface-container-lowest text-on-surface shadow-sm font-medium flex items-center justify-center gap-1" type="button">
+                            <span>Concise</span>
+                            <span class="text-[11px] text-on-surface-variant font-metric-mono-sm">(High Yield)</span>
+                        </button>
+                        <button class="py-1.5 px-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1" type="button">
+                            <span>Comprehensive</span>
+                            <span class="text-[11px] text-outline font-metric-mono-sm">(All)</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Question Types Multi-select Chips -->
+                <div class="flex flex-col gap-1.5">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant font-medium">Card Archetypes</label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <!-- Selected -->
+                        <button class="px-2.5 py-1 rounded-md bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold flex items-center gap-1 shadow-sm" type="button">
+                            <span class="material-symbols-outlined text-[15px]">check</span>
+                            Concept &amp; Definition
+                        </button>
+                        <!-- Selected -->
+                        <button class="px-2.5 py-1 rounded-md bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold flex items-center gap-1 shadow-sm" type="button">
+                            <span class="material-symbols-outlined text-[15px]">check</span>
+                            Cloze Deletion
+                        </button>
+                        <!-- Unselected -->
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:text-on-surface flex items-center gap-1" type="button">
+                            <span class="material-symbols-outlined text-[15px]">add</span>
+                            Multi-Choice
+                        </button>
+                        <!-- Unselected -->
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:text-on-surface flex items-center gap-1" type="button">
+                            <span class="material-symbols-outlined text-[15px]">add</span>
+                            Case Studies
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Action Trigger: Tactile Indigo Push Button -->
+            <button class="w-full mt-2 py-3.5 px-4 rounded-xl bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all" id="generate-btn" type="button">
+                <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                <span>Generate 12 Flashcards</span>
+                <span class="ml-1 px-1.5 py-0.5 rounded bg-on-primary/20 text-on-primary font-metric-mono-sm text-[11px] font-normal">~2.4s</span>
+            </button>
+            <!-- Micro metadata status -->
+            <div class="flex items-center justify-center gap-2 text-on-surface-variant text-center">
+                <span class="material-symbols-outlined text-secondary text-[14px]">format_image_left</span>
+                <span class="font-body-sm text-[12px]">Preserves Anki FSRS scheduling metadata</span>
+            </div>
+        </section>
+        <!-- Visual Divider -->
+        <div class="flex items-center gap-3">
+            <div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+            <span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Live Preview</span>
+            <div class="h-[1px] flex-1 bg-surface-container-highest"></div>
+        </div>
+        <!-- Live Card Preview Workspace -->
+        <section class="flex flex-col gap-space-sm">
+            <div class="flex items-center justify-between px-1">
+                <div class="flex items-center gap-2">
+                    <span class="font-metric-mono-sm text-metric-mono-sm text-on-surface-variant">Card 01 of 12</span>
+                    <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-[11px] font-semibold">High Confidence</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button class="p-1 rounded text-on-surface-variant hover:text-on-surface" title="Regenerate this card" type="button">
+                        <span class="material-symbols-outlined text-[18px]">replay</span>
+                    </button>
+                    <button class="p-1 rounded text-on-surface-variant hover:text-error" title="Discard" type="button">
+                        <span class="material-symbols-outlined text-[18px]">delete_outline</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Editorial Card Face (Stationery Aesthetic) -->
+            <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+                <!-- Deck & Type Index Breadcrumb -->
+                <div class="flex items-center justify-between pb-2">
+                    <span class="font-label-sm text-label-sm text-outline uppercase tracking-widest font-semibold">FRONT (PROMPT)</span>
+                    <span class="font-metric-mono-sm text-[11px] text-tertiary bg-surface-container-low px-2 py-0.5 rounded">Cloze Deletion</span>
+                </div>
+                <!-- Editable Question / Prompt -->
+                <div class="flex flex-col gap-1">
+                    <textarea aria-label="Flashcard Question" class="w-full bg-transparent resize-none font-study-prompt-mobile text-study-prompt-mobile text-on-surface focus:outline-none" rows="2">Which anatomical structure is primary in fear-conditioned emotional memory?</textarea>
+                </div>
+                <!-- Editorial Dashed Substrate Divider -->
+                <div class="w-full py-1">
+                    <div class="w-full h-px bg-surface-container-highest"></div>
+                </div>
+                <!-- Deck Back Index Breadcrumb -->
+                <div class="flex items-center justify-between">
+                    <span class="font-label-sm text-label-sm text-outline uppercase tracking-widest font-semibold">BACK (RESPONSE)</span>
+                    <span class="material-symbols-outlined text-secondary text-[16px]">psychology</span>
+                </div>
+                <!-- Editable Answer / Response Definition -->
+                <div class="flex flex-col gap-1">
+                    <textarea aria-label="Flashcard Answer" class="w-full bg-transparent resize-none font-body-lg text-body-lg text-on-surface font-medium focus:outline-none" rows="2">The Amygdala (specifically the basolateral complex).</textarea>
+                </div>
+                <!-- Categorical Taxonomies / High Yield Tags -->
+                <div class="flex items-center gap-1.5 pt-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-metric-mono-sm text-[11px]">#high-yield</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-metric-mono-sm text-[11px]">#neuroanatomy</span>
+                    <span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-metric-mono-sm text-[11px]">#limbic-system</span>
+                    <button class="text-primary hover:text-surface-tint font-label-sm text-label-sm flex items-center gap-0.5 ml-1" type="button">
+                        <span class="material-symbols-outlined text-[14px]">add</span>
+                        Tag
+                    </button>
+                </div>
+            </div>
+            <!-- Quick Session Insertion Bar -->
+            <div class="flex items-center justify-between px-2 pt-1 text-on-surface-variant font-body-sm text-[13px]">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">bolt</span>
+          Ready to commit into <strong>Cognitive Neuroscience</strong>
+</span>
+                <button class="text-primary font-label-sm text-label-sm font-semibold hover:underline" type="button">
+                    Accept All (12)
+                </button>
+            </div>
+        </section>
+        <!-- Study Insight Pill (Delight Element) -->
+        <div class="mt-2 p-space-md rounded-xl bg-surface-container flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-surface-container-lowest text-tertiary flex items-center justify-center shrink-0 shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">lightbulb</span>
+            </div>
+            <p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+                Cards generated with bidirectional context boost retention efficiency by <strong>34%</strong> on first-week recall tests.
+            </p>
+        </div>
+    </div>
+    <script>
+        // Micro-interaction for generate button feedback
+        const genBtn = document.getElementById('generate-btn');
+        if (genBtn) {
+          genBtn.addEventListener('click', function() {
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span><span>Synthesizing Cards...</span>';
+            this.classList.add('opacity-80');
+            setTimeout(() => {
+              this.innerHTML = originalHTML;
+              this.classList.remove('opacity-80');
+            }, 1200);
+          });
+        }
+    </script>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.03)]" data-active-classes="text-primary"><div class="flex items-center justify-around h-16 px-space-sm"><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-colors hover:text-on-surface" data-path="decks" href="#"><span class="material-symbols-outlined text-[22px]">local_library</span><span class="font-label-sm text-label-sm tracking-wide">Decks</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-colors hover:text-on-surface" data-path="study-session" href="#"><span class="material-symbols-outlined text-[22px]">style</span><span class="font-label-sm text-label-sm tracking-wide">Study</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 transition-colors text-primary" data-path="create-cards" href="#"><span class="material-symbols-outlined text-[22px]">auto_awesome</span><span class="font-label-sm text-label-sm tracking-wide">Create</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] gap-0.5 text-on-surface-variant transition-colors hover:text-on-surface" data-path="retention-analytics" href="#"><span class="material-symbols-outlined text-[22px]">insights</span><span class="font-label-sm text-label-sm tracking-wide">Analytics</span></a></div></nav></body></html>
