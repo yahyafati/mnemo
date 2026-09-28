@@ -1,0 +1,54 @@
+# Gradle
+.gradle/
+build/
+/captures
+
+# Kotlin compiler daemon / incremental data
+.kotlin/
+
+# Local config (SDK path, secrets)
+local.properties
+
+# Android Studio / IntelliJ
+*.iml
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+/.idea/androidTestResultsUserPreferences.xml
+/.idea/studiobot.xml
+/.idea/shelf
+/.idea/tasks.xml
+/.idea/usage.statistics.xml
+/.idea/dictionaries
+/.idea/httpRequests
+
+# Native builds
+.externalNativeBuild
+.cxx
+
+# Build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+/app/release
+
+# Signing
+*.jks
+*.keystore
+
+# Logs / heap dumps
+*.log
+*.hprof
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
