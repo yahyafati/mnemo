@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -22,6 +23,20 @@ dependencyResolutionManagement {
     }
 }
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 rootProject.name = "mnemo"
 include(":app")
+
+include(":core:common")
+include(":core:designsystem")
+include(":core:model")
+include(":core:testing")
+include(":core:ui")
+
+include(":feature:analytics")
+include(":feature:create")
+include(":feature:decks")
+include(":feature:settings")
+include(":feature:study")
  

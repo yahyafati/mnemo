@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_study_empty_title">Nothing to study</string>
+    <string name="feature_study_empty_message">Cards that are due for review will show up here.</string>
+</resources>

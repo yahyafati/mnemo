@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_decks_empty_title">No decks yet</string>
+    <string name="feature_decks_empty_message">Decks you create or import will appear here, with what is due today.</string>
+</resources>

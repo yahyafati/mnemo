@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_create_empty_title">Create cards</string>
+    <string name="feature_create_empty_message">Write cards by hand, or turn your notes into cards.</string>
+</resources>

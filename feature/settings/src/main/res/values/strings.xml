@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_settings_title">Settings</string>
+    <string name="feature_settings_back">Back</string>
+    <string name="feature_settings_empty_title">Nothing to configure yet</string>
+    <string name="feature_settings_empty_message">Scheduling, appearance and AI providers will be set up here.</string>
+</resources>

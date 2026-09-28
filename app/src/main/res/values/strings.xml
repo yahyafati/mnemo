@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">mnemo</string>
+    <string name="app_name">Mnemo</string>
+    <string name="nav_decks">Decks</string>
+    <string name="nav_study">Study</string>
+    <string name="nav_create">Create</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="open_settings">Settings</string>
 </resources>
