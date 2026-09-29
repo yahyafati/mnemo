@@ -73,4 +73,4 @@ Changes to this policy ship with app updates and are listed in the release notes
 
 ## Contact
 
-Questions: [contact address to be added before publishing].
+Questions: yfati037@gmail.com.
