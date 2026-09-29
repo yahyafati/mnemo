@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 internal class DefaultUserSettingsRepository @Inject constructor(
@@ -28,4 +29,8 @@ internal class DefaultUserSettingsRepository @Inject constructor(
     override suspend fun setUseDynamicColor(value: Boolean) = dataSource.setUseDynamicColor(value)
 
     override suspend fun setCardFontSize(value: CardFontSize) = dataSource.setCardFontSize(value)
+
+    override suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) = dataSource.setAutoBackup(enabled, folderUri)
+
+    override suspend fun setLastBackupAt(value: Instant) = dataSource.setLastBackupAt(value)
 }

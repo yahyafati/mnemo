@@ -34,3 +34,9 @@ data class FsrsCard(
     val difficulty: Double? = null,
     val lastReview: Instant? = null,
 )
+
+/** Stability (days) and difficulty (1–10) without the rest of a card's schedule. */
+data class FsrsMemoryState(
+    val stability: Double,
+    val difficulty: Double,
+)

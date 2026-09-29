@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.model
 
 import java.time.Duration
+import java.time.Instant
 
 enum class CardFontSize(val scale: Float) {
     Small(0.9f),
@@ -18,4 +19,15 @@ data class UserSettings(
     val darkThemeConfig: DarkThemeConfig = DarkThemeConfig.FollowSystem,
     val useDynamicColor: Boolean = false,
     val cardFontSize: CardFontSize = CardFontSize.Medium,
+    val backup: BackupSettings = BackupSettings(),
+)
+
+/** Automatic backups (Settings › Data). */
+data class BackupSettings(
+    val autoBackupEnabled: Boolean = false,
+    /** The Storage Access Framework tree the user picked for automatic backups. */
+    val folderUri: String? = null,
+    /** How many automatic backups to keep in [folderUri]; older ones are deleted. */
+    val keepCount: Int = 7,
+    val lastBackupAt: Instant? = null,
 )

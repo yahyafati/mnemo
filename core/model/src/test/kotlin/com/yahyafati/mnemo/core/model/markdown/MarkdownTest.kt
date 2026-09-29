@@ -1,9 +1,11 @@
-package com.yahyafati.mnemo.core.ui.card.markdown
+package com.yahyafati.mnemo.core.model.markdown
 
-import com.yahyafati.mnemo.core.ui.card.markdown.Markdown.Block
-import com.yahyafati.mnemo.core.ui.card.markdown.Markdown.Inline
+import com.yahyafati.mnemo.core.model.markdown.Markdown.Block
+import com.yahyafati.mnemo.core.model.markdown.Markdown.Inline
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class MarkdownTest {
     private fun text(s: String) = Inline.Text(s)
@@ -94,6 +96,53 @@ class MarkdownTest {
         assertEquals(
             listOf(Inline.Link(listOf(text("docs")), "https://example.com")),
             Markdown.parseInline("[docs](https://example.com)"),
+        )
+    }
+
+    @Test
+    fun imagesAndSounds() {
+        assertEquals(
+            listOf(Inline.Image("cell", "media:abc"), text(" "), Inline.Sound("media:def")),
+            Markdown.parseInline("![cell](media:abc) [sound:media:def]"),
+        )
+        // Not a sound tag or a link: plain text.
+        assertEquals(listOf(text("[sound:] and [x]")), Markdown.parseInline("[sound:] and [x]"))
+    }
+
+    @Test
+    fun math() {
+        assertEquals(
+            listOf(
+                text("Energy "),
+                Inline.Math("E = mc^2", display = false),
+                text(" and "),
+                Inline.Math("\\int_0^1 x\\,dx", display = true),
+                text(" "),
+                Inline.Math("a*b*c", display = true),
+            ),
+            Markdown.parseInline("Energy \\(E = mc^2\\) and \\[\\int_0^1 x\\,dx\\] \$\$a*b*c\$\$"),
+        )
+        // A lone dollar is text, an escaped parenthesis is not math, an unclosed delimiter is text.
+        assertEquals(listOf(text("costs $5 (")), Markdown.parseInline("costs $5 \\("))
+        assertEquals(listOf(text("\\(x)")), Markdown.parseInline("\\\\(x)"))
+    }
+
+    @Test
+    fun mathInsideCloze() {
+        assertEquals(
+            listOf(Inline.Cloze(1, listOf(Inline.Math("x^2", display = false)), null)),
+            Markdown.parseInline("{{c1::\\(x^2\\)}}"),
+        )
+        assertTrue(Markdown.containsMath("{{c1::\\(x^2\\)}}"))
+        assertFalse(Markdown.containsMath("`\\(x\\)` in code"))
+        assertFalse(Markdown.containsMath("plain"))
+    }
+
+    @Test
+    fun plainText() {
+        assertEquals(
+            "Title The amygdala and fear one two",
+            Markdown.plainText("# Title\nThe {{c1::**amygdala**::structure}} and\n*fear*\n\n- one\n- two ![](media:x)"),
         )
     }
 }

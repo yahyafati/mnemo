@@ -5,16 +5,19 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
+import com.yahyafati.mnemo.core.database.migration.Migration1To2
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
- * Migrations against the exported schemas in `core/database/schemas/`. With only version 1 so
- * far, this checks that the committed schema matches what Room generates. Each new version adds
- * a `migrate<N>To<N+1>` case that creates the old schema, inserts rows, and runs
- * `helper.runMigrationsAndValidate`.
+ * Migrations against the exported schemas in `core/database/schemas/`. Each version has a
+ * `migrate<N>To<N+1>` case that creates the old schema with data, migrates, and lets
+ * `runMigrationsAndValidate` compare the result with the new schema.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigrationTest {
@@ -26,7 +29,7 @@ class MigrationTest {
 
     @Test
     fun exportedSchemaMatchesEntities() {
-        helper.createDatabase(TEST_DB, 1).close()
+        helper.createDatabase(TEST_DB, LATEST).close()
 
         // Room validates the on-disk schema against the entities when it opens the database.
         Room.databaseBuilder(ApplicationProvider.getApplicationContext(), MnemoDatabase::class.java, TEST_DB)
@@ -35,7 +38,43 @@ class MigrationTest {
             .apply { openHelper.writableDatabase.close() }
     }
 
+    @Test
+    fun migrate1To2() = runTest {
+        helper.createDatabase(TEST_DB, 1).use { db ->
+            db.execSQL(
+                "INSERT INTO decks (id, parentId, name, description, category, starred, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('d1', NULL, 'Biology', '', NULL, 0, 1, 1, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO notes (id, deckId, noteTypeId, fields, tags, source, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('n1', 'd1', '00000000-0000-4000-8000-000000000001', '[\"q\",\"a\"]', '[\"t\"]', 'Manual', 1, 1, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO cards (id, noteId, deckId, templateOrd, state, due, stability, difficulty, step, lastReview, " +
+                    "reps, lapses, flagged, starred, suspended, buriedUntil, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('c1', 'n1', 'd1', 0, 2, 100, 3.5, 5.0, NULL, 50, 2, 0, 0, 1, 0, NULL, 1, 1, NULL)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 2, true, Migration1To2).close()
+
+        // Existing rows survive, with no guid; the new table works.
+        val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), MnemoDatabase::class.java, TEST_DB)
+            .addMigrations(*ALL_MIGRATIONS)
+            .build()
+        try {
+            val note = database.noteDao().getNote("n1")!!
+            assertEquals(listOf("q", "a"), note.fields)
+            assertNull(note.guid)
+            assertEquals(3.5, database.cardDao().getCard("c1")?.stability)
+            assertEquals(emptyList(), database.mediaDao().getAll())
+        } finally {
+            database.close()
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
+        const val LATEST = 2
     }
 }

@@ -7,13 +7,16 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -34,6 +37,12 @@ class UserPreferencesDataSource @Inject constructor(
             darkThemeConfig = prefs[Keys.DarkTheme].toEnum(defaults.darkThemeConfig),
             useDynamicColor = prefs[Keys.DynamicColor] ?: defaults.useDynamicColor,
             cardFontSize = prefs[Keys.CardFontSize].toEnum(defaults.cardFontSize),
+            backup = BackupSettings(
+                autoBackupEnabled = prefs[Keys.AutoBackup] ?: defaults.backup.autoBackupEnabled,
+                folderUri = prefs[Keys.BackupFolder],
+                keepCount = prefs[Keys.BackupKeepCount] ?: defaults.backup.keepCount,
+                lastBackupAt = prefs[Keys.LastBackupAt]?.let(Instant::ofEpochMilli),
+            ),
         )
     }
 
@@ -53,6 +62,13 @@ class UserPreferencesDataSource @Inject constructor(
 
     suspend fun setCardFontSize(value: CardFontSize) = edit { it[Keys.CardFontSize] = value.name }
 
+    suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) = edit {
+        it[Keys.AutoBackup] = enabled
+        if (folderUri == null) it.remove(Keys.BackupFolder) else it[Keys.BackupFolder] = folderUri
+    }
+
+    suspend fun setLastBackupAt(value: Instant) = edit { it[Keys.LastBackupAt] = value.toEpochMilli() }
+
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
         dataStore.edit(block)
     }
@@ -66,6 +82,10 @@ class UserPreferencesDataSource @Inject constructor(
         val DarkTheme = stringPreferencesKey("dark_theme_config")
         val DynamicColor = booleanPreferencesKey("use_dynamic_color")
         val CardFontSize = stringPreferencesKey("card_font_size")
+        val AutoBackup = booleanPreferencesKey("auto_backup")
+        val BackupFolder = stringPreferencesKey("backup_folder_uri")
+        val BackupKeepCount = intPreferencesKey("backup_keep_count")
+        val LastBackupAt = longPreferencesKey("last_backup_at")
     }
 
     private companion object {

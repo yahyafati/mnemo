@@ -106,6 +106,11 @@ Phases 2, 3, and 5 each depend only on Phase 1, so they can be reordered or run 
 
 ## Phase 2 — Anki interop and data safety
 
+**Status:** implemented (2026-09-29). Decisions: ADR 0003 (Anki mapping), ADR 0004 (media, math,
+backups). The exit criteria are covered by tests: `AnkiTransferTest` (real Anki packages, import
+and export → import), `RoundTripTest`, `BackupTest` (restore on a fresh install) and
+`MigrationTest.migrate1To2`. Mnemo's `.apkg` also imports into real Anki 26.09.
+
 **Goal:** Anki users can bring their decks and history, and nobody loses data.
 
 ### Scope
@@ -270,7 +275,7 @@ Phases 2, 3, and 5 each depend only on Phase 1, so they can be reordered or run 
 | Question (PROJECT_OVERVIEW §11) | Decide by |
 |---|---|
 | FSRS only vs. SM-2 support | Phase 0 (ADR 0001) |
-| How much Anki templating to support | Phase 2 |
+| How much Anki templating to support | Phase 2 (ADR 0003) |
 | On-device models as a provider | Phase 3 (design `AiProvider` so it can fit), built Later |
 | Sync strategy | Later, but schema rules apply from Phase 1 |
 | Monetization / licensing | Phase 6 |

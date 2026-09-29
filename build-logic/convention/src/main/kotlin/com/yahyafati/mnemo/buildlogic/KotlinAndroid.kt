@@ -54,6 +54,10 @@ internal fun Project.configureKotlinJvm() {
     extensions.configure<KotlinJvmProjectExtension> {
         compilerOptions.jvmTarget.set(JVM_TARGET)
     }
+    // Native libraries in tests (zstd, bundled SQLite in `:core:anki`) need explicit access on JDK 25.
+    tasks.withType<Test>().configureEach {
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+    }
 }
 
 /** `core.designsystem` → `com.yahyafati.mnemo.core.designsystem`, matching ARCHITECTURE §4.2. */

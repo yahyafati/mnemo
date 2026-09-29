@@ -79,4 +79,44 @@
     </plurals>
     <string name="feature_decks_delete_confirm">Delete</string>
     <string name="feature_decks_cancel">Cancel</string>
+
+    <string name="feature_decks_import">Import Anki (.apkg)</string>
+    <string name="feature_decks_browse_all">Browse all cards</string>
+    <string name="feature_decks_browse">Browse cards</string>
+    <string name="feature_decks_export">Export (.apkg)</string>
+    <string name="feature_decks_dismiss">Dismiss</string>
+    <string name="feature_decks_importing">Importing Anki deck…</string>
+    <string name="feature_decks_import_done">Import finished</string>
+    <string name="feature_decks_import_failed">Import failed</string>
+    <string name="feature_decks_exporting">Exporting deck…</string>
+    <string name="feature_decks_export_done">Deck exported</string>
+    <string name="feature_decks_export_failed">Export failed</string>
+    <plurals name="feature_decks_import_notes">
+        <item quantity="one">%d note</item>
+        <item quantity="other">%d notes</item>
+    </plurals>
+    <plurals name="feature_decks_import_cards">
+        <item quantity="one">%d card</item>
+        <item quantity="other">%d cards</item>
+    </plurals>
+    <plurals name="feature_decks_import_reviews">
+        <item quantity="one">%d review</item>
+        <item quantity="other">%d reviews</item>
+    </plurals>
+    <plurals name="feature_decks_import_media">
+        <item quantity="one">%d media file</item>
+        <item quantity="other">%d media files</item>
+    </plurals>
+    <plurals name="feature_decks_import_duplicates">
+        <item quantity="one">%d duplicate skipped</item>
+        <item quantity="other">%d duplicates skipped</item>
+    </plurals>
+    <plurals name="feature_decks_import_skipped">
+        <item quantity="one">%d card of an unsupported template left out</item>
+        <item quantity="other">%d cards of unsupported templates left out</item>
+    </plurals>
+    <string name="feature_decks_error_unsupported">That file isn\'t an Anki package (.apkg or .colpkg).</string>
+    <string name="feature_decks_error_corrupt">The file is damaged and can\'t be read.</string>
+    <string name="feature_decks_error_storage">The file couldn\'t be read or written. Check storage space and try again.</string>
+    <string name="feature_decks_error_unknown">Something went wrong. Try again.</string>
 </resources>

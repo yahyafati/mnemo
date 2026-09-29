@@ -11,6 +11,12 @@ interface ReviewLogDao {
     @Insert
     suspend fun insert(log: ReviewLogEntity)
 
+    @Insert
+    suspend fun insertAll(logs: List<ReviewLogEntity>)
+
+    @Query("SELECT * FROM review_logs WHERE cardId IN (:cardIds) AND deletedAt IS NULL ORDER BY reviewedAt")
+    suspend fun getForCards(cardIds: List<String>): List<ReviewLogEntity>
+
     /** Undo removes the row outright: an undone answer never happened. */
     @Query("DELETE FROM review_logs WHERE id = :id")
     suspend fun delete(id: String)

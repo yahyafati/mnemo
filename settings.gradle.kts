@@ -28,6 +28,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "mnemo"
 include(":app")
 
+include(":core:anki")
 include(":core:common")
 include(":core:data")
 include(":core:database")
@@ -40,6 +41,7 @@ include(":core:testing")
 include(":core:ui")
 
 include(":feature:analytics")
+include(":feature:browse")
 include(":feature:create")
 include(":feature:decks")
 include(":feature:settings")

@@ -28,4 +28,34 @@
     <string name="feature_settings_font_small">Small</string>
     <string name="feature_settings_font_medium">Medium</string>
     <string name="feature_settings_font_large">Large</string>
+
+    <string name="feature_settings_data">Data</string>
+    <string name="feature_settings_go">Choose</string>
+    <string name="feature_settings_ok">OK</string>
+    <string name="feature_settings_cancel">Cancel</string>
+    <string name="feature_settings_backup_now">Back up now</string>
+    <string name="feature_settings_backup_summary">Save everything (decks, cards, history, media, settings) to a file you choose.</string>
+    <string name="feature_settings_backing_up">Backing up…</string>
+    <string name="feature_settings_backup_done">Backup saved.</string>
+    <string name="feature_settings_restore">Restore from backup</string>
+    <string name="feature_settings_restore_summary">Replace this collection with a Mnemo backup.</string>
+    <string name="feature_settings_restore_title">Restore this backup?</string>
+    <string name="feature_settings_restore_message">The backup from %s replaces all decks, cards, review history, media and settings on this device. Mnemo restarts to finish.</string>
+    <string name="feature_settings_restore_confirm">Restore and restart</string>
+    <string name="feature_settings_restore_failed">Can\'t restore that file</string>
+    <string name="feature_settings_auto_backup">Automatic backups</string>
+    <string name="feature_settings_auto_backup_summary">Back up once a day to a folder you choose. The last 7 are kept.</string>
+    <string name="feature_settings_auto_backup_folder">Daily to %s. The last 7 are kept.</string>
+    <string name="feature_settings_last_backup">Last backup: %s</string>
+    <string name="feature_settings_change_folder">Change folder</string>
+    <string name="feature_settings_export_apkg">Export as Anki package</string>
+    <string name="feature_settings_export_apkg_summary">Every deck with scheduling, history and media, for Anki or AnkiDroid.</string>
+    <string name="feature_settings_export_json">Export as JSON</string>
+    <string name="feature_settings_export_json_summary">Everything as readable JSON, for other tools.</string>
+    <string name="feature_settings_exporting">Exporting…</string>
+    <string name="feature_settings_export_done">Export saved.</string>
+    <string name="feature_settings_error_unsupported">That file isn\'t a Mnemo backup, or it\'s from a newer version of Mnemo.</string>
+    <string name="feature_settings_error_corrupt">The file is damaged and can\'t be read.</string>
+    <string name="feature_settings_error_storage">The file couldn\'t be read or written. Check storage space and try again.</string>
+    <string name="feature_settings_error_unknown">Something went wrong. Try again.</string>
 </resources>

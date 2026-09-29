@@ -4,6 +4,11 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.work.Configuration
+import androidx.work.WorkManager
+import androidx.work.testing.SynchronousExecutor
+import androidx.work.testing.WorkManagerTestInitHelper
+import com.yahyafati.mnemo.core.data.di.WorkModule
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.di.DatabaseModule
 import com.yahyafati.mnemo.core.datastore.di.DataStoreModule
@@ -38,4 +43,19 @@ object TestDataStoreModule {
         PreferenceDataStoreFactory.create(scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)) {
             File(context.cacheDir, "test-${UUID.randomUUID()}.preferences_pb")
         }
+}
+
+/** A synchronous test WorkManager: HiltTestApplication doesn't configure the real one. */
+@Module
+@TestInstallIn(components = [SingletonComponent::class], replaces = [WorkModule::class])
+object TestWorkModule {
+    @Provides
+    @Singleton
+    fun providesWorkManager(@ApplicationContext context: Context): WorkManager {
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            context,
+            Configuration.Builder().setExecutor(SynchronousExecutor()).build(),
+        )
+        return WorkManager.getInstance(context)
+    }
 }

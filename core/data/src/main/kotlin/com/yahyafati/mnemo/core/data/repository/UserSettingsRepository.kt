@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
+import java.time.Instant
 
 interface UserSettingsRepository {
     val settings: Flow<UserSettings>
@@ -24,4 +25,9 @@ interface UserSettingsRepository {
     suspend fun setUseDynamicColor(value: Boolean)
 
     suspend fun setCardFontSize(value: CardFontSize)
+
+    /** Turns automatic backups on or off; [folderUri] is the backup folder (a SAF tree). */
+    suspend fun setAutoBackup(enabled: Boolean, folderUri: String?)
+
+    suspend fun setLastBackupAt(value: Instant)
 }

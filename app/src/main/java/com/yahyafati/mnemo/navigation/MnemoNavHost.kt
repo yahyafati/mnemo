@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import com.yahyafati.mnemo.core.ui.navigation.DecksRoute
 import com.yahyafati.mnemo.feature.analytics.navigation.analyticsScreen
+import com.yahyafati.mnemo.feature.browse.navigation.browseScreen
+import com.yahyafati.mnemo.feature.browse.navigation.navigateToBrowse
 import com.yahyafati.mnemo.feature.create.navigation.createScreen
 import com.yahyafati.mnemo.feature.create.navigation.navigateToNoteEditor
 import com.yahyafati.mnemo.feature.create.navigation.noteEditorScreen
@@ -32,6 +34,7 @@ fun MnemoNavHost(
             onStudyDeck = navController::navigateToStudySession,
             onStartDailyMix = { appState.navigateToTopLevelDestination(TopLevelDestination.Study) },
             onAddCards = { deckId -> navController.navigateToNoteEditor(deckId = deckId) },
+            onBrowse = { deckId -> navController.navigateToBrowse(deckId) },
         )
         studyScreen(
             onEditNote = editNote,
@@ -42,5 +45,6 @@ fun MnemoNavHost(
         settingsScreen(onBackClick = navController::popBackStack)
         studySessionScreen(onClose = navController::popBackStack, onEditNote = editNote)
         noteEditorScreen(onClose = navController::popBackStack)
+        browseScreen(onBack = navController::popBackStack, onEditNote = editNote)
     }
 }

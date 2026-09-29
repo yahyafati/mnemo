@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_browse_title">Browse cards</string>
+    <string name="feature_browse_back">Back</string>
+    <string name="feature_browse_search">Search fields and tags…</string>
+    <string name="feature_browse_clear_search">Clear search</string>
+    <string name="feature_browse_all_decks">All decks</string>
+    <string name="feature_browse_any_tag">Any tag</string>
+    <plurals name="feature_browse_count">
+        <item quantity="one">%d card</item>
+        <item quantity="other">%d cards</item>
+    </plurals>
+    <string name="feature_browse_empty_title">No cards match</string>
+    <string name="feature_browse_empty_message">Try another search or filter.</string>
+
+    <string name="feature_browse_sort">Sort</string>
+    <string name="feature_browse_sort_newest">Newest first</string>
+    <string name="feature_browse_sort_oldest">Oldest first</string>
+    <string name="feature_browse_sort_due">Due soonest</string>
+
+    <string name="feature_browse_status_due">Due</string>
+    <string name="feature_browse_status_due_in">in %s</string>
+    <string name="feature_browse_status_new">New</string>
+    <string name="feature_browse_status_learning">Learning</string>
+    <string name="feature_browse_status_review">Review</string>
+    <string name="feature_browse_status_suspended">Suspended</string>
+    <string name="feature_browse_status_flagged">Flagged</string>
+    <string name="feature_browse_status_starred">Starred</string>
+    <string name="feature_browse_flagged">Flagged</string>
+
+    <plurals name="feature_browse_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="feature_browse_clear_selection">Clear selection</string>
+    <string name="feature_browse_select_all">Select all</string>
+    <string name="feature_browse_more">More actions</string>
+    <string name="feature_browse_move">Move to deck</string>
+    <plurals name="feature_browse_move_title">
+        <item quantity="one">Move %d card to…</item>
+        <item quantity="other">Move %d cards to…</item>
+    </plurals>
+    <string name="feature_browse_suspend">Suspend</string>
+    <string name="feature_browse_unsuspend">Unsuspend</string>
+    <string name="feature_browse_flag">Flag</string>
+    <string name="feature_browse_unflag">Remove flag</string>
+    <string name="feature_browse_add_tag">Add tag</string>
+    <string name="feature_browse_remove_tag">Remove tag</string>
+    <string name="feature_browse_tag">Tag</string>
+    <string name="feature_browse_add">Add</string>
+    <string name="feature_browse_delete">Delete</string>
+    <string name="feature_browse_cancel">Cancel</string>
+    <plurals name="feature_browse_delete_title">
+        <item quantity="one">Delete the note of %d card?</item>
+        <item quantity="other">Delete the notes of %d cards?</item>
+    </plurals>
+    <string name="feature_browse_delete_message">Each note\'s cards and review history are deleted with it.</string>
+
+    <plurals name="feature_browse_suspended_message">
+        <item quantity="one">%d card suspended</item>
+        <item quantity="other">%d cards suspended</item>
+    </plurals>
+    <plurals name="feature_browse_unsuspended_message">
+        <item quantity="one">%d card unsuspended</item>
+        <item quantity="other">%d cards unsuspended</item>
+    </plurals>
+    <plurals name="feature_browse_flagged_message">
+        <item quantity="one">%d card flagged</item>
+        <item quantity="other">%d cards flagged</item>
+    </plurals>
+    <plurals name="feature_browse_unflagged_message">
+        <item quantity="one">Flag removed from %d card</item>
+        <item quantity="other">Flag removed from %d cards</item>
+    </plurals>
+    <plurals name="feature_browse_moved_message">
+        <item quantity="one">%1$d card moved to %2$s</item>
+        <item quantity="other">%1$d cards moved to %2$s</item>
+    </plurals>
+    <plurals name="feature_browse_tagged_message">
+        <item quantity="one">Tagged %1$d card with %2$s</item>
+        <item quantity="other">Tagged %1$d cards with %2$s</item>
+    </plurals>
+    <plurals name="feature_browse_untagged_message">
+        <item quantity="one">Removed %2$s from %1$d card</item>
+        <item quantity="other">Removed %2$s from %1$d cards</item>
+    </plurals>
+    <plurals name="feature_browse_deleted_message">
+        <item quantity="one">%d card\'s note deleted</item>
+        <item quantity="other">Notes of %d cards deleted</item>
+    </plurals>
+</resources>

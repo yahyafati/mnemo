@@ -34,6 +34,9 @@ object DaoModule {
 
     @Provides
     fun providesReviewLogDao(database: MnemoDatabase) = database.reviewLogDao()
+
+    @Provides
+    fun providesMediaDao(database: MnemoDatabase) = database.mediaDao()
 }
 
 @Module

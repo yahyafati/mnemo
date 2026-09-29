@@ -8,6 +8,7 @@ plugins {
 dependencies {
     implementation(projects.core.model)
     implementation(libs.kotlinx.serialization.json)
+    api(libs.androidx.room.paging)
 
     testImplementation(libs.androidx.junit)
     testImplementation(libs.androidx.room.testing)

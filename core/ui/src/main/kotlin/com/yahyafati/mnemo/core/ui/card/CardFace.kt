@@ -12,6 +12,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.CardSides
+import com.yahyafati.mnemo.core.model.markdown.Markdown
+import com.yahyafati.mnemo.core.ui.card.web.MathText
 import com.yahyafati.mnemo.core.ui.R
 import com.yahyafati.mnemo.core.ui.card.markdown.ClozeDisplay
 import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
@@ -39,14 +42,28 @@ fun CardFace(
     fontScale: Float = LocalCardFontScale.current,
 ) {
     val colors = MaterialTheme.colorScheme
+    val frontMath = remember(sides.front) { Markdown.containsMath(sides.front) }
+    val backMath = remember(sides.back) { Markdown.containsMath(sides.back) }
     Column(modifier) {
         SideLabel(stringResource(R.string.core_ui_card_prompt), colors.outline)
-        MarkdownText(
-            markdown = sides.front,
-            style = MnemoTheme.typography.studyPromptCompact.scaled(fontScale),
-            cloze = sides.clozeOrdinal?.let { ClozeDisplay(it, revealed) },
-            modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
-        )
+        val promptStyle = MnemoTheme.typography.studyPromptCompact.scaled(fontScale)
+        if (frontMath) {
+            MathText(
+                markdown = sides.front,
+                style = promptStyle,
+                serif = true,
+                clozeOrdinal = sides.clozeOrdinal,
+                revealed = revealed,
+                modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
+            )
+        } else {
+            MarkdownText(
+                markdown = sides.front,
+                style = promptStyle,
+                cloze = sides.clozeOrdinal?.let { ClozeDisplay(it, revealed) },
+                modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
+            )
+        }
         AnimatedVisibility(
             visible = revealed && sides.back.isNotBlank(),
             enter = fadeIn() + expandVertically(),
@@ -58,7 +75,12 @@ fun CardFace(
                     modifier = Modifier.padding(vertical = MnemoTheme.spacing.md),
                 )
                 SideLabel(stringResource(R.string.core_ui_card_answer), colors.secondary)
-                MarkdownText(markdown = sides.back, style = MaterialTheme.typography.bodyLarge.scaled(fontScale))
+                val answerStyle = MaterialTheme.typography.bodyLarge.scaled(fontScale)
+                if (backMath) {
+                    MathText(markdown = sides.back, style = answerStyle, serif = false)
+                } else {
+                    MarkdownText(markdown = sides.back, style = answerStyle)
+                }
             }
         }
     }

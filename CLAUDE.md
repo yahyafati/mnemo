@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mnemo is a local-first spaced-repetition Android app (package `com.yahyafati.mnemo`). Read `docs/PROJECT_OVERVIEW.md` (product), `docs/ARCHITECTURE.md` (modules, layers, rules) and `docs/ROADMAP.md` (phases). Decisions are recorded in `docs/adr/`.
 
-**Phase 0 (Foundation) is done and Phase 1 (Core SRS) is implemented** (its frame-rate exit check is still open): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, and scheduling/appearance settings, all offline. Analytics is still a placeholder (Phase 5). Next up: Phases 2, 3 and 5 (see ROADMAP).
+**Phases 0–2 are implemented** (Phase 1's frame-rate exit check is still open): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser. Analytics is still a placeholder (Phase 5). Next up: Phases 3 and 5 (see ROADMAP).
 
-Modules today: `:app`, `:core:{common,data,database,datastore,designsystem,domain,model,scheduler,testing,ui}`, `:feature:{analytics,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
+Modules today: `:app`, `:core:{anki,common,data,database,datastore,designsystem,domain,model,scheduler,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
 
 ## Commands
 
@@ -28,7 +28,11 @@ Use the Gradle wrapper from the repo root:
 ./gradlew :core:designsystem:recordRoborazziDebug   # after an intended visual change
 ```
 
-JVM modules (`:core:model`, `:core:common`) use `test`, not `testDebugUnitTest`. The Gradle configuration cache is on. `local.properties` is machine-specific.
+JVM modules (`:core:model`, `:core:common`, `:core:scheduler`, `:core:anki`) use `test`, not `testDebugUnitTest`, so run them too: `./gradlew :core:anki:test :core:model:test :core:scheduler:test :core:common:test`.
+
+Anki test packages in `core/anki/src/test/resources/` are written by real Anki: regenerate with `core/anki/fixtures/make_fixtures.py` (needs `pip install anki`). Tests that depend on them check relationships, not absolute dates.
+
+The Gradle configuration cache is on. `local.properties` is machine-specific.
 
 ## Build setup (non-obvious bits)
 
@@ -48,11 +52,15 @@ JVM modules (`:core:model`, `:core:common`) use `test`, not `testDebugUnitTest`.
 
 - Layers follow ARCHITECTURE §2: Room (`:core:database`) and DataStore (`:core:datastore`) are only seen by `:core:data`, whose repositories (`*Repository` interfaces, `Offline*` implementations) map entities to `:core:model` types. Use cases live in `:core:domain`.
 - `:core:scheduler` is a pure-Kotlin port of py-fsrs 6 with its own `Fsrs*` types (it may not depend on `:core:model`). `FsrsTest` holds the reference vectors; keep it in sync if the port changes. `StudyScheduler` (`:core:domain`) maps model cards to it and seeds fuzz per card, so previews equal saved answers.
-- Room schema is exported to `core/database/schemas/`. A schema change needs a version bump, a migration in `migration/Migrations.kt` and a `MigrationTest` case (it runs under Robolectric in `testDebugUnitTest`). Never enable destructive migration.
+- Room schema is exported to `core/database/schemas/` (currently v2). A schema change needs a version bump, a migration in `migration/Migrations.kt` (SQL must match the generated schema JSON) and a `MigrationTest` case (it runs under Robolectric in `testDebugUnitTest`). Never enable destructive migration.
 - Rows use UUID ids, epoch-millis timestamps and soft deletes (`deletedAt`); every query filters `deletedAt IS NULL`. Undo is the exception: it hard-deletes the review log.
 - Time goes through `Clock`; "today" is `StudyDay` (rolls over at 4 a.m. local, like Anki).
 - The study loop is optimistic: `StudyViewModel` computes the answer, shows the next card, then saves through a `Mutex` so saves and undos stay in order.
-- Card text is a Markdown subset plus Anki cloze, rendered by `:core:ui/card` (ADR 0002). Cloze parsing is `Cloze` in `:core:model`.
+- Card text is a Markdown subset plus Anki cloze, images (`![](media:<sha256>)`), math (`\(…\)`, `\[…\]`, `$$…$$`) and `[sound:…]`. The parser and HTML renderer are in `:core:model/markdown` (shared with `:core:anki`); `:core:ui/card` renders natively, or through a KaTeX WebView only for cards with math (ADR 0002, 0004). Cloze parsing is `Cloze` in `:core:model`.
+- Media is content-addressed in `filesDir/media/<sha256>` (`MediaRepository`); `MediaEntity.id` is the hash, not a UUID. Garbage collection keeps anything younger than a day.
+- Anki interop is ADR 0003. `:core:anki` is JVM-only: SQLite through the `androidx.sqlite` driver API (`AndroidSQLiteDriver` in the app, `BundledSQLiteDriver` in its tests) and zstd through `zstd-kmp`. Android-module Robolectric tests can't load zstd's Android natives, so `:core:data`'s build extracts the host's native from `zstd-kmp-jvm` onto the test library path.
+- Long transfers (import, export, backup, media cleanup) are `@HiltWorker`s in `:core:data/work`; `MnemoApplication` is the WorkManager `Configuration.Provider` (the default initializer is removed in the manifest). UIs observe them via `DataTransferRepository`. App tests replace `WorkModule` with a test WorkManager (`TestStorageModules`).
+- Restore is applied at startup by `PendingRestore.applyIfPresent`, before Hilt opens the database or DataStore.
 
 ## Tests
 

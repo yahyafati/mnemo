@@ -143,6 +143,30 @@ class Fsrs(val parameters: FsrsParameters = FsrsParameters()) {
         return (1 + factor * elapsedDays / stability).pow(decay)
     }
 
+    /**
+     * Memory state for a card scheduled by SM-2 that has no usable review history (ADR 0001):
+     * stability from its current interval, difficulty from its ease factor. The same inversion
+     * as fsrs-rs `memory_state_from_sm2`: SM-2 multiplied the interval by the ease on each
+     * success, so the ease is read back as FSRS's stability growth at [sm2Retention].
+     *
+     * @param easeFactor SM-2 ease as a multiplier (Anki stores 2500 for 2.5).
+     */
+    fun memoryStateFromSm2(easeFactor: Double, intervalDays: Double, sm2Retention: Double = 0.9): FsrsMemoryState {
+        val stability = max(intervalDays, FsrsParameters.STABILITY_MIN) * factor / (sm2Retention.pow(1 / decay) - 1)
+        val growth = exp(w[8]) * stability.pow(-w[9]) * (exp((1 - sm2Retention) * w[10]) - 1)
+        val difficulty = 11.0 - (easeFactor - 1.0) / growth
+        return FsrsMemoryState(clampStability(stability), clampDifficulty(difficulty))
+    }
+
+    /**
+     * The inverse of [memoryStateFromSm2]: the SM-2 ease multiplier matching [state], for
+     * exporting to Anki users who still schedule with SM-2. Clamped to SM-2's usual 1.3–5.0.
+     */
+    fun sm2EaseFactor(state: FsrsMemoryState, sm2Retention: Double = 0.9): Double {
+        val growth = exp(w[8]) * state.stability.pow(-w[9]) * (exp((1 - sm2Retention) * w[10]) - 1)
+        return (1.0 + (11.0 - state.difficulty) * growth).coerceIn(1.3, 5.0)
+    }
+
     /** What each rating would do to [card] if answered at [now]. Drives the rating-button labels. */
     fun preview(card: FsrsCard, now: Instant, random: () -> Random = { Random.Default }): SchedulingInfo =
         SchedulingInfo(

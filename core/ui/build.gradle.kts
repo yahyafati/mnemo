@@ -8,4 +8,5 @@ dependencies {
     api(projects.core.designsystem)
     api(projects.core.model)
     api(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.webkit)
 }

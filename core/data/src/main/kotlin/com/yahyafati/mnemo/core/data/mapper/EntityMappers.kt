@@ -50,6 +50,7 @@ internal fun NoteEntity.toModel() = Note(
     source = NoteSource.entries.firstOrNull { it.name == source } ?: NoteSource.Manual,
     createdAt = createdAt.toInstant(),
     updatedAt = updatedAt.toInstant(),
+    guid = guid,
 )
 
 internal fun Note.toEntity() = NoteEntity(
@@ -61,6 +62,7 @@ internal fun Note.toEntity() = NoteEntity(
     source = source.name,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
+    guid = guid,
 )
 
 internal fun CardEntity.toModel() = Card(

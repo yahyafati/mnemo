@@ -73,8 +73,19 @@ internal fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dataState by viewModel.dataState.collectAsStateWithLifecycle()
     SettingsScreen(
         uiState = uiState,
+        dataState = dataState,
+        dataCallbacks = DataCallbacks(
+            onBackUp = viewModel::backUpTo,
+            onReadBackup = viewModel::readBackup,
+            onConfirmRestore = viewModel::confirmRestore,
+            onDismissRestore = viewModel::dismissRestore,
+            onAutoBackup = viewModel::setAutoBackup,
+            onExport = viewModel::exportTo,
+            onDismissTransfers = viewModel::dismissTransfers,
+        ),
         callbacks = SettingsCallbacks(
             onDesiredRetention = viewModel::setDesiredRetention,
             onNewCardsPerDay = viewModel::setNewCardsPerDay,
@@ -94,6 +105,8 @@ internal fun SettingsScreen(
 @Composable
 internal fun SettingsScreen(
     uiState: SettingsUiState,
+    dataState: DataUiState,
+    dataCallbacks: DataCallbacks,
     callbacks: SettingsCallbacks,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -129,6 +142,7 @@ internal fun SettingsScreen(
                 ) {
                     SchedulingSection(settings, callbacks)
                     AppearanceSection(settings, callbacks)
+                    DataSection(settings.backup, dataState, dataCallbacks)
                 }
             }
         }
@@ -226,7 +240,7 @@ private fun AppearanceSection(settings: UserSettings, callbacks: SettingsCallbac
 }
 
 @Composable
-private fun Section(title: String, icon: ImageVector, content: @Composable () -> Unit) {
+internal fun Section(title: String, icon: ImageVector, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
@@ -314,7 +328,7 @@ private fun <T> Choice(options: List<Pair<T, Int>>, selected: T, onSelect: (T) -
 }
 
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
@@ -324,6 +338,8 @@ private fun SettingsScreenPreview() {
     MnemoTheme {
         SettingsScreen(
             uiState = SettingsUiState.Success(UserSettings()),
+            dataState = DataUiState(),
+            dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
             callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),
             onBackClick = {},
         )

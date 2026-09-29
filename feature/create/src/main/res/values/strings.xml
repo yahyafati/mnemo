@@ -15,7 +15,7 @@
     <string name="feature_create_back">Back</string>
     <string name="feature_create_text">Text</string>
     <string name="feature_create_extra">Extra (optional)</string>
-    <string name="feature_create_markdown_hint">Markdown: **bold**, *italic*, `code`, lists, ``` code blocks</string>
+    <string name="feature_create_markdown_hint">Markdown: **bold**, *italic*, `code`, lists, ``` code blocks, \\(math\\)</string>
     <string name="feature_create_cloze">Cloze</string>
     <string name="feature_create_cloze_hint">Select a word, then tap Cloze to hide it: {{c1::answer}}</string>
 

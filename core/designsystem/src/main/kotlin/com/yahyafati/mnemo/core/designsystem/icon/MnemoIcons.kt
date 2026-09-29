@@ -44,6 +44,21 @@ import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
+import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DataObject
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.ManageSearch
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -99,4 +114,21 @@ object MnemoIcons {
     val TouchApp: ImageVector = Icons.Outlined.TouchApp
     val Tune: ImageVector = Icons.Outlined.Tune
     val Undo: ImageVector = Icons.AutoMirrored.Outlined.Undo
+
+    // Data: import, export, backup, browse
+    val Backup: ImageVector = Icons.Outlined.Backup
+    val Browse: ImageVector = Icons.Outlined.ManageSearch
+    val Checked: ImageVector = Icons.Outlined.CheckBox
+    val Cleanup: ImageVector = Icons.Outlined.CleaningServices
+    val Data: ImageVector = Icons.Outlined.Storage
+    val FileDownload: ImageVector = Icons.Outlined.FileDownload
+    val Filter: ImageVector = Icons.Outlined.FilterList
+    val Folder: ImageVector = Icons.Outlined.Folder
+    val Image: ImageVector = Icons.Outlined.Image
+    val Json: ImageVector = Icons.Outlined.DataObject
+    val Move: ImageVector = Icons.AutoMirrored.Outlined.DriveFileMove
+    val Restore: ImageVector = Icons.Outlined.Restore
+    val SelectAll: ImageVector = Icons.Outlined.SelectAll
+    val Sort: ImageVector = Icons.AutoMirrored.Outlined.Sort
+    val Unchecked: ImageVector = Icons.Outlined.CheckBoxOutlineBlank
 }

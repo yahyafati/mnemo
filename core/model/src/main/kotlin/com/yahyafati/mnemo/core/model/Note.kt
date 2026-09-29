@@ -19,6 +19,11 @@ data class Note(
     val source: NoteSource = NoteSource.Manual,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /**
+     * Anki's globally unique note id, for notes that came from (or went to) an Anki package.
+     * Importing the same package twice skips notes whose guid is already in the collection.
+     */
+    val guid: String? = null,
 ) {
     fun field(index: Int): String = fields.getOrElse(index) { "" }
 }

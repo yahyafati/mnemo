@@ -1,19 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ backup rules. Cloud backup: the database and preferences, without media (capped at
+    25 MB; Mnemo's own backups in Settings > Data include media). Device-to-device transfer has no
+    cap, so media goes too. Encrypted API keys (Phase 3) must stay out of both: their Keystore key
+    doesn't move with them.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
+        <include domain="file" path="media/" />
     </device-transfer>
-    -->
 </data-extraction-rules>

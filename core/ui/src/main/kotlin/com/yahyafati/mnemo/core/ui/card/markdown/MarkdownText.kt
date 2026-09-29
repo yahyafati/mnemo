@@ -39,8 +39,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.yahyafati.mnemo.core.designsystem.theme.JetBrainsMono
-import com.yahyafati.mnemo.core.ui.card.markdown.Markdown.Block
-import com.yahyafati.mnemo.core.ui.card.markdown.Markdown.Inline
+import com.yahyafati.mnemo.core.model.markdown.Markdown
+import com.yahyafati.mnemo.core.model.markdown.Markdown.Block
+import com.yahyafati.mnemo.core.model.markdown.Markdown.Inline
+import com.yahyafati.mnemo.core.ui.card.MediaImage
 
 /** Which cloze deletion is the answer on this card, and whether it is shown yet. */
 @Immutable
@@ -126,11 +128,57 @@ private fun MarkdownBlock(block: Block, style: TextStyle, color: Color, spans: M
     }
 }
 
+/**
+ * Inline content. Top-level images can't sit inside a line of text, so they split the run into
+ * text pieces and full-width images, in order (Anki-imported cards usually put them on their own line).
+ */
 @Composable
 private fun InlineText(content: List<Inline>, style: TextStyle, color: Color, spans: MarkdownSpans, cloze: ClozeDisplay?) {
-    val text = remember(content, spans, cloze) { buildInline(content, spans, cloze) }
-    Text(text = text, style = style, color = color)
+    if (content.none { it is Inline.Image }) {
+        val text = remember(content, spans, cloze) { buildInline(content, spans, cloze) }
+        Text(text = text, style = style, color = color)
+        return
+    }
+    val pieces = remember(content) { splitAtImages(content) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        pieces.forEach { piece ->
+            when (piece) {
+                is Inline.Image -> MediaImage(src = piece.src, alt = piece.alt)
+                is TextRun -> {
+                    val text = remember(piece, spans, cloze) { buildInline(piece.inlines, spans, cloze) }
+                    if (text.isNotBlank()) Text(text = text, style = style, color = color)
+                }
+            }
+        }
+    }
 }
+
+private data class TextRun(val inlines: List<Inline>)
+
+private fun splitAtImages(content: List<Inline>): List<Any> {
+    val out = mutableListOf<Any>()
+    var run = mutableListOf<Inline>()
+    for (inline in content) {
+        if (inline is Inline.Image) {
+            if (run.isNotEmpty()) out += TextRun(trimRun(run))
+            out += inline
+            run = mutableListOf()
+        } else {
+            run += inline
+        }
+    }
+    if (run.isNotEmpty()) out += TextRun(trimRun(run))
+    return out
+}
+
+/** Drops the line breaks that surrounded an image. */
+private fun trimRun(run: List<Inline>): List<Inline> = run.mapIndexed { i, inline ->
+    if (inline !is Inline.Text) return@mapIndexed inline
+    var text = inline.text
+    if (i == 0) text = text.trimStart('\n')
+    if (i == run.lastIndex) text = text.trimEnd('\n')
+    Inline.Text(text)
+}.filterNot { it is Inline.Text && it.text.isEmpty() }
 
 /** Span styles for inline Markdown, derived from the color scheme once. */
 @Immutable
@@ -172,6 +220,12 @@ private fun AnnotatedString.Builder.appendInlines(content: List<Inline>, spans: 
             }
             is Inline.Code -> withStyle(spans.code) { append(" ${inline.code} ") }
             is Inline.Link -> withLink(LinkAnnotation.Url(inline.url, spans.link)) { appendInlines(inline.children, spans, cloze) }
+            // Images nested in emphasis or links, where they can't be laid out: their alt text.
+            is Inline.Image -> if (inline.alt.isNotBlank()) append(inline.alt)
+            // Math cards render through KaTeX (CardFace); this only shows the source as a fallback.
+            is Inline.Math -> withStyle(spans.code) { append(inline.tex) }
+            // Audio plays in a later version; a marker shows the card has sound.
+            is Inline.Sound -> append("🔊")
             is Inline.Cloze -> when {
                 cloze == null || inline.ordinal != cloze.ordinal -> appendInlines(inline.answer, spans, cloze)
                 cloze.revealed -> withStyle(spans.clozeRevealed) { appendInlines(inline.answer, spans, cloze) }

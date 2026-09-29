@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "notes", indices = [Index("deckId"), Index("noteTypeId")])
+@Entity(tableName = "notes", indices = [Index("deckId"), Index("noteTypeId"), Index("guid")])
 data class NoteEntity(
     @PrimaryKey val id: String,
     val deckId: String,
@@ -16,4 +16,6 @@ data class NoteEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
+    /** Anki's note guid, for notes imported from or exported to Anki (schema v2). */
+    val guid: String? = null,
 )

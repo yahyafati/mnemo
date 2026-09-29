@@ -1,12 +1,7 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
-#
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# R8 rules, merged by AGP from every file in src/main/keepRules.
+# See https://d.android.com/r/tools/r8/keep-rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# The math renderer's WebView calls this from JavaScript (MnemoCard.onHeight).
+-keepclassmembers class com.yahyafati.mnemo.core.ui.card.web.HeightBridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

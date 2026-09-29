@@ -35,3 +35,7 @@ data class StudySessionRoute(val deckId: String)
  */
 @Serializable
 data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = null)
+
+/** The card browser, filtered to [deckId] and its subdecks when given. */
+@Serializable
+data class BrowseRoute(val deckId: String? = null)

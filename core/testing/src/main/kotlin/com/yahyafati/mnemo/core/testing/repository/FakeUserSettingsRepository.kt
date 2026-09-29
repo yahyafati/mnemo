@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import java.time.Duration
+import java.time.Instant
 
 class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserSettingsRepository {
     override val settings = MutableStateFlow(initial)
@@ -26,4 +27,9 @@ class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserS
     override suspend fun setUseDynamicColor(value: Boolean) = settings.update { it.copy(useDynamicColor = value) }
 
     override suspend fun setCardFontSize(value: CardFontSize) = settings.update { it.copy(cardFontSize = value) }
+
+    override suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) =
+        settings.update { it.copy(backup = it.backup.copy(autoBackupEnabled = enabled, folderUri = folderUri)) }
+
+    override suspend fun setLastBackupAt(value: Instant) = settings.update { it.copy(backup = it.backup.copy(lastBackupAt = value)) }
 }

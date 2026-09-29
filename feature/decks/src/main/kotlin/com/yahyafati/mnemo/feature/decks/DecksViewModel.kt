@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.common.time.StudyDay
+import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.domain.DeckNode
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.model.DeckSummary
+import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DecksViewModel @Inject constructor(
     private val deckRepository: DeckRepository,
+    private val transferRepository: DataTransferRepository,
     getTodaySummary: GetTodaySummaryUseCase,
     private val clock: Clock,
 ) : ViewModel() {
@@ -35,8 +38,11 @@ class DecksViewModel @Inject constructor(
 
     private val controls = combine(query, filter, expanded, dialog) { q, f, e, d -> Controls(q, f, e, d) }
 
-    val uiState: StateFlow<DecksUiState> = combine(summaries, getTodaySummary(), controls) { decks, today, c ->
-        if (decks == null) DecksUiState(dialog = c.dialog) else buildState(decks, today, c)
+    private val transfers = combine(transferRepository.importState, transferRepository.exportState, ::Pair)
+
+    val uiState: StateFlow<DecksUiState> = combine(summaries, getTodaySummary(), controls, transfers) { decks, today, c, (importing, exporting) ->
+        val state = if (decks == null) DecksUiState(dialog = c.dialog) else buildState(decks, today, c)
+        state.copy(importState = importing, exportState = exporting)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
 
     fun onAction(action: DecksAction) {
@@ -80,6 +86,9 @@ class DecksViewModel @Inject constructor(
                 viewModelScope.launch { deckRepository.deleteDeck(confirm.deckId) }
             }
             DecksAction.DismissDialog -> dialog.value = null
+            is DecksAction.Import -> transferRepository.startImport(action.uri)
+            is DecksAction.Export -> transferRepository.startExport(action.uri, ExportFormat.Apkg, action.deckId)
+            DecksAction.DismissTransfer -> transferRepository.clearFinished()
         }
     }
 

@@ -9,10 +9,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.yahyafati.mnemo.core.database.converter.Converters
 import com.yahyafati.mnemo.core.database.dao.CardDao
 import com.yahyafati.mnemo.core.database.dao.DeckDao
+import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
 import com.yahyafati.mnemo.core.database.entity.CardEntity
 import com.yahyafati.mnemo.core.database.entity.DeckEntity
+import com.yahyafati.mnemo.core.database.entity.MediaEntity
 import com.yahyafati.mnemo.core.database.entity.NoteEntity
 import com.yahyafati.mnemo.core.database.entity.NoteTypeEntity
 import com.yahyafati.mnemo.core.database.entity.ReviewLogEntity
@@ -32,8 +34,9 @@ import kotlinx.serialization.json.Json
         NoteEntity::class,
         CardEntity::class,
         ReviewLogEntity::class,
+        MediaEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -45,6 +48,8 @@ abstract class MnemoDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
 
     abstract fun reviewLogDao(): ReviewLogDao
+
+    abstract fun mediaDao(): MediaDao
 
     companion object {
         const val NAME = "mnemo.db"

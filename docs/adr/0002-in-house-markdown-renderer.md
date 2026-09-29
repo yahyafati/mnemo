@@ -17,7 +17,8 @@ the one screen that must hold 60/120 fps.
 
 ## Decision
 
-1. `:core:ui/card/markdown/Markdown.kt` parses a card-sized subset in pure Kotlin: headings,
+1. `:core:ui/card/markdown/Markdown.kt` parses (moved to `:core:model/markdown/` in Phase 2, see
+   ADR 0004, which also added images, math and sound tags) a card-sized subset in pure Kotlin: headings,
    paragraphs, fenced code, block quotes, bullet and numbered lists, rules; inline bold, italic,
    strikethrough, code, links, and cloze deletions as first-class inline nodes.
 2. Unlike CommonMark, a single newline in a paragraph is a line break. Cards are short, and people

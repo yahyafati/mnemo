@@ -3,7 +3,11 @@ package com.yahyafati.mnemo.feature.decks
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.TestClock
+import com.yahyafati.mnemo.core.model.ExportFormat
+import com.yahyafati.mnemo.core.model.ImportSummary
+import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository.DeckCounts
 import com.yahyafati.mnemo.core.testing.repository.FakeReviewRepository
@@ -26,10 +30,12 @@ class DecksViewModelTest {
 
     private val clock = TestClock(Instant.parse("2026-01-01T09:00:00Z"))
     private val decks = FakeDeckRepository()
+    private val transfers = FakeDataTransferRepository()
     // Lazy: the ViewModel must be created after MainDispatcherRule has set Dispatchers.Main.
     private val viewModel by lazy {
         DecksViewModel(
             deckRepository = decks,
+            transferRepository = transfers,
             getTodaySummary = GetTodaySummaryUseCase(
                 decks, FakeCardRepository(), FakeReviewRepository(), FakeUserSettingsRepository(), clock,
             ),
@@ -120,5 +126,21 @@ class DecksViewModelTest {
         viewModel.onAction(DecksAction.SaveDeck(dialog.draft.copy(path = "A::C")))
         assertEquals("C", decks.getDeck(id)?.name)
         assertEquals(1, decks.observeDecks().first().count { it.name == "A" })
+    }
+
+    @Test
+    fun importExportAndTheirResults() = runWithState {
+        viewModel.onAction(DecksAction.Import("content://downloads/deck.apkg"))
+        assertEquals(listOf("content://downloads/deck.apkg"), transfers.imports)
+        assertIs<TransferState.Running>(state.importState)
+
+        val summary = ImportSummary(1, 10, 20, 5, 2, 0, 0)
+        transfers.importState.value = TransferState.Succeeded(summary)
+        assertEquals(TransferState.Succeeded(summary), state.importState)
+        viewModel.onAction(DecksAction.DismissTransfer)
+        assertEquals(TransferState.Idle, state.importState)
+
+        viewModel.onAction(DecksAction.Export("deck-1", "content://docs/deck.apkg"))
+        assertEquals(Triple("content://docs/deck.apkg", ExportFormat.Apkg, "deck-1"), transfers.exports.single())
     }
 }

@@ -89,11 +89,11 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:database` | Android lib | Room database, entities, DAOs, migrations, schema JSON |
 | `:core:datastore` | Android lib | Proto/Preferences DataStore for user settings |
 | `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, prompt templates, JSON schema, tolerant output parser |
-| `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader and writer (zip + SQLite), mapped to Mnemo models |
+| `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
 | `:core:ingest` | Android lib | Source extraction: PDF → text, URL → readable text, speech → text, chunking |
 | `:core:security` | Android lib | Android Keystore-backed encryption for API keys |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
-| `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, … |
+| `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
 | `:core:common` | JVM lib | `Result`/error types, dispatcher qualifiers, time/clock abstraction |
 | `:core:testing` | Android lib | Fakes (repositories, clock), test dispatchers, Hilt test runner |
 
@@ -157,7 +157,8 @@ mnemo/
 ├── core/
 │   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/
 │   │   ├── Deck.kt  Note.kt  NoteType.kt  Card.kt  CardState.kt
-│   │   ├── Rating.kt  ReviewLog.kt  Media.kt
+│   │   ├── Rating.kt  ReviewLog.kt  Media.kt  Transfer.kt
+│   │   ├── markdown/ Markdown.kt MarkdownHtml.kt        # card Markdown (ADR 0002, 0004)
 │   │   ├── AiProvider.kt  AiModel.kt  AiTask.kt  GeneratedCard.kt
 │   │   └── UserSettings.kt
 │   │
@@ -357,8 +358,10 @@ Nothing touches the database before step 7. If the network fails partway, the ca
 
 ### 5.4 Import / backup
 
-- `.apkg` import runs in a `CoroutineWorker` (a foreground notification for large decks). It streams the zip, reads the embedded SQLite through `:core:anki`, writes in batched transactions, and copies media into `filesDir/media/<hash>`.
-- Backup = a checkpointed copy of the Room DB file + media, zipped and written to a user-chosen SAF folder by `BackupWorker`.
+- `.apkg` import runs in `ImportWorker` (foreground notification for large decks). It copies the picked file locally, opens it with `:core:anki` (`ApkgReader`), stores media first into `filesDir/media/<hash>`, then maps notes in batches of 500 (`AnkiImportMapper`) and writes each batch with its cards and review logs in one transaction (`AnkiImporter`). Duplicates are skipped by guid. See ADR 0003.
+- Export (`ExportWorker`): `.apkg` through `AnkiExporter` + `AnkiPackageWriter`, or the whole collection as JSON (`JsonExporter`), streamed page by page to a SAF document.
+- Backup (`BackupWorker`, manual or daily): a zip with a manifest, a checkpointed database copy (`DatabaseSnapshot`), preferences and media. Restore stages the zip and restarts; `MnemoApplication` applies it (`PendingRestore`) before the database opens. See ADR 0004.
+- The UI observes all of these through `DataTransferRepository` as `TransferState`s mapped from WorkManager.
 
 ## 6. Data layer details
 

@@ -46,6 +46,9 @@ internal class DeckCallbacks(
     val onToggleExpanded: (String) -> Unit,
     val onEdit: (String) -> Unit,
     val onDelete: (String) -> Unit,
+    val onBrowse: (String) -> Unit,
+    /** Export as an Anki package: deck id and name (for the file name). */
+    val onExport: (String, String) -> Unit,
 )
 
 /** A deck in the library list, as in the mockup: labels, name, star, counts and a Review button. */
@@ -198,6 +201,22 @@ private fun DeckMenu(deck: DeckItem, callbacks: DeckCallbacks) {
                 onClick = {
                     open = false
                     callbacks.onAddCards(deck.id)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.feature_decks_browse)) },
+                leadingIcon = { Icon(MnemoIcons.Browse, null) },
+                onClick = {
+                    open = false
+                    callbacks.onBrowse(deck.id)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.feature_decks_export)) },
+                leadingIcon = { Icon(MnemoIcons.FileDownload, null) },
+                onClick = {
+                    open = false
+                    callbacks.onExport(deck.id, deck.name)
                 },
             )
             DropdownMenuItem(

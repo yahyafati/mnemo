@@ -26,6 +26,7 @@ android {
 
 dependencies {
     implementation(projects.feature.analytics)
+    implementation(projects.feature.browse)
     implementation(projects.feature.create)
     implementation(projects.feature.decks)
     implementation(projects.feature.settings)
@@ -43,12 +44,15 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(projects.core.database)
     testImplementation(projects.core.datastore)
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.room.runtime)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

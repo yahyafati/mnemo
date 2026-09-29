@@ -1,5 +1,10 @@
 package com.yahyafati.mnemo.feature.decks
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -22,6 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -33,6 +44,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
+import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.component.StatTile
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -42,6 +54,7 @@ import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
+import com.yahyafati.mnemo.feature.decks.component.TransferBanner
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -52,19 +65,47 @@ internal fun DecksScreen(
     onStudyDeck: (deckId: String) -> Unit,
     onStartDailyMix: () -> Unit,
     onAddCards: (deckId: String) -> Unit,
+    onBrowse: (deckId: String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DecksViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    // .apkg and .colpkg have no registered MIME type, so the picker shows every file.
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.onAction(DecksAction.Import(it.toString())) }
+    }
+    // The progress notification needs permission on Android 13+; the import runs either way.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        importPicker.launch(arrayOf("*/*"))
+    }
+    var exportDeckId by rememberSaveable { mutableStateOf<String?>(null) }
+    val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(APKG_MIME)) { uri ->
+        val deckId = exportDeckId
+        if (uri != null && deckId != null) viewModel.onAction(DecksAction.Export(deckId, uri.toString()))
+        exportDeckId = null
+    }
     DecksScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
         onStudyDeck = onStudyDeck,
         onStartDailyMix = onStartDailyMix,
         onAddCards = onAddCards,
+        onBrowse = onBrowse,
+        onImport = {
+            val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            if (needsPermission) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else importPicker.launch(arrayOf("*/*"))
+        },
+        onExportDeck = { deckId, name ->
+            exportDeckId = deckId
+            exportPicker.launch("$name.apkg")
+        },
         modifier = modifier,
     )
 }
+
+private const val APKG_MIME = "application/octet-stream"
 
 @Composable
 internal fun DecksScreen(
@@ -73,6 +114,9 @@ internal fun DecksScreen(
     onStudyDeck: (deckId: String) -> Unit,
     onStartDailyMix: () -> Unit,
     onAddCards: (deckId: String) -> Unit,
+    onBrowse: (deckId: String?) -> Unit,
+    onImport: () -> Unit,
+    onExportDeck: (deckId: String, name: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spacing = MnemoTheme.spacing
@@ -87,6 +131,8 @@ internal fun DecksScreen(
         onToggleExpanded = { onAction(DecksAction.ToggleExpanded(it)) },
         onEdit = { onAction(DecksAction.EditDeck(it)) },
         onDelete = { onAction(DecksAction.DeleteDeck(it)) },
+        onBrowse = onBrowse,
+        onExport = onExportDeck,
     )
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -94,11 +140,26 @@ internal fun DecksScreen(
         verticalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
         item(key = "header") { Header(uiState) }
+        item(key = "transfers") {
+            TransferBanner(
+                importState = uiState.importState,
+                exportState = uiState.exportState,
+                onDismiss = { onAction(DecksAction.DismissTransfer) },
+                modifier = Modifier.padding(top = spacing.xs),
+            )
+        }
         if (uiState.hasDecks) {
             item(key = "mix") { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
             item(key = "stats") { StatsStrip(uiState.today, Modifier.padding(top = spacing.sm)) }
             item(key = "search") { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
-            item(key = "library") { LibraryBar(onNewDeck = { onAction(DecksAction.NewDeck) }, Modifier.padding(top = spacing.sm)) }
+            item(key = "library") {
+                LibraryBar(
+                    onNewDeck = { onAction(DecksAction.NewDeck) },
+                    onImport = onImport,
+                    onBrowse = { onBrowse(null) },
+                    modifier = Modifier.padding(top = spacing.sm),
+                )
+            }
             items(uiState.decks, key = { it.id }) { deck ->
                 DeckCard(deck = deck, now = uiState.now, callbacks = callbacks)
             }
@@ -127,11 +188,19 @@ internal fun DecksScreen(
                     title = stringResource(R.string.feature_decks_empty_title),
                     message = stringResource(R.string.feature_decks_empty_message),
                     action = {
-                        MnemoButton(
-                            text = stringResource(R.string.feature_decks_new_deck),
-                            onClick = { onAction(DecksAction.NewDeck) },
-                            leadingIcon = MnemoIcons.Add,
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                            MnemoButton(
+                                text = stringResource(R.string.feature_decks_new_deck),
+                                onClick = { onAction(DecksAction.NewDeck) },
+                                leadingIcon = MnemoIcons.Add,
+                            )
+                            MnemoButton(
+                                text = stringResource(R.string.feature_decks_import),
+                                onClick = onImport,
+                                style = MnemoButtonStyle.Text,
+                                leadingIcon = MnemoIcons.FileUpload,
+                            )
+                        }
                     },
                 )
             }
@@ -262,7 +331,7 @@ private fun SearchAndFilters(uiState: DecksUiState, onAction: (DecksAction) -> U
 }
 
 @Composable
-private fun LibraryBar(onNewDeck: () -> Unit, modifier: Modifier = Modifier) {
+private fun LibraryBar(onNewDeck: () -> Unit, onImport: () -> Unit, onBrowse: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Row(
         modifier = modifier
@@ -279,6 +348,12 @@ private fun LibraryBar(onNewDeck: () -> Unit, modifier: Modifier = Modifier) {
                 .weight(1f)
                 .padding(start = MnemoTheme.spacing.sm),
         )
+        IconButton(onClick = onBrowse) {
+            Icon(MnemoIcons.Browse, stringResource(R.string.feature_decks_browse_all), tint = colors.onSurfaceVariant)
+        }
+        IconButton(onClick = onImport) {
+            Icon(MnemoIcons.FileUpload, stringResource(R.string.feature_decks_import), tint = colors.onSurfaceVariant)
+        }
         MnemoButton(
             text = stringResource(R.string.feature_decks_new_deck),
             onClick = onNewDeck,
@@ -348,6 +423,9 @@ private fun DecksScreenPreview() {
             onStudyDeck = {},
             onStartDailyMix = {},
             onAddCards = {},
+            onBrowse = {},
+            onImport = {},
+            onExportDeck = { _, _ -> },
         )
     }
 }

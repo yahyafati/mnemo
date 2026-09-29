@@ -207,5 +207,5 @@ Summary below. See [ROADMAP.md](ROADMAP.md) for each phase's scope and exit crit
 - **Scheduling defaults:** the Decks mockup mentions SuperMemo-2 while Study and Analytics show FSRS. Proposal: FSRS only, with SM-2 values converted on import.
 - **Sync strategy:** file-based sync vs. an optional self-hostable server, and when.
 - **Local on-device models** (e.g. Gemini Nano / AICore) as an extra non-network "provider"?
-- **Card template flexibility:** how much of Anki's HTML/CSS templating to support for imported decks.
+- ~~**Card template flexibility:** how much of Anki's HTML/CSS templating to support for imported decks.~~ Decided in ADR 0003: fields, not templates.
 - **Monetization / licensing:** open source? Paid? Affects distribution (Play Store, F-Droid).

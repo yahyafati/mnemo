@@ -1,6 +1,8 @@
 package com.yahyafati.mnemo.feature.decks
 
+import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TodaySummary
+import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import java.time.Instant
 import java.time.LocalDate
@@ -20,6 +22,8 @@ data class DecksUiState(
     val filterCounts: FilterCounts = FilterCounts(),
     val categories: List<String> = emptyList(),
     val dialog: DecksDialog? = null,
+    val importState: TransferState<ImportSummary> = TransferState.Idle,
+    val exportState: TransferState<Unit> = TransferState.Idle,
 )
 
 enum class Greeting { Morning, Afternoon, Evening }
@@ -85,4 +89,13 @@ sealed interface DecksAction {
     data object ConfirmDelete : DecksAction
 
     data object DismissDialog : DecksAction
+
+    /** Import the Anki package the user picked. */
+    data class Import(val uri: String) : DecksAction
+
+    /** Export [deckId] as an Anki package to the file the user picked. */
+    data class Export(val deckId: String, val uri: String) : DecksAction
+
+    /** Hide a finished import or export result. */
+    data object DismissTransfer : DecksAction
 }
