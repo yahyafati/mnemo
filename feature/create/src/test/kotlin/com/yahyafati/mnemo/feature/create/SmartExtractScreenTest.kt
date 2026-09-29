@@ -1,9 +1,13 @@
 package com.yahyafati.mnemo.feature.create
 
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -87,6 +91,13 @@ class SmartExtractScreenTest {
         list.performScrollToNode(hasText("What does the amygdala process?"))
         composeRule.onNodeWithText("Emotional memories, especially fear.").assertExists()
         assertTrue(cards.notes.value.isEmpty())
+
+        // Each proposed card can be reported (Play's AI-content policy): asks first, cancel sends nothing.
+        composeRule.onAllNodesWithContentDescription("Report").onFirst().performClick()
+        composeRule.onNodeWithText("Report this AI output?").assertExists()
+        composeRule.onAllNodesWithText("What does the amygdala process?", substring = true).assertCountEquals(2)
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Report this AI output?").assertDoesNotExist()
 
         // Discard one, accept the rest together.
         list.performScrollToNode(hasText("Which nucleus drives freezing?"))

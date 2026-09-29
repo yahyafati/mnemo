@@ -1,12 +1,15 @@
 package com.yahyafati.mnemo.feature.settings.navigation
 
+import androidx.annotation.RawRes
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import com.yahyafati.mnemo.core.ui.navigation.AiProviderEditorRoute
 import com.yahyafati.mnemo.core.ui.navigation.AiProvidersRoute
+import com.yahyafati.mnemo.core.ui.navigation.LicensesRoute
 import com.yahyafati.mnemo.core.ui.navigation.SettingsRoute
+import com.yahyafati.mnemo.feature.settings.LicensesRoute as LicensesScreenRoute
 import com.yahyafati.mnemo.feature.settings.SettingsScreen
 import com.yahyafati.mnemo.feature.settings.ai.AiProvidersRoute as AiProvidersScreenRoute
 import com.yahyafati.mnemo.feature.settings.ai.ProviderEditorRoute
@@ -20,9 +23,22 @@ fun NavController.navigateToAiProviders(navOptions: NavOptions? = null) = naviga
 fun NavController.navigateToAiProviderEditor(providerId: String? = null, presetId: String? = null, navOptions: NavOptions? = null) =
     navigate(AiProviderEditorRoute(providerId = providerId, presetId = presetId), navOptions)
 
-fun NavGraphBuilder.settingsScreen(onBackClick: () -> Unit, onOpenAiProviders: () -> Unit) {
+/** Settings › About › Open-source licenses. */
+fun NavController.navigateToLicenses(navOptions: NavOptions? = null) = navigate(LicensesRoute, navOptions)
+
+fun NavGraphBuilder.settingsScreen(onBackClick: () -> Unit, onOpenAiProviders: () -> Unit, onOpenLicenses: () -> Unit) {
     composable<SettingsRoute> {
-        SettingsScreen(onBackClick = onBackClick, onOpenAiProviders = onOpenAiProviders)
+        SettingsScreen(onBackClick = onBackClick, onOpenAiProviders = onOpenAiProviders, onOpenLicenses = onOpenLicenses)
+    }
+}
+
+/**
+ * The open-source licenses list. [librariesRes] is the raw resource the AboutLibraries plugin
+ * generates in `:app`, which a feature module can't reference itself.
+ */
+fun NavGraphBuilder.licensesScreen(@RawRes librariesRes: Int, onBack: () -> Unit) {
+    composable<LicensesRoute> {
+        LicensesScreenRoute(librariesRes = librariesRes, onBack = onBack)
     }
 }
 

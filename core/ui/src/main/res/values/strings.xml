@@ -39,6 +39,13 @@
     <string name="core_ui_ai_disclosure_policy">Nothing goes through Mnemo\'s servers (there are none). The provider\'s own privacy policy applies to what it receives. You\'ll only see this once per provider.</string>
     <string name="core_ui_ai_disclosure_accept">Continue</string>
     <string name="core_ui_ai_disclosure_cancel">Cancel</string>
+    <string name="core_ui_permission_continue">Continue</string>
+    <string name="core_ui_permission_not_now">Not now</string>
+    <string name="core_ui_ai_report">Report</string>
+    <string name="core_ui_ai_report_title">Report this AI output?</string>
+    <string name="core_ui_ai_report_explain">If this answer is wrong, offensive or unsafe, you can tell us. This opens a draft issue on GitHub in your browser, with the text below and the name of the AI model. Nothing is sent until you submit the draft there.</string>
+    <string name="core_ui_ai_report_public">GitHub issues are public. You can edit or delete anything in the draft before you submit it. Your source text and the rest of your deck are not included.</string>
+    <string name="core_ui_ai_report_open">Open draft</string>
 
     <string name="core_ui_ai_problem_unauthorized">the key was rejected</string>
     <string name="core_ui_ai_problem_not_found">not found. Check the base URL and model</string>

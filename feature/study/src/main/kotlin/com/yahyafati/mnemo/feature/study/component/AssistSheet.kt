@@ -40,6 +40,9 @@ import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
+import com.yahyafati.mnemo.core.ui.ai.AiReport
+import com.yahyafati.mnemo.core.ui.ai.AiReportKind
+import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
@@ -126,6 +129,10 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
             }
             StudyAssist.Explain, StudyAssist.Example -> {
                 if (sheet.text.isNotEmpty()) MarkdownText(sheet.text, style = MaterialTheme.typography.bodyLarge)
+                if (sheet.text.isNotEmpty() && !sheet.running) {
+                    val kind = if (assist == StudyAssist.Explain) AiReportKind.Explain else AiReportKind.Example
+                    ReportAiButton(AiReport(kind, sheet.text, state.routeFor(assist)?.modelId), Modifier.align(Alignment.End))
+                }
                 if (sheet.running && sheet.text.isEmpty()) Thinking()
                 sheet.failure?.let { Failure(aiFailureText(it)) { onAction(AssistAction.Run(assist)) } }
             }
@@ -159,7 +166,14 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
                             color = colors.error,
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm), modifier = Modifier.align(Alignment.End)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        if (!sheet.running) {
+                            ReportAiButton(AiReport.ofFields(AiReportKind.Rewrite, fields, state.routeFor(assist)?.modelId), compact = true)
+                        }
                         MnemoButton(
                             text = stringResource(R.string.feature_study_ai_discard),
                             onClick = { onAction(AssistAction.Back) },

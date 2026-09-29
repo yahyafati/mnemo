@@ -9,7 +9,7 @@ in [ROADMAP.md](ROADMAP.md). This page keeps the facts behind the decision and w
 - Dependencies are all Apache-2.0 or MIT (AndroidX, Kotlin, OkHttp, jsoup, PdfBox-Android,
   zstd-kmp), plus KaTeX (MIT) and the bundled fonts (SIL OFL 1.1: Newsreader, Hanken Grotesk,
   JetBrains Mono). All are compatible with the GPL-3.0. Each requires its notices to ship with
-  the app: `NOTICE` in the repo now, and an "Open-source licenses" screen in the app (R2).
+  the app: `NOTICE` in the repo, and the "Open-source licenses" screen in Settings › About.
 - The FSRS port follows py-fsrs (MIT): its copyright notice is in `NOTICE`.
 - There are no Google Play Services or other proprietary SDKs, so an F-Droid build needs no
   flavor split.
@@ -34,5 +34,6 @@ provider key, so there is no server cost to cover.
 
 ## Still to do
 
-The public repository, the licenses screen, signing and the F-Droid metadata are R0–R2 and R7 in
-[ROADMAP.md](ROADMAP.md); the F-Droid texts come from [store-listing.md](store-listing.md).
+The public repository, the upload keystore and the F-Droid metadata are R0, R2 and R7 in
+[ROADMAP.md](ROADMAP.md). Signing and releasing are in [signing.md](signing.md), and the F-Droid
+texts come from [store-listing.md](store-listing.md).

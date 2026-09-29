@@ -3,16 +3,25 @@ plugins {
     alias(libs.plugins.mnemo.android.compose)
     alias(libs.plugins.mnemo.hilt)
     alias(libs.plugins.roborazzi)
+    alias(libs.plugins.aboutlibraries)
 }
+
+// The open-source licenses screen (Settings > About) reads the raw resource this plugin generates
+// from the release dependency graph. Bundled files Gradle doesn't know about (fonts, KaTeX,
+// py-fsrs) are added from config/libraries. Offline: the build never calls the network.
+aboutLibraries {
+    offlineMode = true
+    collect {
+        configPath = file("config")
+    }
+}
+
 
 android {
     namespace = "com.yahyafati.mnemo"
 
     defaultConfig {
         applicationId = "com.yahyafati.mnemo"
-        versionCode = 1
-        versionName = "1.0"
-
         testInstrumentationRunner = "com.yahyafati.mnemo.core.testing.HiltTestRunner"
     }
 
@@ -51,6 +60,7 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.work.runtime)
 
+    testImplementation(libs.aboutlibraries.core)
     testImplementation(projects.core.database)
     testImplementation(projects.core.datastore)
     testImplementation(projects.core.security)

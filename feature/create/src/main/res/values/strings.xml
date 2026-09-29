@@ -85,6 +85,8 @@
     <string name="feature_create_link_read">Read</string>
     <string name="feature_create_link_hint">The page\'s main text is read on your device. Video pages usually have none.</string>
     <string name="feature_create_reading">Reading…</string>
+    <string name="feature_create_mic_title">Allow the microphone?</string>
+    <string name="feature_create_mic_message">Mnemo listens only while you dictate, and only to turn your speech into the text you review. Speech is recognized on your device where it can be. Android will ask next.</string>
     <string name="feature_create_dictation_start">Start dictation</string>
     <string name="feature_create_dictation_stop">Stop dictation</string>
     <string name="feature_create_dictation_listening">Listening…</string>

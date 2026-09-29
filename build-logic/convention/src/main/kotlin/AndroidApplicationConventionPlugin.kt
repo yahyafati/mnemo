@@ -1,6 +1,8 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.yahyafati.mnemo.buildlogic.TARGET_SDK
 import com.yahyafati.mnemo.buildlogic.configureKotlinAndroid
+import com.yahyafati.mnemo.buildlogic.configureReleaseSigning
+import com.yahyafati.mnemo.buildlogic.configureVersioning
 import com.yahyafati.mnemo.buildlogic.libs
 import com.yahyafati.mnemo.buildlogic.pluginId
 import org.gradle.api.Plugin
@@ -16,6 +18,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
                 defaultConfig.targetSdk = TARGET_SDK
+                configureVersioning(this)
+                configureReleaseSigning(this)
             }
         }
     }

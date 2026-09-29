@@ -67,6 +67,8 @@ Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
     contributors.
   - Dagger and Hilt. Copyright The Dagger Authors. javax.inject.
   - OkHttp (with okhttp-sse) and Okio. Copyright Square, Inc.
+  - AboutLibraries (com.mikepenz), which builds the Open-source licenses screen. Copyright Mike
+    Penz. Its Gradle plugin runs at build time only.
   - zstd-kmp (com.squareup.zstd). Copyright Square, Inc. It bundles Zstandard, which is used here
     under its BSD-3-Clause license (Copyright Meta Platforms, Inc. and affiliates).
   - PdfBox-Android (com.tom-roush), a port of Apache PDFBox. Copyright Tom Roush and the Apache

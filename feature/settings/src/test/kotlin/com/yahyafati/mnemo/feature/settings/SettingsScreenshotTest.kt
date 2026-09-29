@@ -26,6 +26,7 @@ class SettingsScreenshotTest {
                 optimizerState = TransferState.Idle,
                 optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
                 onOpenAiProviders = {},
+                onOpenLicenses = {},
                 dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
                 callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),
                 onBackClick = {},

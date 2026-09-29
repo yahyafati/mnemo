@@ -1,0 +1,16 @@
+{
+  "uniqueId": "bundled:katex",
+  "name": "KaTeX",
+  "description": "Math typesetting for cards that contain formulas.",
+  "website": "https://katex.org",
+  "developers": [
+    {
+      "name": "Khan Academy and other contributors"
+    }
+  ],
+  "licenses": [
+    "MIT"
+  ],
+  "openSource": true,
+  "artifactVersion": "0.18.9"
+}

@@ -65,7 +65,10 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.markdown.Markdown
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
+import com.yahyafati.mnemo.core.ui.ai.AiReport
+import com.yahyafati.mnemo.core.ui.ai.AiReportKind
 import com.yahyafati.mnemo.core.ui.ai.AiSetupPrompt
+import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
@@ -118,10 +121,10 @@ internal fun CoAuthorScreen(
                 items(uiState.messages, key = { it.id }) { message ->
                     when (message) {
                         is CoAuthorMessage.User -> UserBubble(message.text)
-                        is CoAuthorMessage.Reply -> ReplyBubble(message)
-                        is CoAuthorMessage.Suggestions -> SuggestionsBlock(message, onAction)
+                        is CoAuthorMessage.Reply -> ReplyBubble(message, uiState.route?.modelId)
+                        is CoAuthorMessage.Suggestions -> SuggestionsBlock(message, uiState.route?.modelId, onAction)
                         is CoAuthorMessage.Duplicates -> DuplicatesBlock(message, onAction)
-                        is CoAuthorMessage.WeakCards -> WeakCardsBlock(message, onAction)
+                        is CoAuthorMessage.WeakCards -> WeakCardsBlock(message, uiState.route?.modelId, onAction)
                     }
                 }
             }
@@ -250,7 +253,7 @@ private fun UserBubble(text: String) {
 }
 
 @Composable
-private fun ReplyBubble(message: CoAuthorMessage.Reply) {
+private fun ReplyBubble(message: CoAuthorMessage.Reply, modelId: String?) {
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
         Column(
             Modifier
@@ -261,12 +264,15 @@ private fun ReplyBubble(message: CoAuthorMessage.Reply) {
             if (message.text.isEmpty() && !message.done) Working(stringResource(R.string.feature_create_coauthor_thinking))
             if (message.text.isNotEmpty()) MarkdownText(markdown = message.text, style = MaterialTheme.typography.bodyLarge)
             message.failure?.let { Failure(it) }
+            if (message.done && message.text.isNotEmpty()) {
+                ReportAiButton(AiReport(AiReportKind.CoAuthorReply, message.text, modelId), Modifier.align(Alignment.End))
+            }
         }
     }
 }
 
 @Composable
-private fun SuggestionsBlock(message: CoAuthorMessage.Suggestions, onAction: (CoAuthorAction) -> Unit) {
+private fun SuggestionsBlock(message: CoAuthorMessage.Suggestions, modelId: String?, onAction: (CoAuthorAction) -> Unit) {
     Block(
         title = if (message.focus != null) {
             stringResource(R.string.feature_create_coauthor_suggestions_on, message.focus)
@@ -275,7 +281,7 @@ private fun SuggestionsBlock(message: CoAuthorMessage.Suggestions, onAction: (Co
         },
     ) {
         message.cards.forEach { suggested ->
-            SuggestionCard(suggested, onAdd = { onAction(CoAuthorAction.AddSuggestion(message.id, suggested.card.id)) }) {
+            SuggestionCard(suggested, modelId, onAdd = { onAction(CoAuthorAction.AddSuggestion(message.id, suggested.card.id)) }) {
                 onAction(CoAuthorAction.DiscardSuggestion(message.id, suggested.card.id))
             }
         }
@@ -296,15 +302,16 @@ private fun SuggestionsBlock(message: CoAuthorMessage.Suggestions, onAction: (Co
 }
 
 @Composable
-private fun SuggestionCard(suggested: SuggestedCard, onAdd: () -> Unit, onDiscard: () -> Unit) {
+private fun SuggestionCard(suggested: SuggestedCard, modelId: String?, onAdd: () -> Unit, onDiscard: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Surface(shape = MaterialTheme.shapes.medium, color = colors.surfaceContainerLowest, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
             CardFace(sides = suggested.card.sides, revealed = true, fontScale = 0.85f)
             when (suggested.status) {
-                SuggestionStatus.Pending -> Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                SuggestionStatus.Pending -> Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     MnemoButton(stringResource(R.string.feature_create_coauthor_add), onAdd, leadingIcon = MnemoIcons.Add, style = MnemoButtonStyle.Secondary)
                     MnemoButton(stringResource(R.string.feature_create_coauthor_discard), onDiscard, style = MnemoButtonStyle.Text)
+                    ReportAiButton(AiReport.ofFields(AiReportKind.CoAuthorSuggestion, suggested.card.fields, modelId), compact = true)
                 }
                 SuggestionStatus.Added -> Status(stringResource(R.string.feature_create_coauthor_added), colors.secondary)
                 SuggestionStatus.Discarded -> Status(stringResource(R.string.feature_create_coauthor_discarded), colors.onSurfaceVariant)
@@ -363,7 +370,7 @@ private fun DuplicateNote(note: Note, deleted: Boolean, onDelete: () -> Unit) {
 }
 
 @Composable
-private fun WeakCardsBlock(message: CoAuthorMessage.WeakCards, onAction: (CoAuthorAction) -> Unit) {
+private fun WeakCardsBlock(message: CoAuthorMessage.WeakCards, modelId: String?, onAction: (CoAuthorAction) -> Unit) {
     Block(
         title = if (message.items.isEmpty()) {
             stringResource(R.string.feature_create_coauthor_no_weak, CoAuthorViewModel.MIN_LAPSES)
@@ -371,12 +378,12 @@ private fun WeakCardsBlock(message: CoAuthorMessage.WeakCards, onAction: (CoAuth
             stringResource(R.string.feature_create_coauthor_weak_title)
         },
     ) {
-        message.items.forEach { item -> WeakCard(item, onAction, message.id) }
+        message.items.forEach { item -> WeakCard(item, modelId, onAction, message.id) }
     }
 }
 
 @Composable
-private fun WeakCard(item: WeakCardItem, onAction: (CoAuthorAction) -> Unit, messageId: String) {
+private fun WeakCard(item: WeakCardItem, modelId: String?, onAction: (CoAuthorAction) -> Unit, messageId: String) {
     val colors = MaterialTheme.colorScheme
     val card = item.card
     Surface(shape = MaterialTheme.shapes.medium, color = colors.surfaceContainerLowest, modifier = Modifier.fillMaxWidth()) {
@@ -397,7 +404,7 @@ private fun WeakCard(item: WeakCardItem, onAction: (CoAuthorAction) -> Unit, mes
                     }
                     CardFace(sides = sides, revealed = true, fontScale = 0.85f)
                     if (state.applicable) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.Center) {
                             MnemoButton(
                                 stringResource(R.string.feature_create_coauthor_apply),
                                 { onAction(CoAuthorAction.ApplyRewrite(messageId, card.card.id)) },
@@ -409,6 +416,7 @@ private fun WeakCard(item: WeakCardItem, onAction: (CoAuthorAction) -> Unit, mes
                                 { onAction(CoAuthorAction.DismissRewrite(messageId, card.card.id)) },
                                 style = MnemoButtonStyle.Text,
                             )
+                            ReportAiButton(AiReport.ofFields(AiReportKind.CoAuthorRewrite, state.fields, modelId), compact = true)
                         }
                     } else {
                         Text(stringResource(R.string.feature_create_coauthor_not_applicable), style = MaterialTheme.typography.bodyMedium, color = colors.error)

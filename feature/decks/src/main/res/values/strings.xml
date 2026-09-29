@@ -90,6 +90,8 @@
     <string name="feature_decks_export">Export (.apkg)</string>
     <string name="feature_decks_dismiss">Dismiss</string>
     <string name="feature_decks_importing">Importing Anki deck…</string>
+    <string name="feature_decks_notifications_title">Show import progress?</string>
+    <string name="feature_decks_notifications_message">A big import keeps running if you leave the app, and shows its progress in a notification. Android will ask for permission next. You can say no: the import still works.</string>
     <string name="feature_decks_import_done">Import finished</string>
     <string name="feature_decks_import_failed">Import failed</string>
     <string name="feature_decks_exporting">Exporting deck…</string>

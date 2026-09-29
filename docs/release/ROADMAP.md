@@ -25,7 +25,7 @@ judgment. Everything else can be done in the repo.
 |---|---|---|---|
 | **R0** | Legal and source | GPL-3.0 `LICENSE`, public source repo, ADR 0009 | ½ day |
 | **R1** | Brand identity | Real launcher icon, themed icon, splash, store graphics (done in the repo) | 1–2 days after the logo arrives |
-| **R2** | Release engineering | Signed AAB, licenses screen, AI report action, 16 KB pages | 2–3 days |
+| **R2** | Release engineering | Signed AAB, licenses screen, AI report action, 16 KB pages (repo work done; keystore is the owner's) | 2–3 days |
 | **R3** | Pre-launch QA | Hardware checks from ADR 0008, release build smoke test | 1–2 days |
 | **R4** | Play Console setup | Account, listing, policy forms, internal test | 1–2 days + account verification |
 | **R5** | Closed test | 12+ testers for 14 consecutive days, fixes, production access | ≥ 14 days + review (~7 days) |
@@ -115,35 +115,57 @@ One UI.
 
 - **Signing and packaging**
   - [ ] Create an upload keystore **(owner)**, stored outside the repo and backed up in two places.
-        Losing it means a key reset through Play support.
-  - [ ] Add a `release` `signingConfig` in `mnemo.android.application`, read from
-        `local.properties` or environment variables. If they are missing, fall back to
-        unsigned, so CI and F-Droid can still build.
-  - [ ] Build with `./gradlew bundleRelease` (AAB). Enrol in **Play App Signing** at the first upload.
-  - [ ] Versioning: `versionCode` goes up by one with every upload (keep a single source, such as
-        `gradle.properties`). `versionName` follows `1.0.0`. Tag every release in git (`v1.0.0`).
+        Losing it means a key reset through Play support. Steps: [signing.md](signing.md).
+  - [x] `release` `signingConfig` in `mnemo.android.application` (`ReleaseConfig.kt`), read from
+        `MNEMO_KEYSTORE_*` environment variables or `local.properties`. Without them the release
+        build is unsigned, so CI and F-Droid can still build. Checked with a throwaway keystore:
+        `bundleRelease` and `assembleRelease` verify with `jarsigner`/`apksigner`, and both build
+        unsigned without one.
+  - [x] `./gradlew bundleRelease` builds the AAB (R8 on). Still open **(owner, R4)**: enrol in
+        **Play App Signing** at the first upload.
+  - [x] Versioning: `mnemo.versionCode` and `mnemo.versionName` in `gradle.properties` are the
+        single source (`1` and `1.0.0`). Bump `versionCode` by one with every upload and tag every
+        release (`v1.0.0`): the routine is in [signing.md](signing.md).
 - **Legal in the app**
-  - [ ] Open-source licenses screen under Settings › About. Use **AboutLibraries** (Apache-2.0,
-        generated at build time), **not** Google's `oss-licenses-plugin`, which pulls in Play
-        Services and would break the F-Droid build. Include the bundled fonts, KaTeX and py-fsrs,
-        which Gradle metadata doesn't know about.
-  - [ ] About shows "GPL-3.0", a link to the source repo, and a link to the privacy policy URL (R4).
+  - [x] Open-source licenses screen under Settings › About, built with **AboutLibraries**
+        (Apache-2.0, generated at build time, offline), **not** Google's `oss-licenses-plugin`.
+        It lists the 120+ libraries of the release build with their full license texts, plus the
+        fonts, KaTeX and py-fsrs from `app/config`. `LicensesFlowTest` checks that those are
+        present, that the texts are complete, and that no Play Services, Firebase or Billing
+        library is in the build (R7).
+  - [x] About shows "GPL-3.0-or-later" (links to the license), the source repo link, and the privacy
+        policy (in-app text, and a "Read online" link). URLs are in one place, `ProjectLinks`
+        (`:core:model`). The policy link points at the file in the repo until R4 hosts it.
 - **Play policy readiness**
-  - [ ] **Report action for AI output** (Play's AI-generated content policy): a "Report" item on
-        Smart Extract cards, Explain/Example/Rewrite and Co-Author suggestions. It can open an email
-        or a GitHub issue with the text, after the user confirms. Nothing is sent automatically.
-  - [ ] **16 KB page size**: Play requires native libraries in apps targeting Android 15+ to be
-        16 KB-aligned. Check the zstd-kmp `.so` files in the AAB (APK Analyzer, or
-        `zipalign -c -P 16 -v 4`), and upgrade zstd-kmp if they aren't aligned.
-  - [ ] Check that every permission prompt has an in-context explanation first (`RECORD_AUDIO`
-        from the microphone button, `POST_NOTIFICATIONS` from the reminder toggle).
+  - [x] **Report action for AI output**: a "Report" button on Smart Extract cards, Explain and
+        Example answers, Rewrite proposals, and Co-Author replies, suggested cards and rewrites
+        (`ReportAiButton`, `:core:ui/ai`). It asks first, then opens a prefilled GitHub issue in
+        the browser (the output, the feature and the model name only); nothing is sent by Mnemo.
+        The privacy policy says so. Tests: `AiReportIssueTest`, `AssistSheetReportTest`,
+        `SmartExtractScreenTest`. Email is not offered: no contact address yet (R4).
+  - [x] **16 KB page size**: all `.so` files in the release AAB and APK are aligned
+        (`libzstd-kmp`, `libandroidx.graphics.path`, `libdatastore_shared_counter`, on arm64-v8a
+        and x86_64: LOAD segments at 16384, `zipalign -c -P 16` passes). No upgrade was needed.
+        `scripts/check-16kb-alignment.py` repeats the check on any build, and CI runs it.
+  - [x] Permission prompts: the reminder toggles (Settings, onboarding) sit next to their
+        explanation, and the microphone and import-progress notification requests now show a
+        short "why" dialog first (`PermissionRationaleDialog`). Declining the notification still
+        runs the import.
 - **Nice to have for v1.0**
-  - [ ] A Baseline Profile for startup and the study loop (`androidx.baselineprofile`).
-  - [ ] CI (GitHub Actions): `assembleDebug testDebugUnitTest lint`, the JVM `test` tasks and
-        `verifyRoborazziDebug` on every push. An unsigned `bundleRelease` as a build artifact.
+  - [ ] A Baseline Profile for startup and the study loop (`androidx.baselineprofile`): not done.
+        It needs a macrobenchmark module and a device or emulator to generate the profile.
+  - [x] CI (GitHub Actions, `.github/workflows/ci.yml`): `assembleDebug testDebugUnitTest lint`,
+        the JVM `test` tasks, an unsigned `bundleRelease` artifact with the 16 KB check, and
+        `verifyRoborazziDebug` as a non-blocking job (baselines are recorded on macOS). The
+        workflow has not run yet: it starts with the first push to the public repo.
 
 **Exit:** `bundleRelease` produces a signed AAB that installs through `bundletool`. The licenses
 screen and the report action are covered by tests. The native libraries pass the 16 KB check.
+
+**Status:** everything that can be done in the repo is done. Still open **(owner)**: create and back
+up the upload keystore, then run the signed build from [signing.md](signing.md) and install it
+with `bundletool` (not installed here, so that last step is unchecked), and see the workflow go
+green on the first push.
 
 ## R3 — Pre-launch QA
 

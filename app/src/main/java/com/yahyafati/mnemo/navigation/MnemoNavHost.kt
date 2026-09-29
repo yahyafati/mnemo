@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
+import com.yahyafati.mnemo.R
 import com.yahyafati.mnemo.core.ui.navigation.DecksRoute
 import com.yahyafati.mnemo.feature.analytics.navigation.analyticsScreen
 import com.yahyafati.mnemo.feature.browse.navigation.browseScreen
@@ -14,7 +15,9 @@ import com.yahyafati.mnemo.feature.decks.navigation.decksScreen
 import com.yahyafati.mnemo.feature.settings.navigation.aiProviderEditorScreen
 import com.yahyafati.mnemo.feature.settings.navigation.aiProvidersScreen
 import com.yahyafati.mnemo.feature.settings.navigation.navigateToAiProviderEditor
+import com.yahyafati.mnemo.feature.settings.navigation.licensesScreen
 import com.yahyafati.mnemo.feature.settings.navigation.navigateToAiProviders
+import com.yahyafati.mnemo.feature.settings.navigation.navigateToLicenses
 import com.yahyafati.mnemo.feature.settings.navigation.settingsScreen
 import com.yahyafati.mnemo.feature.study.navigation.navigateToStudySession
 import com.yahyafati.mnemo.feature.study.navigation.studyScreen
@@ -46,7 +49,12 @@ fun MnemoNavHost(
         )
         createScreen(onSetUpAi = { navController.navigateToAiProviders() })
         analyticsScreen(onEditNote = editNote)
-        settingsScreen(onBackClick = navController::popBackStack, onOpenAiProviders = { navController.navigateToAiProviders() })
+        settingsScreen(
+            onBackClick = navController::popBackStack,
+            onOpenAiProviders = { navController.navigateToAiProviders() },
+            onOpenLicenses = { navController.navigateToLicenses() },
+        )
+        licensesScreen(librariesRes = R.raw.aboutlibraries, onBack = navController::popBackStack)
         aiProvidersScreen(
             onBack = navController::popBackStack,
             onAddProvider = { navController.navigateToAiProviderEditor() },

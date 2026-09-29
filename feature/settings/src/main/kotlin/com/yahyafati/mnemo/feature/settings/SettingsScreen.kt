@@ -77,6 +77,7 @@ internal class SettingsCallbacks(
 internal fun SettingsScreen(
     onBackClick: () -> Unit,
     onOpenAiProviders: () -> Unit,
+    onOpenLicenses: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -95,6 +96,7 @@ internal fun SettingsScreen(
             onDismiss = viewModel::dismissOptimization,
         ),
         onOpenAiProviders = onOpenAiProviders,
+        onOpenLicenses = onOpenLicenses,
         dataCallbacks = DataCallbacks(
             onBackUp = viewModel::backUpTo,
             onReadBackup = viewModel::readBackup,
@@ -130,6 +132,7 @@ internal fun SettingsScreen(
     optimizerState: TransferState<FsrsOptimizationOutcome>,
     optimizerCallbacks: OptimizerCallbacks,
     onOpenAiProviders: () -> Unit,
+    onOpenLicenses: () -> Unit,
     dataCallbacks: DataCallbacks,
     callbacks: SettingsCallbacks,
     onBackClick: () -> Unit,
@@ -170,7 +173,7 @@ internal fun SettingsScreen(
                     AppearanceSection(settings, callbacks)
                     AiSection(aiSummary, onOpenAiProviders)
                     DataSection(settings.backup, dataState, dataCallbacks)
-                    AboutSection()
+                    AboutSection(onOpenLicenses)
                 }
             }
         }
@@ -391,6 +394,7 @@ private fun SettingsScreenPreview() {
             optimizerState = TransferState.Idle,
             optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
             onOpenAiProviders = {},
+            onOpenLicenses = {},
             dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
             callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),
             onBackClick = {},

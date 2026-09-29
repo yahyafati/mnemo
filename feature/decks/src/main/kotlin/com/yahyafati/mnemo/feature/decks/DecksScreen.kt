@@ -56,6 +56,7 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
@@ -85,6 +86,7 @@ internal fun DecksScreen(
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         importPicker.launch(arrayOf("*/*"))
     }
+    var explainNotifications by rememberSaveable { mutableStateOf(false) }
     var exportDeckId by rememberSaveable { mutableStateOf<String?>(null) }
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(APKG_MIME)) { uri ->
         val deckId = exportDeckId
@@ -101,7 +103,7 @@ internal fun DecksScreen(
         onImport = {
             val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-            if (needsPermission) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else importPicker.launch(arrayOf("*/*"))
+            if (needsPermission) explainNotifications = true else importPicker.launch(arrayOf("*/*"))
         },
         onExportDeck = { deckId, name ->
             exportDeckId = deckId
@@ -109,6 +111,22 @@ internal fun DecksScreen(
         },
         modifier = modifier,
     )
+    if (explainNotifications) {
+        PermissionRationaleDialog(
+            icon = MnemoIcons.Notifications,
+            title = stringResource(R.string.feature_decks_notifications_title),
+            message = stringResource(R.string.feature_decks_notifications_message),
+            onContinue = {
+                explainNotifications = false
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            // Declining only means no progress notification: the import goes ahead.
+            onNotNow = {
+                explainNotifications = false
+                importPicker.launch(arrayOf("*/*"))
+            },
+        )
+    }
 }
 
 private const val APKG_MIME = "application/octet-stream"

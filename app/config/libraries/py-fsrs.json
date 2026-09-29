@@ -1,0 +1,16 @@
+{
+  "uniqueId": "bundled:py-fsrs",
+  "name": "py-fsrs",
+  "description": "The FSRS-6 scheduler and optimizer in Mnemo are ports of py-fsrs to Kotlin.",
+  "website": "https://github.com/open-spaced-repetition/py-fsrs",
+  "developers": [
+    {
+      "name": "Open Spaced Repetition"
+    }
+  ],
+  "licenses": [
+    "MIT"
+  ],
+  "openSource": true,
+  "artifactVersion": "6.3.2"
+}

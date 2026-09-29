@@ -36,6 +36,11 @@ own local network):
 | Co-Author | The deck's name and up to 150 of its cards as plain text, and your messages; for "Improve weak cards", one card and how often you forgot it |
 | Test connection | A one-word test message |
 
+Every AI answer has a **Report** action. It asks first, then opens a draft issue on GitHub in your
+browser with that answer, the feature and the model name. Nothing is sent until you submit the
+draft there, and GitHub issues are public. Your source text and the rest of your deck are not
+included.
+
 Before the first request to each provider, Mnemo shows what will be sent and where. What the
 provider does with it is governed by that provider's privacy policy. Mnemo records only the token
 counts the provider reports, on your device. "Find duplicates" in Co-Author runs on your device

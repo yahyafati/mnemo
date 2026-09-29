@@ -1,0 +1,15 @@
+{
+  "uniqueId": "bundled:hanken-grotesk-font",
+  "name": "Hanken Grotesk (font)",
+  "description": "Sans-serif typeface for the interface.",
+  "website": "https://github.com/marcologous/hanken-grotesk",
+  "developers": [
+    {
+      "name": "The Hanken Grotesk Project Authors"
+    }
+  ],
+  "licenses": [
+    "OFL-1.1"
+  ],
+  "openSource": true
+}

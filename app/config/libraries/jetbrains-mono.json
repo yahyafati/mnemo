@@ -1,0 +1,15 @@
+{
+  "uniqueId": "bundled:jetbrains-mono-font",
+  "name": "JetBrains Mono (font)",
+  "description": "Monospaced typeface for numbers and code.",
+  "website": "https://github.com/JetBrains/JetBrainsMono",
+  "developers": [
+    {
+      "name": "The JetBrains Mono Project Authors"
+    }
+  ],
+  "licenses": [
+    "OFL-1.1"
+  ],
+  "openSource": true
+}

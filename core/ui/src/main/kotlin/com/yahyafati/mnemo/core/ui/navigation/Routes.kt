@@ -40,6 +40,10 @@ data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = nul
 @Serializable
 data class BrowseRoute(val deckId: String? = null)
 
+/** Settings › About › Open-source licenses. */
+@Serializable
+data object LicensesRoute
+
 /** Settings › AI providers: the provider list, task routing and token usage. */
 @Serializable
 data object AiProvidersRoute

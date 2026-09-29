@@ -39,7 +39,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -71,9 +75,13 @@ import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
+import com.yahyafati.mnemo.core.ui.ai.AiReport
+import com.yahyafati.mnemo.core.ui.ai.AiReportKind
 import com.yahyafati.mnemo.core.ui.ai.AiSetupPrompt
+import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
+import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
@@ -139,6 +147,7 @@ internal fun SmartExtractScreen(
                             item = item,
                             number = index + 1,
                             editing = uiState.editingId == item.card.id,
+                            modelId = uiState.route.modelId,
                             onAction = onAction,
                             modifier = Modifier
                                 .widthIn(max = 680.dp)
@@ -334,6 +343,7 @@ private fun DictationControls(uiState: SmartExtractUiState, onAction: (SmartExtr
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         onAction(if (granted) SmartExtractAction.StartDictation else SmartExtractAction.DictationPermissionDenied)
     }
+    var explainMicrophone by rememberSaveable { mutableStateOf(false) }
     val listening = uiState.dictation as? DictationState.Listening
     MnemoButton(
         text = stringResource(if (listening != null) R.string.feature_create_dictation_stop else R.string.feature_create_dictation_start),
@@ -342,12 +352,24 @@ private fun DictationControls(uiState: SmartExtractUiState, onAction: (SmartExtr
                 listening != null -> onAction(SmartExtractAction.StopDictation)
                 context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED ->
                     onAction(SmartExtractAction.StartDictation)
-                else -> permission.launch(Manifest.permission.RECORD_AUDIO)
+                else -> explainMicrophone = true
             }
         },
         style = if (listening != null) MnemoButtonStyle.Primary else MnemoButtonStyle.Secondary,
         leadingIcon = if (listening != null) MnemoIcons.Stop else MnemoIcons.Mic,
     )
+    if (explainMicrophone) {
+        PermissionRationaleDialog(
+            icon = MnemoIcons.Mic,
+            title = stringResource(R.string.feature_create_mic_title),
+            message = stringResource(R.string.feature_create_mic_message),
+            onContinue = {
+                explainMicrophone = false
+                permission.launch(Manifest.permission.RECORD_AUDIO)
+            },
+            onNotNow = { explainMicrophone = false },
+        )
+    }
     when (val dictation = uiState.dictation) {
         is DictationState.Listening -> Text(
             text = dictation.partial.ifEmpty { stringResource(R.string.feature_create_dictation_listening) },
@@ -565,6 +587,7 @@ private fun ReviewCard(
     item: QueueItem,
     number: Int,
     editing: Boolean,
+    modelId: String?,
     onAction: (SmartExtractAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -597,6 +620,7 @@ private fun ReviewCard(
                         stringResource(if (editing) R.string.feature_create_card_done else R.string.feature_create_card_edit),
                     )
                 }
+                ReportAiButton(AiReport.ofFields(AiReportKind.SmartExtractCard, card.fields, modelId), compact = true)
                 IconButton(onClick = { onAction(SmartExtractAction.Discard(card.id)) }) {
                     Icon(MnemoIcons.Delete, stringResource(R.string.feature_create_card_discard))
                 }

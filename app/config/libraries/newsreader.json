@@ -1,0 +1,15 @@
+{
+  "uniqueId": "bundled:newsreader-font",
+  "name": "Newsreader (font)",
+  "description": "Serif typeface for card text and headings.",
+  "website": "https://github.com/productiontype/Newsreader",
+  "developers": [
+    {
+      "name": "The Newsreader Project Authors"
+    }
+  ],
+  "licenses": [
+    "OFL-1.1"
+  ],
+  "openSource": true
+}
