@@ -65,7 +65,7 @@ Everyone. No user-generated content is shared; no ads; no data collection.
 
 ## Screenshots
 
-Phone (1080×2400, from a device or emulator): Decks, a study card (basic and multiple choice),
+Final files and their order are in `play-console.md` §3. Phone (1080×2400): Decks, a study card (basic and multiple choice),
 Smart Extract review queue, Co-Author, Analytics. Tablet: Decks grid and study side by side. The
 Roborazzi baselines in `feature/*/src/test/screenshots` show the intended layouts.
 
@@ -73,6 +73,6 @@ Roborazzi baselines in `feature/*/src/test/screenshots` show the intended layout
 
 - [ ] Decide licensing and distribution (`distribution.md`).
 - [ ] App signing key (Play App Signing) and release `signingConfig` (never committed).
-- [ ] Contact address in the privacy policy, and host it at a public URL for the listing.
+- [ ] Contact address in the privacy policy, and host it at a public URL for the listing (Pages workflow: `play-console.md` §2).
 - [ ] `versionCode`/`versionName` for 1.0.
 - [ ] Manual checks in ADR 0008 "Open" ([qa.md](qa.md)).

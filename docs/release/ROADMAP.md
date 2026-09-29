@@ -229,6 +229,15 @@ still the owner's). Do it once the R2 build exists; fix P0/P1s, then move to R4.
 
 **Exit:** every "App content" section is green and the internal test installs from Play.
 
+**Status:** the repo side is done. [play-console.md](play-console.md) has every Console field, form
+answer (data safety, content rating, app access, foreground-service text and the screen-recording
+script), the screenshot order and the internal-test steps, ready to paste. The privacy policy is
+published to GitHub Pages by `.github/workflows/pages.yml` (`scripts/pages/build.py`), which
+**refuses to build until the policy has a contact address**. Everything else needs your account
+**(owner)**: register and verify, choose the contact email, enable Pages, fill in the Console,
+and upload the signed bundle. After that, point `ProjectLinks.PRIVACY_POLICY` at the Pages URL in
+the build you upload.
+
 ## R5 — Closed test and production access
 
 **Goal:** meet Play's requirement for new personal accounts and learn from real users.

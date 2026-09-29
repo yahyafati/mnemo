@@ -9,7 +9,7 @@ object ProjectLinks {
     const val SOURCE = "https://github.com/yahyafati/mnemo"
     const val ISSUES = "$SOURCE/issues"
 
-    /** The privacy policy as rendered on GitHub. R4 may replace it with a Pages URL. */
+    /** The privacy policy as rendered on GitHub. R4 (docs/release/play-console.md §2) replaces it with the Pages URL once that loads. */
     const val PRIVACY_POLICY = "$SOURCE/blob/main/docs/release/privacy-policy.md"
 
     const val LICENSE_NAME = "GPL-3.0-or-later"
