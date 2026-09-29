@@ -49,6 +49,8 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew bundleRelease assembleRelease
+      - name: FOSS-only dependencies (F-Droid)
+        run: ./gradlew -q :app:dependencies --configuration releaseRuntimeClasspath | python3 scripts/fdroid/check-foss-deps.py
       - name: 16 KB page-size alignment
         run: |
           python3 scripts/check-16kb-alignment.py app/build/outputs/bundle/release/app-release.aab
@@ -59,6 +61,14 @@ jobs:
           path: |
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
+
+  # F-Droid reads its texts, changelog and graphics from the repo (docs/release/fdroid.md).
+  fastlane:
+    name: F-Droid metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/fdroid/fastlane.py
 
   # The baselines are recorded on macOS. Font rasterization can differ on Linux, so this job
   # reports but does not block until the baselines are recorded on the CI image too.

@@ -1,6 +1,7 @@
 # Store listing (draft)
 
-For Google Play and, if chosen, F-Droid (`fastlane/metadata/android/en-US/` uses the same texts).
+For Google Play. F-Droid's copy of these texts is `fastlane/metadata/android/en-US/` (see
+[fdroid.md](fdroid.md)); it drops the Play-only lines, so edit both when the wording changes.
 Limits: title 30, short description 80, full description 4,000 characters.
 
 ## Title

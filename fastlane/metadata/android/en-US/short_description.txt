@@ -1,0 +1,1 @@
+Flashcards that schedule themselves. Offline, private, with optional AI.

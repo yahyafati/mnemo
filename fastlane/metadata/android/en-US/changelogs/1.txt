@@ -1,0 +1,7 @@
+First public release.
+
+- FSRS-6 scheduling, with an on-device optimizer
+- Basic, reversed, cloze, type-in and multiple-choice cards
+- Anki .apkg/.colpkg import and export, backup and restore
+- Analytics: retention, forgetting curve, calendar, forecast
+- Optional AI with your own provider: Smart Extract, Explain, Co-Author

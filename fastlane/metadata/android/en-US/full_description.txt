@@ -1,0 +1,26 @@
+Mnemo helps you remember what you learn, with a few minutes of review a day. It is free software (GPL-3.0-or-later) with no account, no ads and no tracking.
+
+<b>Study smarter with FSRS</b>
+Mnemo schedules every card just before you'd forget it, using FSRS, the modern algorithm now in Anki. It can even fit the algorithm to your own review history, on your phone.
+
+<b>Fast, pleasant reviews</b>
+<ul>
+<li>Tap to flip; swipe left for Again, right for Good</li>
+<li>Basic, reversed, cloze, type-in and multiple-choice cards</li>
+<li>Images, math (LaTeX), code, audio, text-to-speech and hints</li>
+<li>Undo, star, flag, bury and suspend without leaving the session</li>
+</ul>
+
+<b>Bring your Anki decks</b>
+Import .apkg and .colpkg files with their review history and media, and export back to Anki.
+
+<b>See your progress</b>
+True retention, a forgetting curve, a review calendar, forecasts, per-deck maturity and your hardest cards, all computed on your device.
+
+<b>Optional AI, your provider</b>
+Turn notes, PDFs, links and dictation into cards, ask for explanations while studying, or let Co-Author suggest missing cards and fix the ones you keep forgetting. Works with any OpenAI-compatible provider you choose (OpenAI, OpenRouter, Groq, Mistral, Gemini, DeepSeek, or your own Ollama or LM Studio). Nothing is sent until you set one up and confirm it, and the app works fully without it.
+
+<b>Private by design</b>
+Your cards stay on your phone, with backups and exports to wherever you choose. There are no Google services and no analytics in the app; the only network use is the AI provider you set up, or a link you paste into Smart Extract.
+
+Also: daily reminders, a home-screen widget, exam countdowns, dark theme, Material You colors, tablet and foldable layouts, and TalkBack support.

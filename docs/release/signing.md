@@ -39,9 +39,11 @@ stays unsigned, so check the output before you upload.
 
 1. Bump `mnemo.versionCode` (+1 for **every** upload, including internal and closed-test builds) and,
    for a new public version, `mnemo.versionName` (`MAJOR.MINOR.PATCH`) in `gradle.properties`.
-2. Run the exit check: `./gradlew assembleDebug testDebugUnitTest lint` and the JVM `test` tasks
+2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (F-Droid's release notes, at
+   most 500 bytes) and run `python3 scripts/fdroid/fastlane.py`; CI fails without the changelog.
+3. Run the exit check: `./gradlew assembleDebug testDebugUnitTest lint` and the JVM `test` tasks
    (see CLAUDE.md).
-3. Build the signed bundle:
+4. Build the signed bundle:
 
    ```bash
    ./gradlew bundleRelease
@@ -50,14 +52,14 @@ stays unsigned, so check the output before you upload.
    Output: `app/build/outputs/bundle/release/app-release.aab`. Verify the signature with
    `jarsigner -verify -certs app/build/outputs/bundle/release/app-release.aab`: it should say
    `jar verified` and show your certificate, not a debug one.
-4. Check the native libraries:
+5. Check the native libraries:
    `python3 scripts/check-16kb-alignment.py app/build/outputs/bundle/release/app-release.aab`.
-5. Test what Play will deliver: `bundletool build-apks --bundle=… --ks=… --output=mnemo.apks`, then
+6. Test what Play will deliver: `bundletool build-apks --bundle=… --ks=… --output=mnemo.apks`, then
    `bundletool install-apks --apks=mnemo.apks` on a device (R3's smoke test runs on this build).
-6. Upload the `.aab` to the track (R4: internal, R5: closed, R6: production). Keep
+7. Upload the `.aab` to the track (R4: internal, R5: closed, R6: production). Keep
    `app/build/outputs/mapping/release/mapping.txt` with the release: Play also takes it when you
    upload the bundle, so crashes are readable.
-7. Commit the version bump, then tag the commit and push the tag (F-Droid builds from tags):
+8. Commit the version bump, then tag the commit and push the tag (F-Droid builds from tags, see [fdroid.md](fdroid.md)):
 
    ```bash
    git tag -a v1.0.0 -m "Mnemo 1.0.0"

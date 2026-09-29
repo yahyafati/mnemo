@@ -34,6 +34,6 @@ provider key, so there is no server cost to cover.
 
 ## Still to do
 
-The public repository, the upload keystore and the F-Droid metadata are R0, R2 and R7 in
-[ROADMAP.md](ROADMAP.md). Signing and releasing are in [signing.md](signing.md), and the F-Droid
-texts come from [store-listing.md](store-listing.md).
+The public repository and the upload keystore are R0 and R2 in [ROADMAP.md](ROADMAP.md).
+Signing and releasing are in [signing.md](signing.md). The F-Droid metadata, build recipe and
+submission steps (R7) are ready: see [fdroid.md](fdroid.md). Only the merge request is left.
