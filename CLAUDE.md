@@ -59,6 +59,7 @@ The Gradle configuration cache is on. `local.properties` is machine-specific.
 - The Open-source licenses screen is `LicensesScreen` (`:feature:settings`), fed by the raw resource that AboutLibraries generates in `:app` (`R.raw.aboutlibraries`, passed through `licensesScreen(librariesRes = …)` because features can't see `:app`'s `R`). Bundled files Gradle doesn't know about (fonts, KaTeX, py-fsrs) and the license texts are JSON in `app/config/{libraries,licenses}`: add a file there when you bundle something new, and to `NOTICE`. Don't add Google's `oss-licenses-plugin` or any Play Services/Firebase library (`LicensesFlowTest` fails on them).
 - Every piece of AI output shows a Report button (`ReportAiButton`, `:core:ui/ai`): confirm dialog, then a prefilled GitHub issue in the browser. New AI surfaces need one. Links to the repo, issues and policy are `ProjectLinks` (`:core:model`).
 - Ask for a permission with `PermissionRationaleDialog` (`:core:ui/permission`) first, unless the toggle the user just flipped already explains it.
+- Pre-launch QA (R3) is `docs/release/qa.md`: a runbook for the release build with a results log. `scripts/qa/device-checks.sh` wraps the `adb` parts (install-over, startup time, `gfxinfo` frame stats, airplane mode, `.apkg` push, mock AI server). Record results in the log, not in chat.
 - `python3 scripts/check-16kb-alignment.py <aab|apk>` checks native libraries for 16 KB pages; CI (`.github/workflows/ci.yml`) runs it on the unsigned release build.
 
 ## Data and scheduling

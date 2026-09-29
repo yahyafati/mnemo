@@ -171,19 +171,32 @@ green on the first push.
 
 **Goal:** close the open manual checks from Phases 1–6 on the **release** build.
 
+The runbook, with pass criteria for every check and a results log, is [qa.md](qa.md). The parts
+`adb` can do are in `scripts/qa/device-checks.sh` (device info, installing the release build over the
+old one, cold-start time, frame statistics, airplane mode, pushing an `.apkg`, a mock AI server).
+
 - [ ] ADR 0008 hardware checks: 60/120 fps in the study loop and Analytics on a mid-range device,
-      TTS voices and audio focus, dictation, and the widget on Pixel and Samsung launchers.
+      TTS voices and audio focus, dictation, and the widget on Pixel and Samsung launchers
+      (qa.md §1; the launcher icon and light splash from R1 are in §1.5).
 - [ ] Phase 3/4 checks with real providers: "Test connection" with one hosted provider and one
-      local provider (Ollama or LM Studio), and "1,000 words in under 30 s" in Smart Extract.
+      local provider (Ollama or LM Studio), and "1,000 words in under 30 s" in Smart Extract
+      (qa.md §2).
 - [ ] Release smoke test (R8): fresh install → onboarding → import a real `.apkg` → study with
       every card type → backup → uninstall → reinstall → restore. Also an upgrade from the
-      previous internal build (a migration path check).
-- [ ] Airplane mode: everything except AI works.
-- [ ] TalkBack pass and 200 % font on one phone, plus the tablet/foldable layout on an emulator.
-- [ ] Triage: no open P0/P1 bugs.
+      previous internal build (a migration path check) (qa.md §3).
+- [ ] Airplane mode: everything except AI works (qa.md §4). Code review done: network code exists
+      only in `:core:ai`, the link importer and the Report button (browser); the card WebView
+      blocks network loads. The on-device pass is still open.
+- [ ] TalkBack pass and 200 % font on one phone, plus the tablet/foldable layout on an emulator
+      (qa.md §5).
+- [ ] Triage: no open P0/P1 bugs (qa.md §6).
 
-**Exit:** every check is recorded (device, OS, result) in ADR 0008's "Open" section, which then
-becomes empty.
+**Exit:** every check is recorded (device, OS, result) in qa.md's results log and summarised in
+ADR 0008's "Open" section, which then becomes empty.
+
+**Status:** the runbook and the `adb` helpers are written. Nothing has been run: all of it needs
+devices **(owner)**, and the pass needs the signed release build from R2 (the upload keystore is
+still the owner's). Do it once the R2 build exists; fix P0/P1s, then move to R4.
 
 ## R4 — Play Console setup
 
