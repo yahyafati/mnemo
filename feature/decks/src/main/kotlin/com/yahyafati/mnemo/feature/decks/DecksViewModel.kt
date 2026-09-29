@@ -7,9 +7,12 @@ import com.yahyafati.mnemo.core.common.time.StudyDay
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.domain.DeckNode
+import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.model.DeckSummary
 import com.yahyafati.mnemo.core.model.ExportFormat
+import com.yahyafati.mnemo.core.model.RecallTotal
+import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +30,7 @@ class DecksViewModel @Inject constructor(
     private val deckRepository: DeckRepository,
     private val transferRepository: DataTransferRepository,
     getTodaySummary: GetTodaySummaryUseCase,
+    getRetentionOverview: GetRetentionOverviewUseCase,
     private val clock: Clock,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -40,8 +44,10 @@ class DecksViewModel @Inject constructor(
 
     private val transfers = combine(transferRepository.importState, transferRepository.exportState, ::Pair)
 
-    val uiState: StateFlow<DecksUiState> = combine(summaries, getTodaySummary(), controls, transfers) { decks, today, c, (importing, exporting) ->
-        val state = if (decks == null) DecksUiState(dialog = c.dialog) else buildState(decks, today, c)
+    private val today = combine(getTodaySummary(), getRetentionOverview(), ::Pair)
+
+    val uiState: StateFlow<DecksUiState> = combine(summaries, today, controls, transfers) { decks, (today, retention), c, (importing, exporting) ->
+        val state = if (decks == null) DecksUiState(dialog = c.dialog) else buildState(decks, today, retention, c)
         state.copy(importState = importing, exportState = exporting)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
 
@@ -94,11 +100,11 @@ class DecksViewModel @Inject constructor(
 
     private fun summary(deckId: String): DeckSummary? = summaries.value?.firstOrNull { it.deck.id == deckId }
 
-    private fun buildState(decks: List<DeckSummary>, today: TodaySummary, c: Controls): DecksUiState {
+    private fun buildState(decks: List<DeckSummary>, today: TodaySummary, retention: RetentionOverview, c: Controls): DecksUiState {
         val now = clock.now()
         val hour = now.atZone(clock.zone()).hour
         val roots = DeckNode.build(decks)
-        val items = roots.map { it.toItem(c.expanded) }
+        val items = roots.map { it.toItem(c.expanded, retention.deckRecall) }
         val query = c.query.trim()
         val visible = items.filter { item ->
             val matchesQuery = query.isEmpty() || item.matches(query)
@@ -120,6 +126,7 @@ class DecksViewModel @Inject constructor(
                 else -> Greeting.Evening
             },
             today = today,
+            retention = retention,
             decks = visible,
             hasDecks = items.isNotEmpty(),
             query = c.query,
@@ -134,7 +141,7 @@ class DecksViewModel @Inject constructor(
         )
     }
 
-    private fun DeckNode.toItem(expanded: Set<String>): DeckItem = DeckItem(
+    private fun DeckNode.toItem(expanded: Set<String>, recall: Map<String, RecallTotal>): DeckItem = DeckItem(
         id = deck.id,
         name = deck.name,
         category = deck.category,
@@ -143,9 +150,14 @@ class DecksViewModel @Inject constructor(
         newCount = newCount,
         totalCount = totalCount,
         lastReviewedAt = lastReviewedAt,
-        children = children.map { it.toItem(expanded) },
+        children = children.map { it.toItem(expanded, recall) },
         expanded = deck.id in expanded,
+        recall = recallTotal(recall).average,
     )
+
+    /** This deck's and all its subdecks' recall, summed. */
+    private fun DeckNode.recallTotal(recall: Map<String, RecallTotal>): RecallTotal =
+        children.fold(recall[deck.id] ?: RecallTotal.None) { total, child -> total + child.recallTotal(recall) }
 
     private fun DeckItem.matches(query: String): Boolean =
         name.contains(query, ignoreCase = true) ||

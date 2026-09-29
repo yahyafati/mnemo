@@ -1,16 +1,20 @@
 package com.yahyafati.mnemo.feature.decks
 
+import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.TestClock
 import com.yahyafati.mnemo.core.model.ExportFormat
+import com.yahyafati.mnemo.core.model.DeckMaturity
 import com.yahyafati.mnemo.core.model.ImportSummary
+import com.yahyafati.mnemo.core.model.RetrievabilityBucket
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository.DeckCounts
 import com.yahyafati.mnemo.core.testing.repository.FakeReviewRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeStatsRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import kotlinx.coroutines.flow.first
@@ -31,14 +35,17 @@ class DecksViewModelTest {
     private val clock = TestClock(Instant.parse("2026-01-01T09:00:00Z"))
     private val decks = FakeDeckRepository()
     private val transfers = FakeDataTransferRepository()
+    private val stats = FakeStatsRepository()
+    private val settings = FakeUserSettingsRepository()
     // Lazy: the ViewModel must be created after MainDispatcherRule has set Dispatchers.Main.
     private val viewModel by lazy {
         DecksViewModel(
             deckRepository = decks,
             transferRepository = transfers,
             getTodaySummary = GetTodaySummaryUseCase(
-                decks, FakeCardRepository(), FakeReviewRepository(), FakeUserSettingsRepository(), clock,
+                decks, FakeCardRepository(), FakeReviewRepository(), settings, clock,
             ),
+            getRetentionOverview = GetRetentionOverviewUseCase(stats, settings, clock),
             clock = clock,
         )
     }
@@ -142,5 +149,25 @@ class DecksViewModelTest {
 
         viewModel.onAction(DecksAction.Export("deck-1", "content://docs/deck.apkg"))
         assertEquals(Triple("content://docs/deck.apkg", ExportFormat.Apkg, "deck-1"), transfers.exports.single())
+    }
+
+    @Test
+    fun retentionTilesAndHealthIncludeSubdecks() = runWithState {
+        val child = decks.saveDeck("Languages::Japanese")
+        val parent = decks.getDeck(child)!!.parentId!!
+        decks.saveDeck("Biology")
+        stats.deckMaturity.value = listOf(DeckMaturity(child, 0, 0, 2, 6, 200.0))
+        // Ratio 0 is 100% recall, ratio 1 is 90%.
+        stats.retrievability.value = listOf(
+            RetrievabilityBucket(parent, cards = 1, meanElapsedRatio = 0.0),
+            RetrievabilityBucket(child, cards = 1, meanElapsedRatio = 1.0),
+        )
+
+        assertEquals(6, state.retention.matureCards)
+        assertNull(state.retention.retention)
+        val languages = state.decks.single { it.name == "Languages" }
+        assertEquals(0.95, languages.recall!!, 1e-9)
+        assertEquals(0.9, languages.children.single().recall!!, 1e-9)
+        assertNull(state.decks.single { it.name == "Biology" }.recall)
     }
 }

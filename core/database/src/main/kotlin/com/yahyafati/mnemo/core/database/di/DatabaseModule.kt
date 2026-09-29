@@ -40,6 +40,9 @@ object DaoModule {
 
     @Provides
     fun providesAiProviderDao(database: MnemoDatabase) = database.aiProviderDao()
+
+    @Provides
+    fun providesStatsDao(database: MnemoDatabase) = database.statsDao()
 }
 
 @Module

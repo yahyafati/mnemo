@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.data.repository
 
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
@@ -30,4 +31,7 @@ interface UserSettingsRepository {
     suspend fun setAutoBackup(enabled: Boolean, folderUri: String?)
 
     suspend fun setLastBackupAt(value: Instant)
+
+    /** Schedules with [weights] from now on, or with the FSRS-6 defaults when null. */
+    suspend fun setFsrsWeights(weights: FsrsWeights?)
 }

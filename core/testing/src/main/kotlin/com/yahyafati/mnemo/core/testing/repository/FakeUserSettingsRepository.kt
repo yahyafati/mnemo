@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.testing.repository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -32,4 +33,6 @@ class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserS
         settings.update { it.copy(backup = it.backup.copy(autoBackupEnabled = enabled, folderUri = folderUri)) }
 
     override suspend fun setLastBackupAt(value: Instant) = settings.update { it.copy(backup = it.backup.copy(lastBackupAt = value)) }
+
+    override suspend fun setFsrsWeights(weights: FsrsWeights?) = settings.update { it.copy(fsrsWeights = weights) }
 }

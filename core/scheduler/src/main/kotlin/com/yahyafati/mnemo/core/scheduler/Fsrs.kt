@@ -140,8 +140,15 @@ class Fsrs(val parameters: FsrsParameters = FsrsParameters()) {
         val lastReview = card.lastReview ?: return 0.0
         val stability = card.stability ?: return 0.0
         val elapsedDays = max(0L, floorDays(lastReview, now))
-        return (1 + factor * elapsedDays / stability).pow(decay)
+        return retrievability(elapsedDays.toDouble(), stability)
     }
+
+    /**
+     * Predicted probability of recall [elapsedDays] after a review that left the card with
+     * [stability]: the forgetting curve. Only their ratio matters.
+     */
+    fun retrievability(elapsedDays: Double, stability: Double): Double =
+        (1 + factor * elapsedDays / stability).pow(decay)
 
     /**
      * Memory state for a card scheduled by SM-2 that has no usable review history (ADR 0001):

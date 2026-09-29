@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mnemo is a local-first spaced-repetition Android app (package `com.yahyafati.mnemo`). Read `docs/PROJECT_OVERVIEW.md` (product), `docs/ARCHITECTURE.md` (modules, layers, rules) and `docs/ROADMAP.md` (phases). Decisions are recorded in `docs/adr/`.
 
-**Phases 0–4 are implemented** (open: Phase 1's frame-rate exit check, Phase 3's manual "Test connection" against a real hosted and local provider, and Phase 4's manual "1,000 words in under 30 s" check and on-device dictation): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser; AI providers (Settings › AI providers: presets, encrypted keys, test connection, per-task routing, token usage); Smart Extract (paste, PDF, link, dictation → streamed review queue → accepted notes) and study-time Explain / Example / Rewrite. Analytics is still a placeholder. Next up: Phase 5 (see ROADMAP).
+**Phases 0–5 are implemented** (open: Phase 1's frame-rate exit check, Phase 3's manual "Test connection" against a real hosted and local provider, Phase 4's manual "1,000 words in under 30 s" check and on-device dictation, and Phase 5's on-device frame-rate check of Analytics): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser; AI providers (Settings › AI providers: presets, encrypted keys, test connection, per-task routing, token usage); Smart Extract (paste, PDF, link, dictation → streamed review queue → accepted notes) and study-time Explain / Example / Rewrite; Analytics (KPIs, forgetting curve, activity calendar, deck maturity, forecast, hardest cards), the Decks retention tiles and the on-device FSRS optimizer (Settings › Scheduling). Next up: Phase 6 (see ROADMAP).
 
 Modules today: `:app`, `:core:{ai,anki,common,data,database,datastore,designsystem,domain,ingest,model,scheduler,security,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
 
@@ -78,6 +78,14 @@ The Gradle configuration cache is on. `local.properties` is machine-specific.
 - `GeneratedCardParser` is incremental and tolerant; `JsonRepair` runs even on valid JSON (LaTeX like `\frac` is valid JSON for a form feed). New malformed-reply cases go in `core/ai/src/test/resources/replies` with an expected count in `GeneratedCardParserTest`.
 - Only the source text and the queue's fronts are sent; the deck's notes are deduplicated locally (`GeneratedCardValidator.key`). Keep it that way: the disclosure text says so.
 - Study-time AI lives in `StudyAssistViewModel` (separate from `StudyViewModel`) and only shows once the answer is revealed and a route exists. A rewrite of a cloze note must keep the same cloze numbers, or it can't be applied.
+
+## Analytics and the optimizer (ADR 0007)
+
+- Stats are SQL aggregates only (`StatsDao`, one row per day/deck/bucket), mapped by `StatsRepository` and combined in `ComputeRetentionStatsUseCase` (Analytics) and `GetRetentionOverviewUseCase` (Decks tiles, retention health). Don't load cards or reviews to compute a metric.
+- SQLite has no `pow`: retrievability comes from per-deck buckets of `elapsed days / stability`, evaluated once per bucket with `Fsrs.retrievability(ratio, 1.0)`.
+- Metric definitions (true retention, mature ≥ 21 days stability, time saved vs. daily review, leech ≥ 8 lapses) are in the ADR; keep the UI strings consistent with them.
+- `FsrsOptimizer` (`:core:scheduler/optimizer`) ports py-fsrs 6.3.2's optimizer with hand-derived forward-mode gradients. If you change its math, rerun `core/scheduler/fixtures/make_optimizer_fixtures.py` (needs `pip install "fsrs[optimizer]==6.3.2"`) and `FsrsOptimizerTest`; `gradientMatchesFiniteDifferences` checks derivatives on their own.
+- Fitted weights live in `UserSettings.fsrsWeights` (DataStore). `OptimizeFsrsWorker` → `FsrsOptimization` applies them only if they lower the loss. Always build FSRS parameters with `StudyScheduler.parameters(settings)` so the fitted weights are used.
 
 ## Tests
 

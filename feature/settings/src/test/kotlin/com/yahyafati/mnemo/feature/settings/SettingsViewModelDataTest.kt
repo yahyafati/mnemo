@@ -3,12 +3,16 @@ package com.yahyafati.mnemo.feature.settings
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.model.ExportFormat
+import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeFsrsOptimizationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -16,6 +20,7 @@ import org.junit.Test
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SettingsViewModelDataTest {
@@ -23,7 +28,9 @@ class SettingsViewModelDataTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val transfers = FakeDataTransferRepository()
-    private val viewModel by lazy { SettingsViewModel(FakeUserSettingsRepository(), transfers, FakeAiProviderRepository()) }
+    private val settings = FakeUserSettingsRepository()
+    private val optimization = FakeFsrsOptimizationRepository()
+    private val viewModel by lazy { SettingsViewModel(settings, transfers, FakeAiProviderRepository(), optimization) }
 
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.dataState.collect {} }
@@ -66,5 +73,23 @@ class SettingsViewModelDataTest {
         transfers.backupState.value = TransferState.Succeeded(Unit)
         viewModel.dismissTransfers()
         assertEquals(TransferState.Idle, viewModel.dataState.value.backupState)
+    }
+
+    @Test
+    fun optimizerStartsShowsItsResultAndResets() = runTest {
+        backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.optimizerState.collect {} }
+        viewModel.optimizeFsrs()
+        assertEquals(1, optimization.starts)
+        assertEquals(TransferState.Running(null), viewModel.optimizerState.value)
+
+        val outcome = FsrsOptimizationOutcome.Applied(trainingReviews = 900, previousLoss = 0.47, loss = 0.45)
+        optimization.state.value = TransferState.Succeeded(outcome)
+        assertEquals(TransferState.Succeeded(outcome), viewModel.optimizerState.value)
+        viewModel.dismissOptimization()
+        assertEquals(TransferState.Idle, viewModel.optimizerState.value)
+
+        settings.setFsrsWeights(FsrsWeights(List(21) { 1.0 }, Instant.EPOCH, 900, 0.47, 0.45))
+        viewModel.resetFsrsWeights()
+        assertNull(settings.settings.first().fsrsWeights)
     }
 }

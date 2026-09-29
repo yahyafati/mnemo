@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
@@ -33,4 +34,6 @@ internal class DefaultUserSettingsRepository @Inject constructor(
     override suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) = dataSource.setAutoBackup(enabled, folderUri)
 
     override suspend fun setLastBackupAt(value: Instant) = dataSource.setLastBackupAt(value)
+
+    override suspend fun setFsrsWeights(weights: FsrsWeights?) = dataSource.setFsrsWeights(weights)
 }

@@ -14,7 +14,22 @@
     <string name="feature_settings_relearning_steps">Relearning steps</string>
     <string name="feature_settings_steps_hint">e.g. 1m 10m. Units: s, m, h, d</string>
     <string name="feature_settings_steps_error">Use times like 1m 10m 1h</string>
-    <string name="feature_settings_fsrs_note">Scheduled with FSRS-6. Personal parameters come with the optimizer in a later version.</string>
+    <string name="feature_settings_fsrs_parameters">FSRS parameters</string>
+    <string name="feature_settings_fsrs_default">Scheduled with the FSRS-6 default parameters. Optimizing fits them to your own review history, on this device.</string>
+    <plurals name="feature_settings_fsrs_fitted">
+        <item quantity="one">Personal parameters, fitted to %1$s review on %2$s. Prediction error (log loss) went from %3$s to %4$s.</item>
+        <item quantity="other">Personal parameters, fitted to %1$s reviews on %2$s. Prediction error (log loss) went from %3$s to %4$s.</item>
+    </plurals>
+    <string name="feature_settings_fsrs_optimize">Optimize</string>
+    <string name="feature_settings_fsrs_optimizing">Optimizing…</string>
+    <string name="feature_settings_fsrs_reset">Reset to defaults</string>
+    <string name="feature_settings_fsrs_applied">Updated: log loss %1$s → %2$s. Cards follow the new parameters from their next review.</string>
+    <string name="feature_settings_fsrs_unchanged">Your current parameters already fit best (log loss %1$s). Nothing changed.</string>
+    <plurals name="feature_settings_fsrs_too_few">
+        <item quantity="one">Needs %1$d review made at least a day after the previous one; you have %2$d so far.</item>
+        <item quantity="other">Needs %1$d reviews made at least a day after the previous one; you have %2$d so far.</item>
+    </plurals>
+    <string name="feature_settings_fsrs_failed">Optimization failed. Try again later.</string>
 
     <string name="feature_settings_appearance">Appearance</string>
     <string name="feature_settings_theme">Theme</string>

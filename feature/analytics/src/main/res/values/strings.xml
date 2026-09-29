@@ -2,4 +2,94 @@
 <resources>
     <string name="feature_analytics_empty_title">No reviews yet</string>
     <string name="feature_analytics_empty_message">Retention, streaks and forecasts appear after your first study session.</string>
+
+    <string name="feature_analytics_kicker">FSRS-6</string>
+    <string name="feature_analytics_title">Learning velocity &amp; retention</string>
+    <plurals name="feature_analytics_model_fitted">
+        <item quantity="one">Personal parameters, fitted to %1$s review on %2$s</item>
+        <item quantity="other">Personal parameters, fitted to %1$s reviews on %2$s</item>
+    </plurals>
+    <string name="feature_analytics_model_default">Default parameters. Optimize them to your reviews in Settings › Scheduling.</string>
+
+    <string name="feature_analytics_kpi_retention">Retention</string>
+    <string name="feature_analytics_kpi_retention_target">Target: %1$s</string>
+    <string name="feature_analytics_kpi_retention_none">No reviews of learned cards yet</string>
+    <string name="feature_analytics_kpi_delta_up">Up %1$s on the previous 30 days</string>
+    <string name="feature_analytics_kpi_delta_down">Down %1$s on the previous 30 days</string>
+    <string name="feature_analytics_kpi_volume">Volume</string>
+    <string name="feature_analytics_kpi_volume_note">Reviews, last 30 days</string>
+    <string name="feature_analytics_kpi_stability">Stability</string>
+    <string name="feature_analytics_kpi_stability_value">%1$s d</string>
+    <string name="feature_analytics_kpi_stability_note">Average, learned cards</string>
+    <string name="feature_analytics_kpi_efficiency">Efficiency</string>
+    <string name="feature_analytics_kpi_hours">%1$s h</string>
+    <string name="feature_analytics_kpi_minutes">%1$d min</string>
+    <string name="feature_analytics_kpi_efficiency_note">Saved vs. daily review</string>
+    <string name="feature_analytics_none">—</string>
+
+    <string name="feature_analytics_curve_title">Forgetting curve</string>
+    <string name="feature_analytics_curve_subtitle">Reviews scheduled by FSRS keep recall near your %1$s target</string>
+    <string name="feature_analytics_curve_scheduled">FSRS scheduling</string>
+    <string name="feature_analytics_curve_passive">No reviews</string>
+    <string name="feature_analytics_curve_passive_end">Without reviews: %1$s on day %2$d</string>
+    <string name="feature_analytics_curve_description">Recall of a typical card from day 0 to day %1$d. With reviews on days %2$s it averages %3$s; without them it falls to %4$s.</string>
+
+    <string name="feature_analytics_activity_title">Review activity</string>
+    <string name="feature_analytics_activity_subtitle">Last 5 weeks</string>
+    <plurals name="feature_analytics_streak">
+        <item quantity="one">%d-day streak</item>
+        <item quantity="other">%d-day streak</item>
+    </plurals>
+    <string name="feature_analytics_active_days">%1$d/%2$d</string>
+    <string name="feature_analytics_active_days_label">Active days</string>
+    <plurals name="feature_analytics_day_reviews">
+        <item quantity="one">%2$s: %1$d review</item>
+        <item quantity="other">%2$s: %1$d reviews</item>
+    </plurals>
+    <string name="feature_analytics_day_future">%1$s: still to come</string>
+    <string name="feature_analytics_intensity">Daily reviews</string>
+    <string name="feature_analytics_intensity_low">Low</string>
+    <string name="feature_analytics_intensity_peak">Peak</string>
+
+    <string name="feature_analytics_decks_title">Deck stability</string>
+    <plurals name="feature_analytics_decks_count">
+        <item quantity="one">%d deck</item>
+        <item quantity="other">%d decks</item>
+    </plurals>
+    <plurals name="feature_analytics_deck_studied">
+        <item quantity="one">%1$d card studied</item>
+        <item quantity="other">%1$d cards studied</item>
+    </plurals>
+    <string name="feature_analytics_deck_recall">Recall now %1$s</string>
+    <string name="feature_analytics_deck_not_studied">Not studied yet</string>
+    <string name="feature_analytics_deck_mature_share">%1$s mature</string>
+    <string name="feature_analytics_mature">Mature: %1$d</string>
+    <string name="feature_analytics_young">Young: %1$d</string>
+    <string name="feature_analytics_learning">Learning: %1$d</string>
+    <string name="feature_analytics_new">New: %1$d</string>
+
+    <string name="feature_analytics_forecast_kicker">Forecast</string>
+    <string name="feature_analytics_forecast_title">Upcoming reviews</string>
+    <string name="feature_analytics_forecast_subtitle">Cards FSRS will bring back to hold your %1$s target</string>
+    <string name="feature_analytics_forecast_tomorrow">Tomorrow</string>
+    <string name="feature_analytics_forecast_count">+%1$d</string>
+    <string name="feature_analytics_forecast_minutes">~%1$d min</string>
+    <plurals name="feature_analytics_forecast_total">
+        <item quantity="one">Next 3 days: %1$d card</item>
+        <item quantity="other">Next 3 days: %1$d cards</item>
+    </plurals>
+    <string name="feature_analytics_forecast_bars">Cards due each day from today: %1$s</string>
+    <string name="feature_analytics_forecast_range">Next 14 days</string>
+
+    <string name="feature_analytics_hardest_title">Hardest cards</string>
+    <plurals name="feature_analytics_hardest_subtitle">
+        <item quantity="one">Forgotten most often. A card forgotten %1$d time is a leech: rewrite or split it.</item>
+        <item quantity="other">Forgotten most often. A card forgotten %1$d times is a leech: rewrite or split it.</item>
+    </plurals>
+    <plurals name="feature_analytics_lapses">
+        <item quantity="one">Forgotten %d time</item>
+        <item quantity="other">Forgotten %d times</item>
+    </plurals>
+    <string name="feature_analytics_leech">Leech</string>
+    <string name="feature_analytics_edit_card">Edit card</string>
 </resources>

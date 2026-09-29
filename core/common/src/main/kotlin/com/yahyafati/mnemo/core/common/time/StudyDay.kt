@@ -18,12 +18,14 @@ object StudyDay {
         instant.atZone(zone).minusHours(ROLLOVER_HOUR).toLocalDate()
 
     /** When the study day containing [now] started. */
-    fun start(now: Instant, zone: ZoneId): Instant =
-        date(now, zone).atStartOfDay(zone).plusHours(ROLLOVER_HOUR).toInstant()
+    fun start(now: Instant, zone: ZoneId): Instant = start(date(now, zone), zone)
+
+    /** When the study day [date] starts. */
+    fun start(date: LocalDate, zone: ZoneId): Instant =
+        date.atStartOfDay(zone).plusHours(ROLLOVER_HOUR).toInstant()
 
     /** When the study day containing [now] ends: the next day's start. */
-    fun end(now: Instant, zone: ZoneId): Instant =
-        date(now, zone).plusDays(1).atStartOfDay(zone).plusHours(ROLLOVER_HOUR).toInstant()
+    fun end(now: Instant, zone: ZoneId): Instant = start(date(now, zone).plusDays(1), zone)
 
     /**
      * Offset that turns epoch millis into study-day numbers with integer division:

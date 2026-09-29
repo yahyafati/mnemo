@@ -41,11 +41,11 @@ data class FsrsParameters(
         internal const val STABILITY_MIN = 0.001
         private const val INITIAL_STABILITY_MAX = 100.0
 
-        private val LOWER_BOUNDS = listOf(
+        internal val LOWER_BOUNDS = listOf(
             STABILITY_MIN, STABILITY_MIN, STABILITY_MIN, STABILITY_MIN, 1.0, 0.001, 0.001, 0.001,
             0.0, 0.0, 0.001, 0.001, 0.001, 0.001, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.1,
         )
-        private val UPPER_BOUNDS = listOf(
+        internal val UPPER_BOUNDS = listOf(
             INITIAL_STABILITY_MAX, INITIAL_STABILITY_MAX, INITIAL_STABILITY_MAX, INITIAL_STABILITY_MAX,
             10.0, 4.0, 4.0, 0.75, 4.5, 0.8, 3.5, 5.0, 0.25, 0.9, 4.0, 1.0, 6.0, 2.0, 2.0, 0.8, 0.8,
         )

@@ -45,7 +45,7 @@ fun MnemoNavHost(
             onBackToDecks = { appState.navigateToTopLevelDestination(TopLevelDestination.Decks) },
         )
         createScreen(onSetUpAi = { navController.navigateToAiProviders() })
-        analyticsScreen()
+        analyticsScreen(onEditNote = editNote)
         settingsScreen(onBackClick = navController::popBackStack, onOpenAiProviders = { navController.navigateToAiProviders() })
         aiProvidersScreen(
             onBack = navController::popBackStack,

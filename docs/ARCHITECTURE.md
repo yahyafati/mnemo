@@ -158,6 +158,7 @@ mnemo/
 │   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/
 │   │   ├── Deck.kt  Note.kt  NoteType.kt  Card.kt  CardState.kt
 │   │   ├── Rating.kt  ReviewLog.kt  Media.kt  Transfer.kt
+│   │   ├── Stats.kt  RetentionStats.kt                  # analytics aggregates and results (ADR 0007)
 │   │   ├── markdown/ Markdown.kt MarkdownHtml.kt        # card Markdown (ADR 0002, 0004)
 │   │   ├── AiProvider.kt  AiProviderPreset.kt  AiEndpoint.kt  GeneratedCard.kt
 │   │   └── UserSettings.kt
@@ -173,7 +174,8 @@ mnemo/
 │   │   │   ├── FsrsParameters.kt
 │   │   │   ├── Retrievability.kt
 │   │   │   ├── SchedulingInfo.kt                        # interval preview for the rating buttons
-│   │   │   └── optimizer/FsrsOptimizer.kt               # fits parameters from the ReviewLog
+│   │   │   └── optimizer/FsrsOptimizer.kt               # fits parameters from the ReviewLog (ADR 0007)
+│   │   ├── fixtures/make_optimizer_fixtures.py          # py-fsrs reference data for the optimizer
 │   │   └── test/                                        # reference-vector tests
 │   │
 │   ├── database/
@@ -238,6 +240,7 @@ mnemo/
 │   │   │   ├── MediaRepository.kt         FileMediaRepository.kt
 │   │   │   └── UserSettingsRepository.kt
 │   │   ├── mapper/                                      # Entity/DTO ↔ model
+│   │   ├── scheduling/FsrsOptimization.kt               # review log → optimizer → apply if better
 │   │   ├── work/ BackupWorker.kt ReminderWorker.kt OptimizeFsrsWorker.kt
 │   │   └── di/DataModule.kt                             # @Binds interface → impl
 │   │
@@ -249,7 +252,8 @@ mnemo/
 │   │   ├── AcceptGeneratedCardsUseCase.kt
 │   │   ├── GeneratedCardValidator.kt
 │   │   ├── GetTodaySummaryUseCase.kt                    # due/new/learning, est. minutes
-│   │   └── ComputeRetentionStatsUseCase.kt
+│   │   ├── ComputeRetentionStatsUseCase.kt              # everything on Analytics
+│   │   └── GetRetentionOverviewUseCase.kt               # Decks: retained, mastered, retention health
 │   │
 │   ├── designsystem/src/main/
 │   │   ├── res/font/                                    # Newsreader, Hanken Grotesk, JetBrains Mono
@@ -264,7 +268,7 @@ mnemo/
 │   │   ├── navigation/Routes.kt                         # @Serializable route types used across features
 │   │   ├── card/ CardFace.kt MarkdownText.kt MathText.kt ClozeRenderer.kt
 │   │   ├── deck/DeckCard.kt
-│   │   └── chart/ ForgettingCurveChart.kt Heatmap.kt ForecastBars.kt
+│   │   └── chart/ ForgettingCurveChart.kt ReviewHeatmap.kt ForecastBars.kt StackedBar.kt
 │   │
 │   └── testing/src/main/kotlin/com/yahyafati/mnemo/core/testing/
 │       ├── repository/Fake*Repository.kt
@@ -293,7 +297,8 @@ mnemo/
         ├── 0003-anki-interop.md
         ├── 0004-media-and-math.md
         ├── 0005-ai-providers-and-secrets.md
-        └── 0006-ai-card-creation.md
+        ├── 0006-ai-card-creation.md
+        └── 0007-analytics-and-fsrs-optimizer.md
 ```
 
 ### 4.1 Feature module layout
@@ -383,7 +388,7 @@ Nothing touches the database before step 8 (except the token-usage log). If the 
 - **Room** with KSP. Schemas are exported to `core/database/schemas/` and committed. Every schema change gets a migration and a `MigrationTestHelper` test. Destructive migration is never allowed.
 - **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Nothing is needed for sync today, but this keeps it possible later.
 - **Indices** on `Card(due, state, deckId)`, `ReviewLog(cardId, reviewedAt)`, and `Note(deckId)` keep the queue and stats queries fast.
-- **Stats** are computed with SQL aggregates in `StatsDao`, not by loading rows into memory.
+- **Stats** are computed with SQL aggregates in `StatsDao`, not by loading rows into memory. Retrievability, which needs `pow`, comes from per-deck buckets of `elapsed days / stability` (ADR 0007).
 - **Media** is content-addressed (`sha256`) and garbage-collected by a worker when no note references it.
 
 ## 7. Design system (from `docs/design/`)

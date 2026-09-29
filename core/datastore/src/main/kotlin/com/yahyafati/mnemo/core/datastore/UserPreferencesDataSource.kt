@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -43,6 +44,7 @@ class UserPreferencesDataSource @Inject constructor(
                 keepCount = prefs[Keys.BackupKeepCount] ?: defaults.backup.keepCount,
                 lastBackupAt = prefs[Keys.LastBackupAt]?.let(Instant::ofEpochMilli),
             ),
+            fsrsWeights = readFsrsWeights(prefs),
         )
     }
 
@@ -69,6 +71,36 @@ class UserPreferencesDataSource @Inject constructor(
 
     suspend fun setLastBackupAt(value: Instant) = edit { it[Keys.LastBackupAt] = value.toEpochMilli() }
 
+    /** Stores fitted FSRS weights, or goes back to the defaults with null. */
+    suspend fun setFsrsWeights(value: FsrsWeights?) = edit {
+        if (value == null) {
+            it.remove(Keys.FsrsWeightValues)
+            it.remove(Keys.FsrsOptimizedAt)
+            it.remove(Keys.FsrsTrainingReviews)
+            it.remove(Keys.FsrsPreviousLoss)
+            it.remove(Keys.FsrsLoss)
+        } else {
+            it[Keys.FsrsWeightValues] = value.values.joinToString(",")
+            it[Keys.FsrsOptimizedAt] = value.optimizedAt.toEpochMilli()
+            it[Keys.FsrsTrainingReviews] = value.trainingReviews
+            it[Keys.FsrsPreviousLoss] = value.previousLoss
+            it[Keys.FsrsLoss] = value.loss
+        }
+    }
+
+    // Weights that don't parse, or have the wrong count, fall back to the defaults.
+    private fun readFsrsWeights(prefs: Preferences): FsrsWeights? {
+        val values = prefs[Keys.FsrsWeightValues]?.split(',')?.map { it.toDoubleOrNull() ?: return null } ?: return null
+        if (values.size != FSRS_WEIGHT_COUNT) return null
+        return FsrsWeights(
+            values = values,
+            optimizedAt = Instant.ofEpochMilli(prefs[Keys.FsrsOptimizedAt] ?: 0),
+            trainingReviews = prefs[Keys.FsrsTrainingReviews] ?: 0,
+            previousLoss = prefs[Keys.FsrsPreviousLoss] ?: Double.NaN,
+            loss = prefs[Keys.FsrsLoss] ?: Double.NaN,
+        )
+    }
+
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
         dataStore.edit(block)
     }
@@ -86,9 +118,16 @@ class UserPreferencesDataSource @Inject constructor(
         val BackupFolder = stringPreferencesKey("backup_folder_uri")
         val BackupKeepCount = intPreferencesKey("backup_keep_count")
         val LastBackupAt = longPreferencesKey("last_backup_at")
+        val FsrsWeightValues = stringPreferencesKey("fsrs_weights")
+        val FsrsOptimizedAt = longPreferencesKey("fsrs_optimized_at")
+        val FsrsTrainingReviews = intPreferencesKey("fsrs_training_reviews")
+        val FsrsPreviousLoss = doublePreferencesKey("fsrs_previous_loss")
+        val FsrsLoss = doublePreferencesKey("fsrs_loss")
     }
 
     private companion object {
+        const val FSRS_WEIGHT_COUNT = 21
+
         // Steps are stored as comma-separated seconds; an empty string is "no steps".
         fun encodeSteps(steps: List<Duration>): String = steps.joinToString(",") { it.seconds.toString() }
 

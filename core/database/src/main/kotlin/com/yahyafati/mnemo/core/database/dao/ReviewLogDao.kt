@@ -59,7 +59,26 @@ interface ReviewLogDao {
 
     @Query("SELECT AVG(durationMs) FROM review_logs WHERE deletedAt IS NULL AND reviewedAt >= :since")
     fun observeAverageDurationMs(since: Long): Flow<Double?>
+
+    /** Every card that has a review, so review histories can be read a few cards at a time. */
+    @Query("SELECT DISTINCT cardId FROM review_logs WHERE deletedAt IS NULL ORDER BY cardId")
+    suspend fun getReviewedCardIds(): List<String>
+
+    /** The reviews of [cardIds], grouped by card, oldest first: what the FSRS optimizer needs. */
+    @Query(
+        """
+        SELECT cardId, reviewedAt, rating FROM review_logs
+        WHERE deletedAt IS NULL AND cardId IN (:cardIds) ORDER BY cardId, reviewedAt
+        """,
+    )
+    suspend fun getReviewPoints(cardIds: List<String>): List<ReviewPoint>
 }
+
+data class ReviewPoint(
+    val cardId: String,
+    val reviewedAt: Long,
+    val rating: Int,
+)
 
 data class ReviewCounts(
     val newStudied: Int,

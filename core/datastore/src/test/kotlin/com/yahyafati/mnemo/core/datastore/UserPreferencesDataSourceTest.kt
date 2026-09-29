@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -16,6 +17,7 @@ import java.io.File
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class UserPreferencesDataSourceTest {
     @get:Rule
@@ -47,6 +49,7 @@ class UserPreferencesDataSourceTest {
         source.setCardFontSize(CardFontSize.Large)
         source.setAutoBackup(enabled = true, folderUri = "content://tree/backups")
         source.setLastBackupAt(Instant.ofEpochMilli(1234))
+        source.setFsrsWeights(weights)
 
         assertEquals(
             UserSettings(
@@ -59,8 +62,25 @@ class UserPreferencesDataSourceTest {
                 useDynamicColor = true,
                 cardFontSize = CardFontSize.Large,
                 backup = BackupSettings(autoBackupEnabled = true, folderUri = "content://tree/backups", lastBackupAt = Instant.ofEpochMilli(1234)),
+                fsrsWeights = weights,
             ),
             source.settings.first(),
         )
     }
+
+    @Test
+    fun resettingFsrsWeightsGoesBackToTheDefaults() = testScope.runTest {
+        val source = dataSource()
+        source.setFsrsWeights(weights)
+        source.setFsrsWeights(null)
+        assertNull(source.settings.first().fsrsWeights)
+    }
+
+    private val weights = FsrsWeights(
+        values = List(21) { 0.1 + it / 10.0 },
+        optimizedAt = Instant.ofEpochMilli(5678),
+        trainingReviews = 900,
+        previousLoss = 0.47,
+        loss = 0.45,
+    )
 }

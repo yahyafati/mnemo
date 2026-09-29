@@ -9,7 +9,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.yahyafati.mnemo.core.common.result.MnemoError
@@ -22,13 +21,13 @@ import com.yahyafati.mnemo.core.data.work.ExportWorker
 import com.yahyafati.mnemo.core.data.work.ImportWorker
 import com.yahyafati.mnemo.core.data.work.MediaCleanupWorker
 import com.yahyafati.mnemo.core.data.work.WorkKeys
+import com.yahyafati.mnemo.core.data.work.workState
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TransferState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -41,11 +40,11 @@ internal class WorkManagerDataTransferRepository @Inject constructor(
     private val backups: BackupManager,
     private val settingsRepository: UserSettingsRepository,
 ) : DataTransferRepository {
-    override val importState: Flow<TransferState<ImportSummary>> = state(ImportWorker.UNIQUE_NAME, WorkKeys::summary)
+    override val importState: Flow<TransferState<ImportSummary>> = workManager.workState(ImportWorker.UNIQUE_NAME, WorkKeys::summary)
 
-    override val exportState: Flow<TransferState<Unit>> = state(ExportWorker.UNIQUE_NAME) { }
+    override val exportState: Flow<TransferState<Unit>> = workManager.workState(ExportWorker.UNIQUE_NAME) { }
 
-    override val backupState: Flow<TransferState<Unit>> = state(BackupWorker.UNIQUE_NAME) { }
+    override val backupState: Flow<TransferState<Unit>> = workManager.workState(BackupWorker.UNIQUE_NAME) { }
 
     override fun startImport(uri: String) {
         // Several imports queue up rather than replacing each other.
@@ -121,19 +120,4 @@ internal class WorkManagerDataTransferRepository @Inject constructor(
 
     private inline fun <reified W : androidx.work.ListenableWorker> request(input: Data) =
         OneTimeWorkRequestBuilder<W>().setInputData(input).build()
-
-    /** The state of the newest (or still running) work under [uniqueName]. */
-    private fun <R> state(uniqueName: String, result: (Data) -> R): Flow<TransferState<R>> =
-        workManager.getWorkInfosForUniqueWorkFlow(uniqueName).map { infos ->
-            val info = infos.firstOrNull { !it.state.isFinished } ?: infos.lastOrNull()
-            when (info?.state) {
-                null, WorkInfo.State.CANCELLED -> TransferState.Idle
-                WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> TransferState.Running(null)
-                WorkInfo.State.RUNNING -> TransferState.Running(
-                    info.progress.keyValueMap[WorkKeys.PROGRESS]?.let { (it as? Float)?.coerceIn(0f, 1f) },
-                )
-                WorkInfo.State.SUCCEEDED -> TransferState.Succeeded(result(info.outputData))
-                WorkInfo.State.FAILED -> TransferState.Failed(WorkKeys.error(info.outputData))
-            }
-        }
 }

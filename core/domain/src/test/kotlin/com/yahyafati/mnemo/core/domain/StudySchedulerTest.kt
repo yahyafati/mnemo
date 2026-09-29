@@ -2,10 +2,13 @@ package com.yahyafati.mnemo.core.domain
 
 import com.yahyafati.mnemo.core.model.CardState
 import com.yahyafati.mnemo.core.model.Rating
+import com.yahyafati.mnemo.core.scheduler.FsrsParameters
+import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.UserSettings
 import java.time.Duration
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StudySchedulerTest {
     private val scheduler = StudyScheduler(UserSettings())
@@ -40,5 +43,19 @@ class StudySchedulerTest {
         assertEquals(CardState.Review, answer.log.stateBefore)
         assertEquals(1, answer.log.elapsedDays)
         assertEquals(4_000, answer.log.durationMs)
+    }
+
+    @Test
+    fun `fitted weights are used, and invalid ones fall back to the defaults`() {
+        val card = studyCard("n").card
+        val fitted = FsrsWeights(
+            values = FsrsParameters.DEFAULT_WEIGHTS.toMutableList().also { it[3] = 30.0 },
+            optimizedAt = T0, trainingReviews = 600, previousLoss = 0.5, loss = 0.4,
+        )
+        val default = scheduler.answer(card, Rating.Easy, T0).interval
+        assertTrue(StudyScheduler(UserSettings(fsrsWeights = fitted)).answer(card, Rating.Easy, T0).interval > default)
+
+        val broken = fitted.copy(values = FsrsParameters.DEFAULT_WEIGHTS.toMutableList().also { it[4] = -1.0 })
+        assertEquals(default, StudyScheduler(UserSettings(fsrsWeights = broken)).answer(card, Rating.Easy, T0).interval)
     }
 }

@@ -55,7 +55,7 @@ class GetTodaySummaryUseCase @Inject constructor(
             newCount = new,
             learningCount = learning,
             estimatedMinutes = minutes,
-            streakDays = streak(studyDates, StudyDay.date(clock.now(), clock.zone())),
+            streakDays = currentStreak(studyDates, StudyDay.date(clock.now(), clock.zone())),
             reviewedToday = today.total,
             totalCards = totalCards,
         )
@@ -64,22 +64,5 @@ class GetTodaySummaryUseCase @Inject constructor(
     private companion object {
         const val DEFAULT_ANSWER_MS = 10_000.0
         const val NEW_CARD_ANSWERS = 3
-
-        /**
-         * Consecutive study days ending today, or ending yesterday if nothing has been studied yet
-         * today (the streak is still alive until the day ends). [dates] are newest first.
-         */
-        fun streak(dates: List<LocalDate>, today: LocalDate): Int {
-            val latest = dates.firstOrNull() ?: return 0
-            if (latest.isBefore(today.minusDays(1))) return 0
-            var expected = latest
-            var count = 0
-            for (date in dates) {
-                if (date != expected) break
-                count++
-                expected = expected.minusDays(1)
-            }
-            return count
-        }
     }
 }

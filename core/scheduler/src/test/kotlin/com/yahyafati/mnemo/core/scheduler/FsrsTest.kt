@@ -231,4 +231,13 @@ class FsrsTest {
         assertEquals(Duration.ofMinutes(10), info.interval(Good))
         assertTrue(info.interval(Easy) >= Duration.ofDays(1))
     }
+
+    @Test
+    fun forgettingCurveIsNinetyPercentAtOneStability() {
+        val fsrs = Fsrs()
+        assertEquals(1.0, fsrs.retrievability(0.0, 4.0), 1e-12)
+        assertEquals(0.9, fsrs.retrievability(4.0, 4.0), 1e-12)
+        assertEquals(fsrs.retrievability(2.0, 1.0), fsrs.retrievability(20.0, 10.0), 1e-12)
+        assertTrue(fsrs.retrievability(40.0, 4.0) < 0.9)
+    }
 }

@@ -13,6 +13,7 @@ dependencies {
     implementation(projects.core.database)
     implementation(projects.core.datastore)
     implementation(projects.core.ingest)
+    implementation(projects.core.scheduler)
     implementation(projects.core.security)
 
     implementation(libs.androidx.core.ktx)

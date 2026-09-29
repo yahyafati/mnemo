@@ -9,8 +9,8 @@ import com.yahyafati.mnemo.feature.analytics.AnalyticsScreen
 
 fun NavController.navigateToAnalytics(navOptions: NavOptions? = null) = navigate(AnalyticsRoute, navOptions)
 
-fun NavGraphBuilder.analyticsScreen() {
+fun NavGraphBuilder.analyticsScreen(onEditNote: (noteId: String) -> Unit) {
     composable<AnalyticsRoute> {
-        AnalyticsScreen()
+        AnalyticsScreen(onEditNote = onEditNote)
     }
 }

@@ -227,6 +227,15 @@ a device (Robolectric has no speech recognizer).
 
 ## Phase 5 — Analytics
 
+**Status:** implemented (2026-09-29). Decisions: ADR 0007 (metric definitions, SQL-only stats
+with retrievability buckets, the optimizer as a port of py-fsrs's, apply-only-if-better).
+Covered by tests: `FsrsOptimizerTest` (py-fsrs 6.3.2 reference data from
+`core/scheduler/fixtures/make_optimizer_fixtures.py`: loss and gradient to 1e-12, fitted weights
+to 1e-9, 100k reviews), `StatsDaoTest` (each aggregate, plus 120k reviews with index checks),
+`OfflineStatsRepositoryTest`, `FsrsOptimizationTest`, `RetentionStatsUseCasesTest`,
+`AnalyticsTest` (ViewModel and screen), `DecksViewModelTest` and `SettingsViewModelDataTest`.
+Still open: checking the Analytics screen's frame rate on a device with a large real collection.
+
 **Goal:** show users that the method works, and tune scheduling to them.
 
 ### Scope

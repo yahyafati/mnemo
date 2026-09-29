@@ -20,6 +20,19 @@ data class UserSettings(
     val useDynamicColor: Boolean = false,
     val cardFontSize: CardFontSize = CardFontSize.Medium,
     val backup: BackupSettings = BackupSettings(),
+    /** FSRS weights fitted to this user's reviews; null means the FSRS-6 defaults. */
+    val fsrsWeights: FsrsWeights? = null,
+)
+
+/** The 21 FSRS-6 weights the optimizer fitted to the review history (ADR 0007). */
+data class FsrsWeights(
+    val values: List<Double>,
+    val optimizedAt: Instant,
+    /** Reviews the fit was measured on. */
+    val trainingReviews: Int,
+    /** Mean log loss on those reviews of the weights used before, and of [values]. */
+    val previousLoss: Double,
+    val loss: Double,
 )
 
 /** Automatic backups (Settings › Data). */

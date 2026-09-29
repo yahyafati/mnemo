@@ -31,12 +31,11 @@
         <item quantity="one">day</item>
         <item quantity="other">days</item>
     </plurals>
-    <string name="feature_decks_stat_today">Today</string>
-    <plurals name="feature_decks_stat_reviews">
-        <item quantity="one">review</item>
-        <item quantity="other">reviews</item>
-    </plurals>
-    <string name="feature_decks_stat_cards">Cards</string>
+    <string name="feature_decks_stat_retained">Retained</string>
+    <string name="feature_decks_stat_mastered">Mastered</string>
+    <string name="feature_decks_stat_none">—</string>
+    <string name="feature_decks_retention_health">Retention health</string>
+    <string name="feature_decks_retention_recall">%1$s recall</string>
 
     <string name="feature_decks_search">Filter your library…</string>
     <string name="feature_decks_filter_all">All Decks (%d)</string>

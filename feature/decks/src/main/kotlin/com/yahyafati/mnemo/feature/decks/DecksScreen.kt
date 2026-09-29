@@ -49,12 +49,14 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.component.StatTile
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
 import com.yahyafati.mnemo.feature.decks.component.TransferBanner
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -150,7 +152,7 @@ internal fun DecksScreen(
         }
         if (uiState.hasDecks) {
             item(key = "mix") { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
-            item(key = "stats") { StatsStrip(uiState.today, Modifier.padding(top = spacing.sm)) }
+            item(key = "stats") { StatsStrip(uiState.today, uiState.retention, Modifier.padding(top = spacing.sm)) }
             item(key = "search") { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
             item(key = "library") {
                 LibraryBar(
@@ -264,7 +266,7 @@ private fun Header(uiState: DecksUiState) {
 }
 
 @Composable
-private fun StatsStrip(today: TodaySummary, modifier: Modifier = Modifier) {
+private fun StatsStrip(today: TodaySummary, retention: RetentionOverview, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
         StatTile(
@@ -276,17 +278,18 @@ private fun StatsStrip(today: TodaySummary, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1f),
         )
         StatTile(
-            label = stringResource(R.string.feature_decks_stat_today),
-            value = today.reviewedToday.toString(),
-            unit = pluralStringResource(R.plurals.feature_decks_stat_reviews, today.reviewedToday),
-            icon = MnemoIcons.CheckCircle,
+            label = stringResource(R.string.feature_decks_stat_retained),
+            value = retention.retention?.let { NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(it) }
+                ?: stringResource(R.string.feature_decks_stat_none),
+            icon = MnemoIcons.TrendingUp,
             iconTint = colors.secondary,
+            valueColor = if (retention.retention == null) colors.onSurface else colors.secondary,
             modifier = Modifier.weight(1f),
         )
         StatTile(
-            label = stringResource(R.string.feature_decks_stat_cards),
-            value = "%,d".format(today.totalCards),
-            icon = MnemoIcons.Study,
+            label = stringResource(R.string.feature_decks_stat_mastered),
+            value = NumberFormat.getIntegerInstance().format(retention.matureCards),
+            icon = MnemoIcons.CheckCircle,
             modifier = Modifier.weight(1f),
         )
     }
@@ -412,7 +415,7 @@ private fun DecksScreenPreview() {
                 decks = listOf(
                     DeckItem(
                         "a", "Cognitive Neuroscience", "Exam Prep", true, 18, 5, 320,
-                        Instant.parse("2026-10-22T07:00:00Z"), emptyList(), false,
+                        Instant.parse("2026-10-22T07:00:00Z"), emptyList(), false, recall = 0.94,
                     ),
                     DeckItem("b", "Japanese", "Language", false, 4, 0, 450, null, listOf(child), true),
                 ),

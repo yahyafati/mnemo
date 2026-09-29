@@ -21,16 +21,20 @@ import com.yahyafati.mnemo.core.data.repository.DefaultStudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultUserSettingsRepository
 import com.yahyafati.mnemo.core.data.repository.FileMediaRepository
+import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
 import com.yahyafati.mnemo.core.data.repository.MediaRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineCardBrowserRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineCardRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineDeckRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineReviewRepository
+import com.yahyafati.mnemo.core.data.repository.OfflineStatsRepository
 import com.yahyafati.mnemo.core.data.repository.ReviewRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
+import com.yahyafati.mnemo.core.data.repository.StatsRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.data.repository.WorkManagerDataTransferRepository
+import com.yahyafati.mnemo.core.data.repository.WorkManagerFsrsOptimizationRepository
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -79,6 +83,12 @@ internal interface DataModule {
 
     @Binds
     fun bindsSourceRepository(repository: DefaultSourceRepository): SourceRepository
+
+    @Binds
+    fun bindsStatsRepository(repository: OfflineStatsRepository): StatsRepository
+
+    @Binds
+    fun bindsFsrsOptimizationRepository(repository: WorkManagerFsrsOptimizationRepository): FsrsOptimizationRepository
 }
 
 @Module

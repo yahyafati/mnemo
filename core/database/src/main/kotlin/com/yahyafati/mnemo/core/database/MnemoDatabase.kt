@@ -13,6 +13,7 @@ import com.yahyafati.mnemo.core.database.dao.DeckDao
 import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
+import com.yahyafati.mnemo.core.database.dao.StatsDao
 import com.yahyafati.mnemo.core.database.entity.AiModelEntity
 import com.yahyafati.mnemo.core.database.entity.AiProviderEntity
 import com.yahyafati.mnemo.core.database.entity.AiTaskRouteEntity
@@ -61,6 +62,8 @@ abstract class MnemoDatabase : RoomDatabase() {
     abstract fun mediaDao(): MediaDao
 
     abstract fun aiProviderDao(): AiProviderDao
+
+    abstract fun statsDao(): StatsDao
 
     companion object {
         const val NAME = "mnemo.db"

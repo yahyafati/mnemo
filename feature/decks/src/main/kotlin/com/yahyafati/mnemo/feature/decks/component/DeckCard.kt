@@ -28,15 +28,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.ui.chart.StackedBar
 import com.yahyafati.mnemo.feature.decks.DeckItem
 import com.yahyafati.mnemo.feature.decks.R
+import java.text.NumberFormat
 import java.time.Instant
+import kotlin.math.roundToInt
 
 /** Callbacks shared by a deck card and its subdeck rows. */
 internal class DeckCallbacks(
@@ -91,6 +95,7 @@ internal fun DeckCard(
                 StarButton(deck, callbacks)
                 DeckMenu(deck, callbacks)
             }
+            deck.recall?.let { RetentionHealth(it) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
                     modifier = Modifier.weight(1f),
@@ -108,6 +113,34 @@ internal fun DeckCard(
             }
             if (deck.children.isNotEmpty()) Subdecks(deck, now, callbacks)
         }
+    }
+}
+
+/** The mockup's "Retention health" bar: how much of the deck the user would recall right now. */
+@Composable
+private fun RetentionHealth(recall: Double) {
+    val colors = MaterialTheme.colorScheme
+    val percent = NumberFormat.getPercentInstance().format(recall)
+    // Healthy at or above a typical 85% target; the bar turns amber below it.
+    val color = if (recall >= 0.85) colors.secondary else colors.tertiary
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row {
+            Text(
+                text = stringResource(R.string.feature_decks_retention_health),
+                style = MnemoTheme.typography.metricSm,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.feature_decks_retention_recall, percent),
+                style = MnemoTheme.typography.metricSm.copy(fontWeight = FontWeight.SemiBold),
+                color = color,
+            )
+        }
+        StackedBar(listOf((recall * 1000).roundToInt() to color, (1000 - (recall * 1000).roundToInt()) to Color.Transparent), height = 6.dp)
     }
 }
 

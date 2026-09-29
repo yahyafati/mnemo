@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.feature.decks
 
 import com.yahyafati.mnemo.core.model.ImportSummary
+import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
@@ -14,6 +15,8 @@ data class DecksUiState(
     val date: LocalDate = LocalDate.ofEpochDay(0),
     val greeting: Greeting = Greeting.Morning,
     val today: TodaySummary = TodaySummary.Empty,
+    /** The Retained and Mastered tiles. */
+    val retention: RetentionOverview = RetentionOverview.Empty,
     /** Top-level decks after search and filter; subdecks hang off each item. */
     val decks: List<DeckItem> = emptyList(),
     val hasDecks: Boolean = false,
@@ -53,6 +56,8 @@ data class DeckItem(
     val lastReviewedAt: Instant?,
     val children: List<DeckItem>,
     val expanded: Boolean,
+    /** Retention health: average current recall of its studied cards, or null with none. */
+    val recall: Double? = null,
 ) {
     val hasCardsToStudy: Boolean get() = dueCount + newCount > 0
 

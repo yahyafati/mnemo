@@ -6,10 +6,12 @@ import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
+import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.ExportFormat
+import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
@@ -54,7 +56,21 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: UserSettingsRepository,
     private val transferRepository: DataTransferRepository,
     aiProviderRepository: AiProviderRepository,
+    private val optimizationRepository: FsrsOptimizationRepository,
 ) : ViewModel() {
+    /** The FSRS optimizer's latest run (Scheduling › FSRS parameters). */
+    val optimizerState: StateFlow<TransferState<FsrsOptimizationOutcome>> = optimizationRepository.state
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransferState.Idle)
+
+    /** Fits the FSRS weights to the review log in the background. */
+    fun optimizeFsrs() = optimizationRepository.startOptimization()
+
+    /** Hides a finished run's result. */
+    fun dismissOptimization() = optimizationRepository.clearFinished()
+
+    /** Goes back to the FSRS-6 default weights. */
+    fun resetFsrsWeights() = launch { setFsrsWeights(null) }
+
     val aiSummary: StateFlow<AiSummary> = aiProviderRepository.observeProviders()
         .map { providers -> AiSummary(providers.size, providers.firstOrNull { it.isUsable }?.name) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AiSummary())

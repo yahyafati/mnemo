@@ -53,6 +53,8 @@ import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
+import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlin.math.roundToInt
 
@@ -78,10 +80,17 @@ internal fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataState by viewModel.dataState.collectAsStateWithLifecycle()
     val aiSummary by viewModel.aiSummary.collectAsStateWithLifecycle()
+    val optimizerState by viewModel.optimizerState.collectAsStateWithLifecycle()
     SettingsScreen(
         uiState = uiState,
         dataState = dataState,
         aiSummary = aiSummary,
+        optimizerState = optimizerState,
+        optimizerCallbacks = OptimizerCallbacks(
+            onOptimize = viewModel::optimizeFsrs,
+            onReset = viewModel::resetFsrsWeights,
+            onDismiss = viewModel::dismissOptimization,
+        ),
         onOpenAiProviders = onOpenAiProviders,
         dataCallbacks = DataCallbacks(
             onBackUp = viewModel::backUpTo,
@@ -113,6 +122,8 @@ internal fun SettingsScreen(
     uiState: SettingsUiState,
     dataState: DataUiState,
     aiSummary: AiSummary,
+    optimizerState: TransferState<FsrsOptimizationOutcome>,
+    optimizerCallbacks: OptimizerCallbacks,
     onOpenAiProviders: () -> Unit,
     dataCallbacks: DataCallbacks,
     callbacks: SettingsCallbacks,
@@ -148,7 +159,7 @@ internal fun SettingsScreen(
                         .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
                     verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
                 ) {
-                    SchedulingSection(settings, callbacks)
+                    SchedulingSection(settings, callbacks) { FsrsParametersSetting(settings.fsrsWeights, optimizerState, optimizerCallbacks) }
                     AppearanceSection(settings, callbacks)
                     AiSection(aiSummary, onOpenAiProviders)
                     DataSection(settings.backup, dataState, dataCallbacks)
@@ -159,7 +170,7 @@ internal fun SettingsScreen(
 }
 
 @Composable
-private fun SchedulingSection(settings: UserSettings, callbacks: SettingsCallbacks) {
+private fun SchedulingSection(settings: UserSettings, callbacks: SettingsCallbacks, parameters: @Composable () -> Unit) {
     Section(stringResource(R.string.feature_settings_scheduling), MnemoIcons.Tune) {
         // The slider moves freely and saves on release, not on every frame.
         var retention by remember(settings.desiredRetention) { mutableFloatStateOf(settings.desiredRetention.toFloat()) }
@@ -200,7 +211,7 @@ private fun SchedulingSection(settings: UserSettings, callbacks: SettingsCallbac
             value = StepsFormat.format(settings.relearningSteps),
             onCommit = callbacks.onRelearningSteps,
         )
-        Hint(stringResource(R.string.feature_settings_fsrs_note))
+        parameters()
     }
 }
 
@@ -375,6 +386,8 @@ private fun SettingsScreenPreview() {
             uiState = SettingsUiState.Success(UserSettings()),
             dataState = DataUiState(),
             aiSummary = AiSummary(2, "OpenAI"),
+            optimizerState = TransferState.Idle,
+            optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
             onOpenAiProviders = {},
             dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
             callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),

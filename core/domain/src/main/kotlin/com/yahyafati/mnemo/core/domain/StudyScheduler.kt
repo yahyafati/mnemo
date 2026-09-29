@@ -28,20 +28,14 @@ data class CardAnswer(
 }
 
 /**
- * Applies FSRS to model [Card]s, with the user's retention and steps. Pure and fast, so the study
- * screen can call it on the main thread while showing a card.
+ * Applies FSRS to model [Card]s, with the user's retention, steps and fitted weights. Pure and
+ * fast, so the study screen can call it on the main thread while showing a card.
  *
  * Interval fuzz is seeded from the card id and its review count, so previewing the four ratings
  * and then answering gives the same result.
  */
 class StudyScheduler(settings: UserSettings) {
-    private val fsrs = Fsrs(
-        FsrsParameters(
-            desiredRetention = settings.desiredRetention,
-            learningSteps = settings.learningSteps,
-            relearningSteps = settings.relearningSteps,
-        ),
-    )
+    private val fsrs = Fsrs(parameters(settings))
 
     fun answer(card: Card, rating: Rating, reviewedAt: Instant, durationMs: Long = 0): CardAnswer {
         val next = fsrs.review(card.toFsrs(), rating.toFsrs(), reviewedAt, Random(fuzzSeed(card)))
@@ -79,6 +73,27 @@ class StudyScheduler(settings: UserSettings) {
 
     private fun wholeDays(from: Instant, to: Instant): Int =
         Math.floorDiv(Duration.between(from, to).toMillis(), Duration.ofDays(1).toMillis()).toInt().coerceAtLeast(0)
+
+    companion object {
+        /**
+         * FSRS parameters for [settings]: the fitted weights when there are valid ones, otherwise
+         * the FSRS-6 defaults.
+         */
+        fun parameters(settings: UserSettings): FsrsParameters {
+            val base = FsrsParameters(
+                desiredRetention = settings.desiredRetention,
+                learningSteps = settings.learningSteps,
+                relearningSteps = settings.relearningSteps,
+            )
+            val weights = settings.fsrsWeights?.values ?: return base
+            // Out-of-bounds weights can only come from a damaged preferences file; never fail study over it.
+            return try {
+                base.copy(weights = weights)
+            } catch (_: IllegalArgumentException) {
+                base
+            }
+        }
+    }
 
     private fun Card.toFsrs(): FsrsCard = when (state) {
         CardState.New -> FsrsCard(due = due)
