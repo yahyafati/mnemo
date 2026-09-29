@@ -145,6 +145,13 @@ and export → import), `RoundTripTest`, `BackupTest` (restore on a fresh instal
 
 ## Phase 3 — AI providers
 
+**Status:** implemented (2026-09-29). Decisions: ADR 0005 (keys outside the database, network
+rules, capability detection). Covered by tests: `OpenAiCompatibleClientTest` and
+`ConnectionProbeTest` (MockWebServer), `FileSecretStoreTest`, `DefaultAiProviderRepositoryTest`,
+`BackupTest.backupsNeverContainApiKeys`, `MigrationTest.migrate2To3`, and `AiProvidersFlowTest`
+(setup prompt → add a provider). Still open: the manual exit check of "Test connection" against a
+hosted provider and a real Ollama/LM Studio server, which needs a device and the user's own key.
+
 **Goal:** users configure any OpenAI-compatible provider safely. No AI features use it yet beyond testing the connection.
 
 ### Scope

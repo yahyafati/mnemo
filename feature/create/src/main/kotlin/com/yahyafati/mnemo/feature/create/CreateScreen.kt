@@ -1,29 +1,74 @@
 package com.yahyafati.mnemo.feature.create
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 
-/** The Create tab: add new notes. AI Smart Extract joins this tab in Phase 4. */
+/** Which side of the Create tab is showing. */
+internal enum class CreateMode { SmartExtract, Manual }
+
+/**
+ * The Create tab: Smart Extract (AI) and the manual editor. Smart Extract shows the provider setup
+ * prompt until a provider is ready; the generation flow itself arrives in Phase 4.
+ */
 @Composable
 internal fun CreateScreen(
+    onSetUpAi: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NoteEditorViewModel = hiltViewModel(),
+    smartExtractViewModel: SmartExtractViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    NoteEditorScreen(uiState = uiState, onAction = viewModel::onAction, modifier = modifier)
+    val smartExtract by smartExtractViewModel.uiState.collectAsStateWithLifecycle()
+    var mode by rememberSaveable { mutableStateOf(CreateMode.Manual) }
+    Column(modifier.fillMaxSize()) {
+        SingleChoiceSegmentedButtonRow(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.sm),
+        ) {
+            CreateMode.entries.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = mode == option,
+                    onClick = { mode = option },
+                    shape = SegmentedButtonDefaults.itemShape(index, CreateMode.entries.size),
+                    label = {
+                        Text(
+                            stringResource(if (option == CreateMode.SmartExtract) R.string.feature_create_mode_smart else R.string.feature_create_mode_manual),
+                            maxLines = 1,
+                        )
+                    },
+                )
+            }
+        }
+        when (mode) {
+            CreateMode.Manual -> NoteEditorScreen(uiState = uiState, onAction = viewModel::onAction, modifier = Modifier.weight(1f))
+            CreateMode.SmartExtract -> SmartExtractScreen(smartExtract, onSetUpAi, Modifier.weight(1f))
+        }
+    }
 }
 
 /**

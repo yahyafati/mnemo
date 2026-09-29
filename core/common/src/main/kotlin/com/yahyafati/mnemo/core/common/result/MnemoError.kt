@@ -21,6 +21,11 @@ sealed interface MnemoError {
     /** A local file or database operation failed. */
     data class Storage(override val cause: Throwable? = null) : MnemoError
 
+    /** A request was refused before it was sent, e.g. plain HTTP to a server that isn't local. */
+    data class Blocked(val reason: String) : MnemoError {
+        override val cause: Throwable? = null
+    }
+
     /** A required entity does not exist. */
     data class NotFound(val what: String) : MnemoError {
         override val cause: Throwable? = null

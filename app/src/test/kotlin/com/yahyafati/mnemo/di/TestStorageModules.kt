@@ -12,6 +12,9 @@ import com.yahyafati.mnemo.core.data.di.WorkModule
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.di.DatabaseModule
 import com.yahyafati.mnemo.core.datastore.di.DataStoreModule
+import com.yahyafati.mnemo.core.security.SecretCipher
+import com.yahyafati.mnemo.core.security.di.CipherModule
+import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -58,4 +61,13 @@ object TestWorkModule {
         )
         return WorkManager.getInstance(context)
     }
+}
+
+/** Robolectric has no Android Keystore: keys are encrypted with an in-memory AES key instead. */
+@Module
+@TestInstallIn(components = [SingletonComponent::class], replaces = [CipherModule::class])
+object TestCipherModule {
+    @Provides
+    @Singleton
+    fun providesSecretCipher(): SecretCipher = SoftwareSecretCipher()
 }

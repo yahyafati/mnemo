@@ -2,6 +2,11 @@ package com.yahyafati.mnemo.core.data.backup
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
+import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
+import com.yahyafati.mnemo.core.data.repository.AiProviderDraft
+import com.yahyafati.mnemo.core.data.repository.ApiKeyChange
+import com.yahyafati.mnemo.core.data.repository.DefaultAiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.FileMediaRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineCardRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineDeckRepository
@@ -10,7 +15,9 @@ import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.testing.TestClock
+import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -23,6 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -75,7 +83,7 @@ class BackupTest {
         val empty = open()
         assertTrue(empty.deckDao().getDecks().isEmpty())
         val info = manager(empty).stage(backup.toByteArray().inputStream())
-        assertEquals(2, info.schemaVersion)
+        assertEquals(3, info.schemaVersion)
         empty.close()
         db = null
 
@@ -90,6 +98,50 @@ class BackupTest {
         assertEquals(listOf("cell.png"), restored.mediaDao().getAll().map { it.name })
         assertEquals("png-bytes", File(context.filesDir, "${MediaRef.DIRECTORY}/${image.id}").readText())
     }
+
+    /** API keys live encrypted outside the database, so no backup carries them (ADR 0005). */
+    @Test
+    fun backupsNeverContainApiKeys() = runTest {
+        val database = open()
+        val cipher = SoftwareSecretCipher()
+        val secrets = FileSecretStore(context, cipher, Dispatchers.Unconfined)
+        fun providers(db: MnemoDatabase) = DefaultAiProviderRepository(
+            db.aiProviderDao(), secrets, ConnectionProbe(OpenAiCompatibleClient(okhttp3.OkHttpClient())),
+            RoomTransactionRunner(db), clock, Dispatchers.Unconfined,
+        )
+        providers(database).saveProvider(
+            AiProviderDraft(id = "p", name = "OpenAI", baseUrl = "https://api.openai.com/v1", apiKey = ApiKeyChange.Set(KEY), defaultModel = "m"),
+        )
+        val sealed = File(context.noBackupFilesDir, "secrets").listFiles()!!.single().readBytes()
+
+        val backup = ByteArrayOutputStream()
+        manager(database).write(backup, tmp.newFolder())
+        val bytes = backup.toByteArray()
+        ZipInputStream(bytes.inputStream()).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { entry ->
+                val content = zip.readBytes()
+                assertFalse(KEY.toByteArray().isIn(content), entry.name)
+                assertFalse(sealed.isIn(content), entry.name)
+            }
+        }
+
+        // A fresh install has no Keystore key and no secrets: the provider comes back without its key.
+        database.close()
+        db = null
+        DatabaseSnapshot.files(context).forEach { it.delete() }
+        File(context.noBackupFilesDir, "secrets").deleteRecursively()
+        val empty = open()
+        manager(empty).stage(bytes.inputStream())
+        empty.close()
+        db = null
+        assertTrue(PendingRestore.applyIfPresent(context))
+        val restored = providers(open()).getProvider("p")!!
+        assertEquals("OpenAI", restored.name)
+        assertFalse(restored.hasApiKey)
+    }
+
+    private fun ByteArray.isIn(content: ByteArray): Boolean =
+        content.size >= size && (0..content.size - size).any { start -> indices.all { content[start + it] == this[it] } }
 
     @Test
     fun rejectsFilesThatAreNotBackups() = runTest {
@@ -120,5 +172,9 @@ class BackupTest {
         }
         assertFailsWith<BackupFormatException> { manager(database).stage(evil.toByteArray().inputStream()) }
         assertFalse(File(context.filesDir.parentFile, "evil").exists())
+    }
+
+    private companion object {
+        const val KEY = "sk-proj-backup-test-0123456789"
     }
 }

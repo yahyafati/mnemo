@@ -37,6 +37,9 @@ object DaoModule {
 
     @Provides
     fun providesMediaDao(database: MnemoDatabase) = database.mediaDao()
+
+    @Provides
+    fun providesAiProviderDao(database: MnemoDatabase) = database.aiProviderDao()
 }
 
 @Module

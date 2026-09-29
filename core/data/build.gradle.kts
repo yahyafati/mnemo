@@ -8,9 +8,11 @@ dependencies {
     api(projects.core.common)
     api(projects.core.model)
     api(libs.androidx.paging.common)
+    implementation(projects.core.ai)
     implementation(projects.core.anki)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
+    implementation(projects.core.security)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.documentfile)
@@ -26,6 +28,7 @@ dependencies {
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
+    testImplementation(libs.okhttp.mockwebserver)
 }
 
 // Robolectric runs on the host JVM, where the Android zstd natives can't load. Extract the

@@ -59,6 +59,17 @@ import androidx.compose.material.icons.outlined.ManageSearch
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.PrivacyTip
+import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -131,4 +142,18 @@ object MnemoIcons {
     val SelectAll: ImageVector = Icons.Outlined.SelectAll
     val Sort: ImageVector = Icons.AutoMirrored.Outlined.Sort
     val Unchecked: ImageVector = Icons.Outlined.CheckBoxOutlineBlank
+
+    // AI providers
+    val Cloud: ImageVector = Icons.Outlined.Cloud
+    val Error: ImageVector = Icons.Outlined.ErrorOutline
+    val Hide: ImageVector = Icons.Outlined.VisibilityOff
+    val Key: ImageVector = Icons.Outlined.Key
+    val Local: ImageVector = Icons.Outlined.Computer
+    val MoveDown: ImageVector = Icons.Outlined.ArrowDownward
+    val MoveUp: ImageVector = Icons.Outlined.ArrowUpward
+    val OpenInNew: ImageVector = Icons.AutoMirrored.Outlined.OpenInNew
+    val Privacy: ImageVector = Icons.Outlined.PrivacyTip
+    val Route: ImageVector = Icons.Outlined.Route
+    val Show: ImageVector = Icons.Outlined.Visibility
+    val Usage: ImageVector = Icons.Outlined.DataUsage
 }

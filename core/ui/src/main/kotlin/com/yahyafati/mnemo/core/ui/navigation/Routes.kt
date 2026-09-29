@@ -39,3 +39,14 @@ data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = nul
 /** The card browser, filtered to [deckId] and its subdecks when given. */
 @Serializable
 data class BrowseRoute(val deckId: String? = null)
+
+/** Settings › AI providers: the provider list, task routing and token usage. */
+@Serializable
+data object AiProvidersRoute
+
+/**
+ * The provider editor: edits [providerId], or adds a new provider (starting from [presetId], if
+ * given) when [providerId] is null. Property names double as `SavedStateHandle` keys.
+ */
+@Serializable
+data class AiProviderEditorRoute(val providerId: String? = null, val presetId: String? = null)

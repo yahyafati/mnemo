@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
+import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
@@ -37,6 +38,9 @@ data class DataUiState(
     val restore: RestoreStep? = null,
 )
 
+/** The AI row in Settings: how many providers, and which one tasks use by default. */
+data class AiSummary(val providerCount: Int = 0, val defaultProvider: String? = null)
+
 sealed interface RestoreStep {
     /** A backup was read and is ready; the user confirms replacing everything with it. */
     data class Confirm(val createdAt: Instant) : RestoreStep
@@ -49,7 +53,12 @@ sealed interface RestoreStep {
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: UserSettingsRepository,
     private val transferRepository: DataTransferRepository,
+    aiProviderRepository: AiProviderRepository,
 ) : ViewModel() {
+    val aiSummary: StateFlow<AiSummary> = aiProviderRepository.observeProviders()
+        .map { providers -> AiSummary(providers.size, providers.firstOrNull { it.isUsable }?.name) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AiSummary())
+
     val uiState: StateFlow<SettingsUiState> = settingsRepository.settings
         .map<UserSettings, SettingsUiState> { SettingsUiState.Success(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)

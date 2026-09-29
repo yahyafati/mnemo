@@ -41,4 +41,11 @@
     <string name="feature_create_preview_front">Front</string>
     <string name="feature_create_preview_back">Back</string>
     <string name="feature_create_close">Close</string>
+
+    <string name="feature_create_mode_smart">Smart Extract</string>
+    <string name="feature_create_mode_manual">Manual</string>
+    <string name="feature_create_smart_setup">Smart Extract turns notes, PDFs and links into cards with an AI provider you choose. Everything else in Mnemo works without one.</string>
+    <string name="feature_create_smart_title">Smart Extract</string>
+    <string name="feature_create_smart_soon">Turning notes, PDFs and links into cards arrives in the next update. It will use:</string>
+    <string name="feature_create_smart_manage">Manage providers</string>
 </resources>

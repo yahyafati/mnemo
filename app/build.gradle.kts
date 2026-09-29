@@ -49,6 +49,7 @@ dependencies {
 
     testImplementation(projects.core.database)
     testImplementation(projects.core.datastore)
+    testImplementation(projects.core.security)
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.room.runtime)

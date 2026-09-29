@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
 import com.yahyafati.mnemo.core.database.migration.Migration1To2
+import com.yahyafati.mnemo.core.database.migration.Migration2To3
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -73,8 +75,31 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3() = runTest {
+        helper.createDatabase(TEST_DB, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO decks (id, parentId, name, description, category, starred, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('d1', NULL, 'Biology', '', NULL, 0, 1, 1, NULL)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 3, true, Migration2To3).close()
+
+        val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), MnemoDatabase::class.java, TEST_DB)
+            .addMigrations(*ALL_MIGRATIONS)
+            .build()
+        try {
+            assertEquals("Biology", database.deckDao().getDeck("d1")?.name)
+            assertEquals(emptyList(), database.aiProviderDao().getProviders())
+            assertEquals(emptyList(), database.aiProviderDao().observeUsageTotals().first())
+        } finally {
+            database.close()
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
-        const val LATEST = 2
+        const val LATEST = 3
     }
 }

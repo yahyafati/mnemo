@@ -15,9 +15,10 @@ fun NavController.navigateToCreate(navOptions: NavOptions? = null) = navigate(Cr
 fun NavController.navigateToNoteEditor(noteId: String? = null, deckId: String? = null, navOptions: NavOptions? = null) =
     navigate(NoteEditorRoute(noteId = noteId, deckId = deckId), navOptions)
 
-fun NavGraphBuilder.createScreen() {
+/** [onSetUpAi] opens the AI provider settings from the Smart Extract setup prompt. */
+fun NavGraphBuilder.createScreen(onSetUpAi: () -> Unit) {
     composable<CreateRoute> {
-        CreateScreen()
+        CreateScreen(onSetUpAi = onSetUpAi)
     }
 }
 

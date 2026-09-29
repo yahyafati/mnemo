@@ -2,8 +2,9 @@
 <!--
     Android Auto Backup on Android 10 and 11 (see data_extraction_rules.xml for 12+): the database
     and preferences. Media is left out: cloud backups are capped at 25 MB and a larger backup fails
-    entirely. Mnemo's own backups (Settings > Data) include media. Encrypted API keys (Phase 3)
-    must stay out too, because their Keystore key doesn't survive a restore.
+    entirely. Mnemo's own backups (Settings > Data) include media. Encrypted API keys are in
+    noBackupFilesDir/secrets, which Android never backs up: their Keystore key doesn't survive a
+    restore anyway (ADR 0005).
 -->
 <full-backup-content>
     <include domain="database" path="." />

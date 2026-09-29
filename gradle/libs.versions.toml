@@ -31,6 +31,8 @@ work = "2.11.2"
 paging = "3.5.1"
 webkit = "1.17.1"
 documentfile = "1.1.0"
+# AI providers (Phase 3)
+okhttp = "5.5.0"
 
 [libraries]
 # AndroidX
@@ -95,6 +97,11 @@ zstd-kmp-okio = { group = "com.squareup.zstd", name = "zstd-kmp-okio", version.r
 zstd-kmp-jvm = { group = "com.squareup.zstd", name = "zstd-kmp-jvm", version.ref = "zstdKmp" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+
+# AI providers: OpenAI-compatible HTTP with server-sent events
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

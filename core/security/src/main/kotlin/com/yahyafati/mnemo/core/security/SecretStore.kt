@@ -1,0 +1,103 @@
+package com.yahyafati.mnemo.core.security
+
+import android.content.Context
+import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
+import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
+import java.security.GeneralSecurityException
+import java.security.MessageDigest
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** What [SecretStore.get] found. */
+sealed interface StoredSecret {
+    data object Missing : StoredSecret
+
+    data class Present(val value: String) : StoredSecret
+
+    /** Stored, but it can't be decrypted (the Keystore key is gone, or the file is damaged). */
+    data object Unreadable : StoredSecret
+}
+
+/**
+ * Secrets by id (an API key per provider id). Values are encrypted with [SecretCipher] at rest and
+ * only decrypted by [get], in memory, for the request that needs them.
+ */
+interface SecretStore {
+    suspend fun put(id: String, secret: String)
+
+    suspend fun get(id: String): StoredSecret
+
+    suspend fun contains(id: String): Boolean
+
+    suspend fun remove(id: String)
+
+    /** Deletes every secret whose id isn't in [ids] (e.g. left behind by a restore). */
+    suspend fun retainOnly(ids: Set<String>)
+}
+
+/**
+ * One encrypted file per secret in `noBackupFilesDir/secrets`, named by the SHA-256 of the id.
+ * That directory is outside the database, the preferences and the media folder, so no Mnemo
+ * backup or export can contain it, and Android Auto Backup never copies `noBackupFilesDir`.
+ */
+@Singleton
+class FileSecretStore internal constructor(
+    private val directory: () -> File,
+    private val cipher: SecretCipher,
+    private val ioDispatcher: CoroutineDispatcher,
+) : SecretStore {
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        cipher: SecretCipher,
+        @Dispatcher(MnemoDispatchers.IO) ioDispatcher: CoroutineDispatcher,
+    ) : this({ File(context.noBackupFilesDir, DIRECTORY) }, cipher, ioDispatcher)
+
+    override suspend fun put(id: String, secret: String) = withContext(ioDispatcher) {
+        val dir = directory().apply { mkdirs() }
+        val sealed = cipher.encrypt(secret.toByteArray(Charsets.UTF_8), id.toByteArray(Charsets.UTF_8))
+        val temp = File(dir, name(id) + ".tmp")
+        temp.writeBytes(sealed)
+        if (!temp.renameTo(File(dir, name(id)))) {
+            temp.delete()
+            throw IOException("Can't save the secret")
+        }
+    }
+
+    override suspend fun get(id: String): StoredSecret = withContext(ioDispatcher) {
+        val file = File(directory(), name(id))
+        if (!file.exists()) return@withContext StoredSecret.Missing
+        try {
+            StoredSecret.Present(cipher.decrypt(file.readBytes(), id.toByteArray(Charsets.UTF_8)).toString(Charsets.UTF_8))
+        } catch (e: GeneralSecurityException) {
+            StoredSecret.Unreadable
+        } catch (e: IOException) {
+            StoredSecret.Unreadable
+        }
+    }
+
+    override suspend fun contains(id: String): Boolean = withContext(ioDispatcher) { File(directory(), name(id)).exists() }
+
+    override suspend fun remove(id: String) {
+        withContext(ioDispatcher) { File(directory(), name(id)).delete() }
+    }
+
+    override suspend fun retainOnly(ids: Set<String>) {
+        withContext(ioDispatcher) {
+            val keep = ids.mapTo(HashSet(), ::name)
+            directory().listFiles()?.filter { it.name !in keep }?.forEach { it.delete() }
+        }
+    }
+
+    private fun name(id: String): String =
+        MessageDigest.getInstance("SHA-256").digest(id.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+
+    private companion object {
+        const val DIRECTORY = "secrets"
+    }
+}

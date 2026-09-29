@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.feature.settings
 
 import android.os.Build
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -69,14 +71,18 @@ internal class SettingsCallbacks(
 @Composable
 internal fun SettingsScreen(
     onBackClick: () -> Unit,
+    onOpenAiProviders: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataState by viewModel.dataState.collectAsStateWithLifecycle()
+    val aiSummary by viewModel.aiSummary.collectAsStateWithLifecycle()
     SettingsScreen(
         uiState = uiState,
         dataState = dataState,
+        aiSummary = aiSummary,
+        onOpenAiProviders = onOpenAiProviders,
         dataCallbacks = DataCallbacks(
             onBackUp = viewModel::backUpTo,
             onReadBackup = viewModel::readBackup,
@@ -106,6 +112,8 @@ internal fun SettingsScreen(
 internal fun SettingsScreen(
     uiState: SettingsUiState,
     dataState: DataUiState,
+    aiSummary: AiSummary,
+    onOpenAiProviders: () -> Unit,
     dataCallbacks: DataCallbacks,
     callbacks: SettingsCallbacks,
     onBackClick: () -> Unit,
@@ -142,6 +150,7 @@ internal fun SettingsScreen(
                 ) {
                     SchedulingSection(settings, callbacks)
                     AppearanceSection(settings, callbacks)
+                    AiSection(aiSummary, onOpenAiProviders)
                     DataSection(settings.backup, dataState, dataCallbacks)
                 }
             }
@@ -236,6 +245,32 @@ private fun AppearanceSection(settings: UserSettings, callbacks: SettingsCallbac
             selected = settings.cardFontSize,
             onSelect = callbacks.onCardFontSize,
         )
+    }
+}
+
+@Composable
+private fun AiSection(summary: AiSummary, onOpen: () -> Unit) {
+    Section(stringResource(R.string.feature_settings_ai), MnemoIcons.CreateSelected) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpen),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.feature_settings_ai_providers), style = MaterialTheme.typography.titleSmall)
+                Hint(
+                    when {
+                        summary.providerCount == 0 -> stringResource(R.string.feature_settings_ai_none)
+                        summary.defaultProvider == null -> pluralStringResource(
+                            R.plurals.feature_settings_ai_summary_unusable, summary.providerCount, summary.providerCount,
+                        )
+                        else -> pluralStringResource(R.plurals.feature_settings_ai_summary, summary.providerCount, summary.providerCount, summary.defaultProvider)
+                    },
+                )
+            }
+            Icon(MnemoIcons.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -339,6 +374,8 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             uiState = SettingsUiState.Success(UserSettings()),
             dataState = DataUiState(),
+            aiSummary = AiSummary(2, "OpenAI"),
+            onOpenAiProviders = {},
             dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
             callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),
             onBackClick = {},

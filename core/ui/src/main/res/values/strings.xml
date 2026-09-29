@@ -14,4 +14,13 @@
     <string name="core_ui_deck_create">Create</string>
     <string name="core_ui_deck_save">Save</string>
     <string name="core_ui_cancel">Cancel</string>
+
+    <string name="core_ui_ai_setup_title">Connect an AI provider</string>
+    <string name="core_ui_ai_setup_message">AI features use a provider you choose: OpenAI, OpenRouter, Groq, or a model on your own computer with Ollama or LM Studio. Everything else in Mnemo works without one.</string>
+    <string name="core_ui_ai_setup_action">Set up a provider</string>
+    <string name="core_ui_ai_disclosure_title">Send to %s?</string>
+    <string name="core_ui_ai_disclosure_sent">Mnemo will send %s directly to:</string>
+    <string name="core_ui_ai_disclosure_policy">Nothing goes through Mnemo\'s servers (there are none). The provider\'s own privacy policy applies to what it receives. You\'ll only see this once per provider.</string>
+    <string name="core_ui_ai_disclosure_accept">Continue</string>
+    <string name="core_ui_ai_disclosure_cancel">Cancel</string>
 </resources>

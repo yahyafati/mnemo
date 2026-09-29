@@ -88,10 +88,10 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:data` | Android lib | Repository interfaces and implementations, background workers |
 | `:core:database` | Android lib | Room database, entities, DAOs, migrations, schema JSON |
 | `:core:datastore` | Android lib | Proto/Preferences DataStore for user settings |
-| `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, prompt templates, JSON schema, tolerant output parser |
+| `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe; later prompt templates, JSON schema, tolerant output parser |
 | `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
 | `:core:ingest` | Android lib | Source extraction: PDF → text, URL → readable text, speech → text, chunking |
-| `:core:security` | Android lib | Android Keystore-backed encryption for API keys |
+| `:core:security` | Android lib | Android Keystore-backed encryption for API keys (`SecretCipher`) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
 | `:core:common` | JVM lib | `Result`/error types, dispatcher qualifiers, time/clock abstraction |
@@ -159,7 +159,7 @@ mnemo/
 │   │   ├── Deck.kt  Note.kt  NoteType.kt  Card.kt  CardState.kt
 │   │   ├── Rating.kt  ReviewLog.kt  Media.kt  Transfer.kt
 │   │   ├── markdown/ Markdown.kt MarkdownHtml.kt        # card Markdown (ADR 0002, 0004)
-│   │   ├── AiProvider.kt  AiModel.kt  AiTask.kt  GeneratedCard.kt
+│   │   ├── AiProvider.kt  AiProviderPreset.kt  AiEndpoint.kt  GeneratedCard.kt
 │   │   └── UserSettings.kt
 │   │
 │   ├── common/src/main/kotlin/com/yahyafati/mnemo/core/common/
@@ -181,8 +181,7 @@ mnemo/
 │   │   └── src/main/kotlin/com/yahyafati/mnemo/core/database/
 │   │       ├── MnemoDatabase.kt
 │   │       ├── entity/ DeckEntity.kt NoteEntity.kt NoteTypeEntity.kt CardEntity.kt
-│   │       │           ReviewLogEntity.kt MediaEntity.kt AiProviderEntity.kt
-│   │       │           AiModelEntity.kt AiTaskRouteEntity.kt
+│   │       │           ReviewLogEntity.kt MediaEntity.kt AiEntities.kt
 │   │       ├── dao/    DeckDao.kt NoteDao.kt CardDao.kt ReviewLogDao.kt
 │   │       │           MediaDao.kt AiProviderDao.kt StatsDao.kt
 │   │       ├── converter/ Converters.kt                 # Instant, lists, JSON maps
@@ -196,16 +195,17 @@ mnemo/
 │   │
 │   ├── security/src/main/kotlin/com/yahyafati/mnemo/core/security/
 │   │   ├── SecretCipher.kt                              # AES-GCM with a Keystore key
+│   │   ├── SecretStore.kt                               # encrypted files in noBackupFilesDir
 │   │   └── di/SecurityModule.kt
 │   │
 │   ├── ai/src/
 │   │   ├── main/kotlin/com/yahyafati/mnemo/core/ai/
-│   │   │   ├── client/OpenAiCompatibleClient.kt         # /models, /chat/completions (+SSE)
+│   │   │   ├── client/OpenAiCompatibleClient.kt         # /models, /chat/completions (+SSE via okhttp-sse)
 │   │   │   ├── client/ProviderConfig.kt                 # baseUrl, key, headers, timeout
-│   │   │   ├── client/SseParser.kt
-│   │   │   ├── dto/ ChatRequest.kt ChatResponse.kt ModelsResponse.kt ResponseFormat.kt
-│   │   │   ├── presets/ProviderPresets.kt               # OpenAI, OpenRouter, Groq, Ollama, …
-│   │   │   ├── prompt/ PromptTemplate.kt CardGenerationPrompt.kt ExplainPrompt.kt
+│   │   │   ├── dto/ Chat.kt Models.kt                   # requests, responses, stream chunks
+│   │   │   ├── probe/ConnectionProbe.kt                 # test connection + capability detection
+│   │   │   ├── probe/ModelHeuristics.kt
+│   │   │   ├── prompt/ PromptTemplate.kt CardGenerationPrompt.kt ExplainPrompt.kt   # Phase 4
 │   │   │   ├── schema/GeneratedCardsSchema.kt           # JSON schema for response_format
 │   │   │   └── parse/ GeneratedCardParser.kt JsonRepair.kt
 │   │   └── test/                                        # MockWebServer + parser fixtures
@@ -351,10 +351,11 @@ Nothing touches the database before step 7. If the network fails partway, the ca
 
 ### 5.3 AI provider management
 
-- `AiProviderEntity` stores `encryptedApiKey` (AES-GCM ciphertext and IV). The Keystore key never leaves `:core:security`.
-- "Test connection" calls `GET /models` and then a one-token completion. The result updates the cached `AiModelEntity` rows and their capability flags.
-- `AiTaskRouteEntity` maps each `AiTask` (EXTRACT, CO_AUTHOR, EXPLAIN, REWRITE) to a provider and model. A missing route falls back to the default provider.
-- Backups and exports **exclude** API keys by default.
+- API keys are **not** in the database (ADR 0005). `SecretStore` keeps each one AES-GCM-encrypted with a non-exportable Keystore key in `noBackupFilesDir/secrets`, bound to its provider id. A key is decrypted only to build one request's `ProviderConfig`. `AiProvider` only says whether a key exists.
+- "Test connection" (`ConnectionProbe`) calls `GET /models`, then a streamed one-token completion and a one-token `json_schema` completion. Saving the provider stores the listed models (`AiModelEntity`) and the tested model's capability flags; the user can override them.
+- `AiTaskRouteEntity` maps each `AiTask` (Extract, CoAuthor, Explain, Rewrite) to a provider and optional model. A missing or disabled route falls back to the default provider: the first enabled one with a model. `routeFor` returns null when nothing is usable, and AI entry points show `AiSetupPrompt`.
+- Backups, exports and Android Auto Backup **cannot** contain API keys: they live outside every backed-up location.
+- `ai_usage` logs reported tokens per provider and task, locally.
 
 ### 5.4 Import / backup
 
@@ -423,10 +424,10 @@ Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.je
 
 ## 10. Security and privacy
 
-- API keys: encrypted with a non-exportable Android Keystore AES key and decrypted only in memory for each request.
-- Network: HTTPS required, except user-marked local providers (LAN IPs, `localhost`), which are allowed through a scoped `network_security_config`.
+- API keys: encrypted with a non-exportable Android Keystore AES key and decrypted only in memory for each request. `ProviderConfig.toString()` redacts them, and error messages have them removed.
+- Network: HTTPS required, except user-marked local providers whose host is a local address (LAN IPs, `localhost`, `.local`). A network security config can't express address ranges, so the rule is enforced in code before every request (`AiEndpoint`); `network_security_config.xml` pins HTTPS for the hosted presets and trusts only system CAs. Redirects are never followed (ADR 0005).
 - No analytics or crash-reporting SDKs. Logs never include card content or keys.
-- `backup_rules.xml` / `data_extraction_rules.xml` exclude the encrypted keys, because the Keystore key does not survive a restore.
+- Encrypted keys live in `noBackupFilesDir`, which Android never backs up; the Keystore key does not survive a restore anyway.
 
 ## 11. Migration from the current template
 

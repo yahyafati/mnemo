@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mnemo is a local-first spaced-repetition Android app (package `com.yahyafati.mnemo`). Read `docs/PROJECT_OVERVIEW.md` (product), `docs/ARCHITECTURE.md` (modules, layers, rules) and `docs/ROADMAP.md` (phases). Decisions are recorded in `docs/adr/`.
 
-**Phases 0–2 are implemented** (Phase 1's frame-rate exit check is still open): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser. Analytics is still a placeholder (Phase 5). Next up: Phases 3 and 5 (see ROADMAP).
+**Phases 0–3 are implemented** (open: Phase 1's frame-rate exit check, and Phase 3's manual "Test connection" against a real hosted and local provider): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser; AI providers (Settings › AI providers: presets, encrypted keys, test connection, per-task routing, token usage). Smart Extract only shows the setup prompt so far. Analytics is still a placeholder (Phase 5). Next up: Phases 4 and 5 (see ROADMAP).
 
-Modules today: `:app`, `:core:{anki,common,data,database,datastore,designsystem,domain,model,scheduler,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
+Modules today: `:app`, `:core:{ai,anki,common,data,database,datastore,designsystem,domain,model,scheduler,security,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
 
 ## Commands
 
@@ -28,7 +28,7 @@ Use the Gradle wrapper from the repo root:
 ./gradlew :core:designsystem:recordRoborazziDebug   # after an intended visual change
 ```
 
-JVM modules (`:core:model`, `:core:common`, `:core:scheduler`, `:core:anki`) use `test`, not `testDebugUnitTest`, so run them too: `./gradlew :core:anki:test :core:model:test :core:scheduler:test :core:common:test`.
+JVM modules (`:core:model`, `:core:common`, `:core:scheduler`, `:core:anki`, `:core:ai`) use `test`, not `testDebugUnitTest`, so run them too: `./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test`.
 
 Anki test packages in `core/anki/src/test/resources/` are written by real Anki: regenerate with `core/anki/fixtures/make_fixtures.py` (needs `pip install anki`). Tests that depend on them check relationships, not absolute dates.
 
@@ -52,7 +52,7 @@ The Gradle configuration cache is on. `local.properties` is machine-specific.
 
 - Layers follow ARCHITECTURE §2: Room (`:core:database`) and DataStore (`:core:datastore`) are only seen by `:core:data`, whose repositories (`*Repository` interfaces, `Offline*` implementations) map entities to `:core:model` types. Use cases live in `:core:domain`.
 - `:core:scheduler` is a pure-Kotlin port of py-fsrs 6 with its own `Fsrs*` types (it may not depend on `:core:model`). `FsrsTest` holds the reference vectors; keep it in sync if the port changes. `StudyScheduler` (`:core:domain`) maps model cards to it and seeds fuzz per card, so previews equal saved answers.
-- Room schema is exported to `core/database/schemas/` (currently v2). A schema change needs a version bump, a migration in `migration/Migrations.kt` (SQL must match the generated schema JSON) and a `MigrationTest` case (it runs under Robolectric in `testDebugUnitTest`). Never enable destructive migration.
+- Room schema is exported to `core/database/schemas/` (currently v3). A schema change needs a version bump, a migration in `migration/Migrations.kt` (SQL must match the generated schema JSON) and a `MigrationTest` case (it runs under Robolectric in `testDebugUnitTest`). Never enable destructive migration.
 - Rows use UUID ids, epoch-millis timestamps and soft deletes (`deletedAt`); every query filters `deletedAt IS NULL`. Undo is the exception: it hard-deletes the review log.
 - Time goes through `Clock`; "today" is `StudyDay` (rolls over at 4 a.m. local, like Anki).
 - The study loop is optimistic: `StudyViewModel` computes the answer, shows the next card, then saves through a `Mutex` so saves and undos stay in order.
@@ -61,6 +61,14 @@ The Gradle configuration cache is on. `local.properties` is machine-specific.
 - Anki interop is ADR 0003. `:core:anki` is JVM-only: SQLite through the `androidx.sqlite` driver API (`AndroidSQLiteDriver` in the app, `BundledSQLiteDriver` in its tests) and zstd through `zstd-kmp`. Android-module Robolectric tests can't load zstd's Android natives, so `:core:data`'s build extracts the host's native from `zstd-kmp-jvm` onto the test library path.
 - Long transfers (import, export, backup, media cleanup) are `@HiltWorker`s in `:core:data/work`; `MnemoApplication` is the WorkManager `Configuration.Provider` (the default initializer is removed in the manifest). UIs observe them via `DataTransferRepository`. App tests replace `WorkModule` with a test WorkManager (`TestStorageModules`).
 - Restore is applied at startup by `PendingRestore.applyIfPresent`, before Hilt opens the database or DataStore.
+
+## AI providers (ADR 0005)
+
+- `:core:ai` (JVM) is the only network client: `OpenAiCompatibleClient` (OkHttp, SSE via `okhttp-sse`) and `ConnectionProbe` (test connection + capability detection). Tests use MockWebServer, which runs on plain-HTTP localhost, so their configs set `isLocal = true`.
+- API keys are never in Room. `SecretStore` (`:core:security`) keeps them AES-GCM-encrypted with a Keystore key in `noBackupFilesDir/secrets`, so backups/exports can't contain them. Never add a key column, log a key, or put one in `SavedStateHandle`. Robolectric has no Keystore: tests use `SoftwareSecretCipher`, and app tests replace `CipherModule` (`TestCipherModule`).
+- Plain HTTP only for providers marked local whose host is a local address (`AiEndpoint.check`, enforced again in the client). The network security config can't express LAN ranges, so the rule lives in code. The OkHttp client never follows redirects.
+- `AiProviderRepository.routeFor(task)` → the task's route or the default provider (first enabled one with a model), or null. Every AI entry point shows `AiSetupPrompt` (`:core:ui/ai`) when it's null, and `AiDisclosureDialog` before the first request to a provider.
+- Presets and URL rules are in `:core:model` (`AiProviderPresets`, `AiEndpoint`) because the settings UI needs them and features can't see `:core:ai`.
 
 ## Tests
 

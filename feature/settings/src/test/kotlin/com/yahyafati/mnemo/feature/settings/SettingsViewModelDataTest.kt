@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
+import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.launch
@@ -22,7 +23,7 @@ class SettingsViewModelDataTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val transfers = FakeDataTransferRepository()
-    private val viewModel by lazy { SettingsViewModel(FakeUserSettingsRepository(), transfers) }
+    private val viewModel by lazy { SettingsViewModel(FakeUserSettingsRepository(), transfers, FakeAiProviderRepository()) }
 
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.dataState.collect {} }

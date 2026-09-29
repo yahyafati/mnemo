@@ -2,8 +2,9 @@
 <!--
     Android 12+ backup rules. Cloud backup: the database and preferences, without media (capped at
     25 MB; Mnemo's own backups in Settings > Data include media). Device-to-device transfer has no
-    cap, so media goes too. Encrypted API keys (Phase 3) must stay out of both: their Keystore key
-    doesn't move with them.
+    cap, so media goes too. Encrypted API keys stay out of both: they live in
+    noBackupFilesDir/secrets, which is never backed up or transferred, and their Keystore key
+    doesn't move with them anyway (ADR 0005).
 -->
 <data-extraction-rules>
     <cloud-backup>
