@@ -1,0 +1,31 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: Optional AI features send text to an AI provider chosen by the user. Hosted
+      providers are proprietary services; local servers such as Ollama work too. Nothing
+      is sent until the user sets one up.
+Categories:
+  - Science & Education
+License: GPL-3.0-or-later
+SourceCode: https://github.com/yahyafati/mnemo
+IssueTracker: https://github.com/yahyafati/mnemo/issues
+Changelog: https://github.com/yahyafati/mnemo/releases
+
+RepoType: git
+Repo: https://github.com/yahyafati/mnemo.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
+    subdir: app
+    gradle:
+      - yes
+    rm:
+      - gradle/gradle-daemon-jvm.properties
+    prebuild: sed -i '/foojay-resolver/d' ../settings.gradle.kts
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags ^v[0-9.]+$
+UpdateCheckData: gradle.properties|mnemo\.versionCode=(\d+)|gradle.properties|mnemo\.versionName=(.+)
+CurrentVersion: 1.0.0
+CurrentVersionCode: 1

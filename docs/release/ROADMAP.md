@@ -270,21 +270,37 @@ the build you upload.
 
 **Goal:** the same app, built from source by F-Droid.
 
-- [ ] `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt`,
-      `full_description.txt`, `changelogs/<versionCode>.txt`, and `images/` (icon, featureGraphic,
-      phoneScreenshots) from R1. Play-specific lines, such as the data-safety note, stay out.
-- [ ] Check the build is FOSS-only: no Play Services, and no Firebase or GMS in the dependency
-      tree (`./gradlew :app:dependencies`). Pre-built natives from Maven (zstd-kmp) are normally
-      allowed, but check with the F-Droid scanner.
-- [ ] Expect the **NonFreeNet** anti-feature, since the AI features can talk to proprietary
-      services. Say in the description that they are optional and that local servers work.
-- [ ] Signing: F-Droid signs with its own key by default, so users can't switch between the Play
+- [x] `fastlane/metadata/android/en-US/`: `title.txt`, `short_description.txt`,
+      `full_description.txt`, `changelogs/1.txt`, and `images/` (icon, feature graphic, 11 phone
+      and 2 + 2 tablet screenshots) from R1. Play-specific wording stays out.
+      `scripts/fdroid/fastlane.py` checks it (limits, the changelog for the current
+      `versionCode`, that each graphic equals its source) and CI runs it.
+- [x] Check the build is FOSS-only: no Play Services, and no Firebase or GMS in the dependency
+      tree. `scripts/fdroid/check-foss-deps.py` reads `:app:dependencies` and runs in CI, next to
+      `LicensesFlowTest`. The scanner's rules turned up two real problems, both fixed: the APK's
+      encrypted dependency-metadata block (`dependenciesInfo.includeInApk = false`) and the foojay
+      JDK-download plugin (dropped by the recipe's `prebuild`). zstd-kmp's natives come from Maven
+      Central; the scanner's source pass has no finding for them, and its pass over the built APK
+      runs in the merge request's pipeline (not run yet).
+- [x] Expect the **NonFreeNet** anti-feature, since the AI features can talk to proprietary
+      services. It is in the recipe with an explanation, and the description says the AI is
+      optional and that local servers work.
+- [x] Signing: F-Droid signs with its own key by default, so users can't switch between the Play
       and F-Droid builds without reinstalling (backups carry the data over). Later, a reproducible
-      build lets F-Droid publish the developer-signed APK instead.
+      build lets F-Droid publish the developer-signed APK instead
+      ([fdroid.md](fdroid.md), last section).
+- [x] The build recipe for `fdroiddata` is `fdroid/com.yahyafati.mnemo.yml`. `fdroid lint`,
+      `rewritemeta` and `scanner` pass on it.
 - [ ] Open a merge request to `fdroiddata` on GitLab with the build recipe **(owner: GitLab
-      account)**. Answer reviewer questions until it's merged.
+      account)**. Answer reviewer questions until it's merged. Steps: [fdroid.md](fdroid.md).
 
 **Exit:** Mnemo appears in the F-Droid client and updates automatically from new git tags.
+
+**Status:** everything that can be done in the repo is done; [fdroid.md](fdroid.md) has the recipe's
+reasoning, the local test commands and the submission steps. No Android SDK was available while
+this was written, so a full `fdroid build` and the APK-level scan have **not** been run: expect to
+adjust the recipe once in the merge request. Still open **(owner)**: the public repo with a
+`v1.0.0` tag, a GitLab account, and the merge request.
 
 ---
 
@@ -295,4 +311,5 @@ the build you upload.
 | Public source repo URL | owner | R0 (needed for About, privacy policy hosting, F-Droid) |
 | Contact email for the listing and privacy policy | owner | R4 |
 | Upload keystore, created and backed up | owner | R2 |
+| GitLab account (for the `fdroiddata` merge request) | owner | R7 |
 | Play developer account verified | owner | R4 (start early) |
