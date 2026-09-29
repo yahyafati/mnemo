@@ -25,6 +25,7 @@ import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
+import com.yahyafati.mnemo.core.designsystem.component.MnemoLogo
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBar
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBarItem
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationRail
@@ -119,6 +120,13 @@ private fun CatalogContent() {
                     message = "Decks you create or import will appear here.",
                     action = { MnemoButton("New Deck", onClick = {}, leadingIcon = MnemoIcons.Add) },
                 )
+            }
+            Section("Logo") {
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+                    MnemoLogo(size = 24.dp)
+                    MnemoLogo(size = 48.dp)
+                    MnemoLogo(size = 72.dp)
+                }
             }
             Section("Palette") {
                 val c = MaterialTheme.colorScheme

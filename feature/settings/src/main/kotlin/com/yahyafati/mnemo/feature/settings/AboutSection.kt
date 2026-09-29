@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoLogo
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 
@@ -39,6 +41,14 @@ internal fun AboutSection() {
     }
     var showPolicy by rememberSaveable { mutableStateOf(false) }
     Section(stringResource(R.string.feature_settings_about), MnemoIcons.Info) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = MnemoTheme.spacing.xs)) {
+            MnemoLogo(size = 40.dp)
+            Text(
+                stringResource(R.string.feature_settings_app_name),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = MnemoTheme.spacing.md),
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.feature_settings_version), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Text(version, style = MnemoTheme.typography.metricLg, color = MaterialTheme.colorScheme.onSurfaceVariant)

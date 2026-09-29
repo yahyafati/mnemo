@@ -24,7 +24,7 @@ judgment. Everything else can be done in the repo.
 | Step | Theme | Outcome | Rough effort |
 |---|---|---|---|
 | **R0** | Legal and source | GPL-3.0 `LICENSE`, public source repo, ADR 0009 | ½ day |
-| **R1** | Brand identity | Real launcher icon, themed icon, splash, store graphics | 1–2 days after the logo arrives |
+| **R1** | Brand identity | Real launcher icon, themed icon, splash, store graphics (done in the repo) | 1–2 days after the logo arrives |
 | **R2** | Release engineering | Signed AAB, licenses screen, AI report action, 16 KB pages | 2–3 days |
 | **R3** | Pre-launch QA | Hardware checks from ADR 0008, release build smoke test | 1–2 days |
 | **R4** | Play Console setup | Account, listing, policy forms, internal test | 1–2 days + account verification |
@@ -68,34 +68,46 @@ days. Start R4's account verification early, since it can take several days on i
 
 **Goal:** replace the Android Studio template robot everywhere a user sees the app.
 
-**Input needed (owner):** the logo as an SVG (or a large PNG), ideally with a symbol-only version
-that reads at 24 px and a one-colour version.
+**Input:** the owner's logo, `assets/logo.svg`. Everything below is generated from it and
+documented in [assets/README.md](assets/README.md).
 
 - **Launcher icon** (`app/src/main/res`)
-  - [ ] Adaptive icon: `ic_launcher_foreground` (the symbol inside the central 66 × 66 dp safe
-        zone of the 108 dp canvas) and `ic_launcher_background` (a brand colour or a simple shape).
-  - [ ] **Monochrome** layer for Android 13+ themed icons. It currently reuses the robot foreground.
-  - [ ] Replace the legacy `mipmap-*/ic_launcher*.webp` (the round and square fallbacks used before
-        API 26 are not needed at minSdk 29, so delete them if the adaptive icon covers everything).
+  - [x] Adaptive icon: `ic_launcher_foreground` (the cards and check inside the central 66 × 66 dp
+        safe zone of the 108 dp canvas) and `ic_launcher_background` (the logo's `#1C1A17`).
+  - [x] **Monochrome** layer for Android 13+ themed icons (`ic_launcher_monochrome`): one shape,
+        the check cut out, a gap between the cards.
+  - [x] The legacy `mipmap-*/ic_launcher*.webp` and the round variant are deleted: minSdk is 29, so
+        the adaptive icon covers every launcher.
 - **Splash screen**
-  - [ ] Add `androidx.core:core-splashscreen`, a `Theme.Mnemo.Starting` theme (icon + brand
-        background, light and dark), and `installSplashScreen()` in `MainActivity`. Keep it on
-        screen only until the first frame.
+  - [x] `androidx.core:core-splashscreen`, `Theme.Mnemo.Starting` (logo disc on the window
+        background, light and dark) and `installSplashScreen()` in `MainActivity`. It stays until
+        the settings have loaded, so the first frame is in the right theme.
 - **Everywhere else the logo appears**
-  - [ ] Notification small icons (`core_data_ic_reminder`, `core_data_ic_transfer`): keep them as
-        glyphs, or use the one-colour logo for the reminder.
-  - [ ] Widget preview (`widget_today_info.xml`): add `previewImage` for launchers before Android 12.
-  - [ ] Onboarding and Settings › About: show the logo.
+  - [x] Notification small icons (`core_data_ic_reminder`, `core_data_ic_transfer`) stay Material
+        glyphs: a status-bar icon must be a one-colour silhouette, and two overlapping cards don't
+        read at 24 px.
+  - [x] Widget preview: `previewImage` (`drawable-nodpi/widget_preview.png`) for launchers before
+        Android 12.
+  - [x] Onboarding's first page and Settings › About show the logo (`MnemoLogo` in
+        `:core:designsystem`).
 - **Store graphics** (in `docs/release/assets/`, reused in R7's fastlane folder)
-  - [ ] Play icon: 512 × 512 PNG, 32-bit, ≤ 1 MB. It's the full square: Play applies the mask.
-  - [ ] Feature graphic: 1024 × 500 JPG or 24-bit PNG, no transparency.
-  - [ ] Phone screenshots (1080 × 2400): Decks, a study card, multiple choice, Smart Extract
-        queue, Co-Author and Analytics, light theme with one dark shot. 7" and 10" tablet shots
-        of the Decks grid and study. Use realistic demo decks, not test data.
-- [ ] Record the Roborazzi baselines again (`recordRoborazziDebug`) wherever the logo shows up.
+  - [x] Play icon: `play-icon-512.png`, 512 × 512, 32-bit, the full square.
+  - [x] Feature graphic: `feature-graphic.png`, 1024 × 500, no transparency.
+  - [x] Phone screenshots (`screenshots/phone/`, 1080 × 2400): home, decks, a cloze card, AI
+        Explain, multiple choice, Smart Extract queue, Co-Author, Analytics (two) and two dark
+        shots. Real screens from an emulator with a demo collection (`assets/demo/`). 7" and 10"
+        tablet shots of the Decks grid and study are in `screenshots/tablet-7/` and `tablet-10/`.
+        Choose and order up to eight phone shots when filling in R4.
+- [x] Roborazzi baselines re-recorded: onboarding, the component catalog (new Logo section) and
+      Settings.
 
 **Exit:** the icon looks right on a Pixel launcher (default and themed icons), on Samsung One UI,
 and on the splash in light and dark. All store graphics are exported at the required sizes.
+
+**Status:** everything that can be done in the repo is done; the icon and splash were checked on a
+Pixel 8 emulator (API 35, themed icon on, dark splash). Still open **(owner)**, and part of R3's
+hardware pass: look at the launcher icon and the light-theme splash on a real Pixel and on Samsung
+One UI.
 
 ## R2 — Release engineering
 
@@ -236,7 +248,6 @@ becomes empty.
 
 | Item | Owner | Needed by |
 |---|---|---|
-| Logo file (SVG) | owner | R1 |
 | Public source repo URL | owner | R0 (needed for About, privacy policy hosting, F-Droid) |
 | Contact email for the listing and privacy policy | owner | R4 |
 | Upload keystore, created and backed up | owner | R2 |

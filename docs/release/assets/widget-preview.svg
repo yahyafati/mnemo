@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 440" width="440" height="440">
+  <!-- Pre-Android-12 widget picker preview (app/src/main/res/drawable-nodpi/widget_preview.png): the widget with sample numbers, light theme. -->
+  <rect width="440" height="440" rx="56" fill="#FFF8F3"/>
+  <g font-family="Hanken Grotesk, sans-serif">
+    <text x="48" y="92" font-size="40" font-weight="700" fill="#3525CD">Mnemo</text>
+    <text x="48" y="188" font-size="104" fill="#1D1B18">24</text>
+    <text x="48" y="234" font-size="38" fill="#1D1B18">cards to study</text>
+    <text x="48" y="272" font-size="32" fill="#464555">18 due · 6 new · ~4 min</text>
+    <rect x="48" y="304" width="344" height="88" rx="44" fill="#3525CD"/>
+    <text x="220" y="362" font-size="38" text-anchor="middle" fill="#FFFFFF">Study</text>
+  </g>
+</svg>

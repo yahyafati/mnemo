@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash icon: the logo on a dark disc, which the Android 12 splash mask shows whole. Generated from the logo geometry; see docs/release/assets/README.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="VectorRaster"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+    <path
+        android:fillColor="#1C1A17"
+        android:pathData="M144,48a96,96 0,1 1 0,192a96,96 0,1 1 0,-192z" />
+    <path
+        android:fillColor="#F4F1EA"
+        android:pathData="M113.52,100.33L154.09,96.07A13.6,13.6,0,0,1,169.03,108.17L175.42,169.02A13.6,13.6,0,0,1,163.32,183.96L122.76,188.22A13.6,13.6,0,0,1,107.82,176.12L101.42,115.28A13.6,13.6,0,0,1,113.52,100.33Z"
+        android:strokeColor="#E7E3D8"
+        android:strokeWidth="3.4" />
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M133.91,99.78L174.48,104.04A13.6,13.6,0,0,1,186.58,118.98L180.18,179.83A13.6,13.6,0,0,1,165.24,191.93L124.68,187.67A13.6,13.6,0,0,1,112.58,172.72L118.97,111.88A13.6,13.6,0,0,1,133.91,99.78Z"
+        android:strokeAlpha="0.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.4" />
+    <path
+        android:pathData="M140.79,125.55L154.38,145.94L174.78,118.75"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="6.8" />
+</vector>

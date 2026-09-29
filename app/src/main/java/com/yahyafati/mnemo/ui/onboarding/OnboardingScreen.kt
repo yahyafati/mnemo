@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.R
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoLogo
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import kotlinx.coroutines.launch
@@ -110,7 +111,7 @@ internal fun OnboardingScreen(
                     Column(Modifier.widthIn(max = 560.dp).padding(top = MnemoTheme.spacing.lg)) {
                         when (page) {
                             0 -> InfoPage(
-                                icon = MnemoIcons.DecksSelected,
+                                header = { MnemoLogo(size = 72.dp) },
                                 title = stringResource(R.string.onboarding_welcome_title),
                                 points = listOf(
                                     MnemoIcons.Bolt to stringResource(R.string.onboarding_welcome_fsrs),
@@ -119,7 +120,7 @@ internal fun OnboardingScreen(
                                 ),
                             )
                             1 -> InfoPage(
-                                icon = MnemoIcons.StudySelected,
+                                header = { IconBadge(MnemoIcons.StudySelected) },
                                 title = stringResource(R.string.onboarding_study_title),
                                 points = listOf(
                                     MnemoIcons.TouchApp to stringResource(R.string.onboarding_study_flip),
@@ -170,12 +171,10 @@ internal fun OnboardingScreen(
 }
 
 @Composable
-private fun InfoPage(icon: ImageVector, title: String, points: List<Pair<ImageVector, String>>) {
+private fun InfoPage(header: @Composable () -> Unit, title: String, points: List<Pair<ImageVector, String>>) {
     val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg)) {
-        Surface(shape = MaterialTheme.shapes.large, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer) {
-            Icon(icon, contentDescription = null, modifier = Modifier.padding(16.dp).size(40.dp))
-        }
+        header()
         Text(title, style = MaterialTheme.typography.displaySmall, modifier = Modifier.semantics { heading() })
         points.forEach { (pointIcon, text) ->
             Row(verticalAlignment = Alignment.Top) {
@@ -183,6 +182,14 @@ private fun InfoPage(icon: ImageVector, title: String, points: List<Pair<ImageVe
                 Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = MnemoTheme.spacing.md))
             }
         }
+    }
+}
+
+@Composable
+private fun IconBadge(icon: ImageVector) {
+    val colors = MaterialTheme.colorScheme
+    Surface(shape = MaterialTheme.shapes.large, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer) {
+        Icon(icon, contentDescription = null, modifier = Modifier.padding(16.dp).size(40.dp))
     }
 }
 

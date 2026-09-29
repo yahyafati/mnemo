@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.common.intent.AppIntents
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -32,13 +33,16 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The splash (Theme.Mnemo.Starting) stays until the settings are in, so the first frame
+        // drawn is already in the right theme. It takes a few milliseconds.
+        installSplashScreen().setKeepOnScreenCondition { viewModel.uiState.value !is MainUiState.Ready }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (savedInstanceState == null) handleIntent(intent)
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            // Settings load in a few milliseconds; until then the window background shows,
-            // rather than a frame in the wrong theme.
+            // Settings load in a few milliseconds; until then the splash shows, rather than a
+            // frame in the wrong theme.
             val ready = uiState as? MainUiState.Ready ?: return@setContent
             val settings = ready.settings
             val darkTheme = when (settings.darkThemeConfig) {

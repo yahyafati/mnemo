@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Mnemo logo tile, from the logo SVG. Generated from the logo geometry; see docs/release/assets/README.md. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="#1C1A17"
+        android:pathData="M24,0L76,0A24,24 0,0 1,100,24L100,76A24,24 0,0 1,76,100L24,100A24,24 0,0 1,0,76L0,24A24,24 0,0 1,24,0Z" />
+    <path
+        android:fillColor="#F4F1EA"
+        android:pathData="M31.96,23.16L55.82,20.66A8,8,0,0,1,64.62,27.78L68.38,63.58A8,8,0,0,1,61.26,72.37L37.39,74.88A8,8,0,0,1,28.6,67.76L24.84,31.96A8,8,0,0,1,31.96,23.16Z"
+        android:strokeColor="#E7E3D8"
+        android:strokeWidth="2" />
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M43.96,22.84L67.82,25.34A8,8,0,0,1,74.94,34.14L71.18,69.94A8,8,0,0,1,62.39,77.06L38.52,74.55A8,8,0,0,1,31.4,65.76L35.16,29.96A8,8,0,0,1,43.96,22.84Z"
+        android:strokeAlpha="0.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M48,38L56,50L68,34"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4" />
+</vector>

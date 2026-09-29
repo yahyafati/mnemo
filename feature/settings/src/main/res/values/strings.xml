@@ -208,6 +208,7 @@
     <string name="feature_settings_reminder_blocked">Notifications are turned off for Mnemo. Allow them in the system settings to get reminders.</string>
 
     <string name="feature_settings_about">About</string>
+    <string name="feature_settings_app_name">Mnemo</string>
     <string name="feature_settings_version">Version</string>
     <string name="feature_settings_privacy">Privacy policy</string>
     <string name="feature_settings_privacy_summary">Your cards stay on this device. No accounts, no tracking.</string>

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Launcher icon and splash: the logo tile (docs/release/assets). -->
+    <color name="ic_launcher_background">#FF1C1A17</color>
     <!-- Window background before Compose draws; matches the theme's surface color. -->
     <color name="window_background">#FFFFF8F3</color>
     <!-- Home-screen widget, from the brand palette (theme/Color.kt). -->
