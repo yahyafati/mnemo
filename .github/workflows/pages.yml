@@ -1,0 +1,43 @@
+name: Pages
+
+# Publishes the privacy policy (and a one-page site) at https://yahyafati.github.io/mnemo/ for the
+# Play listing (release ROADMAP R4). Needs Settings › Pages › Source = "GitHub Actions" once.
+# The build fails while the policy has no contact address, so an unfinished policy never goes live.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/release/privacy-policy.md
+      - scripts/pages/**
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install markdown
+      - run: python3 scripts/pages/build.py site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
