@@ -11,10 +11,12 @@ import com.yahyafati.mnemo.core.database.entity.CardEntity
 import com.yahyafati.mnemo.core.model.Card
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.model.cardOrdinals
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
@@ -28,25 +30,35 @@ internal class OfflineCardRepository @Inject constructor(
 ) : CardRepository {
     override fun observeTotalCardCount(): Flow<Int> = cardDao.observeTotalCount()
 
-    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note {
-        val ordinals = kind.cardOrdinals(fields)
-        require(ordinals.isNotEmpty()) { "A $kind note with these fields makes no cards" }
+    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note =
+        addNotes(deckId, listOf(NewNote(kind, fields, tags)), NoteSource.Manual).single()
+
+    override suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note> {
         val now = clock.now()
-        val note = Note(
-            id = UUID.randomUUID().toString(),
-            deckId = deckId,
-            noteTypeId = NoteType.builtIn(kind).id,
-            fields = fields,
-            tags = tags,
-            createdAt = now,
-            updatedAt = now,
-        )
-        transaction {
-            noteDao.insert(note.toEntity())
-            cardDao.insert(ordinals.map { newCard(note, it, now) })
+        val created = notes.map { new ->
+            val ordinals = new.kind.cardOrdinals(new.fields)
+            require(ordinals.isNotEmpty()) { "A ${new.kind} note with these fields makes no cards" }
+            val note = Note(
+                id = UUID.randomUUID().toString(),
+                deckId = deckId,
+                noteTypeId = NoteType.builtIn(new.kind).id,
+                fields = new.fields,
+                tags = new.tags,
+                source = source,
+                createdAt = now,
+                updatedAt = now,
+            )
+            note to ordinals.map { newCard(note, it, now) }
         }
-        return note
+        transaction {
+            noteDao.insertAll(created.map { it.first.toEntity() })
+            cardDao.insert(created.flatMap { it.second })
+        }
+        return created.map { it.first }
     }
+
+    override suspend fun getNoteFields(deckId: String): List<List<String>> =
+        noteDao.getFieldsJsonInDeck(deckId).map { Json.decodeFromString<List<String>>(it.json) }
 
     override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>) {
         transaction {

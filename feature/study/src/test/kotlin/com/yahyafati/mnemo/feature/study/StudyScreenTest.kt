@@ -8,12 +8,14 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.Rating
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.Instant
 import kotlin.test.assertEquals
 
 /** The study flow through the real screen and ViewModel: flip, rate by button and by swipe, undo, finish. */
@@ -31,7 +33,7 @@ class StudyScreenTest {
 
     private fun setContent(viewModel: StudyViewModel) = composeRule.setContent {
         MnemoTheme {
-            StudyScreen(onEditNote = {}, onDone = {}, doneLabel = "Done", viewModel = viewModel)
+            StudyScreen(onEditNote = {}, onDone = {}, doneLabel = "Done", viewModel = viewModel, assistViewModel = fixture.assistViewModel())
         }
     }
 
@@ -82,5 +84,26 @@ class StudyScreenTest {
         }
         composeRule.onNodeWithText("Session complete").assertExists()
         composeRule.onNodeWithText("100%").assertExists()
+    }
+
+    @Test
+    fun aiAssistShowsOnceTheAnswerIsShowing() {
+        val viewModel = fixture.viewModel()
+        setContent(viewModel)
+        // No provider: no AI button, even with the answer showing.
+        composeRule.onNodeWithText("Show answer").performClick()
+        composeRule.onNodeWithContentDescription("Ask AI about this card").assertDoesNotExist()
+
+        fixture.aiProviders.addProvider(
+            AiProvider(
+                id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b",
+                disclosureAcceptedAt = Instant.EPOCH, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+            ),
+        )
+        composeRule.onNodeWithContentDescription("Ask AI about this card").performClick()
+        composeRule.onNodeWithText("Rewrite this card").assertExists()
+        composeRule.onNodeWithText("Explain this").performClick()
+        composeRule.onNodeWithText("An explanation.").assertExists()
+        assertEquals("What do mitochondria make?", fixture.assist.explained.single().second.note.fields[0])
     }
 }

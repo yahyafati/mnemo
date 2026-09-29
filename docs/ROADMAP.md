@@ -186,6 +186,17 @@ hosted provider and a real Ollama/LM Studio server, which needs a device and the
 
 ## Phase 4 — AI creation
 
+**Status:** implemented (2026-09-29). Decisions: ADR 0006 (pipeline, output format and fallbacks,
+tolerant parser, dedupe and what is sent, sources). Covered by tests: `GeneratedCardParserTest`
+(the fixture set of malformed replies in `core/ai/src/test/resources/replies`, parsed whole, in
+chunks and one character at a time), `JsonRepairTest`, `CardGenerationClientTest` (structured and
+prompt-only output, streaming and not, fallbacks, one repair, cards kept after a failure),
+`ExtractorsTest` and `TextChunkerTest` (`:core:ingest`), `AiGenerationRepositoriesTest`,
+`SmartExtractUseCasesTest`, `SmartExtractViewModelTest`, `SmartExtractScreenTest` (paste →
+generate → accept), `StudyAssistViewModelTest` and `StudyScreenTest`. Still open: the manual exit
+check of "1,000 words to accepted cards in under 30 seconds" with a real provider, and dictation on
+a device (Robolectric has no speech recognizer).
+
 **Goal:** the headline feature: turn source material into good cards quickly, with the user in control.
 
 ### Scope

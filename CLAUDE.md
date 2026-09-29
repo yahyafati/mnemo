@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mnemo is a local-first spaced-repetition Android app (package `com.yahyafati.mnemo`). Read `docs/PROJECT_OVERVIEW.md` (product), `docs/ARCHITECTURE.md` (modules, layers, rules) and `docs/ROADMAP.md` (phases). Decisions are recorded in `docs/adr/`.
 
-**Phases 0–3 are implemented** (open: Phase 1's frame-rate exit check, and Phase 3's manual "Test connection" against a real hosted and local provider): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser; AI providers (Settings › AI providers: presets, encrypted keys, test connection, per-task routing, token usage). Smart Extract only shows the setup prompt so far. Analytics is still a placeholder (Phase 5). Next up: Phases 4 and 5 (see ROADMAP).
+**Phases 0–4 are implemented** (open: Phase 1's frame-rate exit check, Phase 3's manual "Test connection" against a real hosted and local provider, and Phase 4's manual "1,000 words in under 30 s" check and on-device dictation): decks (nested `Parent::Child`), manual Basic / Basic + Reversed / Cloze notes, FSRS-6 study sessions with undo, scheduling/appearance settings; Anki `.apkg`/`.colpkg` import and export, media (images, KaTeX math), backup/restore, JSON export and the card browser; AI providers (Settings › AI providers: presets, encrypted keys, test connection, per-task routing, token usage); Smart Extract (paste, PDF, link, dictation → streamed review queue → accepted notes) and study-time Explain / Example / Rewrite. Analytics is still a placeholder. Next up: Phase 5 (see ROADMAP).
 
-Modules today: `:app`, `:core:{ai,anki,common,data,database,datastore,designsystem,domain,model,scheduler,security,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
+Modules today: `:app`, `:core:{ai,anki,common,data,database,datastore,designsystem,domain,ingest,model,scheduler,security,testing,ui}`, `:feature:{analytics,browse,create,decks,settings,study}`. Add new ones to `settings.gradle.kts`.
 
 ## Commands
 
@@ -69,6 +69,15 @@ The Gradle configuration cache is on. `local.properties` is machine-specific.
 - Plain HTTP only for providers marked local whose host is a local address (`AiEndpoint.check`, enforced again in the client). The network security config can't express LAN ranges, so the rule lives in code. The OkHttp client never follows redirects.
 - `AiProviderRepository.routeFor(task)` → the task's route or the default provider (first enabled one with a model), or null. Every AI entry point shows `AiSetupPrompt` (`:core:ui/ai`) when it's null, and `AiDisclosureDialog` before the first request to a provider.
 - Presets and URL rules are in `:core:model` (`AiProviderPresets`, `AiEndpoint`) because the settings UI needs them and features can't see `:core:ai`.
+
+## AI creation (ADR 0006)
+
+- Smart Extract: `SourceRepository` (`:core:ingest`: PdfBox-Android, OkHttp + jsoup, `SpeechRecognizer`) fills one editable text box → `GenerateCardsUseCase` splits it (`TextChunker`, ≤ 1,200 words per request) and runs the parts in order through `CardGenerationRepository` → `CardGenerationClient` (`:core:ai`). Nothing is saved until `AcceptGeneratedCardsUseCase` (one transaction, `source = AI`).
+- `:core:ingest` has no Hilt: its classes are plain constructors built in `:core:data`'s `IngestModule`, like the AI client. PdfBox's BouncyCastle dependency is excluded on purpose (see the ADR); its tests need `isIncludeAndroidResources` for PdfBox's assets.
+- Output format: `GeneratedCardsSchema` (`{"cards": [{type, front, back, tags}]}`), sent as `response_format` only if the model has `jsonOutput`, and always spelled out in the prompt. `ChatTextRunner` drops a feature the server rejects (schema, `stream_options`, streaming) before any text arrived; auth/429 errors are never retried.
+- `GeneratedCardParser` is incremental and tolerant; `JsonRepair` runs even on valid JSON (LaTeX like `\frac` is valid JSON for a form feed). New malformed-reply cases go in `core/ai/src/test/resources/replies` with an expected count in `GeneratedCardParserTest`.
+- Only the source text and the queue's fronts are sent; the deck's notes are deduplicated locally (`GeneratedCardValidator.key`). Keep it that way: the disclosure text says so.
+- Study-time AI lives in `StudyAssistViewModel` (separate from `StudyViewModel`) and only shows once the answer is revealed and a route exists. A rewrite of a cloze note must keep the same cloze numbers, or it can't be applied.
 
 ## Tests
 

@@ -1,0 +1,6 @@
+{
+  cards: [
+    {type: 'basic', front: 'What is mitosis?', back: 'Cell division into two identical cells.', tags: ['biology',],},
+    {type: 'basic', front: "What's meiosis?", back: 'Division into four gametes.', tags: ['biology'],},
+  ],
+}

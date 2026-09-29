@@ -88,9 +88,9 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:data` | Android lib | Repository interfaces and implementations, background workers |
 | `:core:database` | Android lib | Room database, entities, DAOs, migrations, schema JSON |
 | `:core:datastore` | Android lib | Proto/Preferences DataStore for user settings |
-| `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe; later prompt templates, JSON schema, tolerant output parser |
+| `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe, prompt templates, JSON schema, tolerant incremental card parser (ADR 0006) |
 | `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
-| `:core:ingest` | Android lib | Source extraction: PDF → text, URL → readable text, speech → text, chunking |
+| `:core:ingest` | Android lib | Source extraction: PDF → text (PdfBox-Android), URL → readable text (jsoup), speech → text (on-device `SpeechRecognizer`), chunking. No Hilt: `:core:data` builds its classes |
 | `:core:security` | Android lib | Android Keystore-backed encryption for API keys (`SecretCipher`) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
@@ -205,10 +205,12 @@ mnemo/
 │   │   │   ├── dto/ Chat.kt Models.kt                   # requests, responses, stream chunks
 │   │   │   ├── probe/ConnectionProbe.kt                 # test connection + capability detection
 │   │   │   ├── probe/ModelHeuristics.kt
-│   │   │   ├── prompt/ PromptTemplate.kt CardGenerationPrompt.kt ExplainPrompt.kt   # Phase 4
-│   │   │   ├── schema/GeneratedCardsSchema.kt           # JSON schema for response_format
-│   │   │   └── parse/ GeneratedCardParser.kt JsonRepair.kt
-│   │   └── test/                                        # MockWebServer + parser fixtures
+│   │   │   ├── prompt/ CardGenerationPrompt.kt StudyAssistPrompt.kt
+│   │   │   ├── schema/GeneratedCardsSchema.kt           # JSON schemas for response_format
+│   │   │   ├── parse/ GeneratedCardParser.kt JsonRepair.kt ParsedCard.kt PlainTextCards.kt
+│   │   │   └── generate/ ChatTextRunner.kt              # one request, streamed or not, with fallbacks
+│   │   │                 CardGenerationClient.kt StudyAssistClient.kt
+│   │   └── test/                                        # MockWebServer + resources/replies/ parser fixtures
 │   │
 │   ├── anki/src/
 │   │   ├── main/kotlin/com/yahyafati/mnemo/core/anki/
@@ -218,10 +220,10 @@ mnemo/
 │   │   └── test/resources/*.apkg                        # sample decks
 │   │
 │   ├── ingest/src/main/kotlin/com/yahyafati/mnemo/core/ingest/
-│   │   ├── PdfTextExtractor.kt
-│   │   ├── WebPageExtractor.kt
+│   │   ├── PdfTextExtractor.kt                          # PdfBox-Android text layer, no OCR
+│   │   ├── WebPageExtractor.kt                          # OkHttp + jsoup readable text, PDF links
 │   │   ├── SpeechTranscriber.kt                         # on-device SpeechRecognizer
-│   │   └── TextChunker.kt
+│   │   └── TextChunker.kt                               # + TextCleanup
 │   │
 │   ├── data/src/main/kotlin/com/yahyafati/mnemo/core/data/
 │   │   ├── repository/
@@ -231,6 +233,7 @@ mnemo/
 │   │   │   ├── StatsRepository.kt         OfflineStatsRepository.kt
 │   │   │   ├── AiProviderRepository.kt    DefaultAiProviderRepository.kt
 │   │   │   ├── CardGenerationRepository.kt DefaultCardGenerationRepository.kt
+│   │   │   ├── StudyAssistRepository.kt   SourceRepository.kt   ProviderConfigs.kt
 │   │   │   ├── ImportExportRepository.kt  DefaultImportExportRepository.kt
 │   │   │   ├── MediaRepository.kt         FileMediaRepository.kt
 │   │   │   └── UserSettingsRepository.kt
@@ -242,8 +245,9 @@ mnemo/
 │   │   ├── BuildStudyQueueUseCase.kt
 │   │   ├── AnswerCardUseCase.kt                         # scheduler + review log + card update
 │   │   ├── UndoLastAnswerUseCase.kt
-│   │   ├── GenerateCardsUseCase.kt                      # ingest → chunk → AI → validate
+│   │   ├── GenerateCardsUseCase.kt                      # parts → AI → validate → dedupe (+ RegenerateCardUseCase)
 │   │   ├── AcceptGeneratedCardsUseCase.kt
+│   │   ├── GeneratedCardValidator.kt
 │   │   ├── GetTodaySummaryUseCase.kt                    # due/new/learning, est. minutes
 │   │   └── ComputeRetentionStatsUseCase.kt
 │   │
@@ -284,7 +288,12 @@ mnemo/
     │   ├── ai-card-creator.html
     │   └── analytics.html
     └── adr/                                             # architecture decision records
-        └── 0001-fsrs-as-scheduler.md
+        ├── 0001-fsrs-as-scheduler.md
+        ├── 0002-in-house-markdown-renderer.md
+        ├── 0003-anki-interop.md
+        ├── 0004-media-and-math.md
+        ├── 0005-ai-providers-and-secrets.md
+        └── 0006-ai-card-creation.md
 ```
 
 ### 4.1 Feature module layout
@@ -336,18 +345,23 @@ The interval labels on the rating buttons ("< 1m", "12h", "2d", "5d") come from 
 ### 5.2 AI card generation
 
 ```
-CreateViewModel ── GenerateCardsUseCase(source, deckId, options)
-  1. :core:ingest   → plain text (PDF / URL / speech / paste), split into chunks
-  2. AiProviderRepository.routeFor(AiTask.EXTRACT) → provider + model + decrypted key
-  3. :core:ai       → POST {baseUrl}/chat/completions  (stream = true,
-                       response_format = json_schema if the model supports it)
-  4. SSE deltas     → GeneratedCardParser (incremental) → Flow<GeneratedCard>
-  5. Validation     → drop malformed cards, check cloze syntax, dedupe against the deck
-  6. UI             → review queue (edit / regenerate / discard)
-  7. AcceptGeneratedCardsUseCase → Notes + Cards inserted in one transaction
+SmartExtractViewModel
+  1. SourceRepository (:core:ingest) → plain text in the editable text box (PDF / link / dictation / paste)
+  2. AiProviderRepository effective route for AiTask.Extract → provider + model + capabilities
+  3. GenerateCardsUseCase(route, ExtractRequest(parts, options, deckId))
+       parts = TextChunker (≤ 1,200 words each), one request per part, in order
+  4. CardGenerationRepository → ProviderConfigs (decrypted key) → CardGenerationClient (:core:ai)
+       POST {baseUrl}/chat/completions: streamed if supported, response_format = json_schema if
+       supported, format always in the prompt too; a rejected feature is dropped and retried
+  5. Text deltas    → GeneratedCardParser (incremental) → each card as soon as its object closes;
+                       no readable card → one repair request
+  6. Validation     → GeneratedCardValidator (fields, cloze syntax), dedupe against the deck (locally)
+                       and the queue
+  7. UI             → review queue (accept / edit / regenerate / discard / Accept All)
+  8. AcceptGeneratedCardsUseCase → notes (source = AI) + cards in one transaction
 ```
 
-Nothing touches the database before step 7. If the network fails partway, the cards already received stay in the review queue.
+Nothing touches the database before step 8 (except the token-usage log). If the network fails partway, the cards already received stay in the review queue and Retry resumes at the failed part. Study-time AI (Explain / Example / Rewrite) goes through `StudyAssistRepository` the same way; a rewrite is a proposal that updates the note's fields only when applied. See ADR 0006.
 
 ### 5.3 AI provider management
 

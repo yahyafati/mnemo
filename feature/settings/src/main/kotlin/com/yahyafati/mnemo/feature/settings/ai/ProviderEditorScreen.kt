@@ -60,6 +60,7 @@ import com.yahyafati.mnemo.core.model.AiEndpoint
 import com.yahyafati.mnemo.core.model.AiModel
 import com.yahyafati.mnemo.core.model.AiProviderPresets
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
+import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.feature.settings.Hint
 import com.yahyafati.mnemo.feature.settings.R
 import com.yahyafati.mnemo.feature.settings.Section
@@ -383,13 +384,13 @@ private fun TestResult(report: AiConnectionReport) {
                 val failure = report.completionFailure
                 val tested = report.testedModel
                 val completion = when {
-                    failure != null -> stringResource(R.string.feature_settings_ai_test_failure, failureText(failure))
+                    failure != null -> stringResource(R.string.feature_settings_ai_test_failure, aiFailureText(failure))
                     tested != null -> stringResource(R.string.feature_settings_ai_test_success, tested)
                     report.modelsFailure == null -> stringResource(R.string.feature_settings_ai_test_pick_model)
                     else -> null
                 }
                 completion?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                val models = report.modelsFailure?.let { stringResource(R.string.feature_settings_ai_test_models_failed, failureText(it)) }
+                val models = report.modelsFailure?.let { stringResource(R.string.feature_settings_ai_test_models_failed, aiFailureText(it)) }
                     ?: pluralStringResource(R.plurals.feature_settings_ai_test_models, report.models.size, report.models.size)
                 Text(models, style = MaterialTheme.typography.bodySmall)
             }

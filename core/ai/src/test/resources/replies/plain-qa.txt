@@ -1,0 +1,10 @@
+Here are your flashcards:
+
+1. **Q:** What is photosynthesis?
+   **A:** Turning light, water and CO2 into glucose and oxygen.
+
+2. **Q:** Where does it happen?
+   **A:** In the chloroplasts.
+
+- Question: Which pigment absorbs light?
+  Answer: Chlorophyll.

@@ -23,4 +23,15 @@
     <string name="core_ui_ai_disclosure_policy">Nothing goes through Mnemo\'s servers (there are none). The provider\'s own privacy policy applies to what it receives. You\'ll only see this once per provider.</string>
     <string name="core_ui_ai_disclosure_accept">Continue</string>
     <string name="core_ui_ai_disclosure_cancel">Cancel</string>
+
+    <string name="core_ui_ai_problem_unauthorized">the key was rejected</string>
+    <string name="core_ui_ai_problem_not_found">not found. Check the base URL and model</string>
+    <string name="core_ui_ai_problem_rate_limited">rate limit or quota reached</string>
+    <string name="core_ui_ai_problem_bad_request">the server rejected the request</string>
+    <string name="core_ui_ai_problem_server">the server had an error</string>
+    <string name="core_ui_ai_problem_unreachable">can\'t reach the server</string>
+    <string name="core_ui_ai_problem_insecure">plain HTTP isn\'t allowed for this address</string>
+    <string name="core_ui_ai_problem_key_unavailable">the saved key can\'t be read on this device (e.g. after restoring a backup). Enter it again</string>
+    <string name="core_ui_ai_problem_invalid">the answer isn\'t OpenAI-compatible</string>
+    <string name="core_ui_ai_problem_unknown">something went wrong</string>
 </resources>

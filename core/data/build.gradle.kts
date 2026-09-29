@@ -12,6 +12,7 @@ dependencies {
     implementation(projects.core.anki)
     implementation(projects.core.database)
     implementation(projects.core.datastore)
+    implementation(projects.core.ingest)
     implementation(projects.core.security)
 
     implementation(libs.androidx.core.ktx)

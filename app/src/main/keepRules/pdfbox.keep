@@ -1,0 +1,4 @@
+# PdfBox-Android (Smart Extract's PDF text). JPEG 2000 decoding and BouncyCastle (certificate
+# encryption) are optional dependencies Mnemo doesn't ship; text extraction never needs them.
+-dontwarn com.gemalto.jp2.**
+-dontwarn org.bouncycastle.**

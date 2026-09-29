@@ -1,0 +1,254 @@
+package com.yahyafati.mnemo.feature.study.component
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
+import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
+import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.AiEndpoint
+import com.yahyafati.mnemo.core.model.Card
+import com.yahyafati.mnemo.core.model.CardSides
+import com.yahyafati.mnemo.core.model.Note
+import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.StudyAssist
+import com.yahyafati.mnemo.core.model.StudyCard
+import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
+import com.yahyafati.mnemo.core.ui.ai.aiFailureText
+import com.yahyafati.mnemo.core.ui.card.CardFace
+import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
+import com.yahyafati.mnemo.feature.study.AssistAction
+import com.yahyafati.mnemo.feature.study.AssistSheet
+import com.yahyafati.mnemo.feature.study.R
+import com.yahyafati.mnemo.feature.study.RewriteProblem
+import com.yahyafati.mnemo.feature.study.StudyAssistUiState
+import java.time.Instant
+
+/**
+ * The study-time AI sheet: a menu of what AI can do with the card, then the streamed answer or
+ * the proposed rewrite. [onApplied] runs once a rewrite is saved, so the session reloads the card.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun StudyAssistSheet(state: StudyAssistUiState, onAction: (AssistAction) -> Unit, onApplied: () -> Unit) {
+    val sheet = state.sheet
+    if (sheet != null) {
+        LaunchedEffect(sheet.applied) {
+            if (sheet.applied) {
+                onApplied()
+                onAction(AssistAction.Close)
+            }
+        }
+        ModalBottomSheet(onDismissRequest = { onAction(AssistAction.Close) }) {
+            AssistSheetContent(state, sheet, onAction)
+        }
+    }
+    state.disclosure?.let { route ->
+        AiDisclosureDialog(
+            providerName = route.provider.name,
+            host = AiEndpoint.host(route.provider.baseUrl) ?: route.provider.baseUrl,
+            whatIsSent = stringResource(R.string.feature_study_ai_disclosure),
+            onAccept = { onAction(AssistAction.AcceptDisclosure) },
+            onDismiss = { onAction(AssistAction.DismissDisclosure) },
+        )
+    }
+}
+
+@Composable
+internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, onAction: (AssistAction) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val spacing = MnemoTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(start = spacing.screenMargin, end = spacing.screenMargin, bottom = spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(spacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(MnemoIcons.Sparkle, null, tint = colors.primary, modifier = Modifier.size(20.dp))
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = spacing.sm),
+            ) {
+                Text(
+                    text = sheet.assist?.let { stringResource(it.titleRes()) } ?: stringResource(R.string.feature_study_ai),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                val route = sheet.assist?.let(state::routeFor)
+                if (route != null) {
+                    Text(
+                        text = stringResource(R.string.feature_study_ai_via, route.provider.name, route.modelId),
+                        style = MnemoTheme.typography.metricSm,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (sheet.assist != null) {
+                TextButton(onClick = { onAction(AssistAction.Back) }) { Text(stringResource(R.string.feature_study_ai_back)) }
+            }
+        }
+
+        when (val assist = sheet.assist) {
+            null -> StudyAssist.entries.filter { state.routeFor(it) != null }.forEach { option ->
+                MenuItem(option.icon(), stringResource(option.titleRes()), stringResource(option.hintRes())) {
+                    onAction(AssistAction.Run(option))
+                }
+            }
+            StudyAssist.Explain, StudyAssist.Example -> {
+                if (sheet.text.isNotEmpty()) MarkdownText(sheet.text, style = MaterialTheme.typography.bodyLarge)
+                if (sheet.running && sheet.text.isEmpty()) Thinking()
+                sheet.failure?.let { Failure(aiFailureText(it)) { onAction(AssistAction.Run(assist)) } }
+            }
+            StudyAssist.Rewrite -> {
+                if (sheet.running && sheet.proposal == null) Thinking()
+                sheet.failure?.let { Failure(aiFailureText(it)) { onAction(AssistAction.Run(assist)) } }
+                sheet.proposal?.let { fields ->
+                    Text(
+                        text = stringResource(R.string.feature_study_ai_proposal).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.outline,
+                    )
+                    Surface(shape = MaterialTheme.shapes.large, color = colors.surfaceContainerLowest, shadowElevation = 1.dp) {
+                        CardFace(
+                            sides = CardSides.of(sheet.card.kind, fields, sheet.card.card.templateOrd),
+                            revealed = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.lg),
+                        )
+                    }
+                    sheet.proposalProblem?.let { problem ->
+                        Text(
+                            text = stringResource(
+                                when (problem) {
+                                    RewriteProblem.Empty -> R.string.feature_study_ai_problem_empty
+                                    RewriteProblem.ClozeChanged -> R.string.feature_study_ai_problem_cloze
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.error,
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm), modifier = Modifier.align(Alignment.End)) {
+                        MnemoButton(
+                            text = stringResource(R.string.feature_study_ai_discard),
+                            onClick = { onAction(AssistAction.Back) },
+                            style = MnemoButtonStyle.Secondary,
+                        )
+                        MnemoButton(
+                            text = stringResource(R.string.feature_study_ai_apply),
+                            onClick = { onAction(AssistAction.ApplyRewrite) },
+                            enabled = sheet.proposalProblem == null && !sheet.running && !sheet.applied,
+                            leadingIcon = MnemoIcons.Check,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuItem(icon: ImageVector, title: String, hint: String, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = colors.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Row(Modifier.padding(MnemoTheme.spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = colors.primary)
+            Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(hint, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Thinking() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+        Text(
+            text = stringResource(R.string.feature_study_ai_thinking),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = MnemoTheme.spacing.sm),
+        )
+    }
+}
+
+@Composable
+private fun Failure(message: String, onRetry: () -> Unit) {
+    Column {
+        Text(stringResource(R.string.feature_study_ai_failed, message), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        Box(Modifier.align(Alignment.End)) {
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.feature_study_ai_retry)) }
+        }
+    }
+}
+
+private fun StudyAssist.titleRes() = when (this) {
+    StudyAssist.Explain -> R.string.feature_study_ai_explain
+    StudyAssist.Example -> R.string.feature_study_ai_example
+    StudyAssist.Rewrite -> R.string.feature_study_ai_rewrite
+}
+
+private fun StudyAssist.hintRes() = when (this) {
+    StudyAssist.Explain -> R.string.feature_study_ai_explain_hint
+    StudyAssist.Example -> R.string.feature_study_ai_example_hint
+    StudyAssist.Rewrite -> R.string.feature_study_ai_rewrite_hint
+}
+
+private fun StudyAssist.icon() = when (this) {
+    StudyAssist.Explain -> MnemoIcons.Lightbulb
+    StudyAssist.Example -> MnemoIcons.School
+    StudyAssist.Rewrite -> MnemoIcons.Edit
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AssistSheetPreview() {
+    val now = Instant.EPOCH
+    val note = Note("n", "d", NoteType.Basic.id, listOf("What makes ATP?", "Mitochondria"), createdAt = now, updatedAt = now)
+    val card = StudyCard(Card("c", "n", "d", 0, due = now, createdAt = now, updatedAt = now), note, NoteKind.Basic, "Biology")
+    MnemoTheme {
+        AssistSheetContent(
+            state = StudyAssistUiState(),
+            sheet = AssistSheet(card, StudyAssist.Explain, text = "Mitochondria run **oxidative phosphorylation**, which makes most of a cell's ATP."),
+            onAction = {},
+        )
+    }
+}

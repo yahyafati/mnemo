@@ -1,0 +1,4 @@
+<think>
+The user wants cards. I could write {"front": "draft", "back": "not this"} but "quotes" and {braces} in thought shouldn't count.
+</think>
+{"cards": [{"type": "basic", "front": "What is osmosis?", "back": "Diffusion of water across a membrane.", "tags": ["cells"]}, {"type": "basic", "front": "What is diffusion?", "back": "Net movement down a concentration gradient.", "tags": ["cells"]}]}

@@ -16,17 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -59,6 +53,8 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.feature.create.component.DeckDropdown
+import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 
 /** The editor and its live preview. Stateless; shared by the Create tab and the full-screen editor. */
 @Composable
@@ -130,7 +126,12 @@ private fun EditorCard(uiState: NoteEditorUiState, onAction: (NoteEditorAction) 
                 }
             }
 
-            DeckPicker(uiState, onAction)
+            DeckDropdown(
+                decks = uiState.decks,
+                selectedId = uiState.deckId,
+                onSelect = { onAction(NoteEditorAction.SelectDeck(it)) },
+                onNewDeck = { onAction(NoteEditorAction.ShowDeckDialog) },
+            )
             if (!uiState.isEditing) KindPicker(uiState.kind) { onAction(NoteEditorAction.SelectKind(it)) }
 
             val isCloze = uiState.kind == NoteKind.Cloze
@@ -200,48 +201,6 @@ private fun EditorCard(uiState: NoteEditorUiState, onAction: (NoteEditorAction) 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DeckPicker(uiState: NoteEditorUiState, onAction: (NoteEditorAction) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val selected = uiState.decks.firstOrNull { it.id == uiState.deckId }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = selected?.path ?: stringResource(R.string.feature_create_no_decks),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(stringResource(R.string.feature_create_deck)) },
-            leadingIcon = { Icon(MnemoIcons.Decks, null, tint = MaterialTheme.colorScheme.secondary) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            singleLine = true,
-            shape = MaterialTheme.shapes.small,
-            colors = fieldColors(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            uiState.decks.forEach { deck ->
-                DropdownMenuItem(
-                    text = { Text(deck.path) },
-                    onClick = {
-                        expanded = false
-                        onAction(NoteEditorAction.SelectDeck(deck.id))
-                    },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.feature_create_new_deck), color = MaterialTheme.colorScheme.primary) },
-                leadingIcon = { Icon(MnemoIcons.Add, null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = {
-                    expanded = false
-                    onAction(NoteEditorAction.ShowDeckDialog)
-                },
-            )
-        }
-    }
-}
-
 @Composable
 private fun KindPicker(kind: NoteKind, onSelect: (NoteKind) -> Unit) {
     val options = listOf(
@@ -277,7 +236,7 @@ private fun EditorField(
         textStyle = textStyle,
         minLines = 2,
         shape = MaterialTheme.shapes.small,
-        colors = fieldColors(),
+        colors = editorFieldColors(),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         modifier = Modifier.fillMaxWidth(),
     )
@@ -306,7 +265,7 @@ private fun TagEditor(uiState: NoteEditorUiState, onAction: (NoteEditorAction) -
             leadingIcon = { Icon(MnemoIcons.Tag, stringResource(R.string.feature_create_tags)) },
             singleLine = true,
             shape = MaterialTheme.shapes.small,
-            colors = fieldColors(),
+            colors = editorFieldColors(),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onAction(NoteEditorAction.CommitTag) }),
             modifier = Modifier.fillMaxWidth(),
@@ -356,12 +315,6 @@ private fun PreviewSection(uiState: NoteEditorUiState, modifier: Modifier = Modi
         }
     }
 }
-
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-)
 
 @Preview(showBackground = true, heightDp = 1200)
 @Composable

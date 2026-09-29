@@ -46,6 +46,7 @@ import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.feature.study.component.FlashCard
 import com.yahyafati.mnemo.feature.study.component.IntervalButtons
+import com.yahyafati.mnemo.feature.study.component.StudyAssistSheet
 import com.yahyafati.mnemo.feature.study.component.SessionSummaryView
 import com.yahyafati.mnemo.feature.study.component.SwipeableCard
 import java.time.Duration
@@ -58,8 +59,10 @@ internal fun StudyScreen(
     doneLabel: String,
     modifier: Modifier = Modifier,
     viewModel: StudyViewModel = hiltViewModel(),
+    assistViewModel: StudyAssistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val assist by assistViewModel.uiState.collectAsStateWithLifecycle()
     // Coming back from the editor or another tab: refresh content, or look for new cards.
     LifecycleResumeEffect(viewModel) {
         viewModel.onScreenShown()
@@ -72,7 +75,11 @@ internal fun StudyScreen(
         onDone = onDone,
         doneLabel = doneLabel,
         modifier = modifier,
+        aiAvailable = assist.available,
+        onAssist = { assistViewModel.onAction(AssistAction.Open(it)) },
     )
+    // A rewrite that was applied changes the note: reload the session's copy.
+    StudyAssistSheet(assist, assistViewModel::onAction, onApplied = viewModel::onScreenShown)
 }
 
 @Composable
@@ -83,6 +90,9 @@ internal fun StudyScreen(
     onDone: () -> Unit,
     doneLabel: String,
     modifier: Modifier = Modifier,
+    /** A provider is configured: show the AI button once the answer is showing. */
+    aiAvailable: Boolean = false,
+    onAssist: (StudyCard) -> Unit = {},
 ) {
     when (val phase = uiState.phase) {
         StudyPhase.Loading -> Box(modifier.fillMaxSize())
@@ -118,7 +128,14 @@ internal fun StudyScreen(
             )
         }
 
-        is StudyPhase.Reviewing -> Reviewing(phase, uiState.deckName, onAction, onEditNote, modifier)
+        is StudyPhase.Reviewing -> Reviewing(
+            phase = phase,
+            deckName = uiState.deckName,
+            onAction = onAction,
+            onEditNote = onEditNote,
+            onAssist = { onAssist(phase.card) }.takeIf { aiAvailable && phase.revealed },
+            modifier = modifier,
+        )
     }
 }
 
@@ -128,6 +145,7 @@ private fun Reviewing(
     deckName: String?,
     onAction: (StudyAction) -> Unit,
     onEditNote: (noteId: String) -> Unit,
+    onAssist: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -194,6 +212,7 @@ private fun Reviewing(
                         onEditNote = onEditNote,
                         swipeFraction = swipeFraction,
                         modifier = Modifier.fillMaxSize(),
+                        onAssist = onAssist,
                     )
                 }
             }

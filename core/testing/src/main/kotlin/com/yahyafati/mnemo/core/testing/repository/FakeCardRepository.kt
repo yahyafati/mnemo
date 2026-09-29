@@ -1,11 +1,13 @@
 package com.yahyafati.mnemo.core.testing.repository
 
 import com.yahyafati.mnemo.core.data.repository.CardRepository
+import com.yahyafati.mnemo.core.data.repository.NewNote
 import com.yahyafati.mnemo.core.data.repository.QueueCandidates
 import com.yahyafati.mnemo.core.model.Card
 import com.yahyafati.mnemo.core.model.CardState
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.model.cardOrdinals
@@ -30,17 +32,30 @@ class FakeCardRepository(
 
     override fun observeTotalCardCount(): Flow<Int> = cards.map { it.size }
 
-    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note {
-        val ordinals = kind.cardOrdinals(fields)
-        require(ordinals.isNotEmpty())
+    /** How many times [addNotes] ran: one per transaction. */
+    var addNotesCalls = 0
+        private set
+
+    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note =
+        addNotes(deckId, listOf(NewNote(kind, fields, tags)), NoteSource.Manual).single()
+
+    override suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note> {
+        // Check everything first: all or nothing, like the transaction.
+        notes.forEach { require(it.kind.cardOrdinals(it.fields).isNotEmpty()) }
+        addNotesCalls++
         val time = now()
-        val note = Note("note-${nextId++}", deckId, NoteType.builtIn(kind).id, fields, tags, createdAt = time, updatedAt = time)
-        notes.update { it + (note.id to note) }
-        ordinals.forEach { ord ->
-            putCard(Card("card-${nextId++}", note.id, deckId, ord, due = time, createdAt = time, updatedAt = time))
+        return notes.map { new ->
+            val note = Note("note-${nextId++}", deckId, NoteType.builtIn(new.kind).id, new.fields, new.tags, source, createdAt = time, updatedAt = time)
+            this.notes.update { it + (note.id to note) }
+            new.kind.cardOrdinals(new.fields).forEach { ord ->
+                putCard(Card("card-${nextId++}", note.id, deckId, ord, due = time, createdAt = time, updatedAt = time))
+            }
+            note
         }
-        return note
     }
+
+    override suspend fun getNoteFields(deckId: String): List<List<String>> =
+        notes.value.values.filter { it.deckId == deckId }.map { it.fields }
 
     override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>) {
         val note = notes.value.getValue(noteId)

@@ -57,6 +57,8 @@ internal fun FlashCard(
     onEditNote: (noteId: String) -> Unit,
     swipeFraction: () -> Float,
     modifier: Modifier = Modifier,
+    /** Opens study-time AI; null hides the button (no provider, or the answer isn't showing). */
+    onAssist: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     Box(modifier) {
@@ -93,7 +95,7 @@ internal fun FlashCard(
             shadowElevation = 1.dp,
         ) {
             Column(Modifier.padding(MnemoTheme.spacing.lg)) {
-                MetaBar(card, onAction, onEditNote)
+                MetaBar(card, onAction, onEditNote, onAssist)
                 CardFace(
                     sides = card.sides,
                     revealed = revealed,
@@ -110,7 +112,7 @@ internal fun FlashCard(
 }
 
 @Composable
-private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote: (String) -> Unit) {
+private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote: (String) -> Unit, onAssist: (() -> Unit)?) {
     val colors = MaterialTheme.colorScheme
     Row(verticalAlignment = Alignment.CenterVertically) {
         Row(
@@ -144,6 +146,17 @@ private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote
             )
         }
         Box(Modifier.weight(1f))
+        if (onAssist != null) {
+            IconButton(
+                onClick = onAssist,
+                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.primaryContainer, contentColor = colors.onPrimaryContainer),
+                modifier = Modifier
+                    .padding(end = MnemoTheme.spacing.xs)
+                    .size(36.dp),
+            ) {
+                Icon(MnemoIcons.Sparkle, stringResource(R.string.feature_study_ai_open), Modifier.size(19.dp))
+            }
+        }
         val starred = card.card.starred
         IconButton(
             onClick = { onAction(StudyAction.ToggleStar) },

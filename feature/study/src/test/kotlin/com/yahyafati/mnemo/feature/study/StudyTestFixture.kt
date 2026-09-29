@@ -7,9 +7,11 @@ import com.yahyafati.mnemo.core.domain.UndoLastAnswerUseCase
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.UserSettings
 import com.yahyafati.mnemo.core.testing.TestClock
+import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeReviewRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeStudyAssistRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
@@ -21,6 +23,8 @@ internal class StudyTestFixture(settings: UserSettings = UserSettings()) {
     val cards = FakeCardRepository { clock.now() }
     val reviews = FakeReviewRepository(cards)
     val settings = FakeUserSettingsRepository(settings)
+    val aiProviders = FakeAiProviderRepository()
+    val assist = FakeStudyAssistRepository()
     val deckId: String = runBlocking { decks.saveDeck("Biology") }.also { cards.deckNames = mapOf(it to "Biology") }
 
     fun addBasic(front: String, back: String) = runBlocking {
@@ -36,4 +40,6 @@ internal class StudyTestFixture(settings: UserSettings = UserSettings()) {
         cardRepository = cards,
         clock = clock,
     )
+
+    fun assistViewModel() = StudyAssistViewModel(aiProviders, assist, cards)
 }

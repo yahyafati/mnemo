@@ -1,0 +1,76 @@
+package com.yahyafati.mnemo.core.model
+
+/** The kinds of card Smart Extract can ask for (PROJECT_OVERVIEW §5.3). */
+enum class CardArchetype {
+    /** Concept → definition, as a Basic card. */
+    Definition,
+
+    /** A key sentence with its important terms hidden, as a Cloze card. */
+    Cloze,
+
+    /** A question with lettered options on the front and the answer on the back (a Basic card until Phase 6). */
+    MultipleChoice,
+
+    /** A short scenario that applies the material, as a Basic card. */
+    CaseStudy,
+}
+
+/** How many cards to make from the same text. */
+enum class ExtractDensity(
+    /** About one card per this many words of source. */
+    val wordsPerCard: Int,
+) {
+    /** Only the high-yield facts. */
+    Concise(110),
+    Balanced(70),
+
+    /** Everything worth remembering. */
+    Comprehensive(40),
+}
+
+/** What the user asked Smart Extract for. */
+data class ExtractOptions(
+    val density: ExtractDensity = ExtractDensity.Balanced,
+    val archetypes: Set<CardArchetype> = setOf(CardArchetype.Definition, CardArchetype.Cloze),
+    /** The cards' language, as an English name ("Spanish"); null keeps the source's language. */
+    val language: String? = null,
+) {
+    /** About how many cards [words] of source should give. */
+    fun targetCards(words: Int): Int =
+        (words / density.wordsPerCard).coerceIn(MIN_CARDS_PER_REQUEST, MAX_CARDS_PER_REQUEST)
+
+    companion object {
+        const val MIN_CARDS_PER_REQUEST = 3
+        const val MAX_CARDS_PER_REQUEST = 40
+
+        /** Languages offered in the picker, besides "same as the source". */
+        val Languages = listOf(
+            "English", "Spanish", "French", "German", "Italian", "Portuguese", "Dutch", "Polish",
+            "Russian", "Ukrainian", "Turkish", "Arabic", "Persian", "Hebrew", "Hindi", "Bengali",
+            "Chinese", "Japanese", "Korean", "Indonesian", "Vietnamese", "Thai", "Swedish", "Amharic",
+        )
+    }
+}
+
+/**
+ * A card an AI model proposed, waiting in the review queue. Nothing is saved until the user
+ * accepts it. [id] is local to the queue; [chunkIndex] says which part of the source it came from,
+ * so it can be regenerated from the same text.
+ */
+data class GeneratedCard(
+    val id: String,
+    val kind: NoteKind,
+    /** Basic: the question. Cloze: the text with `{{c1::…}}` deletions. */
+    val front: String,
+    /** Basic: the answer. Cloze: the optional Extra field. */
+    val back: String,
+    val tags: List<String> = emptyList(),
+    val chunkIndex: Int = 0,
+) {
+    val fields: List<String> get() = listOf(front, back)
+
+    val sides: CardSides get() = CardSides.of(kind, fields, kind.cardOrdinals(fields).firstOrNull() ?: 0)
+
+    /** How many study cards accepting it makes. */
+    val cardCount: Int get() = kind.cardOrdinals(fields).size
+}

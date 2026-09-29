@@ -64,6 +64,10 @@ interface NoteDao {
     )
     suspend fun getPageInDecks(deckIds: List<String>, afterRowId: Long, limit: Int): List<NoteRow>
 
+    /** The fields of every live note in [deckId], as their JSON text: duplicates for Smart Extract. */
+    @Query("SELECT fields AS json FROM notes WHERE deckId = :deckId AND deletedAt IS NULL")
+    suspend fun getFieldsJsonInDeck(deckId: String): List<JsonColumn>
+
     /** Every live note's tags, as their JSON text, for the tag list. */
     @Query("SELECT tags AS json FROM notes WHERE deletedAt IS NULL AND tags != '[]'")
     suspend fun getAllTagsJson(): List<JsonColumn>

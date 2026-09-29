@@ -32,7 +32,7 @@ internal enum class CreateMode { SmartExtract, Manual }
 
 /**
  * The Create tab: Smart Extract (AI) and the manual editor. Smart Extract shows the provider setup
- * prompt until a provider is ready; the generation flow itself arrives in Phase 4.
+ * prompt until a provider is ready.
  */
 @Composable
 internal fun CreateScreen(
@@ -66,7 +66,12 @@ internal fun CreateScreen(
         }
         when (mode) {
             CreateMode.Manual -> NoteEditorScreen(uiState = uiState, onAction = viewModel::onAction, modifier = Modifier.weight(1f))
-            CreateMode.SmartExtract -> SmartExtractScreen(smartExtract, onSetUpAi, Modifier.weight(1f))
+            CreateMode.SmartExtract -> SmartExtractScreen(
+                uiState = smartExtract,
+                onAction = smartExtractViewModel::onAction,
+                onSetUpAi = onSetUpAi,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

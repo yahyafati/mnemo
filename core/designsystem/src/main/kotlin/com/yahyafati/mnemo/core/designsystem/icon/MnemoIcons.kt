@@ -29,6 +29,13 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Replay
+import androidx.compose.material.icons.outlined.StopCircle
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DataArray
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -156,4 +163,14 @@ object MnemoIcons {
     val Route: ImageVector = Icons.Outlined.Route
     val Show: ImageVector = Icons.Outlined.Visibility
     val Usage: ImageVector = Icons.Outlined.DataUsage
+
+    // AI creation
+    val Link: ImageVector = Icons.Outlined.Link
+    val Mic: ImageVector = Icons.Outlined.Mic
+    val Paste: ImageVector = Icons.Outlined.ContentPaste
+    val Pdf: ImageVector = Icons.Outlined.PictureAsPdf
+    val Regenerate: ImageVector = Icons.Outlined.Replay
+    val Sparkle: ImageVector = Icons.Outlined.AutoAwesome
+    val Stop: ImageVector = Icons.Outlined.StopCircle
+    val Translate: ImageVector = Icons.Outlined.Translate
 }

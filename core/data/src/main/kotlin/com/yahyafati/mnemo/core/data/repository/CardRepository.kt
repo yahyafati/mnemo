@@ -3,9 +3,17 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.model.Card
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.StudyCard
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+
+/** A note to create with [CardRepository.addNotes]. */
+data class NewNote(
+    val kind: NoteKind,
+    val fields: List<String>,
+    val tags: List<String> = emptyList(),
+)
 
 /** Candidate cards for a study queue, split by kind so the domain can apply limits and order. */
 data class QueueCandidates(
@@ -22,6 +30,12 @@ interface CardRepository {
      * [fields] (one per cloze number for cloze notes).
      */
     suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note
+
+    /** Adds several notes and all their cards in one transaction: all of them or none. */
+    suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note>
+
+    /** The fields of every live note in [deckId] (not its subdecks), for spotting duplicates. */
+    suspend fun getNoteFields(deckId: String): List<List<String>>
 
     /**
      * Updates a note's content. Cards follow: moved with the note, created for new cloze numbers,

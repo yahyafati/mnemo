@@ -45,4 +45,24 @@
     <string name="feature_study_stat_accuracy">Recalled</string>
     <string name="feature_study_stat_time">Time</string>
     <string name="feature_study_done">Done</string>
+
+    <string name="feature_study_ai">AI assist</string>
+    <string name="feature_study_ai_open">Ask AI about this card</string>
+    <string name="feature_study_ai_via">%1$s · %2$s</string>
+    <string name="feature_study_ai_explain">Explain this</string>
+    <string name="feature_study_ai_explain_hint">Why this answer is right, and a way to remember it</string>
+    <string name="feature_study_ai_example">Give me an example</string>
+    <string name="feature_study_ai_example_hint">One or two concrete examples of the idea</string>
+    <string name="feature_study_ai_rewrite">Rewrite this card</string>
+    <string name="feature_study_ai_rewrite_hint">Clearer wording of the same fact. Nothing changes until you apply it.</string>
+    <string name="feature_study_ai_back">Back</string>
+    <string name="feature_study_ai_thinking">Thinking…</string>
+    <string name="feature_study_ai_failed">Couldn\'t get an answer: %s</string>
+    <string name="feature_study_ai_retry">Try again</string>
+    <string name="feature_study_ai_proposal">Proposed rewrite</string>
+    <string name="feature_study_ai_apply">Apply</string>
+    <string name="feature_study_ai_discard">Discard</string>
+    <string name="feature_study_ai_problem_empty">The rewrite left a side empty.</string>
+    <string name="feature_study_ai_problem_cloze">The rewrite changed the cloze numbers, which would reset this note\'s cards. Try again or edit the note yourself.</string>
+    <string name="feature_study_ai_disclosure">this card\'s front and back</string>
 </resources>

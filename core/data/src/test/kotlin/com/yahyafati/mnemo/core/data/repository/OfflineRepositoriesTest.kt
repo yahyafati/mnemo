@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.model.CardState
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.ReviewLog
 import com.yahyafati.mnemo.core.testing.TestClock
@@ -57,6 +58,24 @@ class OfflineRepositoriesTest {
         decks.deleteDeck(parent)
         assertTrue(decks.getDecks().isEmpty())
         assertEquals(0, cards.observeTotalCardCount().first())
+    }
+
+    @Test
+    fun addNotesWritesAllNotesAndCardsOrNone() = runTest {
+        val deck = decks.saveDeck("Deck")
+        val notes = cards.addNotes(
+            deck,
+            listOf(NewNote(NoteKind.Basic, listOf("q", "a"), listOf("ai")), NewNote(NoteKind.Cloze, listOf("{{c1::x}} {{c2::y}}", ""))),
+            NoteSource.Ai,
+        )
+        assertEquals(3, cards.observeTotalCardCount().first())
+        assertEquals(listOf(NoteSource.Ai, NoteSource.Ai), notes.map { cards.getNote(it.id)?.source })
+        assertEquals(listOf(listOf("q", "a"), listOf("{{c1::x}} {{c2::y}}", "")), cards.getNoteFields(deck))
+        assertEquals(emptyList(), cards.getNoteFields(decks.saveDeck("Other")))
+
+        // A note that makes no cards fails the whole batch before anything is written.
+        runCatching { cards.addNotes(deck, listOf(NewNote(NoteKind.Basic, listOf("ok", "a")), NewNote(NoteKind.Cloze, listOf("none", ""))), NoteSource.Ai) }
+        assertEquals(3, cards.observeTotalCardCount().first())
     }
 
     @Test

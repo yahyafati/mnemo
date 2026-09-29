@@ -1,0 +1,13 @@
+Sure! Here are some flashcards based on your notes:
+
+```json
+{
+  "cards": [
+    {"type": "basic", "front": "What is long-term potentiation?", "back": "A lasting increase in synaptic strength.", "tags": ["memory"]},
+    {"type": "basic", "front": "Where is LTP best studied?", "back": "The hippocampus.", "tags": ["memory"]},
+    {"type": "cloze", "front": "LTP depends on {{c1::NMDA}} receptors.", "back": "", "tags": ["memory"]}
+  ]
+}
+```
+
+Let me know if you'd like more cards, or "harder" ones!

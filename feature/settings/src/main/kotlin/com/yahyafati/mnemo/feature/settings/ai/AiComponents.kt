@@ -27,8 +27,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
-import com.yahyafati.mnemo.core.model.AiFailure
-import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.feature.settings.R
 
@@ -112,22 +110,3 @@ internal fun taskHint(task: AiTask): String = stringResource(
     },
 )
 
-/** "the key was rejected (HTTP 401: Incorrect API key …)". */
-@Composable
-internal fun failureText(failure: AiFailure): String {
-    val problem = stringResource(
-        when (failure.problem) {
-            AiProblem.Unauthorized -> R.string.feature_settings_ai_problem_unauthorized
-            AiProblem.NotFound -> R.string.feature_settings_ai_problem_not_found
-            AiProblem.RateLimited -> R.string.feature_settings_ai_problem_rate_limited
-            AiProblem.BadRequest -> R.string.feature_settings_ai_problem_bad_request
-            AiProblem.ServerError -> R.string.feature_settings_ai_problem_server
-            AiProblem.Unreachable -> R.string.feature_settings_ai_problem_unreachable
-            AiProblem.InsecureUrl -> R.string.feature_settings_ai_problem_insecure
-            AiProblem.KeyUnavailable -> R.string.feature_settings_ai_problem_key_unavailable
-            AiProblem.InvalidResponse -> R.string.feature_settings_ai_problem_invalid
-            AiProblem.Unknown -> R.string.feature_settings_ai_problem_unknown
-        },
-    )
-    return if (failure.detail.isNullOrBlank()) problem else "$problem (${failure.detail})"
-}

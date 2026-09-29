@@ -33,6 +33,8 @@ webkit = "1.17.1"
 documentfile = "1.1.0"
 # AI providers (Phase 3)
 okhttp = "5.5.0"
+# AI creation (Phase 4)
+pdfboxAndroid = "2.0.27.0"
 
 [libraries]
 # AndroidX
@@ -102,6 +104,9 @@ jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
+
+# Smart Extract sources: PDF text extraction
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
