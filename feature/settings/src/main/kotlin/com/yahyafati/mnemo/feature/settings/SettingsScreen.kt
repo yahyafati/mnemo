@@ -54,6 +54,7 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlin.math.roundToInt
@@ -68,6 +69,8 @@ internal class SettingsCallbacks(
     val onDarkThemeConfig: (DarkThemeConfig) -> Unit,
     val onUseDynamicColor: (Boolean) -> Unit,
     val onCardFontSize: (CardFontSize) -> Unit,
+    val onAutoPlayAudio: (Boolean) -> Unit = {},
+    val onReminder: (ReminderSettings) -> Unit = {},
 )
 
 @Composable
@@ -110,6 +113,8 @@ internal fun SettingsScreen(
             onDarkThemeConfig = viewModel::setDarkThemeConfig,
             onUseDynamicColor = viewModel::setUseDynamicColor,
             onCardFontSize = viewModel::setCardFontSize,
+            onAutoPlayAudio = viewModel::setAutoPlayAudio,
+            onReminder = viewModel::setReminder,
         ),
         onBackClick = onBackClick,
         modifier = modifier,
@@ -160,9 +165,12 @@ internal fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
                 ) {
                     SchedulingSection(settings, callbacks) { FsrsParametersSetting(settings.fsrsWeights, optimizerState, optimizerCallbacks) }
+                    StudySection(settings, callbacks.onAutoPlayAudio)
+                    ReminderSection(settings.reminder, callbacks.onReminder)
                     AppearanceSection(settings, callbacks)
                     AiSection(aiSummary, onOpenAiProviders)
                     DataSection(settings.backup, dataState, dataCallbacks)
+                    AboutSection()
                 }
             }
         }
@@ -230,21 +238,15 @@ private fun AppearanceSection(settings: UserSettings, callbacks: SettingsCallbac
         )
 
         val dynamicAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.feature_settings_dynamic_color), style = MaterialTheme.typography.titleSmall)
-                Hint(
-                    stringResource(
-                        if (dynamicAvailable) R.string.feature_settings_dynamic_color_summary else R.string.feature_settings_dynamic_color_unavailable,
-                    ),
-                )
-            }
-            Switch(
-                checked = settings.useDynamicColor && dynamicAvailable,
-                onCheckedChange = callbacks.onUseDynamicColor,
-                enabled = dynamicAvailable,
-            )
-        }
+        SwitchRow(
+            title = stringResource(R.string.feature_settings_dynamic_color),
+            summary = stringResource(
+                if (dynamicAvailable) R.string.feature_settings_dynamic_color_summary else R.string.feature_settings_dynamic_color_unavailable,
+            ),
+            checked = settings.useDynamicColor && dynamicAvailable,
+            onCheckedChange = callbacks.onUseDynamicColor,
+            enabled = dynamicAvailable,
+        )
 
         Text(stringResource(R.string.feature_settings_font_size), style = MaterialTheme.typography.titleSmall)
         Choice(

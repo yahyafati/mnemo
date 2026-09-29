@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.domain
 
 import com.yahyafati.mnemo.core.model.Cloze
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.MultipleChoice
 import com.yahyafati.mnemo.core.model.NoteKind
 
 /** Why a generated (or edited) card can't be saved as it is. */
@@ -16,6 +17,9 @@ enum class GeneratedCardProblem {
 
     /** A deletion that was opened and never closed. */
     BrokenCloze,
+
+    /** A multiple-choice card with nothing to choose between. */
+    NoWrongAnswers,
 
     TooLong,
 }
@@ -43,6 +47,8 @@ object GeneratedCardValidator {
                 GeneratedCardProblem.BrokenCloze
             card.kind == NoteKind.Cloze && Cloze.ordinals(front).isEmpty() -> GeneratedCardProblem.NoCloze
             card.kind != NoteKind.Cloze && back.isEmpty() -> GeneratedCardProblem.EmptyBack
+            card.kind == NoteKind.MultipleChoice && MultipleChoice.wrongAnswers(MultipleChoice.wrongField(card.wrongAnswers), back).isEmpty() ->
+                GeneratedCardProblem.NoWrongAnswers
             else -> null
         }
     }
@@ -50,7 +56,16 @@ object GeneratedCardValidator {
     /** [card] trimmed, or null if it has a [problem]. */
     fun validate(card: GeneratedCard): GeneratedCard? {
         if (problem(card) != null) return null
-        return card.copy(front = card.front.trim(), back = card.back.trim(), tags = card.tags.map { it.trim() }.filter { it.isNotEmpty() }.distinct())
+        return card.copy(
+            front = card.front.trim(),
+            back = card.back.trim(),
+            tags = card.tags.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+            wrongAnswers = if (card.kind == NoteKind.MultipleChoice) {
+                MultipleChoice.wrongAnswers(MultipleChoice.wrongField(card.wrongAnswers), card.back)
+            } else {
+                emptyList()
+            },
+        )
     }
 
     /**

@@ -48,6 +48,8 @@ class GeneratedCardParserTest {
             "plain-qa.txt" to 3,
             "cloze-variants.json" to 2,
             "alt-keys-options.json" to 1,
+            "choice-wrong-options.json" to 1,
+            "options-unmatched.json" to 1,
             "missing-commas.txt" to 2,
             "python-literals.txt" to 1,
             "nested-wrapper.json" to 2,
@@ -104,13 +106,24 @@ class GeneratedCardParserTest {
 
     @Test
     fun otherKeyNamesAndOptionsAreUnderstood() {
+        // Options with a lettered answer become a multiple-choice card.
         val card = cards("alt-keys-options.json").single()
-        assertEquals(
-            "Which gas do plants absorb?\n\n- A. Oxygen\n- B. Carbon dioxide\n- C. Nitrogen\n- D. Helium",
-            card.front,
-        )
-        assertEquals("B. Carbon dioxide", card.back)
+        assertEquals(NoteKind.MultipleChoice, card.kind)
+        assertEquals("Which gas do plants absorb?", card.front)
+        assertEquals("Carbon dioxide", card.back)
+        assertEquals(listOf("Oxygen", "Nitrogen", "Helium"), card.wrongAnswers)
         assertEquals(listOf("botany", "plants"), card.tags)
+
+        // The prompt's own format: options are the wrong answers only.
+        val choice = cards("choice-wrong-options.json").single()
+        assertEquals(NoteKind.MultipleChoice, choice.kind)
+        assertEquals("Mercury", choice.back)
+        assertEquals(listOf("Venus", "Mars", "Earth"), choice.wrongAnswers)
+
+        // An answer that matches no option keeps the options on the front of a Basic card.
+        val unmatched = cards("options-unmatched.json").single()
+        assertEquals(NoteKind.Basic, unmatched.kind)
+        assertTrue(unmatched.front.endsWith("- D. 42"))
 
         val terms = cards("nested-wrapper.json")
         assertEquals("Magna Carta", terms.first().front)

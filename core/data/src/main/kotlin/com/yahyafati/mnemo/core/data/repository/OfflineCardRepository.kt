@@ -30,8 +30,8 @@ internal class OfflineCardRepository @Inject constructor(
 ) : CardRepository {
     override fun observeTotalCardCount(): Flow<Int> = cardDao.observeTotalCount()
 
-    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note =
-        addNotes(deckId, listOf(NewNote(kind, fields, tags)), NoteSource.Manual).single()
+    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>, hint: String?): Note =
+        addNotes(deckId, listOf(NewNote(kind, fields, tags, hint)), NoteSource.Manual).single()
 
     override suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note> {
         val now = clock.now()
@@ -45,6 +45,7 @@ internal class OfflineCardRepository @Inject constructor(
                 fields = new.fields,
                 tags = new.tags,
                 source = source,
+                hint = new.hint?.trim()?.takeIf { it.isNotEmpty() },
                 createdAt = now,
                 updatedAt = now,
             )
@@ -60,14 +61,16 @@ internal class OfflineCardRepository @Inject constructor(
     override suspend fun getNoteFields(deckId: String): List<List<String>> =
         noteDao.getFieldsJsonInDeck(deckId).map { Json.decodeFromString<List<String>>(it.json) }
 
-    override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>) {
+    override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>, hint: String?) {
         transaction {
             val note = checkNotNull(noteDao.getNote(noteId)) { "No note $noteId" }.toModel()
             val kind = checkNotNull(NoteType.byId(note.noteTypeId)) { "Unknown note type" }.kind
             val ordinals = kind.cardOrdinals(fields)
             require(ordinals.isNotEmpty()) { "A $kind note with these fields makes no cards" }
             val now = clock.now()
-            val updated = note.copy(deckId = deckId, fields = fields, tags = tags, updatedAt = now)
+            val updated = note.copy(
+                deckId = deckId, fields = fields, tags = tags, hint = hint?.trim()?.takeIf { it.isNotEmpty() }, updatedAt = now,
+            )
             noteDao.update(updated.toEntity())
 
             val cards = cardDao.getCardsForNote(noteId)
@@ -79,6 +82,19 @@ internal class OfflineCardRepository @Inject constructor(
     }
 
     override suspend fun getNote(id: String): Note? = noteDao.getNote(id)?.toModel()
+
+    override suspend fun getNotesInDecks(deckIds: List<String>, limit: Int): List<Note> =
+        deckIds.chunked(SQL_VARIABLE_CHUNK).flatMap { noteDao.getNotesInDecks(it, limit) }
+            .sortedBy { it.createdAt }.take(limit).map { it.toModel() }
+
+    override suspend fun getMostLapsed(deckIds: List<String>, minLapses: Int, limit: Int): List<StudyCard> =
+        toStudyCards(cardDao.getMostLapsed(deckIds, minLapses, limit))
+
+    override suspend fun deleteNote(noteId: String) = transaction {
+        val now = clock.now().toEpochMilli()
+        noteDao.softDelete(listOf(noteId), now)
+        cardDao.softDeleteForNotes(listOf(noteId), now)
+    }
 
     override suspend fun getCard(id: String): Card? = cardDao.getCard(id)?.toModel()
 

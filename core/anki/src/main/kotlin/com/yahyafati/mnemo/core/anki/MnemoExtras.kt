@@ -30,15 +30,20 @@ internal data class MnemoNoteData(
     /** Epoch millis. Anki's note id is the creation time too, but nudged where ids collide. */
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
+    /** The note's `NoteKind` name (since Phase 6; older stashes infer it from the note type). */
+    val kind: String? = null,
+    /** The note's hint, which has no Anki field. */
+    val hint: String? = null,
 ) {
     companion object {
         // encodeDefaults: the "mnemo" marker must be written even though it has a default.
         private val json = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
+            explicitNulls = false
         }
 
-        fun encode(note: com.yahyafati.mnemo.core.model.Note, htmlFields: List<String>): String = json.encodeToString(
+        fun encode(note: com.yahyafati.mnemo.core.model.Note, kind: NoteKind, htmlFields: List<String>): String = json.encodeToString(
             serializer(),
             MnemoNoteData(
                 id = note.id,
@@ -46,6 +51,8 @@ internal data class MnemoNoteData(
                 crc = crc(htmlFields),
                 createdAt = note.createdAt.toEpochMilli(),
                 updatedAt = note.updatedAt.toEpochMilli(),
+                kind = kind.name,
+                hint = note.hint?.takeIf { it.isNotBlank() },
             ),
         )
 
@@ -116,7 +123,7 @@ internal data class AnkiCardData(
     }
 }
 
-/** The note types Mnemo exports its three kinds as. Fixed ids, so re-exports reuse them in Anki. */
+/** The note types Mnemo exports its kinds as. Fixed ids, so re-exports reuse them in Anki. */
 internal object MnemoNotetypes {
     private const val ANSWER = "{{FrontSide}}\n\n<hr id=answer>\n\n"
 
@@ -147,12 +154,35 @@ internal object MnemoNotetypes {
         templates = listOf(AnkiTemplate(0, "Cloze", "{{cloze:Text}}", "{{cloze:Text}}<br>\n{{Back Extra}}")),
     )
 
-    val All = listOf(Basic, Reversed, Cloze)
+    /** Anki's own "Basic (type in the answer)" layout: Anki shows a text box and compares. */
+    val TypeIn = AnkiNotetype(
+        id = 1_600_000_000_004,
+        name = "Mnemo Type-in answer",
+        isCloze = false,
+        fields = listOf("Front", "Back"),
+        templates = listOf(AnkiTemplate(0, "Card 1", "{{Front}}\n\n{{type:Back}}", "{{Front}}\n\n<hr id=answer>\n\n{{type:Back}}")),
+    )
+
+    /**
+     * Anki has no multiple choice: its cards ask the question and show the answer. The wrong
+     * answers are kept in their own field, so a round trip back into Mnemo restores the options.
+     */
+    val MultipleChoice = AnkiNotetype(
+        id = 1_600_000_000_005,
+        name = "Mnemo Multiple choice",
+        isCloze = false,
+        fields = listOf("Question", "Answer", "Wrong answers"),
+        templates = listOf(AnkiTemplate(0, "Card 1", "{{Question}}", ANSWER + "{{Answer}}")),
+    )
+
+    val All = listOf(Basic, Reversed, Cloze, TypeIn, MultipleChoice)
 
     fun forKind(kind: NoteKind): AnkiNotetype = when (kind) {
         NoteKind.Basic -> Basic
         NoteKind.Reversed -> Reversed
         NoteKind.Cloze -> Cloze
+        NoteKind.TypeIn -> TypeIn
+        NoteKind.MultipleChoice -> MultipleChoice
     }
 }
 

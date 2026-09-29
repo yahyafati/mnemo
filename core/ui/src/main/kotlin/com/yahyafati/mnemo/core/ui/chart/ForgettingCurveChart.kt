@@ -43,7 +43,7 @@ fun ForgettingCurveChart(
     val scheduledColor = colors.primaryContainer
     val passiveColor = colors.outlineVariant
     val gridColor = colors.surfaceContainerHigh
-    val labelColor = colors.outline
+    val labelColor = colors.onSurfaceVariant
     val markerLabelColor = colors.primary
     val markerBorder = colors.surfaceContainerLowest
     val textMeasurer = rememberTextMeasurer()

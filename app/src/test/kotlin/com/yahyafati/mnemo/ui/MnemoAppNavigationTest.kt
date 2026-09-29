@@ -67,6 +67,18 @@ class MnemoAppNavigationTest {
         composeRule.onNodeWithText("Study").assertIsSelected()
     }
 
+    /** Tablets, unfolded foldables and landscape: the tabs move to a rail, Settings to its top. */
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-xhdpi")
+    fun wideWindowsUseANavigationRail() {
+        awaitText("No decks yet")
+        composeRule.onNodeWithText("Analytics").performClick()
+        awaitText("No reviews yet")
+        composeRule.onNodeWithText("Analytics").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Settings").performClick()
+        awaitText("Scheduling")
+    }
+
     private companion object {
         const val TIMEOUT_MS = 5_000L
     }

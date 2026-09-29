@@ -13,11 +13,13 @@ import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalTime
 import javax.inject.Inject
 
 /**
@@ -45,8 +47,24 @@ class UserPreferencesDataSource @Inject constructor(
                 lastBackupAt = prefs[Keys.LastBackupAt]?.let(Instant::ofEpochMilli),
             ),
             fsrsWeights = readFsrsWeights(prefs),
+            reminder = ReminderSettings(
+                enabled = prefs[Keys.ReminderEnabled] ?: defaults.reminder.enabled,
+                time = prefs[Keys.ReminderMinute]?.takeIf { it in 0 until MINUTES_PER_DAY }
+                    ?.let { LocalTime.of(it / 60, it % 60) } ?: defaults.reminder.time,
+            ),
+            autoPlayAudio = prefs[Keys.AutoPlayAudio] ?: defaults.autoPlayAudio,
+            onboardingCompleted = prefs[Keys.OnboardingCompleted] ?: defaults.onboardingCompleted,
         )
     }
+
+    suspend fun setReminder(value: ReminderSettings) = edit {
+        it[Keys.ReminderEnabled] = value.enabled
+        it[Keys.ReminderMinute] = value.time.hour * 60 + value.time.minute
+    }
+
+    suspend fun setAutoPlayAudio(value: Boolean) = edit { it[Keys.AutoPlayAudio] = value }
+
+    suspend fun setOnboardingCompleted(value: Boolean) = edit { it[Keys.OnboardingCompleted] = value }
 
     suspend fun setDesiredRetention(value: Double) = edit { it[Keys.DesiredRetention] = value }
 
@@ -123,10 +141,15 @@ class UserPreferencesDataSource @Inject constructor(
         val FsrsTrainingReviews = intPreferencesKey("fsrs_training_reviews")
         val FsrsPreviousLoss = doublePreferencesKey("fsrs_previous_loss")
         val FsrsLoss = doublePreferencesKey("fsrs_loss")
+        val ReminderEnabled = booleanPreferencesKey("reminder_enabled")
+        val ReminderMinute = intPreferencesKey("reminder_minute_of_day")
+        val AutoPlayAudio = booleanPreferencesKey("auto_play_audio")
+        val OnboardingCompleted = booleanPreferencesKey("onboarding_completed")
     }
 
     private companion object {
         const val FSRS_WEIGHT_COUNT = 21
+        const val MINUTES_PER_DAY = 24 * 60
 
         // Steps are stored as comma-separated seconds; an empty string is "no steps".
         fun encodeSteps(steps: List<Duration>): String = steps.joinToString(",") { it.seconds.toString() }

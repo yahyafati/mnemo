@@ -13,6 +13,7 @@ data class NewNote(
     val kind: NoteKind,
     val fields: List<String>,
     val tags: List<String> = emptyList(),
+    val hint: String? = null,
 )
 
 /** Candidate cards for a study queue, split by kind so the domain can apply limits and order. */
@@ -29,7 +30,7 @@ interface CardRepository {
      * Adds a note and its cards in one transaction. The cards are derived from [kind] and
      * [fields] (one per cloze number for cloze notes).
      */
-    suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note
+    suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>, hint: String? = null): Note
 
     /** Adds several notes and all their cards in one transaction: all of them or none. */
     suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note>
@@ -39,9 +40,21 @@ interface CardRepository {
 
     /**
      * Updates a note's content. Cards follow: moved with the note, created for new cloze numbers,
-     * deleted for removed ones. Existing cards keep their schedule.
+     * deleted for removed ones. Existing cards keep their schedule. A blank [hint] removes it.
      */
-    suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>)
+    suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>, hint: String?)
+
+    /** Live notes in [deckIds], oldest first, at most [limit]: AI Co-Author's view of a deck. */
+    suspend fun getNotesInDecks(deckIds: List<String>, limit: Int): List<Note>
+
+    /**
+     * Cards in [deckIds] forgotten at least [minLapses] times, most lapses first, with their notes:
+     * the weak cards AI Co-Author can improve.
+     */
+    suspend fun getMostLapsed(deckIds: List<String>, minLapses: Int, limit: Int): List<StudyCard>
+
+    /** Soft-deletes [noteId] and its cards. */
+    suspend fun deleteNote(noteId: String)
 
     suspend fun getNote(id: String): Note?
 

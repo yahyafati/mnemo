@@ -5,6 +5,8 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.yahyafati.mnemo.core.data.backup.PendingRestore
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
+import com.yahyafati.mnemo.core.data.repository.ReminderRepository
+import com.yahyafati.mnemo.widget.TodayWidgetUpdater
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +22,12 @@ class MnemoApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var transferRepository: DataTransferRepository
 
+    @Inject
+    lateinit var reminderRepository: ReminderRepository
+
+    @Inject
+    lateinit var widgetUpdater: TodayWidgetUpdater
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -28,6 +36,9 @@ class MnemoApplication : Application(), Configuration.Provider {
         PendingRestore.applyIfPresent(this)
         super.onCreate()
         scope.launch { transferRepository.scheduleMaintenance() }
+        // After an update, a restore or a time-zone change the next reminder is recomputed.
+        scope.launch { reminderRepository.reschedule() }
+        widgetUpdater.start(scope)
     }
 
     /** Workers get their dependencies from Hilt (`@HiltWorker` in `:core:data`). */

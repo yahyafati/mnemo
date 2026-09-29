@@ -359,7 +359,7 @@ private fun CardRow(
                     Text(item.back, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                    Text(item.deckName, style = MnemoTheme.typography.metricSm, color = colors.outline, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(item.deckName, style = MnemoTheme.typography.metricSm, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Text(statusLabel(item, now), style = MnemoTheme.typography.metricSm, color = if (item.suspended) colors.tertiary else colors.secondary)
                     if (item.flagged) Icon(MnemoIcons.FlagFilled, stringResource(R.string.feature_browse_flagged), tint = colors.error, modifier = Modifier.size(14.dp))
                 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="feature_create_title_new">Write a card</string>
     <string name="feature_create_title_edit">Edit note</string>
     <string name="feature_create_subtitle">Manual create</string>
@@ -10,6 +10,21 @@
     <string name="feature_create_type_basic">Basic</string>
     <string name="feature_create_type_reversed">+ Reversed</string>
     <string name="feature_create_type_cloze">Cloze</string>
+    <string name="feature_create_type_type_in">Type-in</string>
+    <string name="feature_create_type_choice">Multiple choice</string>
+    <string name="feature_create_question">Question</string>
+    <string name="feature_create_typed_answer">Answer (typed from memory)</string>
+    <string name="feature_create_correct_answer">Correct answer</string>
+    <string name="feature_create_wrong_answers">Wrong answers</string>
+    <string name="feature_create_wrong_answers_hint">One per line. Options are shuffled for each card.</string>
+    <string name="feature_create_hint">Hint or mnemonic (optional)</string>
+    <string name="feature_create_hint_supporting">Hidden until you ask for it while studying.</string>
+    <string name="feature_create_add_hint">Add a hint</string>
+    <string name="feature_create_attach_image">Image</string>
+    <string name="feature_create_attach_audio">Audio</string>
+    <string name="feature_create_attach_target">Adds to: %s</string>
+    <string name="feature_create_attach_failed">Couldn\'t attach that file.</string>
+    <string name="feature_create_attaching">Attaching…</string>
 
     <string name="feature_create_front">Front</string>
     <string name="feature_create_back">Back</string>
@@ -34,7 +49,8 @@
     </plurals>
     <string name="feature_create_problem_no_deck">Create a deck first.</string>
     <string name="feature_create_problem_front">Write the front of the card.</string>
-    <string name="feature_create_problem_back">A reversed card needs both sides.</string>
+    <string name="feature_create_problem_back">This card type needs an answer.</string>
+    <string name="feature_create_problem_wrong">Add at least one wrong answer.</string>
     <string name="feature_create_problem_cloze">Add at least one cloze deletion, e.g. {{c1::answer}}.</string>
 
     <string name="feature_create_preview">Live preview</string>
@@ -137,4 +153,55 @@
     </plurals>
     <string name="feature_create_nothing_new">The model had no better card this time.</string>
     <string name="feature_create_regenerate_failed">Couldn\'t regenerate: %s</string>
+
+    <string name="feature_create_mode_coauthor">Co-Author</string>
+    <string name="feature_create_coauthor_title">AI Co-Author</string>
+    <string name="feature_create_coauthor_intro">Ask about a deck, get the cards it\'s missing, clean up duplicates and fix the cards you keep forgetting. Nothing changes until you add or apply it.</string>
+    <string name="feature_create_coauthor_deck">Deck</string>
+    <string name="feature_create_coauthor_setup">Co-Author uses an AI provider you choose. Finding duplicates works without one: it runs on your device.</string>
+    <string name="feature_create_coauthor_clear">Clear conversation</string>
+    <string name="feature_create_coauthor_suggest">Suggest missing cards</string>
+    <string name="feature_create_coauthor_duplicates">Find duplicates</string>
+    <string name="feature_create_coauthor_weak">Improve weak cards</string>
+    <string name="feature_create_coauthor_placeholder">Ask about this deck, or type a topic to suggest cards on</string>
+    <string name="feature_create_coauthor_send">Send</string>
+    <string name="feature_create_coauthor_stop">Stop</string>
+    <string name="feature_create_coauthor_thinking">Thinking…</string>
+    <string name="feature_create_coauthor_failed">Couldn\'t finish: %s</string>
+    <string name="feature_create_coauthor_suggestions">Suggested cards</string>
+    <string name="feature_create_coauthor_suggestions_on">Suggested cards on “%s”</string>
+    <string name="feature_create_coauthor_suggesting">Writing suggestions…</string>
+    <string name="feature_create_coauthor_no_suggestions">No new cards to suggest: everything proposed was already in the deck.</string>
+    <plurals name="feature_create_coauthor_add_all">
+        <item quantity="one">Add %d card</item>
+        <item quantity="other">Add all %d cards</item>
+    </plurals>
+    <string name="feature_create_coauthor_add">Add</string>
+    <string name="feature_create_coauthor_discard">Discard</string>
+    <string name="feature_create_coauthor_added">Added to the deck</string>
+    <string name="feature_create_coauthor_discarded">Discarded</string>
+    <string name="feature_create_coauthor_no_duplicates">No duplicates found</string>
+    <plurals name="feature_create_coauthor_duplicate_groups">
+        <item quantity="one">%d set of duplicates</item>
+        <item quantity="other">%d sets of duplicates</item>
+    </plurals>
+    <string name="feature_create_coauthor_duplicates_hint">These notes ask the same thing. Delete the ones you don\'t need; the oldest is listed first.</string>
+    <string name="feature_create_coauthor_delete">Delete note “%s”</string>
+    <string name="feature_create_coauthor_deleted">Note deleted</string>
+    <string name="feature_create_coauthor_deleted_short">Deleted</string>
+    <string name="feature_create_coauthor_weak_title">Cards you keep forgetting</string>
+    <!-- The count is always 3 or more. -->
+    <string name="feature_create_coauthor_no_weak" tools:ignore="PluralsCandidate">No weak cards yet. Cards show up here once you\'ve forgotten them %d times.</string>
+    <plurals name="feature_create_coauthor_lapses">
+        <item quantity="one">Forgotten %1$d time in %2$d reviews</item>
+        <item quantity="other">Forgotten %1$d times in %2$d reviews</item>
+    </plurals>
+    <string name="feature_create_coauthor_rewriting">Rewriting…</string>
+    <string name="feature_create_coauthor_proposal">Proposed rewrite</string>
+    <string name="feature_create_coauthor_apply">Apply</string>
+    <string name="feature_create_coauthor_keep">Keep original</string>
+    <string name="feature_create_coauthor_kept">Kept the original</string>
+    <string name="feature_create_coauthor_applied">Card updated</string>
+    <string name="feature_create_coauthor_not_applicable">This rewrite can\'t be applied: it left a side empty or changed the cloze numbers.</string>
+    <string name="feature_create_coauthor_disclosure">this deck\'s cards as plain text (up to 150), and your messages,</string>
 </resources>

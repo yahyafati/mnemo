@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.time.Instant
+import java.time.LocalDate
 
 /** In-memory [DeckRepository]. Card counts come from [setCounts]; decks start with none. */
 class FakeDeckRepository : DeckRepository {
@@ -47,7 +48,7 @@ class FakeDeckRepository : DeckRepository {
 
     override suspend fun getDeck(id: String): Deck? = decks.value.firstOrNull { it.id == id }
 
-    override suspend fun saveDeck(path: String, description: String, category: String?, id: String?): String {
+    override suspend fun saveDeck(path: String, description: String, category: String?, id: String?, examDate: LocalDate?): String {
         val names = path.split(Deck.PATH_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
         require(names.isNotEmpty())
         var parentId: String? = null
@@ -58,7 +59,7 @@ class FakeDeckRepository : DeckRepository {
         val deckId = id ?: "deck-${nextId++}"
         val existing = decks.value.firstOrNull { it.id == deckId }
         val deck = (existing ?: newDeck(names.last(), parentId, deckId))
-            .copy(name = names.last(), parentId = parentId, description = description, category = category)
+            .copy(name = names.last(), parentId = parentId, description = description, category = category, examDate = examDate)
         decks.update { list -> list.filterNot { it.id == deckId } + deck }
         return deckId
     }

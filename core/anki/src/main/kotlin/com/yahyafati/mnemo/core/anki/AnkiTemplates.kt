@@ -34,6 +34,10 @@ internal object AnkiTemplates {
         return (typed + references(back, fieldNames).map { it.field }).distinct().filter { it !in shown }
     }
 
+    /** Fields the question side asks the user to type (`{{type:F}}`), in order. */
+    fun typedFields(front: String, fieldNames: List<String>): List<Int> =
+        references(front, fieldNames).filter { "type" in it.modifiers && "cloze" !in it.modifiers }.map { it.field }.distinct()
+
     /** Fields used as `{{cloze:F}}`, in order. */
     fun clozeFields(template: String, fieldNames: List<String>): List<Int> =
         references(template, fieldNames).filter { "cloze" in it.modifiers }.map { it.field }.distinct()

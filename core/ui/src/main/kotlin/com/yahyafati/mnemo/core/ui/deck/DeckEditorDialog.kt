@@ -2,7 +2,23 @@ package com.yahyafati.mnemo.core.ui.deck
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +46,8 @@ data class DeckDraft(
     val path: String = "",
     val category: String = "",
     val description: String = "",
+    /** The exam the deck prepares for: the deck counts down to it. */
+    val examDate: LocalDate? = null,
 )
 
 /**
@@ -46,9 +64,13 @@ fun DeckEditorDialog(
     var path by rememberSaveable { mutableStateOf(initial.path) }
     var category by rememberSaveable { mutableStateOf(initial.category) }
     var description by rememberSaveable { mutableStateOf(initial.description) }
+    var examDay by rememberSaveable { mutableStateOf(initial.examDate?.toEpochDay()) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
     val canSave = path.split("::").any { it.isNotBlank() }
     val focusRequester = remember { FocusRequester() }
-    val confirm = { if (canSave) onConfirm(DeckDraft(path.trim(), category.trim(), description.trim())) }
+    val confirm = {
+        if (canSave) onConfirm(DeckDraft(path.trim(), category.trim(), description.trim(), examDay?.let(LocalDate::ofEpochDay)))
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -83,6 +105,11 @@ fun DeckEditorDialog(
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                ExamDateRow(
+                    date = examDay?.let(LocalDate::ofEpochDay),
+                    onPick = { pickingDate = true },
+                    onClear = { examDay = null },
+                )
             }
         },
         confirmButton = {
@@ -95,7 +122,58 @@ fun DeckEditorDialog(
         },
     )
     LaunchedEffect(Unit) { if (isNew) focusRequester.requestFocus() }
+    if (pickingDate) {
+        ExamDatePicker(
+            initial = examDay?.let(LocalDate::ofEpochDay),
+            onPicked = {
+                examDay = it.toEpochDay()
+                pickingDate = false
+            },
+            onDismiss = { pickingDate = false },
+        )
+    }
 }
+
+@Composable
+private fun ExamDateRow(date: LocalDate?, onPick: () -> Unit, onClear: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(onClick = onPick, modifier = Modifier.weight(1f)) {
+            Icon(MnemoIcons.Event, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                text = date?.let { stringResource(R.string.core_ui_deck_exam_on, it.format(DATE_FORMAT)) }
+                    ?: stringResource(R.string.core_ui_deck_exam_add),
+                modifier = Modifier.padding(start = MnemoTheme.spacing.sm),
+            )
+        }
+        if (date != null) {
+            IconButton(onClick = onClear) {
+                Icon(MnemoIcons.Close, contentDescription = stringResource(R.string.core_ui_deck_exam_clear))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExamDatePicker(initial: LocalDate?, onPicked: (LocalDate) -> Unit, onDismiss: () -> Unit) {
+    // The date picker works in UTC milliseconds at midnight.
+    val state = rememberDatePickerState(initialSelectedDateMillis = initial?.let { it.toEpochDay() * DAY_MS })
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { state.selectedDateMillis?.let { onPicked(LocalDate.ofEpochDay(Math.floorDiv(it, DAY_MS))) } },
+                enabled = state.selectedDateMillis != null,
+            ) { Text(stringResource(R.string.core_ui_ok)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.core_ui_cancel)) } },
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+private const val DAY_MS = 86_400_000L
+private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 @Preview
 @Composable

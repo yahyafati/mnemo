@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -44,6 +46,7 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
+import com.yahyafati.mnemo.core.ui.adaptive.LocalWindowLayout
 import com.yahyafati.mnemo.feature.study.component.FlashCard
 import com.yahyafati.mnemo.feature.study.component.IntervalButtons
 import com.yahyafati.mnemo.feature.study.component.StudyAssistSheet
@@ -188,26 +191,21 @@ private fun Reviewing(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = spacing.screenMargin),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        val layout = LocalWindowLayout.current
+        val card: @Composable (Modifier) -> Unit = { cardModifier ->
             key(phase.card.card.id) {
                 SwipeableCard(
                     enabled = phase.revealed,
                     onSwipeLeft = { onAction(StudyAction.Rate(Rating.Again)) },
                     onSwipeRight = { onAction(StudyAction.Rate(Rating.Good)) },
-                    modifier = Modifier
-                        .weight(1f)
+                    modifier = cardModifier
                         .widthIn(max = 640.dp)
                         .padding(top = spacing.xs, bottom = spacing.md),
                 ) { swipeFraction ->
                     FlashCard(
                         card = phase.card,
                         revealed = phase.revealed,
+                        response = phase.response,
                         onAction = onAction,
                         onEditNote = onEditNote,
                         swipeFraction = swipeFraction,
@@ -216,40 +214,82 @@ private fun Reviewing(
                     )
                 }
             }
-            Column(
+        }
+        when {
+            // Landscape phone: the card and the answer buttons side by side.
+            layout.wide && layout.short -> Row(
                 modifier = Modifier
-                    .widthIn(max = 640.dp)
-                    .padding(bottom = spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.screenMargin),
+                horizontalArrangement = Arrangement.spacedBy(spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (phase.revealed) {
-                    IntervalButtons(phase.intervals, onRate = { onAction(StudyAction.Rate(it)) })
-                } else {
-                    MnemoButton(
-                        text = stringResource(R.string.feature_study_show_answer),
-                        onClick = { onAction(StudyAction.Flip) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp),
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(MnemoIcons.TouchApp, null, tint = colors.outline, modifier = Modifier.size(14.dp))
-                    Text(
-                        text = stringResource(
-                            if (phase.revealed) R.string.feature_study_hint_swipe else R.string.feature_study_hint_before,
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.outline,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(start = 6.dp),
-                    )
+                card(Modifier.weight(1f).fillMaxHeight())
+                AnswerControls(phase, onAction, Modifier.width(320.dp))
+            }
+            // Half-open foldable: the card above the hinge, the buttons below it.
+            layout.tabletop -> Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.screenMargin),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                card(Modifier.weight(1f))
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    AnswerControls(phase, onAction, Modifier.widthIn(max = 640.dp))
                 }
             }
+            else -> Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.screenMargin),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                card(Modifier.weight(1f))
+                AnswerControls(phase, onAction, Modifier.widthIn(max = 640.dp))
+            }
+        }
+    }
+}
+
+/** Show answer, or the four ratings once it shows, and the gesture hint below. */
+@Composable
+private fun AnswerControls(phase: StudyPhase.Reviewing, onAction: (StudyAction) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val spacing = MnemoTheme.spacing
+    Column(
+        modifier = modifier.padding(bottom = spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+        if (phase.revealed) {
+            IntervalButtons(phase.intervals, onRate = { onAction(StudyAction.Rate(it)) }, suggested = phase.suggestedRating)
+        } else {
+            MnemoButton(
+                text = stringResource(if (phase.card.sides.typeIn) R.string.feature_study_check_answer else R.string.feature_study_show_answer),
+                onClick = { onAction(StudyAction.Flip) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(MnemoIcons.TouchApp, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(14.dp))
+            Text(
+                text = stringResource(
+                    if (phase.revealed) R.string.feature_study_hint_swipe else R.string.feature_study_hint_before,
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
     }
 }

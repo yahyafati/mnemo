@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class NoteTypeEntity(
     @PrimaryKey val id: String,
     val name: String,
-    /** `NoteKind` name: Basic, Reversed, Cloze. */
+    /** `NoteKind` name: Basic, Reversed, Cloze, TypeIn, MultipleChoice. */
     val kind: String,
     /** Field names, in order. */
     val fields: List<String>,

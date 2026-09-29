@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
@@ -36,4 +37,10 @@ internal class DefaultUserSettingsRepository @Inject constructor(
     override suspend fun setLastBackupAt(value: Instant) = dataSource.setLastBackupAt(value)
 
     override suspend fun setFsrsWeights(weights: FsrsWeights?) = dataSource.setFsrsWeights(weights)
+
+    override suspend fun setReminder(value: ReminderSettings) = dataSource.setReminder(value)
+
+    override suspend fun setAutoPlayAudio(value: Boolean) = dataSource.setAutoPlayAudio(value)
+
+    override suspend fun setOnboardingCompleted(value: Boolean) = dataSource.setOnboardingCompleted(value)
 }

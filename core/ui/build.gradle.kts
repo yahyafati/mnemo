@@ -8,5 +8,6 @@ dependencies {
     api(projects.core.designsystem)
     api(projects.core.model)
     api(libs.kotlinx.serialization.json)
+    api(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.webkit)
 }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 
@@ -63,7 +64,7 @@ internal class OfflineDeckRepository @Inject constructor(
 
     override suspend fun getDeck(id: String): Deck? = deckDao.getDeck(id)?.toModel()
 
-    override suspend fun saveDeck(path: String, description: String, category: String?, id: String?): String {
+    override suspend fun saveDeck(path: String, description: String, category: String?, id: String?, examDate: LocalDate?): String {
         val names = path.split(Deck.PATH_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
         require(names.isNotEmpty()) { "A deck needs a name" }
         val cleanCategory = category?.trim()?.ifEmpty { null }
@@ -95,6 +96,8 @@ internal class OfflineDeckRepository @Inject constructor(
                 parentId = parentId,
                 description = description.trim(),
                 category = cleanCategory,
+                // Saving by path onto an existing deck (not an edit by id) keeps its exam date.
+                examDate = if (id != null) examDate else examDate ?: existing.examDate,
                 updatedAt = now,
             ) ?: Deck(
                 id = UUID.randomUUID().toString(),
@@ -102,6 +105,7 @@ internal class OfflineDeckRepository @Inject constructor(
                 parentId = parentId,
                 description = description.trim(),
                 category = cleanCategory,
+                examDate = examDate,
                 createdAt = now,
                 updatedAt = now,
             )

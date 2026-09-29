@@ -61,7 +61,8 @@ internal class DefaultStudyAssistRepository @Inject constructor(
         val result = client.rewrite(config, route.modelId, route.capabilities, prompt(AssistRequest.Rewrite, card))
         record(route, result.usage.promptTokens, result.usage.completionTokens, result.requests)
         when (val fields = result.fields) {
-            is MnemoResult.Success -> RewriteOutcome.Proposed(fields.data)
+            // A rewrite only proposes the question and answer; other fields (wrong options) stay.
+            is MnemoResult.Success -> RewriteOutcome.Proposed(fields.data + card.note.fields.drop(fields.data.size))
             is MnemoResult.Failure -> RewriteOutcome.Failed(fields.error.toAiFailure())
         }
     }

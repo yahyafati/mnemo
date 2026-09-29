@@ -16,6 +16,9 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
             pluginManager.apply(libs.pluginId("mnemo-android-compose"))
             pluginManager.apply(libs.pluginId("mnemo-hilt"))
             pluginManager.apply(libs.pluginId("kotlin-serialization"))
+            // Screenshot tests of each screen: baselines in src/test/screenshots, checked by
+            // verifyRoborazziDebug, re-recorded by recordRoborazziDebug after an intended change.
+            pluginManager.apply(libs.pluginId("roborazzi"))
 
             dependencies {
                 add("implementation", project(":core:designsystem"))
@@ -34,6 +37,8 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 // Compose UI tests run on the JVM with Robolectric, inside `testDebugUnitTest`.
                 add("testImplementation", libs.library("androidx-compose-ui-test-junit4"))
                 add("testImplementation", libs.library("robolectric"))
+                add("testImplementation", libs.library("roborazzi"))
+                add("testImplementation", libs.library("roborazzi-compose"))
                 add("androidTestImplementation", libs.library("androidx-compose-ui-test-junit4"))
                 add("debugImplementation", libs.library("androidx-compose-ui-test-manifest"))
             }

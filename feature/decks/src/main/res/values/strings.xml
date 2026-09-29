@@ -35,6 +35,11 @@
     <string name="feature_decks_stat_mastered">Mastered</string>
     <string name="feature_decks_stat_none">—</string>
     <string name="feature_decks_retention_health">Retention health</string>
+    <string name="feature_decks_exam_today">Exam today</string>
+    <plurals name="feature_decks_exam_in">
+        <item quantity="one">Exam in %d day</item>
+        <item quantity="other">Exam in %d days</item>
+    </plurals>
     <string name="feature_decks_retention_recall">%1$s recall</string>
 
     <string name="feature_decks_search">Filter your library…</string>

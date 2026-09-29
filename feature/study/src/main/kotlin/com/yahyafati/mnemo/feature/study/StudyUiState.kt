@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.study
 
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
+import com.yahyafati.mnemo.core.ui.card.CardResponse
 import java.time.Duration
 
 data class StudyUiState(
@@ -26,6 +27,13 @@ sealed interface StudyPhase {
         /** Cards answered plus cards left; grows when a card is sent back to learning. */
         val total: Int,
         val canUndo: Boolean,
+        /** What was typed, picked, or asked for (hint) on this card so far. */
+        val response: CardResponse = CardResponse(),
+        /**
+         * For type-in and multiple-choice cards once answered: Good if the answer was right, Again
+         * if not. Only a suggestion; the learner still rates.
+         */
+        val suggestedRating: Rating? = null,
     ) : StudyPhase {
         val progress: Float get() = if (total == 0) 0f else (position - 1).toFloat() / total
     }
@@ -53,6 +61,14 @@ sealed interface StudyAction {
     data object Flip : StudyAction
 
     data class Rate(val rating: Rating) : StudyAction
+
+    /** The type-in answer changed. */
+    data class TypeAnswer(val text: String) : StudyAction
+
+    /** Picked multiple-choice option [index]: shows the answer. */
+    data class Choose(val index: Int) : StudyAction
+
+    data object ShowHint : StudyAction
 
     data object Undo : StudyAction
 

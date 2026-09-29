@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.model
 
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalTime
 
 enum class CardFontSize(val scale: Float) {
     Small(0.9f),
@@ -22,6 +23,18 @@ data class UserSettings(
     val backup: BackupSettings = BackupSettings(),
     /** FSRS weights fitted to this user's reviews; null means the FSRS-6 defaults. */
     val fsrsWeights: FsrsWeights? = null,
+    val reminder: ReminderSettings = ReminderSettings(),
+    /** Play a card's sounds when its side appears (Settings › Study). */
+    val autoPlayAudio: Boolean = true,
+    /** The first-run introduction was finished or skipped. */
+    val onboardingCompleted: Boolean = false,
+)
+
+/** The daily study reminder (Settings › Reminders). */
+data class ReminderSettings(
+    val enabled: Boolean = false,
+    /** Local time of day the notification is posted. */
+    val time: LocalTime = LocalTime.of(19, 0),
 )
 
 /** The 21 FSRS-6 weights the optimizer fitted to the review history (ADR 0007). */

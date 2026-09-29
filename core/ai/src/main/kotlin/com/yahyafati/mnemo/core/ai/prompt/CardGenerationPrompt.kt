@@ -11,6 +11,11 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
  * spelled out even when a JSON schema enforces it: it costs a few tokens and keeps models that
  * silently ignore `response_format` on track.
  */
+/** A prompt whose reply is `{"cards": [...]}` ([CardGenerationPrompt.OUTPUT_FORMAT]). */
+interface CardsPrompt {
+    fun messages(): List<ChatMessage>
+}
+
 data class CardGenerationPrompt(
     val source: String,
     val options: ExtractOptions,
@@ -25,8 +30,8 @@ data class CardGenerationPrompt(
     val parts: Int? = null,
     /** Regenerating: the card the user rejected, which the one new card replaces. */
     val replacing: Pair<String, String>? = null,
-) {
-    fun messages(): List<ChatMessage> = listOf(ChatMessage.system(system()), ChatMessage.user(user()))
+) : CardsPrompt {
+    override fun messages(): List<ChatMessage> = listOf(ChatMessage.system(system()), ChatMessage.user(user()))
 
     private fun system(): String = buildString {
         appendLine("You write flashcards for spaced-repetition study from source material the user provides.")
@@ -93,8 +98,8 @@ data class CardGenerationPrompt(
             "Cloze deletion (type \"cloze\"): the front is one self-contained sentence with the key term hidden as {{c1::term}}. " +
                 "Use {{c2::…}}, {{c3::…}} only for separate facts in the same sentence. The back is empty or a brief extra hint."
         CardArchetype.MultipleChoice ->
-            "Multiple choice (type \"basic\"): the front is a question followed by four options as a Markdown list \"- A. …\" to \"- D. …\"; " +
-                "the back gives the correct letter and option and one line on why."
+            "Multiple choice (type \"choice\"): the front is a question; the back is the one correct answer, short; " +
+                "\"options\" holds exactly three plausible but clearly wrong answers of the same kind and length."
         CardArchetype.CaseStudy ->
             "Case study (type \"basic\"): the front is a realistic two- or three-sentence scenario ending in a question that applies the material; " +
                 "the back gives the answer and the key reasoning."
@@ -106,13 +111,14 @@ data class CardGenerationPrompt(
 
         const val OUTPUT_FORMAT =
             "Reply with only a JSON object, with no prose before or after it and no code fences:\n" +
-                "{\"cards\": [{\"type\": \"basic\", \"front\": \"…\", \"back\": \"…\", \"tags\": [\"…\"]}]}\n" +
-                "\"type\" is \"basic\" or \"cloze\". \"tags\" holds one to three short lowercase topic tags. " +
+                "{\"cards\": [{\"type\": \"basic\", \"front\": \"…\", \"back\": \"…\", \"options\": [], \"tags\": [\"…\"]}]}\n" +
+                "\"type\" is \"basic\", \"cloze\" or \"choice\". \"options\" holds the wrong answers of a \"choice\" card and is empty otherwise. " +
+                "\"tags\" holds one to three short lowercase topic tags. " +
                 "Escape backslashes and quotes inside strings as JSON requires."
 
         /** Sent after a reply that had no readable cards. */
         const val REPAIR =
             "That reply wasn't valid JSON in the required format. Reply again with only the JSON object " +
-                "{\"cards\": [{\"type\": …, \"front\": …, \"back\": …, \"tags\": […]}]} and nothing else."
+                "{\"cards\": [{\"type\": …, \"front\": …, \"back\": …, \"options\": […], \"tags\": […]}]} and nothing else."
     }
 }

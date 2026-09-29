@@ -43,7 +43,7 @@ fun ReviewHeatmap(
                 Text(
                     text = label,
                     style = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp),
-                    color = colors.outline,
+                    color = colors.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )

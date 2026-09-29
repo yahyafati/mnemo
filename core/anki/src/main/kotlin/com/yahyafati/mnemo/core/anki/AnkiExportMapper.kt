@@ -80,7 +80,7 @@ class AnkiExportMapper(
             modified = note.updatedAt.epochSecond,
             tags = note.tags + if (starred) listOf(AnkiImportMapper.MARKED) else emptyList(),
             fields = html,
-            data = MnemoNoteData.encode(note, html),
+            data = MnemoNoteData.encode(note, kind, html),
         )
         val byCard = reviews.groupBy { it.cardId }
         val ankiCards = mutableListOf<AnkiCard>()

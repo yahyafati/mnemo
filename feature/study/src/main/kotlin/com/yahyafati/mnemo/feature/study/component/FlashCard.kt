@@ -41,7 +41,15 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import com.yahyafati.mnemo.core.model.markdown.Markdown
 import com.yahyafati.mnemo.core.ui.card.CardFace
+import com.yahyafati.mnemo.core.ui.card.CardInteraction
+import com.yahyafati.mnemo.core.ui.card.CardResponse
+import com.yahyafati.mnemo.core.ui.card.audio.CardAudio.Companion.playOrSpeak
+import com.yahyafati.mnemo.core.ui.card.audio.LocalAutoPlayAudio
+import com.yahyafati.mnemo.core.ui.card.audio.LocalCardAudio
 import com.yahyafati.mnemo.feature.study.R
 import com.yahyafati.mnemo.feature.study.StudyAction
 
@@ -53,6 +61,7 @@ import com.yahyafati.mnemo.feature.study.StudyAction
 internal fun FlashCard(
     card: StudyCard,
     revealed: Boolean,
+    response: CardResponse,
     onAction: (StudyAction) -> Unit,
     onEditNote: (noteId: String) -> Unit,
     swipeFraction: () -> Float,
@@ -61,6 +70,24 @@ internal fun FlashCard(
     onAssist: (() -> Unit)? = null,
 ) {
     val colors = MaterialTheme.colorScheme
+    val audio = LocalCardAudio.current
+    val autoPlay = LocalAutoPlayAudio.current
+    val sides = card.sides
+    // A side's own sounds play when it appears, if the user wants that (Settings › Study).
+    LaunchedEffect(card.card.id, revealed) {
+        if (!autoPlay) return@LaunchedEffect
+        val sounds = Markdown.sounds(if (revealed) sides.back else sides.front)
+        if (sounds.isNotEmpty()) audio.play(sounds)
+    }
+    DisposableEffect(card.card.id) { onDispose { audio.stop() } }
+    val interaction = remember(onAction) {
+        CardInteraction(
+            onTypedChange = { onAction(StudyAction.TypeAnswer(it)) },
+            onSubmitTyped = { onAction(StudyAction.Flip) },
+            onChoose = { onAction(StudyAction.Choose(it)) },
+            onShowHint = { onAction(StudyAction.ShowHint) },
+        )
+    }
     Box(modifier) {
         // Simulated stack of cards underneath.
         Box(
@@ -95,10 +122,13 @@ internal fun FlashCard(
             shadowElevation = 1.dp,
         ) {
             Column(Modifier.padding(MnemoTheme.spacing.lg)) {
-                MetaBar(card, onAction, onEditNote, onAssist)
+                MetaBar(card, revealed, onAction, onEditNote, onAssist)
                 CardFace(
-                    sides = card.sides,
+                    sides = sides,
                     revealed = revealed,
+                    hint = card.hint,
+                    response = response,
+                    interaction = interaction,
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
@@ -112,8 +142,15 @@ internal fun FlashCard(
 }
 
 @Composable
-private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote: (String) -> Unit, onAssist: (() -> Unit)?) {
+private fun MetaBar(
+    card: StudyCard,
+    revealed: Boolean,
+    onAction: (StudyAction) -> Unit,
+    onEditNote: (String) -> Unit,
+    onAssist: (() -> Unit)?,
+) {
     val colors = MaterialTheme.colorScheme
+    val audio = LocalCardAudio.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Row(
             modifier = Modifier
@@ -129,6 +166,8 @@ private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote
                         NoteKind.Basic -> R.string.feature_study_kind_basic
                         NoteKind.Reversed -> R.string.feature_study_kind_reversed
                         NoteKind.Cloze -> R.string.feature_study_kind_cloze
+                        NoteKind.TypeIn -> R.string.feature_study_kind_type_in
+                        NoteKind.MultipleChoice -> R.string.feature_study_kind_choice
                     },
                 ),
                 style = MaterialTheme.typography.labelMedium,
@@ -156,6 +195,16 @@ private fun MetaBar(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote
             ) {
                 Icon(MnemoIcons.Sparkle, stringResource(R.string.feature_study_ai_open), Modifier.size(19.dp))
             }
+        }
+        // The card's own audio, or text-to-speech of the side showing.
+        IconButton(
+            onClick = { audio.playOrSpeak(if (revealed) card.sides.back.ifBlank { card.sides.front } else card.sides.front) },
+            colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
+            modifier = Modifier
+                .padding(end = MnemoTheme.spacing.xs)
+                .size(36.dp),
+        ) {
+            Icon(MnemoIcons.Speak, stringResource(R.string.feature_study_read_aloud), Modifier.size(19.dp))
         }
         val starred = card.card.starred
         IconButton(

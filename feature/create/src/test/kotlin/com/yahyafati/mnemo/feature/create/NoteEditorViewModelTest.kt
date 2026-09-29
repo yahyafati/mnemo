@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -20,9 +21,10 @@ class NoteEditorViewModelTest {
 
     private val decks = FakeDeckRepository()
     private val cards = FakeCardRepository()
+    private val media = FakeMediaRepository()
 
     private fun viewModel(vararg args: Pair<String, String>) =
-        NoteEditorViewModel(SavedStateHandle(mapOf(*args)), decks, cards)
+        NoteEditorViewModel(SavedStateHandle(mapOf(*args)), decks, cards, media)
 
     @Test
     fun addsABasicNoteAndKeepsDeckAndTags() = runTest {
@@ -112,5 +114,52 @@ class NoteEditorViewModelTest {
         vm.onAction(NoteEditorAction.Save)
         assertEquals("new q", cards.getNote(note.id)?.fields?.first())
         assertTrue(vm.uiState.value.closeRequested)
+    }
+
+    @Test
+    fun typeInAndMultipleChoiceNotesWithHints() = runTest {
+        decks.saveDeck("Quiz")
+        val vm = viewModel()
+        vm.onAction(NoteEditorAction.SelectKind(NoteKind.TypeIn))
+        vm.onAction(NoteEditorAction.FrontChanged(TextFieldValue("Capital of Peru?")))
+        assertEquals(EditorProblem.EmptyBack, vm.uiState.value.problem)
+        vm.onAction(NoteEditorAction.BackChanged(TextFieldValue("Lima")))
+        vm.onAction(NoteEditorAction.HintChanged("Starts with L"))
+        vm.onAction(NoteEditorAction.Save)
+        val typed = cards.notes.value.values.single()
+        assertEquals("Starts with L", typed.hint)
+        assertEquals("", vm.uiState.value.hint)
+
+        vm.onAction(NoteEditorAction.SelectKind(NoteKind.MultipleChoice))
+        vm.onAction(NoteEditorAction.FrontChanged(TextFieldValue("2 + 2?")))
+        vm.onAction(NoteEditorAction.BackChanged(TextFieldValue("4")))
+        assertEquals(EditorProblem.NoWrongAnswers, vm.uiState.value.problem)
+        vm.onAction(NoteEditorAction.WrongChanged(TextFieldValue("- 3\n- 5\n4")))
+        assertTrue(vm.uiState.value.canSave)
+        assertEquals(listOf("3", "4", "5"), vm.uiState.value.previewSides.choices?.sorted())
+        vm.onAction(NoteEditorAction.Save)
+        val choice = cards.notes.value.values.last()
+        assertEquals(listOf("2 + 2?", "4", "- 3\n- 5\n4"), choice.fields)
+    }
+
+    @Test
+    fun attachmentsGoIntoTheFocusedField() = runTest {
+        decks.saveDeck("Media")
+        media.files["content://image"] = "cell.png" to byteArrayOf(1, 2, 3)
+        media.files["content://sound"] = "hola.mp3" to byteArrayOf(4, 5)
+        val vm = viewModel()
+        vm.onAction(NoteEditorAction.FrontChanged(TextFieldValue("What is this?", TextRange(13))))
+        vm.onAction(NoteEditorAction.Attach("content://image", AttachmentKind.Image))
+        val image = media.stored.values.single { it.name == "cell.png" }
+        assertEquals("What is this?\n![cell](media:${image.id})", vm.uiState.value.front.text)
+
+        vm.onAction(NoteEditorAction.FieldFocused(EditorField.Back))
+        vm.onAction(NoteEditorAction.Attach("content://sound", AttachmentKind.Audio))
+        val sound = media.stored.values.single { it.name == "hola.mp3" }
+        assertEquals("[sound:media:${sound.id}]", vm.uiState.value.back.text)
+
+        vm.onAction(NoteEditorAction.Attach("content://missing", AttachmentKind.Audio))
+        assertEquals(1, vm.uiState.value.attachFailedEvent)
+        assertFalse(vm.uiState.value.attaching)
     }
 }

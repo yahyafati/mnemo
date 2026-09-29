@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.DeckSummary
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 interface DeckRepository {
     /** Every live deck, sorted by name. */
@@ -19,13 +20,15 @@ interface DeckRepository {
 
     /**
      * Creates the deck [path] ("Parent::Child"), creating missing parents, or, with [id], updates
-     * that deck (renaming and re-parenting it to match [path]). Returns the deck's id.
+     * that deck (renaming and re-parenting it to match [path]). [examDate] sets (or, when null,
+     * clears) the deck's exam countdown. Returns the deck's id.
      */
     suspend fun saveDeck(
         path: String,
         description: String = "",
         category: String? = null,
         id: String? = null,
+        examDate: LocalDate? = null,
     ): String
 
     suspend fun setStarred(id: String, starred: Boolean)

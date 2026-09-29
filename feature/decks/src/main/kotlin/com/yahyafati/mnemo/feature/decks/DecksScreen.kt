@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -109,6 +113,11 @@ internal fun DecksScreen(
 
 private const val APKG_MIME = "application/octet-stream"
 
+/** Narrowest a deck card gets before the grid drops a column. */
+private val DECK_MIN_WIDTH = 340.dp
+
+private val FULL_WIDTH: LazyGridItemSpanScope.() -> GridItemSpan = { GridItemSpan(maxLineSpan) }
+
 @Composable
 internal fun DecksScreen(
     uiState: DecksUiState,
@@ -136,13 +145,17 @@ internal fun DecksScreen(
         onBrowse = onBrowse,
         onExport = onExportDeck,
     )
-    LazyColumn(
+    // One column on phones; a grid of deck cards on tablets and unfolded foldables, as in the
+    // mockup's desktop layout. Everything but the decks spans the full width.
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = DECK_MIN_WIDTH),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = spacing.screenMargin, end = spacing.screenMargin, bottom = spacing.lg),
         verticalArrangement = Arrangement.spacedBy(spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
     ) {
-        item(key = "header") { Header(uiState) }
-        item(key = "transfers") {
+        item(key = "header", span = FULL_WIDTH) { Header(uiState) }
+        item(key = "transfers", span = FULL_WIDTH) {
             TransferBanner(
                 importState = uiState.importState,
                 exportState = uiState.exportState,
@@ -151,10 +164,10 @@ internal fun DecksScreen(
             )
         }
         if (uiState.hasDecks) {
-            item(key = "mix") { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
-            item(key = "stats") { StatsStrip(uiState.today, uiState.retention, Modifier.padding(top = spacing.sm)) }
-            item(key = "search") { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
-            item(key = "library") {
+            item(key = "mix", span = FULL_WIDTH) { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
+            item(key = "stats", span = FULL_WIDTH) { StatsStrip(uiState.today, uiState.retention, Modifier.padding(top = spacing.sm)) }
+            item(key = "search", span = FULL_WIDTH) { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
+            item(key = "library", span = FULL_WIDTH) {
                 LibraryBar(
                     onNewDeck = { onAction(DecksAction.NewDeck) },
                     onImport = onImport,
@@ -162,11 +175,11 @@ internal fun DecksScreen(
                     modifier = Modifier.padding(top = spacing.sm),
                 )
             }
-            items(uiState.decks, key = { it.id }) { deck ->
+            gridItems(uiState.decks, key = { it.id }) { deck ->
                 DeckCard(deck = deck, now = uiState.now, callbacks = callbacks)
             }
             if (uiState.decks.isEmpty()) {
-                item(key = "no-match") {
+                item(key = "no-match", span = FULL_WIDTH) {
                     EmptyState(
                         icon = MnemoIcons.Search,
                         title = stringResource(R.string.feature_decks_no_match_title),
@@ -184,7 +197,7 @@ internal fun DecksScreen(
                 }
             }
         } else {
-            item(key = "empty") {
+            item(key = "empty", span = FULL_WIDTH) {
                 EmptyState(
                     icon = MnemoIcons.Decks,
                     title = stringResource(R.string.feature_decks_empty_title),

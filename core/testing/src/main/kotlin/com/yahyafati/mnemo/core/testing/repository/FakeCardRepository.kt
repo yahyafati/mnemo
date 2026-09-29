@@ -36,8 +36,8 @@ class FakeCardRepository(
     var addNotesCalls = 0
         private set
 
-    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>): Note =
-        addNotes(deckId, listOf(NewNote(kind, fields, tags)), NoteSource.Manual).single()
+    override suspend fun addNote(deckId: String, kind: NoteKind, fields: List<String>, tags: List<String>, hint: String?): Note =
+        addNotes(deckId, listOf(NewNote(kind, fields, tags, hint)), NoteSource.Manual).single()
 
     override suspend fun addNotes(deckId: String, notes: List<NewNote>, source: NoteSource): List<Note> {
         // Check everything first: all or nothing, like the transaction.
@@ -45,7 +45,10 @@ class FakeCardRepository(
         addNotesCalls++
         val time = now()
         return notes.map { new ->
-            val note = Note("note-${nextId++}", deckId, NoteType.builtIn(new.kind).id, new.fields, new.tags, source, createdAt = time, updatedAt = time)
+            val note = Note(
+                "note-${nextId++}", deckId, NoteType.builtIn(new.kind).id, new.fields, new.tags, source,
+                createdAt = time, updatedAt = time, hint = new.hint?.takeIf { it.isNotBlank() },
+            )
             this.notes.update { it + (note.id to note) }
             new.kind.cardOrdinals(new.fields).forEach { ord ->
                 putCard(Card("card-${nextId++}", note.id, deckId, ord, due = time, createdAt = time, updatedAt = time))
@@ -57,12 +60,12 @@ class FakeCardRepository(
     override suspend fun getNoteFields(deckId: String): List<List<String>> =
         notes.value.values.filter { it.deckId == deckId }.map { it.fields }
 
-    override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>) {
+    override suspend fun updateNote(noteId: String, deckId: String, fields: List<String>, tags: List<String>, hint: String?) {
         val note = notes.value.getValue(noteId)
         val kind = NoteType.byId(note.noteTypeId)!!.kind
         val ordinals = kind.cardOrdinals(fields)
         require(ordinals.isNotEmpty())
-        notes.update { it + (noteId to note.copy(deckId = deckId, fields = fields, tags = tags)) }
+        notes.update { it + (noteId to note.copy(deckId = deckId, fields = fields, tags = tags, hint = hint?.takeIf { h -> h.isNotBlank() })) }
         val existing = cards.value.values.filter { it.noteId == noteId }
         cards.update { map ->
             val kept = map.filterValues { it.noteId != noteId || it.templateOrd in ordinals }
@@ -75,6 +78,18 @@ class FakeCardRepository(
     }
 
     override suspend fun getNote(id: String): Note? = notes.value[id]
+
+    override suspend fun getNotesInDecks(deckIds: List<String>, limit: Int): List<Note> =
+        notes.value.values.filter { it.deckId in deckIds }.sortedBy { it.createdAt }.take(limit)
+
+    override suspend fun getMostLapsed(deckIds: List<String>, minLapses: Int, limit: Int): List<StudyCard> =
+        cards.value.values.filter { it.deckId in deckIds && it.lapses >= minLapses && !it.suspended }
+            .sortedByDescending { it.lapses }.take(limit).mapNotNull(::toStudyCard)
+
+    override suspend fun deleteNote(noteId: String) {
+        notes.update { it - noteId }
+        cards.update { map -> map.filterValues { it.noteId != noteId } }
+    }
 
     override suspend fun getCard(id: String): Card? = cards.value[id]
 

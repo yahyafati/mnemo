@@ -136,7 +136,7 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
                     Text(
                         text = stringResource(R.string.feature_study_ai_proposal).uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = colors.outline,
+                        color = colors.onSurfaceVariant,
                     )
                     Surface(shape = MaterialTheme.shapes.large, color = colors.surfaceContainerLowest, shadowElevation = 1.dp) {
                         CardFace(

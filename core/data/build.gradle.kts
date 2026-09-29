@@ -4,6 +4,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+android {
+    // The reminder test reads its notification text from this module's resources.
+    testOptions.unitTests.isIncludeAndroidResources = true
+}
+
 dependencies {
     api(projects.core.common)
     api(projects.core.model)

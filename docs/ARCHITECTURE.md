@@ -78,10 +78,10 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Hilt entry point, WorkManager setup |
 | `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
-| `:feature:create` | Android lib | Manual editor, AI Smart Extract, generated-card review queue, AI Co-Author |
+| `:feature:create` | Android lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
 | `:feature:browse` | Android lib | Card browser: search, filter, bulk edit/suspend/move |
 | `:feature:analytics` | Android lib | KPIs, forgetting curve, heatmap, forecast, leeches |
-| `:feature:settings` | Android lib | AI providers, scheduling options, appearance, reminders, backup/import/export |
+| `:feature:settings` | Android lib | AI providers, scheduling options, study audio, reminders, appearance, backup/import/export, about and privacy policy |
 | `:core:designsystem` | Android lib | `MnemoTheme`, color/type/shape/spacing tokens, fonts, generic components (buttons, chips, stat tile, rating bar) |
 | `:core:ui` | Android lib | Shared composables that know the domain models: `DeckCard`, `CardFace` renderer (Markdown/LaTeX/cloze), charts |
 | `:core:domain` | Android lib* | Use cases |
@@ -144,12 +144,14 @@ mnemo/
 │       │   └── java/com/yahyafati/mnemo/
 │       │       ├── MnemoApplication.kt                  # @HiltAndroidApp, WorkManager config
 │       │       ├── MainActivity.kt                      # enableEdgeToEdge, setContent { MnemoApp() }
-│       │       ├── MainViewModel.kt                     # theme prefs, onboarding state
+│       │       ├── MainViewModel.kt                     # theme prefs, onboarding state, deep links
+│       │       ├── widget/TodayWidget.kt                # home-screen widget (RemoteViews) + updater
 │       │       ├── navigation/
 │       │       │   ├── MnemoNavHost.kt                  # composes each feature's nav graph
 │       │       │   └── TopLevelDestination.kt           # Decks · Study · Create · Analytics
 │       │       └── ui/
-│       │           ├── MnemoApp.kt                      # Scaffold + bottom bar + NavHost
+│       │           ├── MnemoApp.kt                      # Scaffold + bottom bar (rail on wide windows) + NavHost
+│       │           ├── onboarding/OnboardingScreen.kt   # first run
 │       │           └── MnemoAppState.kt
 │       ├── test/
 │       └── androidTest/                                 # end-to-end navigation tests
@@ -241,7 +243,7 @@ mnemo/
 │   │   │   └── UserSettingsRepository.kt
 │   │   ├── mapper/                                      # Entity/DTO ↔ model
 │   │   ├── scheduling/FsrsOptimization.kt               # review log → optimizer → apply if better
-│   │   ├── work/ BackupWorker.kt ReminderWorker.kt OptimizeFsrsWorker.kt
+│   │   ├── work/ TransferWorkers.kt ReminderWorker.kt OptimizeFsrsWorker.kt
 │   │   └── di/DataModule.kt                             # @Binds interface → impl
 │   │
 │   ├── domain/src/main/kotlin/com/yahyafati/mnemo/core/domain/
@@ -253,7 +255,8 @@ mnemo/
 │   │   ├── GeneratedCardValidator.kt
 │   │   ├── GetTodaySummaryUseCase.kt                    # due/new/learning, est. minutes
 │   │   ├── ComputeRetentionStatsUseCase.kt              # everything on Analytics
-│   │   └── GetRetentionOverviewUseCase.kt               # Decks: retained, mastered, retention health
+│   │   ├── GetRetentionOverviewUseCase.kt               # Decks: retained, mastered, retention health
+│   │   └── FindDuplicateNotesUseCase.kt                 # Co-Author duplicates, on device
 │   │
 │   ├── designsystem/src/main/
 │   │   ├── res/font/                                    # Newsreader, Hanken Grotesk, JetBrains Mono
@@ -262,11 +265,13 @@ mnemo/
 │   │       ├── icon/MnemoIcons.kt                       # Material Symbols mapping
 │   │       └── component/ MnemoButton.kt MnemoChip.kt StatTile.kt
 │   │                      RatingBar.kt ProgressHeader.kt StreakBadge.kt
-│   │                      MnemoTopBar.kt MnemoNavigationBar.kt EmptyState.kt
+│   │                      MnemoTopBar.kt MnemoNavigationBar.kt MnemoNavigationRail.kt EmptyState.kt
 │   │
 │   ├── ui/src/main/kotlin/com/yahyafati/mnemo/core/ui/
 │   │   ├── navigation/Routes.kt                         # @Serializable route types used across features
-│   │   ├── card/ CardFace.kt MarkdownText.kt MathText.kt ClozeRenderer.kt
+│   │   ├── card/ CardFace.kt CardInteractions.kt MarkdownText.kt MathText.kt
+│   │   │         audio/CardAudio.kt                     # MediaPlayer + TextToSpeech fallback
+│   │   ├── adaptive/WindowLayout.kt                     # material3-adaptive: wide, short, tabletop
 │   │   ├── deck/DeckCard.kt
 │   │   └── chart/ ForgettingCurveChart.kt ReviewHeatmap.kt ForecastBars.kt StackedBar.kt
 │   │
@@ -286,6 +291,7 @@ mnemo/
 └── docs/
     ├── PROJECT_OVERVIEW.md
     ├── ARCHITECTURE.md
+    ├── release/                                         # store listing, privacy policy, distribution options
     ├── design/                                          # HTML design references (not shipped)
     │   ├── decks.html
     │   ├── active-study-review.html
@@ -298,7 +304,8 @@ mnemo/
         ├── 0004-media-and-math.md
         ├── 0005-ai-providers-and-secrets.md
         ├── 0006-ai-card-creation.md
-        └── 0007-analytics-and-fsrs-optimizer.md
+        ├── 0007-analytics-and-fsrs-optimizer.md
+        └── 0008-v1-polish.md
 ```
 
 ### 4.1 Feature module layout

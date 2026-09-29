@@ -16,18 +16,25 @@ data class ParsedCard(
     val front: String,
     val back: String,
     val tags: List<String> = emptyList(),
+    /** Multiple choice: the wrong options. */
+    val wrongAnswers: List<String> = emptyList(),
 )
 
 /**
  * Reads a card out of whatever object a model wrote. The schema asks for `type`, `front`, `back`
  * and `tags`, but models without structured output use their own names (`question`/`answer`,
- * `text`/`extra`, `q`/`a` …), put tags in a string, or add multiple-choice `options`.
+ * `text`/`extra`, `q`/`a` …) and put tags in a string.
+ *
+ * Multiple choice: `options` holds the wrong answers (as the prompt asks) or every option, with
+ * the answer in `back` as text or as a letter ("B", "B. Carbon dioxide"). When the answer can't
+ * be matched to an option, the options are written into the front of a Basic card instead.
  */
 internal object CardFields {
     private val FRONT = listOf("front", "question", "q", "prompt", "text", "cloze", "clozetext", "sentence", "term", "statement")
     private val BACK = listOf("back", "answer", "a", "definition", "extra", "explanation", "response", "solution")
     private val TAGS = listOf("tags", "tag", "topics", "keywords")
-    private val OPTIONS = listOf("options", "choices", "answers")
+    private val OPTIONS = listOf("options", "choices", "answers", "wronganswers", "distractors")
+    private val TYPE = listOf("type", "cardtype", "kind")
 
     /** The card [obj] describes, or null if it isn't one (no front, or a Basic card with no back). */
     fun from(obj: JsonObject): ParsedCard? {
@@ -45,14 +52,45 @@ internal object CardFields {
         val options = OPTIONS.firstNotNullOfOrNull { fields[it] as? JsonArray }
             ?.mapNotNull { it.asText()?.trim()?.takeIf(String::isNotEmpty) }
             .orEmpty()
+        val tags = TAGS.firstNotNullOfOrNull { fields[it] }?.let(::tagsOf).orEmpty()
+        if (kind == NoteKind.Basic && options.isNotEmpty()) {
+            val declaredChoice = TYPE.firstNotNullOfOrNull { fields[it]?.asText() }?.lowercase()?.filter { it.isLetter() }
+                ?.let { it.contains("choice") || it == "mcq" } == true
+            choice(front, back, options, declaredChoice)?.let { (answer, wrong) ->
+                return ParsedCard(NoteKind.MultipleChoice, front, answer, tags, wrong)
+            }
+        }
         val fullFront = if (kind == NoteKind.Basic && options.size >= 2 && options.none { it in front }) {
             front + "\n\n" + options.mapIndexed { index, option -> "- ${optionLabel(index, option)}" }.joinToString("\n")
         } else {
             front
         }
-        val tags = TAGS.firstNotNullOfOrNull { fields[it] }?.let(::tagsOf).orEmpty()
         return ParsedCard(kind, fullFront, back, tags)
     }
+
+    /**
+     * The correct answer and the wrong ones, if [back] names one of [options] (or the card says it
+     * is multiple choice and [options] are only the wrong answers). Null if they can't be told apart.
+     */
+    private fun choice(front: String, back: String, options: List<String>, declaredChoice: Boolean): Pair<String, List<String>>? {
+        val plain = options.map { it.replace(OPTION_LABEL, "").trim() }
+        val answer = back.replace(OPTION_LABEL, "").trim().trimEnd('.')
+        var index = plain.indexOfFirst { it.equals(answer, ignoreCase = true) }
+        if (index < 0) {
+            // "B" or "B) …" whose text doesn't match exactly: the letter decides.
+            val letter = LETTER_ANSWER.find(back.trim())?.groupValues?.get(1)?.uppercase()?.single()
+            if (letter != null && letter - 'A' in plain.indices) index = letter - 'A'
+        }
+        if (index < 0) index = plain.indexOfFirst { answer.startsWith(it, ignoreCase = true) && it.length >= 3 }
+        return when {
+            index >= 0 && plain.size >= 2 -> plain[index] to plain.filterIndexed { i, _ -> i != index }
+            declaredChoice && answer.isNotEmpty() && front.isNotEmpty() -> answer to plain
+            else -> null
+        }
+    }
+
+    private val OPTION_LABEL = Regex("""^\s*[A-Ha-h][.):]\s+""")
+    private val LETTER_ANSWER = Regex("""^\(?([A-Ha-h])(?:[.):]|\s|$)""")
 
     /** `{{C1: x}}`, `{{c1 :: x}}` and `{{ c1::x }}` → `{{c1::x}}`. */
     fun normalizeCloze(text: String): String =

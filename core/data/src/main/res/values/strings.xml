@@ -4,4 +4,10 @@
     <string name="core_data_importing">Importing Anki deck…</string>
     <string name="core_data_exporting">Exporting…</string>
     <string name="core_data_backing_up">Backing up…</string>
+    <string name="core_data_reminder_channel">Study reminders</string>
+    <string name="core_data_reminder_title">Time to study</string>
+    <plurals name="core_data_reminder_text">
+        <item quantity="one">%d card is waiting for you today.</item>
+        <item quantity="other">%d cards are waiting for you today.</item>
+    </plurals>
 </resources>

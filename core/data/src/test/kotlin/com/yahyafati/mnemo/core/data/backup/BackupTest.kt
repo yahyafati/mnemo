@@ -83,7 +83,7 @@ class BackupTest {
         val empty = open()
         assertTrue(empty.deckDao().getDecks().isEmpty())
         val info = manager(empty).stage(backup.toByteArray().inputStream())
-        assertEquals(3, info.schemaVersion)
+        assertEquals(4, info.schemaVersion)
         empty.close()
         db = null
 

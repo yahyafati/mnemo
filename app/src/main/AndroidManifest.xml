@@ -28,6 +28,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Home-screen widget: today's queue (TodayWidget). -->
+        <receiver
+            android:name=".widget.TodayWidgetProvider"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
         <!-- WorkManager is configured by MnemoApplication (Hilt workers), not by its initializer. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

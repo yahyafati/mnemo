@@ -14,6 +14,7 @@ import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.ReviewLog
 import java.time.Instant
+import java.time.LocalDate
 
 // Entity ↔ model. Entities never leave the data layer (ARCHITECTURE §2).
 
@@ -26,6 +27,7 @@ internal fun DeckEntity.toModel() = Deck(
     description = description,
     category = category,
     starred = starred,
+    examDate = examDate?.let(LocalDate::ofEpochDay),
     createdAt = createdAt.toInstant(),
     updatedAt = updatedAt.toInstant(),
 )
@@ -39,6 +41,7 @@ internal fun Deck.toEntity() = DeckEntity(
     starred = starred,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
+    examDate = examDate?.toEpochDay(),
 )
 
 internal fun NoteEntity.toModel() = Note(
@@ -51,6 +54,7 @@ internal fun NoteEntity.toModel() = Note(
     createdAt = createdAt.toInstant(),
     updatedAt = updatedAt.toInstant(),
     guid = guid,
+    hint = hint?.takeIf { it.isNotBlank() },
 )
 
 internal fun Note.toEntity() = NoteEntity(
@@ -63,6 +67,7 @@ internal fun Note.toEntity() = NoteEntity(
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     guid = guid,
+    hint = hint?.takeIf { it.isNotBlank() },
 )
 
 internal fun CardEntity.toModel() = Card(

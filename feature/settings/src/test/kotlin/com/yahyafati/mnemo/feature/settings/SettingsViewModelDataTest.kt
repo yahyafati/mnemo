@@ -5,10 +5,12 @@ import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeReminderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeFsrsOptimizationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
@@ -18,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalTime
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -30,7 +33,8 @@ class SettingsViewModelDataTest {
     private val transfers = FakeDataTransferRepository()
     private val settings = FakeUserSettingsRepository()
     private val optimization = FakeFsrsOptimizationRepository()
-    private val viewModel by lazy { SettingsViewModel(settings, transfers, FakeAiProviderRepository(), optimization) }
+    private val reminders by lazy { FakeReminderRepository(settings) }
+    private val viewModel by lazy { SettingsViewModel(settings, transfers, FakeAiProviderRepository(), optimization, reminders) }
 
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.dataState.collect {} }
@@ -91,5 +95,15 @@ class SettingsViewModelDataTest {
         settings.setFsrsWeights(FsrsWeights(List(21) { 1.0 }, Instant.EPOCH, 900, 0.47, 0.45))
         viewModel.resetFsrsWeights()
         assertNull(settings.settings.first().fsrsWeights)
+    }
+
+    @Test
+    fun remindersAreSavedAndScheduledAndAudioCanBeMuted() = runTest {
+        viewModel.setReminder(ReminderSettings(enabled = true, time = LocalTime.of(8, 15)))
+        assertEquals(ReminderSettings(true, LocalTime.of(8, 15)), settings.settings.first().reminder)
+        assertEquals(1, reminders.reschedules)
+
+        viewModel.setAutoPlayAudio(false)
+        assertFalse(settings.settings.first().autoPlayAudio)
     }
 }

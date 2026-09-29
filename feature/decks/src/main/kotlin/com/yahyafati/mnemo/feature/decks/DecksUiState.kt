@@ -58,6 +58,8 @@ data class DeckItem(
     val expanded: Boolean,
     /** Retention health: average current recall of its studied cards, or null with none. */
     val recall: Double? = null,
+    /** Days until the deck's exam (0 = today); null without one, or once it has passed. */
+    val examInDays: Int? = null,
 ) {
     val hasCardsToStudy: Boolean get() = dueCount + newCount > 0
 

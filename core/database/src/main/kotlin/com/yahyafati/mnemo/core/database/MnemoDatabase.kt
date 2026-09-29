@@ -46,7 +46,7 @@ import kotlinx.serialization.json.Json
         AiTaskRouteEntity::class,
         AiUsageEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -83,14 +83,19 @@ abstract class MnemoDatabase : RoomDatabase() {
     }
 }
 
-/** Inserts the built-in note types (Basic, Basic + Reversed, Cloze) when the database is created. */
+/** Inserts the built-in note types when the database is created. */
 internal object SeedBuiltInNoteTypes : RoomDatabase.Callback() {
     override fun onCreate(db: SupportSQLiteDatabase) {
-        NoteType.BuiltIns.forEach { type ->
-            db.execSQL(
-                "INSERT INTO note_types (id, name, kind, fields, createdAt, updatedAt, deletedAt) VALUES (?, ?, ?, ?, 0, 0, NULL)",
-                arrayOf(type.id, type.name, type.kind.name, Json.encodeToString(type.fields)),
-            )
-        }
+        insertBuiltInNoteTypes(db, NoteType.BuiltIns)
+    }
+}
+
+/** Inserts [types] into `note_types`, skipping any already there. Also used by migrations. */
+internal fun insertBuiltInNoteTypes(db: SupportSQLiteDatabase, types: List<NoteType>) {
+    types.forEach { type ->
+        db.execSQL(
+            "INSERT OR IGNORE INTO note_types (id, name, kind, fields, createdAt, updatedAt, deletedAt) VALUES (?, ?, ?, ?, 0, 0, NULL)",
+            arrayOf(type.id, type.name, type.kind.name, Json.encodeToString(type.fields)),
+        )
     }
 }

@@ -48,7 +48,7 @@ object Markdown {
         /** `\(tex\)` inline, or `\[tex\]` / `$$tex$$` when [display]. */
         data class Math(val tex: String, val display: Boolean) : Inline
 
-        /** Anki's `[sound:src]`. Kept so audio survives import and export; playback comes later. */
+        /** Anki's `[sound:src]`, usually `[sound:media:<sha256>]`. Played by the card renderer. */
         data class Sound(val src: String) : Inline
 
         data class Cloze(val ordinal: Int, val answer: List<Inline>, val hint: String?) : Inline
@@ -290,6 +290,10 @@ object Markdown {
         MATH_HINT.containsMatchIn(markdown) && inlines(parse(markdown)).any { it is Inline.Math }
 
     private val MATH_HINT = Regex("""\\\(|\\\[|\$\$""")
+
+    /** The sources of [markdown]'s `[sound:…]` tags, in order. */
+    fun sounds(markdown: String): List<String> =
+        if ("[sound:" !in markdown) emptyList() else inlines(parse(markdown)).filterIsInstance<Inline.Sound>().map { it.src }.toList()
 
     /**
      * [markdown] as plain text on one line, for lists and previews: markup removed, clozes

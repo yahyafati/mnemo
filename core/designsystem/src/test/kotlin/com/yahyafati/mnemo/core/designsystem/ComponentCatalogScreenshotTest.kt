@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -26,6 +27,8 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBar
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBarItem
+import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationRail
+import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationRailItem
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.component.StatTile
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -44,7 +47,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w400dp-h1100dp-xhdpi")
+@Config(qualifiers = "w400dp-h1500dp-xhdpi")
 class ComponentCatalogScreenshotTest {
     @Test
     fun catalogLight() = captureRoboImage("src/test/screenshots/component_catalog_light.png") {
@@ -122,6 +125,14 @@ private fun CatalogContent() {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf(c.primary, c.primaryContainer, c.secondary, c.secondaryContainer, c.tertiary, c.tertiaryContainer, c.error, c.surfaceContainer, c.surfaceContainerHigh, c.onSurface)
                         .forEach { Swatch(it) }
+                }
+            }
+            Section("Navigation rail (wide windows)") {
+                MnemoNavigationRail(windowInsets = WindowInsets(0), modifier = Modifier.height(360.dp)) {
+                    MnemoNavigationRailItem(selected = true, onClick = {}, icon = MnemoIcons.Decks, selectedIcon = MnemoIcons.DecksSelected, label = "Decks")
+                    MnemoNavigationRailItem(selected = false, onClick = {}, icon = MnemoIcons.Study, label = "Study")
+                    MnemoNavigationRailItem(selected = false, onClick = {}, icon = MnemoIcons.Create, label = "Create")
+                    MnemoNavigationRailItem(selected = false, onClick = {}, icon = MnemoIcons.Analytics, label = "Analytics")
                 }
             }
         }

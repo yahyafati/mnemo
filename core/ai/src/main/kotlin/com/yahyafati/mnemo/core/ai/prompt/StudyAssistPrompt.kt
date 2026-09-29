@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.ai.prompt
 
 import com.yahyafati.mnemo.core.ai.dto.ChatMessage
 import com.yahyafati.mnemo.core.model.Cloze
+import com.yahyafati.mnemo.core.model.MultipleChoice
 import com.yahyafati.mnemo.core.model.NoteKind
 
 /** What the study-time assistant is asked to do with the current card. */
@@ -26,7 +27,12 @@ data class StudyAssistPrompt(
     /** The note's fields: front and back, or cloze text and extra. */
     val fields: List<String>,
     val deckName: String? = null,
+    /** For a rewrite of a card the learner keeps forgetting (AI Co-Author): its review record. */
+    val weakness: Weakness? = null,
 ) {
+    /** How often a card was forgotten: [lapses] times in [reviews] reviews. */
+    data class Weakness(val lapses: Int, val reviews: Int)
+
     fun messages(): List<ChatMessage> = listOf(ChatMessage.system(system()), ChatMessage.user(user()))
 
     private fun system(): String = when (request) {
@@ -51,12 +57,24 @@ data class StudyAssistPrompt(
                 appendLine()
                 appendLine("Full text: ${Cloze.reveal(front)}")
             }
-            NoteKind.Basic, NoteKind.Reversed -> {
+            NoteKind.Basic, NoteKind.Reversed, NoteKind.TypeIn -> {
                 appendLine("Front: $front")
                 appendLine("Back: $back")
             }
+            NoteKind.MultipleChoice -> {
+                appendLine("Multiple-choice question: $front")
+                appendLine("Correct answer: $back")
+                val wrong = MultipleChoice.wrongAnswers(fields.getOrElse(2) { "" }, back)
+                if (wrong.isNotEmpty()) appendLine("Wrong options: ${wrong.joinToString("; ")}")
+            }
         }
         appendLine()
+        if (request == AssistRequest.Rewrite && weakness != null) {
+            appendLine(
+                "The learner has forgotten this card ${weakness.lapses} times in ${weakness.reviews} reviews. Make it easier to remember " +
+                    "without changing the fact: a clearer, more specific cue; one fact only; and, if it helps, a short memorable hook in the answer.",
+            )
+        }
         append(
             when (request) {
                 AssistRequest.Explain -> "Explain why this answer is correct and give one memorable way to remember it."
@@ -68,6 +86,10 @@ data class StudyAssistPrompt(
                     NoteKind.Reversed ->
                         "Rewrite this card. It is studied in both directions, so each side must work as a prompt for the other."
                     NoteKind.Basic -> "Rewrite this card."
+                    NoteKind.TypeIn ->
+                        "Rewrite this card. The answer is typed from memory and checked letter by letter, so \"back\" must be one short, exact answer."
+                    NoteKind.MultipleChoice ->
+                        "Rewrite this card. \"front\" is the question and \"back\" the correct answer; the wrong options stay as they are."
                 }
             },
         )

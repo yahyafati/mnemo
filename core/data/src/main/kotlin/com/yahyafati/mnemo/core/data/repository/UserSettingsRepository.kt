@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
@@ -34,4 +35,11 @@ interface UserSettingsRepository {
 
     /** Schedules with [weights] from now on, or with the FSRS-6 defaults when null. */
     suspend fun setFsrsWeights(weights: FsrsWeights?)
+
+    /** Stores the reminder setting only; [ReminderRepository] schedules the notification. */
+    suspend fun setReminder(value: ReminderSettings)
+
+    suspend fun setAutoPlayAudio(value: Boolean)
+
+    suspend fun setOnboardingCompleted(value: Boolean)
 }

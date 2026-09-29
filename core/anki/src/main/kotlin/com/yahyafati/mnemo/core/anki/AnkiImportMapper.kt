@@ -30,9 +30,11 @@ data class ImportedNote(
  * Turns Anki notes, cards and review logs into Mnemo ones (ADR 0001, ADR 0003).
  *
  * Note types: a cloze type becomes a Cloze note; a type whose second template is the first one
- * reversed becomes Basic + Reversed; anything else becomes Basic from its first template. The
- * fields a template shows on the question side make the front, the ones the answer adds make the
- * back. Other templates' cards are skipped and counted.
+ * reversed becomes Basic + Reversed; a type whose question asks to type a field (`{{type:F}}`)
+ * becomes Type-in answer; Mnemo's own multiple-choice type comes back as Multiple choice; anything
+ * else becomes Basic from its first template. The fields a template shows on the question side
+ * make the front, the ones the answer adds make the back. Other templates' cards are skipped and
+ * counted. A note Mnemo exported keeps its exact kind, fields and hint (the note stash).
  *
  * Scheduling: FSRS memory state comes from the card's own FSRS data when Anki has it, otherwise
  * from replaying its review log, otherwise it is estimated from the SM-2 interval and ease. Due
@@ -57,10 +59,16 @@ class AnkiImportMapper(
     private val layouts: Map<Long, Layout> = notetypes.associate { it.id to layoutOf(it) }
 
     private sealed interface Layout {
-        /** Question fields, answer fields, and whether the second template reverses the first. */
-        data class Standard(val front: List<Int>, val back: List<Int>, val reversible: Boolean) : Layout
+        /**
+         * Question fields, answer fields, whether the second template reverses the first, and
+         * whether the question asks to type the answer.
+         */
+        data class Standard(val front: List<Int>, val back: List<Int>, val reversible: Boolean, val typeIn: Boolean = false) : Layout
 
         data class ClozeText(val text: Int, val extra: List<Int>) : Layout
+
+        /** Mnemo's exported multiple-choice type: question, answer, wrong answers. */
+        data object Choice : Layout
     }
 
     /** The id Mnemo exported [note] with, if it came from a Mnemo export. */
@@ -88,14 +96,22 @@ class AnkiImportMapper(
             .filter { it.isNotBlank() }
             .joinToString("\n\n")
 
-        val (kind, converted) = when (layout) {
+        val (layoutKind, converted) = when (layout) {
             is Layout.Standard -> {
                 val reversed = layout.reversible && cards.any { it.ord == 1 }
-                (if (reversed) NoteKind.Reversed else NoteKind.Basic) to listOf(markdown(layout.front), markdown(layout.back))
+                val kind = when {
+                    reversed -> NoteKind.Reversed
+                    layout.typeIn -> NoteKind.TypeIn
+                    else -> NoteKind.Basic
+                }
+                kind to listOf(markdown(layout.front), markdown(layout.back))
             }
             is Layout.ClozeText -> NoteKind.Cloze to listOf(markdown(listOf(layout.text)), markdown(layout.extra))
+            Layout.Choice -> NoteKind.MultipleChoice to listOf(markdown(listOf(0)), markdown(listOf(1)), markdown(listOf(2)))
         }
-        val fields = stash?.fields?.takeIf { it.size == 2 } ?: converted
+        val stashKind = stash?.kind?.let { name -> NoteKind.entries.firstOrNull { it.name == name } }
+        val kind = stashKind ?: layoutKind
+        val fields = stash?.fields?.takeIf { it.size == NoteType.builtIn(kind).fields.size } ?: converted
         val ordinals = kind.cardOrdinals(fields)
         if (fields[0].isBlank() || ordinals.isEmpty()) return null
 
@@ -117,6 +133,7 @@ class AnkiImportMapper(
                 ?: Instant.ofEpochSecond(note.modified).takeIf { it.isAfter(createdAt) }
                 ?: createdAt,
             guid = note.guid,
+            hint = stash?.hint,
         )
 
         val mnemoCards = mutableListOf<Card>()
@@ -306,6 +323,7 @@ class AnkiImportMapper(
 
         private fun layoutOf(type: AnkiNotetype): Layout {
             val names = type.fields
+            if (type.id == MnemoNotetypes.MultipleChoice.id && names.size == MnemoNotetypes.MultipleChoice.fields.size) return Layout.Choice
             val first = type.templates.firstOrNull()
             if (type.isCloze) {
                 val text = first?.let { AnkiTemplates.clozeFields(it.front, names).firstOrNull() } ?: 0
@@ -321,7 +339,8 @@ class AnkiImportMapper(
             val reversible = second != null &&
                 AnkiTemplates.frontFields(second.front, names).toSet() == back.toSet() &&
                 AnkiTemplates.backFields(second.front, second.back, names).toSet() == front.toSet()
-            return Layout.Standard(front, back, reversible)
+            val typeIn = AnkiTemplates.typedFields(first.front, names).isNotEmpty()
+            return Layout.Standard(front, back, reversible, typeIn)
         }
     }
 }

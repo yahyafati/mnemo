@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.study.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,16 +31,23 @@ internal fun IntervalButtons(
     intervals: Map<Rating, Duration>,
     onRate: (Rating) -> Unit,
     modifier: Modifier = Modifier,
+    /** Outlined as the likely choice, after a checked answer (type-in, multiple choice). */
+    suggested: Rating? = null,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
         Rating.entries.forEach { rating ->
             val label = stringResource(rating.labelRes())
             val interval = intervals[rating]?.let(::formatInterval).orEmpty()
-            val description = stringResource(R.string.feature_study_rate_description, label, interval)
+            val description = if (rating == suggested) {
+                stringResource(R.string.feature_study_rate_suggested_description, label, interval)
+            } else {
+                stringResource(R.string.feature_study_rate_description, label, interval)
+            }
             Surface(
                 onClick = { onRate(rating) },
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainer,
+                border = if (rating == suggested) BorderStroke(2.dp, rating.color()) else null,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
@@ -57,7 +65,7 @@ internal fun IntervalButtons(
                     Text(
                         text = interval,
                         style = MnemoTheme.typography.metricSm,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }

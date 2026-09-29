@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.model
 
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * A deck. Nesting is Anki-style: "Languages::Japanese" is a deck named "Japanese" whose
@@ -13,6 +14,8 @@ data class Deck(
     val description: String = "",
     val category: String? = null,
     val starred: Boolean = false,
+    /** The day of the exam this deck is for, if any: the deck shows a countdown to it. */
+    val examDate: LocalDate? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {

@@ -33,7 +33,7 @@ class JsonExporter @Inject internal constructor(
         val decks = deckDao.getDecks().map { it.toModel() }
         val paths = AnkiExporter.paths(decks)
         writer.write("{\"format\":\"$FORMAT\",\"version\":$VERSION,\"exportedAt\":\"${clock.now()}\",\"decks\":")
-        writer.write(json.encodeToString(decks.map { d -> JsonDeck(d.id, d.name, paths.getValue(d.id), d.parentId, d.description, d.category, d.starred, "${d.createdAt}", "${d.updatedAt}") }))
+        writer.write(json.encodeToString(decks.map { d -> JsonDeck(d.id, d.name, paths.getValue(d.id), d.parentId, d.description, d.category, d.starred, "${d.createdAt}", "${d.updatedAt}", d.examDate?.toString()) }))
         writer.write(",\"notes\":[")
         val total = noteDao.count().coerceAtLeast(1)
         var done = 0
@@ -55,6 +55,7 @@ class JsonExporter @Inject internal constructor(
                     tags = n.tags,
                     source = n.source.name,
                     guid = n.guid,
+                    hint = n.hint,
                     createdAt = "${n.createdAt}",
                     updatedAt = "${n.updatedAt}",
                     cards = cards[n.id].orEmpty().map { it.toJson(reviews[it.id].orEmpty()) },
@@ -85,12 +86,17 @@ class JsonExporter @Inject internal constructor(
     internal data class JsonDeck(
         val id: String, val name: String, val path: String, val parentId: String?, val description: String,
         val category: String?, val starred: Boolean, val createdAt: String, val updatedAt: String,
+        /** ISO date (format version 2). */
+        val examDate: String?,
     )
 
     @Serializable
     internal data class JsonNote(
         val id: String, val deckId: String, val type: String, val fields: List<String>, val tags: List<String>,
-        val source: String, val guid: String?, val createdAt: String, val updatedAt: String, val cards: List<JsonCard>,
+        val source: String, val guid: String?,
+        /** Format version 2. */
+        val hint: String?,
+        val createdAt: String, val updatedAt: String, val cards: List<JsonCard>,
     )
 
     @Serializable
@@ -112,7 +118,8 @@ class JsonExporter @Inject internal constructor(
 
     internal companion object {
         const val FORMAT = "mnemo-json"
-        const val VERSION = 1
+        /** 2: deck exam dates and note hints (Phase 6). */
+        const val VERSION = 2
         private val json = Json { explicitNulls = true }
     }
 }

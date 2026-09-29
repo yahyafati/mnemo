@@ -26,13 +26,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorScreen
+import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorViewModel
 
 /** Which side of the Create tab is showing. */
-internal enum class CreateMode { SmartExtract, Manual }
+internal enum class CreateMode { SmartExtract, CoAuthor, Manual }
 
 /**
- * The Create tab: Smart Extract (AI) and the manual editor. Smart Extract shows the provider setup
- * prompt until a provider is ready.
+ * The Create tab: Smart Extract and Co-Author (AI), and the manual editor. The AI modes show the
+ * provider setup prompt until a provider is ready.
  */
 @Composable
 internal fun CreateScreen(
@@ -40,9 +42,11 @@ internal fun CreateScreen(
     modifier: Modifier = Modifier,
     viewModel: NoteEditorViewModel = hiltViewModel(),
     smartExtractViewModel: SmartExtractViewModel = hiltViewModel(),
+    coAuthorViewModel: CoAuthorViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val smartExtract by smartExtractViewModel.uiState.collectAsStateWithLifecycle()
+    val coAuthor by coAuthorViewModel.uiState.collectAsStateWithLifecycle()
     var mode by rememberSaveable { mutableStateOf(CreateMode.Manual) }
     Column(modifier.fillMaxSize()) {
         SingleChoiceSegmentedButtonRow(
@@ -57,7 +61,13 @@ internal fun CreateScreen(
                     shape = SegmentedButtonDefaults.itemShape(index, CreateMode.entries.size),
                     label = {
                         Text(
-                            stringResource(if (option == CreateMode.SmartExtract) R.string.feature_create_mode_smart else R.string.feature_create_mode_manual),
+                            stringResource(
+                                when (option) {
+                                    CreateMode.SmartExtract -> R.string.feature_create_mode_smart
+                                    CreateMode.CoAuthor -> R.string.feature_create_mode_coauthor
+                                    CreateMode.Manual -> R.string.feature_create_mode_manual
+                                },
+                            ),
                             maxLines = 1,
                         )
                     },
@@ -69,6 +79,12 @@ internal fun CreateScreen(
             CreateMode.SmartExtract -> SmartExtractScreen(
                 uiState = smartExtract,
                 onAction = smartExtractViewModel::onAction,
+                onSetUpAi = onSetUpAi,
+                modifier = Modifier.weight(1f),
+            )
+            CreateMode.CoAuthor -> CoAuthorScreen(
+                uiState = coAuthor,
+                onAction = coAuthorViewModel::onAction,
                 onSetUpAi = onSetUpAi,
                 modifier = Modifier.weight(1f),
             )

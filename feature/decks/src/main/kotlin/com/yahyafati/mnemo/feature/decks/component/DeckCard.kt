@@ -80,7 +80,7 @@ internal fun DeckCard(
                             Text(
                                 text = stringResource(R.string.feature_decks_last_review, relativeTime(it, now)),
                                 style = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp),
-                                color = colors.outline,
+                                color = colors.onSurfaceVariant,
                                 maxLines = 1,
                             )
                         }
@@ -96,6 +96,7 @@ internal fun DeckCard(
                 DeckMenu(deck, callbacks)
             }
             deck.recall?.let { RetentionHealth(it) }
+            deck.examInDays?.let { ExamCountdown(it) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
                     modifier = Modifier.weight(1f),
@@ -113,6 +114,35 @@ internal fun DeckCard(
             }
             if (deck.children.isNotEmpty()) Subdecks(deck, now, callbacks)
         }
+    }
+}
+
+/** The optional exam countdown: urgent (error color) in the last three days, tertiary within two weeks. */
+@Composable
+private fun ExamCountdown(days: Int) {
+    val colors = MaterialTheme.colorScheme
+    val (container, content) = when {
+        days <= 3 -> colors.errorContainer to colors.onErrorContainer
+        days <= 14 -> colors.tertiaryContainer to colors.onTertiaryContainer
+        else -> colors.surfaceContainer to colors.onSurfaceVariant
+    }
+    Row(
+        modifier = Modifier
+            .background(container, MaterialTheme.shapes.small)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(MnemoIcons.Event, contentDescription = null, tint = content, modifier = Modifier.size(14.dp))
+        Text(
+            text = if (days == 0) {
+                stringResource(R.string.feature_decks_exam_today)
+            } else {
+                pluralStringResource(R.plurals.feature_decks_exam_in, days, days)
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = content,
+            modifier = Modifier.padding(start = 6.dp),
+        )
     }
 }
 
@@ -197,7 +227,7 @@ private fun SubdeckRow(deck: DeckItem, depth: Int, now: Instant, callbacks: Deck
                     Text(
                         text = relativeTime(it, now),
                         style = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

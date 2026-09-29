@@ -190,7 +190,7 @@ class StudyAssistViewModel @Inject constructor(
         updateSheet { it.copy(running = true) }
         viewModelScope.launch {
             // Only the fields change: deck and tags stay, and so does every card's schedule.
-            cardRepository.updateNote(note.id, note.deckId, fields.map { it.trim() }, note.tags)
+            cardRepository.updateNote(note.id, note.deckId, fields.map { it.trim() }, note.tags, note.hint)
             // Set once saved, so the session reloads the new text.
             updateSheet { it.copy(running = false, applied = true) }
         }

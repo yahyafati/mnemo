@@ -7,6 +7,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
 import com.yahyafati.mnemo.core.database.migration.Migration1To2
 import com.yahyafati.mnemo.core.database.migration.Migration2To3
+import com.yahyafati.mnemo.core.database.migration.Migration3To4
+import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.NoteType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -98,8 +101,44 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate3To4() = runTest {
+        helper.createDatabase(TEST_DB, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO decks (id, parentId, name, description, category, starred, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('d1', NULL, 'Biology', '', NULL, 0, 1, 1, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO notes (id, deckId, noteTypeId, fields, tags, source, createdAt, updatedAt, deletedAt, guid) " +
+                    "VALUES ('n1', 'd1', '00000000-0000-4000-8000-000000000001', '[\"q\",\"a\"]', '[]', 'Manual', 1, 1, NULL, NULL)",
+            )
+            // Version 3 databases were seeded with the first three built-in types.
+            NoteType.BuiltIns.take(3).forEach { type ->
+                db.execSQL(
+                    "INSERT INTO note_types (id, name, kind, fields, createdAt, updatedAt, deletedAt) VALUES (?, ?, ?, '[]', 0, 0, NULL)",
+                    arrayOf(type.id, type.name, type.kind.name),
+                )
+            }
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 4, true, Migration3To4).close()
+
+        val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), MnemoDatabase::class.java, TEST_DB)
+            .addMigrations(*ALL_MIGRATIONS)
+            .build()
+        try {
+            val note = database.noteDao().getNote("n1")!!
+            assertNull(note.hint)
+            assertNull(database.deckDao().getDeck("d1")?.examDate)
+            val kinds = database.noteDao().getNoteTypes().map { it.kind }.toSet()
+            assertEquals(NoteKind.entries.map { it.name }.toSet(), kinds)
+        } finally {
+            database.close()
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
-        const val LATEST = 3
+        const val LATEST = 4
     }
 }

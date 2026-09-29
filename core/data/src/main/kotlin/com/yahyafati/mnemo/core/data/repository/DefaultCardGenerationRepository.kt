@@ -55,6 +55,7 @@ internal class DefaultCardGenerationRepository @Inject constructor(
                             back = event.card.back,
                             tags = event.card.tags,
                             chunkIndex = request.part,
+                            wrongAnswers = event.card.wrongAnswers,
                         ),
                     ),
                 )

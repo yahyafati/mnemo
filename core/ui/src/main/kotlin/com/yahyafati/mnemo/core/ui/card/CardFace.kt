@@ -33,6 +33,10 @@ val LocalCardFontScale = staticCompositionLocalOf { 1f }
 /**
  * A card's content: the prompt, and below a divider the answer once [revealed]. Cloze deletions
  * are revealed in place in the prompt; the answer area then shows the Extra field, if any.
+ *
+ * Multiple-choice cards list their options under the prompt, and type-in cards a text box. They
+ * only take input with an [interaction] (while studying); [response] is what the learner did.
+ * A [hint] shows behind a "Show hint" button until the answer is revealed.
  */
 @Composable
 fun CardFace(
@@ -40,6 +44,9 @@ fun CardFace(
     revealed: Boolean,
     modifier: Modifier = Modifier,
     fontScale: Float = LocalCardFontScale.current,
+    hint: String? = null,
+    response: CardResponse = CardResponse(),
+    interaction: CardInteraction? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val frontMath = remember(sides.front) { Markdown.containsMath(sides.front) }
@@ -64,8 +71,40 @@ fun CardFace(
                 modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
             )
         }
+        if (hint != null && !revealed) {
+            HintArea(
+                hint = hint,
+                shown = response.hintShown || interaction == null,
+                onShow = interaction?.onShowHint,
+                modifier = Modifier.padding(top = MnemoTheme.spacing.sm),
+            )
+        }
+        sides.choices?.let { choices ->
+            ChoiceList(
+                choices = choices,
+                correct = sides.correctChoice,
+                chosen = response.chosen,
+                revealed = revealed,
+                onChoose = interaction?.onChoose,
+                style = MaterialTheme.typography.bodyLarge.scaled(fontScale),
+                modifier = Modifier.padding(top = MnemoTheme.spacing.md),
+            )
+        }
+        if (sides.typeIn && interaction != null) {
+            if (revealed) {
+                TypedAnswerResult(response.typed, sides.back, Modifier.padding(top = MnemoTheme.spacing.md))
+            } else {
+                TypedAnswerField(
+                    value = response.typed,
+                    onValueChange = interaction.onTypedChange,
+                    onSubmit = interaction.onSubmitTyped,
+                    modifier = Modifier.padding(top = MnemoTheme.spacing.md),
+                )
+            }
+        }
         AnimatedVisibility(
-            visible = revealed && sides.back.isNotBlank(),
+            // A multiple-choice answer is marked among the options instead.
+            visible = revealed && sides.back.isNotBlank() && sides.choices == null,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically(),
         ) {

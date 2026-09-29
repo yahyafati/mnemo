@@ -8,7 +8,7 @@ enum class CardArchetype {
     /** A key sentence with its important terms hidden, as a Cloze card. */
     Cloze,
 
-    /** A question with lettered options on the front and the answer on the back (a Basic card until Phase 6). */
+    /** A question, its answer and three wrong answers, as a Multiple choice card. */
     MultipleChoice,
 
     /** A short scenario that applies the material, as a Basic card. */
@@ -60,14 +60,17 @@ data class ExtractOptions(
 data class GeneratedCard(
     val id: String,
     val kind: NoteKind,
-    /** Basic: the question. Cloze: the text with `{{c1::…}}` deletions. */
+    /** Basic and multiple choice: the question. Cloze: the text with `{{c1::…}}` deletions. */
     val front: String,
-    /** Basic: the answer. Cloze: the optional Extra field. */
+    /** Basic: the answer. Multiple choice: the correct option. Cloze: the optional Extra field. */
     val back: String,
     val tags: List<String> = emptyList(),
     val chunkIndex: Int = 0,
+    /** Multiple choice: the wrong options. */
+    val wrongAnswers: List<String> = emptyList(),
 ) {
-    val fields: List<String> get() = listOf(front, back)
+    val fields: List<String>
+        get() = if (kind == NoteKind.MultipleChoice) listOf(front, back, MultipleChoice.wrongField(wrongAnswers)) else listOf(front, back)
 
     val sides: CardSides get() = CardSides.of(kind, fields, kind.cardOrdinals(fields).firstOrNull() ?: 0)
 

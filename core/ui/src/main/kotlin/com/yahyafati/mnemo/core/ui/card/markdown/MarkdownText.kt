@@ -42,7 +42,13 @@ import com.yahyafati.mnemo.core.designsystem.theme.JetBrainsMono
 import com.yahyafati.mnemo.core.model.markdown.Markdown
 import com.yahyafati.mnemo.core.model.markdown.Markdown.Block
 import com.yahyafati.mnemo.core.model.markdown.Markdown.Inline
+import androidx.compose.ui.res.stringResource
+import com.yahyafati.mnemo.core.ui.R
 import com.yahyafati.mnemo.core.ui.card.MediaImage
+import com.yahyafati.mnemo.core.ui.card.audio.LocalCardAudio
+
+/** How `[sound:…]` tags show: a tappable [label] that plays the sound. */
+internal class SoundLinks(val label: String, val onPlay: (String) -> Unit)
 
 /** Which cloze deletion is the answer on this card, and whether it is shown yet. */
 @Immutable
@@ -134,8 +140,11 @@ private fun MarkdownBlock(block: Block, style: TextStyle, color: Color, spans: M
  */
 @Composable
 private fun InlineText(content: List<Inline>, style: TextStyle, color: Color, spans: MarkdownSpans, cloze: ClozeDisplay?) {
+    val audio = LocalCardAudio.current
+    val soundLabel = stringResource(R.string.core_ui_play_sound)
+    val sounds = remember(audio, soundLabel) { SoundLinks(soundLabel) { src -> audio.play(listOf(src)) } }
     if (content.none { it is Inline.Image }) {
-        val text = remember(content, spans, cloze) { buildInline(content, spans, cloze) }
+        val text = remember(content, spans, cloze, sounds) { buildInline(content, spans, cloze, sounds) }
         Text(text = text, style = style, color = color)
         return
     }
@@ -145,7 +154,7 @@ private fun InlineText(content: List<Inline>, style: TextStyle, color: Color, sp
             when (piece) {
                 is Inline.Image -> MediaImage(src = piece.src, alt = piece.alt)
                 is TextRun -> {
-                    val text = remember(piece, spans, cloze) { buildInline(piece.inlines, spans, cloze) }
+                    val text = remember(piece, spans, cloze, sounds) { buildInline(piece.inlines, spans, cloze, sounds) }
                     if (text.isNotBlank()) Text(text = text, style = style, color = color)
                 }
             }
@@ -206,29 +215,33 @@ internal data class MarkdownSpans(
     }
 }
 
-internal fun buildInline(content: List<Inline>, spans: MarkdownSpans, cloze: ClozeDisplay?): AnnotatedString =
-    buildAnnotatedString { appendInlines(content, spans, cloze) }
+internal fun buildInline(content: List<Inline>, spans: MarkdownSpans, cloze: ClozeDisplay?, sounds: SoundLinks? = null): AnnotatedString =
+    buildAnnotatedString { appendInlines(content, spans, cloze, sounds) }
 
-private fun AnnotatedString.Builder.appendInlines(content: List<Inline>, spans: MarkdownSpans, cloze: ClozeDisplay?) {
+private fun AnnotatedString.Builder.appendInlines(content: List<Inline>, spans: MarkdownSpans, cloze: ClozeDisplay?, sounds: SoundLinks?) {
     for (inline in content) {
         when (inline) {
             is Inline.Text -> append(inline.text)
-            is Inline.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { appendInlines(inline.children, spans, cloze) }
-            is Inline.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInlines(inline.children, spans, cloze) }
+            is Inline.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { appendInlines(inline.children, spans, cloze, sounds) }
+            is Inline.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInlines(inline.children, spans, cloze, sounds) }
             is Inline.Strike -> withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
-                appendInlines(inline.children, spans, cloze)
+                appendInlines(inline.children, spans, cloze, sounds)
             }
             is Inline.Code -> withStyle(spans.code) { append(" ${inline.code} ") }
-            is Inline.Link -> withLink(LinkAnnotation.Url(inline.url, spans.link)) { appendInlines(inline.children, spans, cloze) }
+            is Inline.Link -> withLink(LinkAnnotation.Url(inline.url, spans.link)) { appendInlines(inline.children, spans, cloze, sounds) }
             // Images nested in emphasis or links, where they can't be laid out: their alt text.
             is Inline.Image -> if (inline.alt.isNotBlank()) append(inline.alt)
             // Math cards render through KaTeX (CardFace); this only shows the source as a fallback.
             is Inline.Math -> withStyle(spans.code) { append(inline.tex) }
-            // Audio plays in a later version; a marker shows the card has sound.
-            is Inline.Sound -> append("🔊")
+            // A tappable speaker; the sound also plays on its own if auto-play is on.
+            is Inline.Sound -> if (sounds == null) {
+                append("🔊")
+            } else {
+                withLink(LinkAnnotation.Clickable("sound", spans.link) { sounds.onPlay(inline.src) }) { append("🔊 ${sounds.label}") }
+            }
             is Inline.Cloze -> when {
-                cloze == null || inline.ordinal != cloze.ordinal -> appendInlines(inline.answer, spans, cloze)
-                cloze.revealed -> withStyle(spans.clozeRevealed) { appendInlines(inline.answer, spans, cloze) }
+                cloze == null || inline.ordinal != cloze.ordinal -> appendInlines(inline.answer, spans, cloze, sounds)
+                cloze.revealed -> withStyle(spans.clozeRevealed) { appendInlines(inline.answer, spans, cloze, sounds) }
                 else -> withStyle(spans.clozeHidden) { append("[${inline.hint ?: "…"}]") }
             }
         }

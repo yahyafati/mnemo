@@ -2,6 +2,16 @@ package com.yahyafati.mnemo.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.FactCheck
@@ -179,6 +189,18 @@ object MnemoIcons {
     val Sparkle: ImageVector = Icons.Outlined.AutoAwesome
     val Stop: ImageVector = Icons.Outlined.StopCircle
     val Translate: ImageVector = Icons.Outlined.Translate
+
+    // Phase 6: card types, audio, reminders, exams, Co-Author
+    val AudioFile: ImageVector = Icons.Outlined.AudioFile
+    val CoAuthor: ImageVector = Icons.Outlined.Forum
+    val Duplicate: ImageVector = Icons.Outlined.ContentCopy
+    val Event: ImageVector = Icons.Outlined.Event
+    val Info: ImageVector = Icons.Outlined.Info
+    val Keyboard: ImageVector = Icons.Outlined.Keyboard
+    val Notifications: ImageVector = Icons.Outlined.Notifications
+    val Quiz: ImageVector = Icons.Outlined.Quiz
+    val Send: ImageVector = Icons.AutoMirrored.Outlined.Send
+    val Speak: ImageVector = Icons.AutoMirrored.Outlined.VolumeUp
 
     // Analytics
     val FactCheck: ImageVector = Icons.AutoMirrored.Outlined.FactCheck

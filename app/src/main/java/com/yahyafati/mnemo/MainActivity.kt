@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -13,7 +14,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.common.intent.AppIntents
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.ui.adaptive.LocalWindowLayout
+import com.yahyafati.mnemo.core.ui.adaptive.currentWindowLayout
+import com.yahyafati.mnemo.core.ui.card.audio.LocalAutoPlayAudio
+import com.yahyafati.mnemo.core.ui.card.audio.LocalCardAudio
+import com.yahyafati.mnemo.core.ui.card.audio.rememberCardAudio
+import com.yahyafati.mnemo.ui.onboarding.OnboardingScreen
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.ui.card.LocalCardFontScale
 import com.yahyafati.mnemo.ui.MnemoApp
@@ -26,11 +34,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (savedInstanceState == null) handleIntent(intent)
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             // Settings load in a few milliseconds; until then the window background shows,
             // rather than a frame in the wrong theme.
-            val settings = (uiState as? MainUiState.Ready)?.settings ?: return@setContent
+            val ready = uiState as? MainUiState.Ready ?: return@setContent
+            val settings = ready.settings
             val darkTheme = when (settings.darkThemeConfig) {
                 DarkThemeConfig.FollowSystem -> isSystemInDarkTheme()
                 DarkThemeConfig.Light -> false
@@ -45,11 +55,36 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             MnemoTheme(darkTheme = darkTheme, dynamicColor = settings.useDynamicColor) {
-                CompositionLocalProvider(LocalCardFontScale provides settings.cardFontSize.scale) {
-                    MnemoApp()
+                CompositionLocalProvider(
+                    LocalCardFontScale provides settings.cardFontSize.scale,
+                    LocalCardAudio provides rememberCardAudio(),
+                    LocalAutoPlayAudio provides settings.autoPlayAudio,
+                    LocalWindowLayout provides currentWindowLayout(),
+                ) {
+                    if (ready.showOnboarding) {
+                        OnboardingScreen(
+                            reminderTime = settings.reminder.time,
+                            onCreateDeck = viewModel::finishOnboarding,
+                            onImport = viewModel::importFromOnboarding,
+                            onSkip = { reminder -> viewModel.finishOnboarding(deckName = null, reminder = reminder) },
+                        )
+                    } else {
+                        val destination by viewModel.destination.collectAsStateWithLifecycle()
+                        MnemoApp(destination = destination, onDestinationHandled = viewModel::destinationHandled)
+                    }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** The reminder notification and the widget open the Study tab. */
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.getStringExtra(AppIntents.EXTRA_OPEN) == AppIntents.OPEN_STUDY) viewModel.open(AppDestination.Study)
     }
 
     private companion object {

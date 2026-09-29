@@ -18,4 +18,6 @@ data class DeckEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long? = null,
+    /** Exam day as an epoch day (`LocalDate.toEpochDay`), for the deck's countdown (schema v4). */
+    val examDate: Long? = null,
 )

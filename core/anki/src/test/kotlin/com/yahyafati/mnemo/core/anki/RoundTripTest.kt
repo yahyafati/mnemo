@@ -49,8 +49,11 @@ class RoundTripTest {
         tags: List<String>,
         offsetMinutes: Long,
         answers: Map<Int, List<Pair<Long, Rating>>>,
+        hint: String? = null,
     ): Source {
-        val note = Note(UUID.randomUUID().toString(), deck.id, NoteType.builtIn(kind).id, fields, tags, createdAt = start, updatedAt = start)
+        val note = Note(
+            UUID.randomUUID().toString(), deck.id, NoteType.builtIn(kind).id, fields, tags, createdAt = start, updatedAt = start, hint = hint,
+        )
         val fsrs = Fsrs(FsrsParameters(learningSteps = listOf(Duration.ofMinutes(1), Duration.ofMinutes(10))))
         val cards = mutableListOf<Card>()
         val reviews = mutableListOf<ReviewLog>()
@@ -96,6 +99,14 @@ class RoundTripTest {
             studied(
                 NoteKind.Cloze, listOf("{{c1::\\(E=mc^2\\)}} and {{c2::**ATP**::energy}}", "> quote\n\n- a\n- b"), emptyList(), 2,
                 mapOf(1 to listOf(0L to Rating.Easy, 20 * day to Rating.Again, 20 * day + 11 to Rating.Good)),
+            ),
+            studied(
+                NoteKind.TypeIn, listOf("Capital of *France*?", "Paris"), listOf("geo"), 300,
+                mapOf(0 to listOf(0L to Rating.Good, 10L to Rating.Good)), hint = "Starts with **P**",
+            ),
+            studied(
+                NoteKind.MultipleChoice, listOf("Largest planet?", "Jupiter", "Saturn\nMars\nVenus"), emptyList(), 400,
+                mapOf(0 to listOf(0L to Rating.Again, 3L to Rating.Good)),
             ),
         ).let { list ->
             // Star, flag and suspend a few cards.

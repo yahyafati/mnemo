@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.mnemo.android.application)
     alias(libs.plugins.mnemo.android.compose)
     alias(libs.plugins.mnemo.hilt)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -17,8 +18,9 @@ android {
 
     buildTypes {
         release {
+            // R8 shrinking and optimization; keep rules live in src/main/keepRules/.
             optimization {
-                enable = false
+                enable = true
             }
         }
     }
@@ -35,6 +37,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
+    implementation(projects.core.domain)
     implementation(projects.core.model)
     implementation(projects.core.ui)
 
@@ -56,6 +59,8 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     androidTestImplementation(projects.core.testing)

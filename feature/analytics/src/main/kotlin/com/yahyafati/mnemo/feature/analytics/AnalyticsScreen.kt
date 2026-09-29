@@ -405,12 +405,12 @@ private fun ActivityCard(state: AnalyticsUiState.Ready) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             val small = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp)
-            Text(stringResource(R.string.feature_analytics_intensity), style = small, color = colors.outline, modifier = Modifier.weight(1f))
-            Text(stringResource(R.string.feature_analytics_intensity_low), style = small, color = colors.outline)
+            Text(stringResource(R.string.feature_analytics_intensity), style = small, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.feature_analytics_intensity_low), style = small, color = colors.onSurfaceVariant)
             listOf(colors.surfaceContainerHigh, colors.primaryContainer.copy(alpha = 0.5f), colors.primary).forEach {
                 Box(Modifier.size(10.dp).background(it, MaterialTheme.shapes.small))
             }
-            Text(stringResource(R.string.feature_analytics_intensity_peak), style = small, color = colors.outline)
+            Text(stringResource(R.string.feature_analytics_intensity_peak), style = small, color = colors.onSurfaceVariant)
         }
     }
 }
@@ -673,9 +673,8 @@ private fun duration(value: Duration): String {
     }
 }
 
-@Preview(showBackground = true, heightDp = 2200)
-@Composable
-private fun AnalyticsScreenPreview() {
+/** Sample data for the preview and the screenshot tests. */
+internal fun sampleAnalyticsState(): AnalyticsUiState.Ready {
     val today = LocalDate.of(2026, 10, 22)
     val curve = ForgettingCurve(
         horizonDays = 60,
@@ -704,24 +703,27 @@ private fun AnalyticsScreenPreview() {
         hardestCards = emptyList(),
     )
     val start = today.minusDays(31)
+    return AnalyticsUiState.Ready(
+        stats = stats,
+        today = today,
+        calendar = (0 until 5).map { w ->
+            (0 until 7).map { d ->
+                val date = start.plusDays(w * 7L + d)
+                CalendarDay(date, if (date.isAfter(today)) null else (w * 7 + d) * 13 % 90)
+            }
+        },
+        firstDayOfWeek = DayOfWeek.MONDAY,
+        hardestCards = listOf(
+            HardCard("c1", "n1", "What does the hippocampus consolidate?", "Neuroscience", 9),
+            HardCard("c2", "n2", "漢字: 議", "Kanji N3", 4),
+        ),
+    )
+}
+
+@Preview(showBackground = true, heightDp = 2200)
+@Composable
+private fun AnalyticsScreenPreview() {
     MnemoTheme {
-        AnalyticsScreen(
-            uiState = AnalyticsUiState.Ready(
-                stats = stats,
-                today = today,
-                calendar = (0 until 5).map { w ->
-                    (0 until 7).map { d ->
-                        val date = start.plusDays(w * 7L + d)
-                        CalendarDay(date, if (date.isAfter(today)) null else (w * 7 + d) * 13 % 90)
-                    }
-                },
-                firstDayOfWeek = DayOfWeek.MONDAY,
-                hardestCards = listOf(
-                    HardCard("c1", "n1", "What does the hippocampus consolidate?", "Neuroscience", 9),
-                    HardCard("c2", "n2", "漢字: 議", "Kanji N3", 4),
-                ),
-            ),
-            onEditNote = {},
-        )
+        AnalyticsScreen(uiState = sampleAnalyticsState(), onEditNote = {})
     }
 }

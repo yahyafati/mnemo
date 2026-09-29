@@ -26,6 +26,9 @@ interface DeckDao {
     @Query("UPDATE decks SET starred = :starred, updatedAt = :now WHERE id = :id")
     suspend fun setStarred(id: String, starred: Boolean, now: Long)
 
+    @Query("UPDATE decks SET examDate = :examDate, updatedAt = :now WHERE id = :id")
+    suspend fun setExamDate(id: String, examDate: Long?, now: Long)
+
     @Query("UPDATE decks SET deletedAt = :now, updatedAt = :now WHERE id IN (:ids)")
     suspend fun softDelete(ids: List<String>, now: Long)
 

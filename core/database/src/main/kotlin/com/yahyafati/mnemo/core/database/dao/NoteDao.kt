@@ -68,6 +68,10 @@ interface NoteDao {
     @Query("SELECT fields AS json FROM notes WHERE deckId = :deckId AND deletedAt IS NULL")
     suspend fun getFieldsJsonInDeck(deckId: String): List<JsonColumn>
 
+    /** Every live note in [deckIds], oldest first: what AI Co-Author reads and deduplicates. */
+    @Query("SELECT * FROM notes WHERE deckId IN (:deckIds) AND deletedAt IS NULL ORDER BY createdAt LIMIT :limit")
+    suspend fun getNotesInDecks(deckIds: List<String>, limit: Int): List<NoteEntity>
+
     /** Every live note's tags, as their JSON text, for the tag list. */
     @Query("SELECT tags AS json FROM notes WHERE deletedAt IS NULL AND tags != '[]'")
     suspend fun getAllTagsJson(): List<JsonColumn>

@@ -13,6 +13,8 @@ import com.yahyafati.mnemo.core.domain.StudySession
 import com.yahyafati.mnemo.core.domain.UndoLastAnswerUseCase
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
+import com.yahyafati.mnemo.core.model.TypedAnswer
+import com.yahyafati.mnemo.core.ui.card.CardResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +55,7 @@ class StudyViewModel @Inject constructor(
     private var preview: Map<Rating, CardAnswer> = emptyMap()
     private var shownAt: Instant = Instant.EPOCH
     private var revealed = false
+    private var response = CardResponse()
     private val undoStack = ArrayDeque<UndoEntry>()
     private val ratingCounts = mutableMapOf<Rating, Int>()
     private var totalTimeMs = 0L
@@ -87,6 +90,19 @@ class StudyViewModel @Inject constructor(
                 render()
             }
             is StudyAction.Rate -> rate(action.rating)
+            is StudyAction.TypeAnswer -> if (current != null && !revealed) {
+                response = response.copy(typed = action.text)
+                render()
+            }
+            is StudyAction.Choose -> if (current != null && !revealed) {
+                response = response.copy(chosen = action.index)
+                revealed = true
+                render()
+            }
+            StudyAction.ShowHint -> if (current != null) {
+                response = response.copy(hintShown = true)
+                render()
+            }
             StudyAction.Undo -> undo()
             StudyAction.ToggleStar -> updateCurrent { card ->
                 val starred = !card.card.starred
@@ -175,6 +191,7 @@ class StudyViewModel @Inject constructor(
         } else {
             current = null
             revealed = false
+            response = CardResponse()
             val laterCount = s.laterCount(now)
             val phase = if (s.answeredCount == 0) {
                 StudyPhase.Empty(laterCount)
@@ -188,6 +205,7 @@ class StudyViewModel @Inject constructor(
     private fun show(card: StudyCard, now: Instant) {
         current = card
         revealed = false
+        response = CardResponse()
         shownAt = now
         preview = queue?.scheduler?.preview(card.card, now).orEmpty()
         render()
@@ -204,8 +222,21 @@ class StudyViewModel @Inject constructor(
                 position = s.answeredCount + 1,
                 total = s.answeredCount + s.remainingCount,
                 canUndo = undoStack.isNotEmpty(),
+                response = response,
+                suggestedRating = if (revealed) suggestedRating(card) else null,
             ),
         )
+    }
+
+    /** Good or Again for an answer the app can check itself: a typed answer or a picked option. */
+    private fun suggestedRating(card: StudyCard): Rating? {
+        val sides = card.sides
+        val correct = when {
+            sides.choices != null -> response.chosen?.let { it == sides.correctChoice }
+            sides.typeIn -> TypedAnswer.check(response.typed, sides.back).correct
+            else -> null
+        } ?: return null
+        return if (correct) Rating.Good else Rating.Again
     }
 
     /** Reloads note content for the session's cards, keeping their in-session schedule. */

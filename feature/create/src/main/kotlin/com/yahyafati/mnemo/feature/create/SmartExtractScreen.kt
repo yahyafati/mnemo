@@ -540,7 +540,7 @@ private fun QueueHeader(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             Text(
                 text = stringResource(R.string.feature_create_queue).uppercase() + if (uiState.queue.isNotEmpty()) " (${uiState.queue.size})" else "",
                 style = MaterialTheme.typography.labelMedium,
-                color = colors.outline,
+                color = colors.onSurfaceVariant,
             )
             HorizontalDivider(Modifier.weight(1f), color = colors.surfaceContainerHighest)
         }
@@ -580,7 +580,7 @@ private fun ReviewCard(
     ) {
         Column(Modifier.padding(spacing.md), verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.feature_create_card_number, number).uppercase(), style = MnemoTheme.typography.metricSm, color = colors.outline)
+                Text(stringResource(R.string.feature_create_card_number, number).uppercase(), style = MnemoTheme.typography.metricSm, color = colors.onSurfaceVariant)
                 Text(
                     text = stringResource(if (isCloze) R.string.feature_create_type_cloze else R.string.feature_create_type_basic),
                     style = MaterialTheme.typography.labelMedium,
@@ -658,6 +658,7 @@ private fun problemText(problem: GeneratedCardProblem): String = stringResource(
         GeneratedCardProblem.NoCloze -> R.string.feature_create_problem_cloze
         GeneratedCardProblem.BrokenCloze -> R.string.feature_create_problem_broken_cloze
         GeneratedCardProblem.TooLong -> R.string.feature_create_problem_too_long
+        GeneratedCardProblem.NoWrongAnswers -> R.string.feature_create_problem_wrong
     },
 )
 

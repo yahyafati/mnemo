@@ -145,7 +145,7 @@ class StudyViewModelTest {
         fixture.addBasic("Q1", "A1")
         val vm = fixture.viewModel()
         val noteId = vm.reviewing().card.note.id
-        fixture.cards.updateNote(noteId, fixture.deckId, listOf("Q1 edited", "A1"), emptyList())
+        fixture.cards.updateNote(noteId, fixture.deckId, listOf("Q1 edited", "A1"), emptyList(), hint = null)
 
         vm.onScreenShown()
         assertEquals("Q1 edited", vm.reviewing().card.note.fields[0])
@@ -159,5 +159,46 @@ class StudyViewModelTest {
         assertEquals(NoteKind.Cloze, vm.reviewing().card.kind)
         assertEquals(2, vm.reviewing().total)
         assertNull(fixture.reviews.logs.value.firstOrNull())
+    }
+
+    @Test
+    fun typeInAnswersAreCheckedAndSuggestARating() = runTest {
+        fixture.cards.addNote(fixture.deckId, NoteKind.TypeIn, listOf("Capital of Peru?", "**Lima**"), emptyList(), hint = "L…")
+        val vm = fixture.viewModel()
+        vm.onAction(StudyAction.ShowHint)
+        assertTrue(vm.reviewing().response.hintShown)
+        vm.onAction(StudyAction.TypeAnswer("lima "))
+        assertEquals("lima ", vm.reviewing().response.typed)
+        assertNull(vm.reviewing().suggestedRating)
+
+        vm.onAction(StudyAction.Flip)
+        assertTrue(vm.reviewing().revealed)
+        assertEquals(Rating.Good, vm.reviewing().suggestedRating)
+        // Typing after the answer shows changes nothing.
+        vm.onAction(StudyAction.TypeAnswer("x"))
+        assertEquals("lima ", vm.reviewing().response.typed)
+    }
+
+    @Test
+    fun choosingAnOptionRevealsTheAnswer() = runTest {
+        fixture.cards.addNote(fixture.deckId, NoteKind.MultipleChoice, listOf("2 + 2?", "4", "3\n5\n22"), emptyList())
+        fixture.clock.advanceBy(Duration.ofSeconds(1))
+        fixture.cards.addNote(fixture.deckId, NoteKind.MultipleChoice, listOf("3 + 3?", "6", "5\n7"), emptyList())
+        val vm = fixture.viewModel()
+        val sides = vm.reviewing().card.sides
+        assertEquals(4, sides.choices?.size)
+        val wrong = sides.choices!!.indices.first { it != sides.correctChoice }
+
+        vm.onAction(StudyAction.Choose(wrong))
+        assertTrue(vm.reviewing().revealed)
+        assertEquals(wrong, vm.reviewing().response.chosen)
+        assertEquals(Rating.Again, vm.reviewing().suggestedRating)
+
+        // The next card starts fresh.
+        vm.onAction(StudyAction.Rate(Rating.Again))
+        assertEquals("3 + 3?", vm.reviewing().card.note.fields[0])
+        assertNull(vm.reviewing().response.chosen)
+        vm.onAction(StudyAction.Choose(vm.reviewing().card.sides.correctChoice))
+        assertEquals(Rating.Good, vm.reviewing().suggestedRating)
     }
 }

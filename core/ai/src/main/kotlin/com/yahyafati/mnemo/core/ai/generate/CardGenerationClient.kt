@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.ai.dto.Usage
 import com.yahyafati.mnemo.core.ai.parse.GeneratedCardParser
 import com.yahyafati.mnemo.core.ai.parse.ParsedCard
 import com.yahyafati.mnemo.core.ai.prompt.CardGenerationPrompt
+import com.yahyafati.mnemo.core.ai.prompt.CardsPrompt
 import com.yahyafati.mnemo.core.ai.schema.GeneratedCardsSchema
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -27,7 +28,7 @@ sealed interface CardEvent {
  * answer and asks for the JSON again.
  */
 class CardGenerationClient(private val runner: ChatTextRunner) {
-    fun generate(config: ProviderConfig, model: String, capabilities: AiCapabilities, prompt: CardGenerationPrompt): Flow<CardEvent> = flow {
+    fun generate(config: ProviderConfig, model: String, capabilities: AiCapabilities, prompt: CardsPrompt): Flow<CardEvent> = flow {
         val mode = RequestMode.forCapabilities(capabilities, GeneratedCardsSchema.cardsFormat)
         var messages = prompt.messages()
         var usage = Usage()

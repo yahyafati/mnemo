@@ -24,6 +24,8 @@ data class Note(
      * Importing the same package twice skips notes whose guid is already in the collection.
      */
     val guid: String? = null,
+    /** A mnemonic or hint the user can reveal before answering; null or blank for none. */
+    val hint: String? = null,
 ) {
     fun field(index: Int): String = fields.getOrElse(index) { "" }
 }

@@ -2,4 +2,10 @@
 <resources>
     <!-- Window background before Compose draws; matches the theme's surface color. -->
     <color name="window_background">#FFFFF8F3</color>
+    <!-- Home-screen widget, from the brand palette (theme/Color.kt). -->
+    <color name="widget_background">#FFFFF8F3</color>
+    <color name="widget_text">#FF1D1B18</color>
+    <color name="widget_muted">#FF464555</color>
+    <color name="widget_accent">#FF3525CD</color>
+    <color name="widget_on_accent">#FFFFFFFF</color>
 </resources>

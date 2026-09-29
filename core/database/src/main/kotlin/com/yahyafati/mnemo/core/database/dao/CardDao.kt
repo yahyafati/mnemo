@@ -80,6 +80,18 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE deletedAt IS NULL")
     fun observeTotalCount(): Flow<Int>
 
+    /**
+     * Cards in [deckIds] forgotten at least [minLapses] times, most lapses first: the weak cards
+     * AI Co-Author offers to improve.
+     */
+    @Query(
+        """
+        SELECT * FROM cards WHERE deletedAt IS NULL AND suspended = 0 AND deckId IN (:deckIds) AND lapses >= :minLapses
+        ORDER BY lapses DESC, reps DESC LIMIT :limit
+        """,
+    )
+    suspend fun getMostLapsed(deckIds: List<String>, minLapses: Int, limit: Int): List<CardEntity>
+
     @Query("SELECT * FROM cards WHERE noteId IN (:noteIds) AND deletedAt IS NULL ORDER BY noteId, templateOrd")
     suspend fun getCardsForNotes(noteIds: List<String>): List<CardEntity>
 

@@ -89,7 +89,7 @@ object BrowseQueries {
         "reps", "lapses", "flagged", "starred", "suspended", "buriedUntil", "createdAt", "updatedAt", "deletedAt",
     )
     private val NOTE_COLUMNS = listOf(
-        "id", "deckId", "noteTypeId", "fields", "tags", "source", "createdAt", "updatedAt", "deletedAt", "guid",
+        "id", "deckId", "noteTypeId", "fields", "tags", "source", "createdAt", "updatedAt", "deletedAt", "guid", "hint",
     )
 
     /** Every column, prefixed to match [BrowseRow]'s embedded entities. */

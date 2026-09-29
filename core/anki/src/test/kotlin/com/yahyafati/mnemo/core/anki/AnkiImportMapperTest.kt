@@ -180,4 +180,19 @@ class AnkiImportMapperTest {
         assertEquals(listOf(0, 1), imported.cards.map { it.templateOrd })
         assertEquals(NoteKind.Cloze, NoteType.byId(imported.note.noteTypeId)?.kind)
     }
+
+    @Test
+    fun typeInTemplatesBecomeTypeInNotes() {
+        val t0 = Instant.parse("2026-01-10T12:00:00Z")
+        // Anki's stock "Basic (type in the answer)".
+        val type = AnkiNotetype(
+            1, "Basic (type in the answer)", false, listOf("Front", "Back"),
+            listOf(AnkiTemplate(0, "Card 1", "{{Front}}\n\n{{type:Back}}", "{{Front}}\n\n<hr id=answer>\n\n{{type:Back}}")),
+        )
+        val mapper = AnkiImportMapper(t0, listOf(type), t0, 2, 1)
+        val card = AnkiCard(7, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0)
+        val imported = mapper.map(AnkiNote(1, "g", 1, 0, emptyList(), listOf("Capital of Peru?", "Lima")), listOf(card), emptyMap(), "n", { "d" }, { null })!!
+        assertEquals(NoteKind.TypeIn, NoteType.byId(imported.note.noteTypeId)?.kind)
+        assertEquals(listOf("Capital of Peru?", "Lima"), imported.note.fields)
+    }
 }

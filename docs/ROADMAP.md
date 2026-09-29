@@ -260,6 +260,22 @@ Still open: checking the Analytics screen's frame rate on a device with a large 
 
 ## Phase 6 — Polish and v1 release
 
+**Status:** implemented (2026-09-29), except the licensing and distribution decision. Decisions:
+ADR 0008 (card types and schema v4, Anki mapping, audio/TTS, Co-Author, reminder scheduling,
+widget, adaptive layouts, accessibility, stability config, R8). Covered by tests:
+`TypedAnswerTest`, `MultipleChoiceTest`, `MigrationTest.migrate3To4`, `RoundTripTest` (type-in,
+multiple choice and hints through `.apkg`), `AnkiImportMapperTest.typeInTemplatesBecomeTypeInNotes`,
+`GeneratedCardParserTest` (choice fixtures), `CoAuthorPromptTest`, `AiGenerationRepositoriesTest`
+(Co-Author against MockWebServer), `DuplicateFinderTest`, `CoAuthorViewModelTest`,
+`NoteEditorViewModelTest`, `StudyViewModelTest`, `ReminderTest` (scheduling and the worker),
+`DailyTimeTest`, `TodayWidgetTest`, `ColorContrastTest`, `StudyScreenTest` (labels, 48 dp touch
+targets, swipe accessibility actions, 2× font), `MnemoAppNavigationTest` (navigation rail),
+`FirstSessionTest` (onboarding → create deck → add card → study → stats), and Roborazzi baselines
+for every feature and onboarding. The R8 release build was run through onboarding, a type-in
+review, Co-Author and Settings on an API 35 emulator. Still open: choosing a license and
+distribution (`docs/release/distribution.md`), and the manual checks on hardware listed in
+ADR 0008 (frame rates, TTS and audio, the widget on real launchers).
+
 **Goal:** close the remaining feature gaps and ship v1.
 
 ### Scope

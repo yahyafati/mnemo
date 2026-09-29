@@ -84,10 +84,33 @@ class OfflineRepositoriesTest {
         val note = cards.addNote(deck, NoteKind.Cloze, listOf("{{c1::a}} {{c2::b}}", ""), listOf("tag"))
         assertEquals(2, cards.observeTotalCardCount().first())
 
-        cards.updateNote(note.id, deck, listOf("{{c1::a}} {{c3::c}}", ""), emptyList())
+        cards.updateNote(note.id, deck, listOf("{{c1::a}} {{c3::c}}", ""), emptyList(), hint = "h")
         val candidates = cards.getQueueCandidates(listOf(deck), clock.now(), clock.now().plusSeconds(3600), 10, 10)
         assertEquals(listOf(0, 2), candidates.new.map { it.card.templateOrd }.sorted())
         assertEquals(emptyList(), cards.getNote(note.id)?.tags)
+        assertEquals("h", cards.getNote(note.id)?.hint)
+    }
+
+    @Test
+    fun newKindsHintsExamDatesAndDeletes() = runTest {
+        val deck = decks.saveDeck("Deck", examDate = java.time.LocalDate.of(2026, 12, 1))
+        assertEquals(java.time.LocalDate.of(2026, 12, 1), decks.getDeck(deck)?.examDate)
+        val typed = cards.addNote(deck, NoteKind.TypeIn, listOf("Capital of Peru?", "Lima"), emptyList(), hint = "L…")
+        val choice = cards.addNote(deck, NoteKind.MultipleChoice, listOf("2 + 2?", "4", "3\n5"), emptyList())
+        assertEquals("L…", cards.getNote(typed.id)?.hint)
+        assertEquals(listOf("2 + 2?", "4", "3\n5"), cards.getNote(choice.id)?.fields)
+        assertEquals(2, cards.observeTotalCardCount().first())
+
+        cards.deleteNote(typed.id)
+        assertEquals(null, cards.getNote(typed.id))
+        assertEquals(1, cards.observeTotalCardCount().first())
+        assertEquals(listOf(choice.id), cards.getNotesInDecks(listOf(deck), 10).map { it.id })
+
+        // Saving the deck by path again keeps the exam date; an edit by id sets it.
+        decks.saveDeck("Deck")
+        assertEquals(java.time.LocalDate.of(2026, 12, 1), decks.getDeck(deck)?.examDate)
+        decks.saveDeck("Deck", id = deck, examDate = null)
+        assertEquals(null, decks.getDeck(deck)?.examDate)
     }
 
     @Test

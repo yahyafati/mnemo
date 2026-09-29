@@ -17,6 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import com.yahyafati.mnemo.feature.study.R
 import kotlinx.coroutines.launch
 
 /**
@@ -26,6 +31,9 @@ import kotlinx.coroutines.launch
  * The offset lives in an [Animatable] read only inside `graphicsLayer`, so dragging redraws the
  * card without recomposing it. [content] gets the same offset as a fraction of the width (-1…1)
  * for swipe hints. Key this composable by card so each card starts centered.
+ *
+ * Swiping isn't available to screen readers, so the same two answers are offered as custom
+ * accessibility actions.
  */
 @Composable
 internal fun SwipeableCard(
@@ -40,9 +48,19 @@ internal fun SwipeableCard(
     var width by remember { mutableIntStateOf(1) }
     val left by rememberUpdatedState(onSwipeLeft)
     val right by rememberUpdatedState(onSwipeRight)
+    val againLabel = stringResource(R.string.feature_study_swipe_again)
+    val goodLabel = stringResource(R.string.feature_study_swipe_good)
 
     Box(
         modifier = modifier
+            .semantics {
+                if (enabled) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(againLabel) { left(); true },
+                        CustomAccessibilityAction(goodLabel) { right(); true },
+                    )
+                }
+            }
             .onSizeChanged { width = it.width.coerceAtLeast(1) }
             .graphicsLayer {
                 translationX = offset.value

@@ -7,12 +7,15 @@ import androidx.work.WorkManager
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.generate.ChatTextRunner
+import com.yahyafati.mnemo.core.ai.generate.CoAuthorClient
 import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.CardBrowserRepository
 import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.CardRepository
+import com.yahyafati.mnemo.core.data.repository.CoAuthorRepository
+import com.yahyafati.mnemo.core.data.repository.DefaultCoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultAiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultCardGenerationRepository
@@ -28,6 +31,7 @@ import com.yahyafati.mnemo.core.data.repository.OfflineCardRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineDeckRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineReviewRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineStatsRepository
+import com.yahyafati.mnemo.core.data.repository.ReminderRepository
 import com.yahyafati.mnemo.core.data.repository.ReviewRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.data.repository.StatsRepository
@@ -35,6 +39,7 @@ import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.data.repository.WorkManagerDataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.WorkManagerFsrsOptimizationRepository
+import com.yahyafati.mnemo.core.data.repository.WorkManagerReminderRepository
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -79,6 +84,9 @@ internal interface DataModule {
     fun bindsCardGenerationRepository(repository: DefaultCardGenerationRepository): CardGenerationRepository
 
     @Binds
+    fun bindsCoAuthorRepository(repository: DefaultCoAuthorRepository): CoAuthorRepository
+
+    @Binds
     fun bindsStudyAssistRepository(repository: DefaultStudyAssistRepository): StudyAssistRepository
 
     @Binds
@@ -86,6 +94,9 @@ internal interface DataModule {
 
     @Binds
     fun bindsStatsRepository(repository: OfflineStatsRepository): StatsRepository
+
+    @Binds
+    fun bindsReminderRepository(repository: WorkManagerReminderRepository): ReminderRepository
 
     @Binds
     fun bindsFsrsOptimizationRepository(repository: WorkManagerFsrsOptimizationRepository): FsrsOptimizationRepository
@@ -138,6 +149,9 @@ internal object AiModule {
 
     @Provides
     fun providesStudyAssistClient(runner: ChatTextRunner) = StudyAssistClient(runner)
+
+    @Provides
+    fun providesCoAuthorClient(runner: ChatTextRunner) = CoAuthorClient(runner)
 }
 
 @Module

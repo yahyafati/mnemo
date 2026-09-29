@@ -18,4 +18,6 @@ data class NoteEntity(
     val deletedAt: Long? = null,
     /** Anki's note guid, for notes imported from or exported to Anki (schema v2). */
     val guid: String? = null,
+    /** Mnemonic or hint shown on request before answering (schema v4). */
+    val hint: String? = null,
 )

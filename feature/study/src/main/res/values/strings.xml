@@ -25,14 +25,21 @@
     <string name="feature_study_kind_basic">Basic</string>
     <string name="feature_study_kind_reversed">Reversed</string>
     <string name="feature_study_kind_cloze">Cloze</string>
+    <string name="feature_study_kind_type_in">Type-in</string>
+    <string name="feature_study_kind_choice">Multiple choice</string>
+    <string name="feature_study_read_aloud">Play audio or read aloud</string>
+    <string name="feature_study_swipe_again">Answer Again</string>
+    <string name="feature_study_swipe_good">Answer Good</string>
 
     <string name="feature_study_show_answer">Show answer</string>
+    <string name="feature_study_check_answer">Check answer</string>
     <string name="feature_study_flip">Flip card</string>
     <string name="feature_study_again">Again</string>
     <string name="feature_study_hard">Hard</string>
     <string name="feature_study_good">Good</string>
     <string name="feature_study_easy">Easy</string>
     <string name="feature_study_rate_description">%1$s, next in %2$s</string>
+    <string name="feature_study_rate_suggested_description">%1$s, suggested, next in %2$s</string>
     <string name="feature_study_hint_before">Tap the card to see the answer</string>
     <string name="feature_study_hint_swipe">Swipe left for Again • Tap card to flip • Swipe right for Good</string>
 

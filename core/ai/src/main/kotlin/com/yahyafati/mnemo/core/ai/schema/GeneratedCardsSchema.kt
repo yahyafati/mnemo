@@ -15,22 +15,27 @@ import kotlinx.serialization.json.putJsonObject
  * or arrays rather than missing.
  */
 object GeneratedCardsSchema {
-    /** `{"cards": [{"type": "basic"|"cloze", "front", "back", "tags": [...]}]}`. */
+    /** `{"cards": [{"type": "basic"|"cloze"|"choice", "front", "back", "options": [...], "tags": [...]}]}`. */
     val cards: JsonObject = buildJsonObject {
         strictObject("cards") {
             putJsonObject("cards") {
                 put("type", "array")
                 putJsonObject("items") {
-                    strictObject("type", "front", "back", "tags") {
+                    strictObject("type", "front", "back", "options", "tags") {
                         putJsonObject("type") {
                             put("type", "string")
                             putJsonArray("enum") {
                                 add(JsonPrimitive("basic"))
                                 add(JsonPrimitive("cloze"))
+                                add(JsonPrimitive("choice"))
                             }
                         }
                         putJsonObject("front") { put("type", "string") }
                         putJsonObject("back") { put("type", "string") }
+                        putJsonObject("options") {
+                            put("type", "array")
+                            putJsonObject("items") { put("type", "string") }
+                        }
                         putJsonObject("tags") {
                             put("type", "array")
                             putJsonObject("items") { put("type", "string") }

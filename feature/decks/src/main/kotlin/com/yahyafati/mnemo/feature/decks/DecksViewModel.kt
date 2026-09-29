@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,7 +68,7 @@ class DecksViewModel @Inject constructor(
             is DecksAction.EditDeck -> summary(action.deckId)?.let { s ->
                 dialog.value = DecksDialog.EditDeck(
                     deckId = s.deck.id,
-                    draft = DeckDraft(s.path, s.deck.category.orEmpty(), s.deck.description),
+                    draft = DeckDraft(s.path, s.deck.category.orEmpty(), s.deck.description, s.deck.examDate),
                 )
             }
             is DecksAction.DeleteDeck -> summaries.value?.let { all ->
@@ -83,6 +85,7 @@ class DecksViewModel @Inject constructor(
                         description = action.draft.description,
                         category = action.draft.category,
                         id = editing?.deckId,
+                        examDate = action.draft.examDate,
                     )
                 }
             }
@@ -104,7 +107,8 @@ class DecksViewModel @Inject constructor(
         val now = clock.now()
         val hour = now.atZone(clock.zone()).hour
         val roots = DeckNode.build(decks)
-        val items = roots.map { it.toItem(c.expanded, retention.deckRecall) }
+        val date = StudyDay.date(now, clock.zone())
+        val items = roots.map { it.toItem(c.expanded, retention.deckRecall, date) }
         val query = c.query.trim()
         val visible = items.filter { item ->
             val matchesQuery = query.isEmpty() || item.matches(query)
@@ -119,7 +123,7 @@ class DecksViewModel @Inject constructor(
         return DecksUiState(
             isLoading = false,
             now = now,
-            date = StudyDay.date(now, clock.zone()),
+            date = date,
             greeting = when (hour) {
                 in 4..11 -> Greeting.Morning
                 in 12..17 -> Greeting.Afternoon
@@ -141,7 +145,7 @@ class DecksViewModel @Inject constructor(
         )
     }
 
-    private fun DeckNode.toItem(expanded: Set<String>, recall: Map<String, RecallTotal>): DeckItem = DeckItem(
+    private fun DeckNode.toItem(expanded: Set<String>, recall: Map<String, RecallTotal>, today: LocalDate): DeckItem = DeckItem(
         id = deck.id,
         name = deck.name,
         category = deck.category,
@@ -150,9 +154,10 @@ class DecksViewModel @Inject constructor(
         newCount = newCount,
         totalCount = totalCount,
         lastReviewedAt = lastReviewedAt,
-        children = children.map { it.toItem(expanded, recall) },
+        children = children.map { it.toItem(expanded, recall, today) },
         expanded = deck.id in expanded,
         recall = recallTotal(recall).average,
+        examInDays = deck.examDate?.let { ChronoUnit.DAYS.between(today, it).toInt() }?.takeIf { it >= 0 },
     )
 
     /** This deck's and all its subdecks' recall, summed. */

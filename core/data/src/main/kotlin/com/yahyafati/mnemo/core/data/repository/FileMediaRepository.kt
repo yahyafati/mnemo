@@ -1,6 +1,10 @@
 package com.yahyafati.mnemo.core.data.repository
 
+import android.content.ContentResolver
 import android.content.Context
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
 import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.time.Clock
@@ -26,6 +30,8 @@ internal class FileMediaRepository(
     private val noteDao: NoteDao,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
+    /** Opens picked files for [importUri]; null in tests that only store streams. */
+    private val contentResolver: ContentResolver? = null,
 ) : MediaRepository {
     @Inject
     constructor(
@@ -34,7 +40,30 @@ internal class FileMediaRepository(
         noteDao: NoteDao,
         clock: Clock,
         @Dispatcher(MnemoDispatchers.IO) ioDispatcher: CoroutineDispatcher,
-    ) : this(File(context.filesDir, MediaRef.DIRECTORY), mediaDao, noteDao, clock, ioDispatcher)
+    ) : this(File(context.filesDir, MediaRef.DIRECTORY), mediaDao, noteDao, clock, ioDispatcher, context.contentResolver)
+
+    override suspend fun importUri(uri: String): Media? = withContext(ioDispatcher) {
+        val resolver = contentResolver ?: return@withContext null
+        val parsed = uri.toUri()
+        val name = runCatching {
+            resolver.query(parsed, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: parsed.lastPathSegment?.substringAfterLast('/') ?: "attachment"
+        val named = if ('.' in name) {
+            name
+        } else {
+            val extension = resolver.getType(parsed)?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+            if (extension != null) "$name.$extension" else name
+        }
+        try {
+            resolver.openInputStream(parsed)?.use { store(it, named) }
+        } catch (e: java.io.IOException) {
+            null
+        } catch (e: SecurityException) {
+            null
+        }
+    }
 
     override suspend fun store(input: InputStream, name: String): Media = withContext(ioDispatcher) {
         directory.mkdirs()
@@ -77,7 +106,10 @@ internal class FileMediaRepository(
         while (true) {
             val page = noteDao.getPage(after, PAGE)
             if (page.isEmpty()) break
-            page.forEach { row -> row.note.fields.forEach { referenced += MediaRef.referencedHashes(it) } }
+            page.forEach { row ->
+                row.note.fields.forEach { referenced += MediaRef.referencedHashes(it) }
+                row.note.hint?.let { referenced += MediaRef.referencedHashes(it) }
+            }
             after = page.last().rowId
         }
         val cutoff = clock.now().minus(GRACE)

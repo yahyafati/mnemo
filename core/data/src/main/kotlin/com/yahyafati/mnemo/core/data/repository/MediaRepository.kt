@@ -15,6 +15,12 @@ interface MediaRepository {
      */
     suspend fun store(input: InputStream, name: String): Media
 
+    /**
+     * Stores the file at [uri] (a content URI the user picked), named after its display name.
+     * Null if it can't be read.
+     */
+    suspend fun importUri(uri: String): Media?
+
     suspend fun getAll(): List<Media>
 
     /** The file for media [hash]; it may not exist. */

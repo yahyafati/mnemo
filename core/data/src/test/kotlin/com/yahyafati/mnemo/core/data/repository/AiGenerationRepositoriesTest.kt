@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.generate.ChatTextRunner
+import com.yahyafati.mnemo.core.ai.generate.CoAuthorClient
 import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
 import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -14,6 +15,8 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AssistUpdate
 import com.yahyafati.mnemo.core.model.Card
+import com.yahyafati.mnemo.core.model.ChatTurn
+import com.yahyafati.mnemo.core.model.CoAuthorDeck
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
@@ -52,6 +55,9 @@ class AiGenerationRepositoriesTest {
     private val runner = ChatTextRunner(OpenAiCompatibleClient(OkHttpClient()))
     private val generation = DefaultCardGenerationRepository(CardGenerationClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined)
     private val assist = DefaultStudyAssistRepository(StudyAssistClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined)
+    private val coAuthor = DefaultCoAuthorRepository(
+        CoAuthorClient(runner), CardGenerationClient(runner), StudyAssistClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined,
+    )
 
     @Before
     fun setUp() = server.start()
@@ -129,5 +135,36 @@ class AiGenerationRepositoriesTest {
             assist.rewrite(route(AiTask.Rewrite), card),
         )
         assertEquals(setOf(AiTask.Explain, AiTask.Rewrite), providers.usage.first().map { it.task }.toSet())
+    }
+
+    @Test
+    fun coAuthorChatsSuggestsAndImproves() = runTest {
+        val now = Instant.EPOCH
+        val notes = (1..200).map { i ->
+            Note("n$i", "d", NoteType.Basic.id, listOf("Question **$i**", "Answer $i"), createdAt = now, updatedAt = now)
+        }
+        val deck = CoAuthorDeck("Biology", notes)
+
+        server.enqueue(completion("Add cards on **enzymes**."))
+        val reply = coAuthor.chat(route(AiTask.CoAuthor), deck, listOf(ChatTurn(true, "What's missing?"))).toList()
+        assertEquals("Add cards on **enzymes**.", assertIs<AssistUpdate.Text>(reply.first()).delta)
+        val chatBody = server.takeRequest().body!!.utf8()
+        // A sample of the deck, as plain text, and the user's message.
+        assertTrue("(150 of its 200 cards shown)" in chatBody)
+        assertTrue("[basic] Question 1 | Answer 1" in chatBody)
+        assertTrue("What's missing?" in chatBody)
+
+        server.enqueue(completion("""{"cards":[{"type":"basic","front":"What do enzymes lower?","back":"Activation energy","options":[],"tags":[]}]}"""))
+        val suggested = coAuthor.suggest(route(AiTask.CoAuthor), deck, focus = "enzymes").toList()
+        assertEquals("What do enzymes lower?", assertIs<GenerationUpdate.Card>(suggested.first()).card.front)
+        assertTrue("Focus on: enzymes." in server.takeRequest().body!!.utf8())
+
+        val weak = StudyCard(
+            Card("c", "n1", "d", 0, due = now, reps = 20, lapses = 9, createdAt = now, updatedAt = now), notes.first(), NoteKind.Basic, "Biology",
+        )
+        server.enqueue(completion("""{"front": "Q1 clearer", "back": "A1"}"""))
+        assertEquals(RewriteOutcome.Proposed(listOf("Q1 clearer", "A1")), coAuthor.improve(route(AiTask.CoAuthor), weak))
+        assertTrue("forgotten this card 9 times in 20 reviews" in server.takeRequest().body!!.utf8())
+        assertEquals(setOf(AiTask.CoAuthor), providers.usage.first().map { it.task }.toSet())
     }
 }

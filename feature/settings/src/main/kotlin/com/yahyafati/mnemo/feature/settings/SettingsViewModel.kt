@@ -7,11 +7,13 @@ import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
+import com.yahyafati.mnemo.core.data.repository.ReminderRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
+import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
@@ -57,6 +59,7 @@ class SettingsViewModel @Inject constructor(
     private val transferRepository: DataTransferRepository,
     aiProviderRepository: AiProviderRepository,
     private val optimizationRepository: FsrsOptimizationRepository,
+    private val reminderRepository: ReminderRepository,
 ) : ViewModel() {
     /** The FSRS optimizer's latest run (Scheduling › FSRS parameters). */
     val optimizerState: StateFlow<TransferState<FsrsOptimizationOutcome>> = optimizationRepository.state
@@ -131,6 +134,13 @@ class SettingsViewModel @Inject constructor(
     fun setUseDynamicColor(value: Boolean) = launch { setUseDynamicColor(value) }
 
     fun setCardFontSize(value: CardFontSize) = launch { setCardFontSize(value) }
+
+    fun setAutoPlayAudio(value: Boolean) = launch { setAutoPlayAudio(value) }
+
+    /** Saves the reminder and schedules (or cancels) it. */
+    fun setReminder(value: ReminderSettings) {
+        viewModelScope.launch { reminderRepository.setReminder(value) }
+    }
 
     private fun saveSteps(text: String, save: suspend UserSettingsRepository.(List<Duration>) -> Unit): Boolean {
         val steps = StepsFormat.parse(text) ?: return false

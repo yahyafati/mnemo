@@ -3,6 +3,18 @@
     <string name="core_ui_card_prompt">Prompt</string>
     <string name="core_ui_card_answer">Answer</string>
     <string name="core_ui_image_unavailable">Image unavailable</string>
+    <string name="core_ui_play_sound">Play</string>
+    <string name="core_ui_card_hint">Hint</string>
+    <string name="core_ui_card_show_hint">Show hint</string>
+    <string name="core_ui_card_type_answer">Type your answer</string>
+    <string name="core_ui_card_check">Check</string>
+    <string name="core_ui_card_you_typed">You typed</string>
+    <string name="core_ui_card_typed_correct">Correct</string>
+    <string name="core_ui_card_typed_wrong">Not quite</string>
+    <string name="core_ui_card_typed_nothing">(nothing typed)</string>
+    <string name="core_ui_card_choice_correct">%s, correct answer</string>
+    <string name="core_ui_card_choice_wrong">%s, your answer, wrong</string>
+    <string name="core_ui_card_choices">Options</string>
 
     <string name="core_ui_deck_new_title">New deck</string>
     <string name="core_ui_deck_edit_title">Edit deck</string>
@@ -14,6 +26,10 @@
     <string name="core_ui_deck_create">Create</string>
     <string name="core_ui_deck_save">Save</string>
     <string name="core_ui_cancel">Cancel</string>
+    <string name="core_ui_ok">OK</string>
+    <string name="core_ui_deck_exam_add">Add exam date (optional)</string>
+    <string name="core_ui_deck_exam_on">Exam on %s</string>
+    <string name="core_ui_deck_exam_clear">Remove exam date</string>
 
     <string name="core_ui_ai_setup_title">Connect an AI provider</string>
     <string name="core_ui_ai_setup_message">AI features use a provider you choose: OpenAI, OpenRouter, Groq, or a model on your own computer with Ollama or LM Studio. Everything else in Mnemo works without one.</string>

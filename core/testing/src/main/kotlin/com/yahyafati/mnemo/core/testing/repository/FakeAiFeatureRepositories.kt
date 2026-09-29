@@ -1,12 +1,15 @@
 package com.yahyafati.mnemo.core.testing.repository
 
 import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
+import com.yahyafati.mnemo.core.data.repository.CoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.GenerationRequest
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AssistUpdate
+import com.yahyafati.mnemo.core.model.ChatTurn
+import com.yahyafati.mnemo.core.model.CoAuthorDeck
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
@@ -96,4 +99,29 @@ class FakeSourceRepository : SourceRepository {
     override fun isDictationAvailable(): Boolean = dictationAvailable
 
     override fun dictate(languageTag: String?): Flow<DictationEvent> = dictation
+}
+
+/** [CoAuthorRepository] with canned replies; records what each request was given. */
+class FakeCoAuthorRepository : CoAuthorRepository {
+    val chats = mutableListOf<Pair<CoAuthorDeck, List<ChatTurn>>>()
+    val suggestions = mutableListOf<Pair<CoAuthorDeck, String?>>()
+    val improved = mutableListOf<StudyCard>()
+    var reply: (List<ChatTurn>) -> Flow<AssistUpdate> = { flowOf(AssistUpdate.Text("A reply."), AssistUpdate.Done()) }
+    var suggest: () -> Flow<GenerationUpdate> = { flowOf(GenerationUpdate.Done()) }
+    var improve: (StudyCard) -> RewriteOutcome = { RewriteOutcome.Proposed(listOf("Clearer ${it.note.field(0)}", it.note.field(1))) }
+
+    override fun chat(route: AiRoute, deck: CoAuthorDeck, history: List<ChatTurn>): Flow<AssistUpdate> {
+        chats += deck to history
+        return reply(history)
+    }
+
+    override fun suggest(route: AiRoute, deck: CoAuthorDeck, focus: String?): Flow<GenerationUpdate> {
+        suggestions += deck to focus
+        return suggest()
+    }
+
+    override suspend fun improve(route: AiRoute, card: StudyCard): RewriteOutcome {
+        improved += card
+        return improve(card)
+    }
 }
