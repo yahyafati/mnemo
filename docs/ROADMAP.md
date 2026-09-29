@@ -306,6 +306,11 @@ ADR 0008 (frame rates, TTS and audio, the widget on real launchers).
 
 ---
 
+The steps from here to a public v1.0 (brand, signing, store forms, closed test, F-Droid) are in
+[release/ROADMAP.md](release/ROADMAP.md).
+
+---
+
 ## Later (post-v1)
 
 - **Sync**: file-based sync through user-owned storage, or an optional self-hostable server. The schema already has UUIDs, timestamps, and soft deletes for this.
