@@ -316,7 +316,8 @@ The steps from here to a public v1.0 (brand, signing, store forms, closed test, 
 - **Sync**: file-based sync through user-owned storage, or an optional self-hostable server. The schema already has UUIDs, timestamps, and soft deletes for this.
 - **On-device models** (e.g. Gemini Nano / AICore) as a non-network provider.
 - **Richer Anki templates**: more of Anki's HTML/CSS templating for imported decks.
-- **Desktop/web companion** and **shared decks**.
+- **Desktop app**: in progress, from the same codebase with Compose Multiplatform. Its steps are in [desktop/ROADMAP.md](desktop/ROADMAP.md).
+- **Web companion** and **shared decks**.
 
 ## Open questions by phase
 
