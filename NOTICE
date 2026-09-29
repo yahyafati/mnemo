@@ -1,0 +1,80 @@
+Mnemo
+Copyright (C) 2026 Yahya Fati
+
+Mnemo is free software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version. It is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License in the LICENSE file, or
+<https://www.gnu.org/licenses/>, for more details.
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+--------------------------------------------------------------------------------------------------
+Third-party software
+--------------------------------------------------------------------------------------------------
+
+Mnemo includes or is derived from the works below. Each is used under its own license, which is
+compatible with the GPL-3.0-or-later. The full license texts are available at the URLs given.
+
+Derived source code
+-------------------
+
+py-fsrs, https://github.com/open-spaced-repetition/py-fsrs
+  License: MIT. Copyright (c) 2022 Open Spaced Repetition.
+  The FSRS-6 scheduler (:core:scheduler, Fsrs.kt) and the parameter optimizer (FsrsOptimizer.kt)
+  are ports of py-fsrs 6 and py-fsrs 6.3.2 to Kotlin, checked against its test vectors.
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+  and associated documentation files (the "Software"), to deal in the Software without
+  restriction, including without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or
+  substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+  BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Bundled files
+-------------
+
+KaTeX 0.18.9, https://katex.org
+  License: MIT. Copyright (c) 2013-2020 Khan Academy and other contributors.
+  Renders math in cards (core/ui/src/main/assets/katex, with its own LICENSE.txt).
+
+Newsreader, https://github.com/productiontype/Newsreader
+  License: SIL Open Font License 1.1. Copyright 2020 The Newsreader Project Authors.
+Hanken Grotesk, https://github.com/marcologous/hanken-grotesk
+  License: SIL Open Font License 1.1. Copyright 2021 The Hanken Grotesk Project Authors.
+JetBrains Mono, https://github.com/JetBrains/JetBrainsMono
+  License: SIL Open Font License 1.1. Copyright 2020 The JetBrains Mono Project Authors.
+  The fonts are in core/designsystem/src/main/res/font, and the license texts are in
+  core/designsystem/src/main/assets/licenses.
+
+Libraries (linked, not modified)
+--------------------------------
+
+Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
+  - AndroidX (Core, Activity, Lifecycle, Navigation, Room, SQLite, DataStore, WorkManager, Paging,
+    WebKit, DocumentFile, Hilt extensions) and Jetpack Compose (Foundation, UI, Material 3,
+    Material 3 Adaptive, Material Icons Extended). Copyright The Android Open Source Project.
+  - Kotlin and kotlinx.coroutines / kotlinx.serialization. Copyright JetBrains s.r.o. and
+    contributors.
+  - Dagger and Hilt. Copyright The Dagger Authors. javax.inject.
+  - OkHttp (with okhttp-sse) and Okio. Copyright Square, Inc.
+  - zstd-kmp (com.squareup.zstd). Copyright Square, Inc. It bundles Zstandard, which is used here
+    under its BSD-3-Clause license (Copyright Meta Platforms, Inc. and affiliates).
+  - PdfBox-Android (com.tom-roush), a port of Apache PDFBox. Copyright Tom Roush and the Apache
+    Software Foundation. Its bundled Adobe CMap resources are used under Adobe's BSD-3-Clause
+    license (Copyright 1990-2009 Adobe Systems Incorporated).
+
+MIT License, https://opensource.org/licenses/MIT
+  - jsoup. Copyright (c) Jonathan Hedley and contributors.
+
+Libraries used only to build and test Mnemo (JUnit, Robolectric, Roborazzi, Turbine,
+MockWebServer, Espresso) are not part of the app.

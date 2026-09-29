@@ -48,17 +48,21 @@ days. Start R4's account verification early, since it can take several days on i
 
 **Goal:** make the GPL decision real before anyone outside receives a build.
 
-- [ ] Add `LICENSE` (GPL-3.0 text) at the repo root, and `NOTICE` listing third-party notices,
+- [x] Add `LICENSE` (GPL-3.0 text) at the repo root, and `NOTICE` listing third-party notices,
       including py-fsrs (MIT), which the FSRS port and optimizer are based on.
 - [ ] Publish the source repo (for example GitHub). GPL requires offering the source to anyone who
       gets the binary, and F-Droid builds from it. **(owner: create the remote.)**
-- [ ] Check before the first push: `local.properties`, keystores and any API keys are ignored
-      (`.gitignore`), and nothing secret is in the history.
-- [ ] `docs/adr/0009-license-and-distribution.md`: GPL-3.0, Play and F-Droid, separate signing
+- [x] Check before the first push: `local.properties`, keystores and any API keys are ignored
+      (`.gitignore`), and nothing secret is in the history. (Checked 2026-09-29: 13 commits, no
+      keystores, `local.properties` or key-like strings. Re-run the check on the day of the push.)
+- [x] `docs/adr/0009-license-and-distribution.md`: GPL-3.0, Play and F-Droid, separate signing
       keys (see R7), no proprietary SDKs. Update `distribution.md`, ADR 0008 "Open", and
       PROJECT_OVERVIEW §11.
 
 **Exit:** the license is committed, the repo is public, and the ADR is accepted.
+
+**Status:** everything that can be done in the repo is done. Only the public remote is left
+**(owner)**: it is the one unchecked box above, and R2's About links and R7 need its URL.
 
 ## R1 — Brand identity
 

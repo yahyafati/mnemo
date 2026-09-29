@@ -305,7 +305,8 @@ mnemo/
         ├── 0005-ai-providers-and-secrets.md
         ├── 0006-ai-card-creation.md
         ├── 0007-analytics-and-fsrs-optimizer.md
-        └── 0008-v1-polish.md
+        ├── 0008-v1-polish.md
+        └── 0009-license-and-distribution.md
 ```
 
 ### 4.1 Feature module layout

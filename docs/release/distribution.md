@@ -1,25 +1,38 @@
-# Licensing and distribution: options
+# Licensing and distribution
 
-The last open question in PROJECT_OVERVIEW §11. This is the owner's decision; nothing in the
-code depends on it. The facts that matter:
+**Decided 2026-09-29 ([ADR 0009](../adr/0009-license-and-distribution.md)):** Mnemo is
+**GPL-3.0-or-later**, distributed **free on Google Play and F-Droid**. The steps to get there are
+in [ROADMAP.md](ROADMAP.md). This page keeps the facts behind the decision and what it requires.
+
+## Facts
 
 - Dependencies are all Apache-2.0 or MIT (AndroidX, Kotlin, OkHttp, jsoup, PdfBox-Android,
   zstd-kmp), plus KaTeX (MIT) and the bundled fonts (SIL OFL 1.1: Newsreader, Hanken Grotesk,
-  JetBrains Mono). All are compatible with any of the licenses below and with closed source.
-  Each requires its notices to ship with the app (an "Open-source licenses" screen or file).
-- The FSRS port follows py-fsrs (MIT): keep its copyright notice.
+  JetBrains Mono). All are compatible with the GPL-3.0. Each requires its notices to ship with
+  the app: `NOTICE` in the repo now, and an "Open-source licenses" screen in the app (R2).
+- The FSRS port follows py-fsrs (MIT): its copyright notice is in `NOTICE`.
 - There are no Google Play Services or other proprietary SDKs, so an F-Droid build needs no
   flavor split.
 
+## Options that were considered
+
 | Option | Distribution | Notes |
 |---|---|---|
-| **GPL-3.0** | Play + F-Droid | Same as Anki/AnkiDroid; forks must stay open. Fits "the user owns the data". |
-| **Apache-2.0 / MIT** | Play + F-Droid | Permissive; others can build closed products on it. |
-| **Source-available / closed** | Play only | Allows a paid app or paid tier; F-Droid requires a FOSS license. |
+| **GPL-3.0** (chosen) | Play + F-Droid | Same as Anki/AnkiDroid; forks must stay open. Fits "the user owns the data". |
+| Apache-2.0 / MIT | Play + F-Droid | Permissive; others can build closed products on it. |
+| Source-available / closed | Play only | Allows a paid app or paid tier; F-Droid requires a FOSS license. |
 
-Monetization that fits the non-goals (no accounts, no servers): a paid Play listing with a free
-F-Droid build, donations, or none. There is no server cost to cover: AI runs on the user's own
-provider key.
+There is no monetization: no paid tier, ads, accounts or servers. AI runs on the user's own
+provider key, so there is no server cost to cover.
 
-Once decided: add `LICENSE`, a licenses screen (e.g. `oss-licenses` or a generated asset), and for
-F-Droid the `fastlane/metadata` texts from `store-listing.md` and reproducible-build settings.
+## What the GPL requires of us
+
+- Offer the source to anyone who gets a binary: a public repository with a tag per release.
+- Ship the license and third-party notices with the app (`LICENSE` and `NOTICE` in the source,
+  the licenses screen and About in the app).
+- Keep `local.properties`, keystores and secrets out of the repository and its history.
+
+## Still to do
+
+The public repository, the licenses screen, signing and the F-Droid metadata are R0–R2 and R7 in
+[ROADMAP.md](ROADMAP.md); the F-Droid texts come from [store-listing.md](store-listing.md).

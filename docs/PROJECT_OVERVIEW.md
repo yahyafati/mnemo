@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Status** | v1 feature-complete (Phases 0–6, see ROADMAP); licensing and distribution still to decide |
+| **Status** | v1 feature-complete (Phases 0–6, see ROADMAP); GPL-3.0-or-later, headed for Google Play and F-Droid ([release roadmap](release/ROADMAP.md)) |
 | **Platform** | Android (minSdk 29, target 37), Kotlin + Jetpack Compose, Material 3 |
 | **Package** | `com.yahyafati.mnemo` |
 | **Design references** | [`docs/design/`](design/): HTML mockups of Decks, Study Session, Create Cards, and Analytics (design only, not app code) |
@@ -208,4 +208,4 @@ Summary below. See [ROADMAP.md](ROADMAP.md) for each phase's scope and exit crit
 - **Sync strategy:** file-based sync vs. an optional self-hostable server, and when.
 - **Local on-device models** (e.g. Gemini Nano / AICore) as an extra non-network "provider"?
 - ~~**Card template flexibility:** how much of Anki's HTML/CSS templating to support for imported decks.~~ Decided in ADR 0003: fields, not templates.
-- **Monetization / licensing:** open source? Paid? Affects distribution (Play Store, F-Droid). Options and constraints: [release/distribution.md](release/distribution.md).
+- ~~**Monetization / licensing:** open source? Paid? Affects distribution (Play Store, F-Droid).~~ Decided in ADR 0009: GPL-3.0-or-later, free on Google Play and F-Droid, no paid tier. Options considered: [release/distribution.md](release/distribution.md).
