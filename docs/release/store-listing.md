@@ -75,4 +75,4 @@ Roborazzi baselines in `feature/*/src/test/screenshots` show the intended layout
 - [ ] App signing key (Play App Signing) and release `signingConfig` (never committed).
 - [ ] Contact address in the privacy policy, and host it at a public URL for the listing.
 - [ ] `versionCode`/`versionName` for 1.0.
-- [ ] Manual checks in ADR 0008 "Open".
+- [ ] Manual checks in ADR 0008 "Open" ([qa.md](qa.md)).
