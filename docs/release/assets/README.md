@@ -34,6 +34,14 @@ Notification icons (`core_data_ic_reminder`, `core_data_ic_transfer`) stay plain
 a status-bar icon has to be a single-colour silhouette, and the logo's two overlapping cards don't
 read at 24 px.
 
+## Desktop icons
+
+`generate_desktop_icons.py` (needs `rsvg-convert`: `brew install librsvg`) draws `logo.svg` into the desktop
+app's icons: `desktop/src/main/resources/icons/mnemo.png` (the window and Dock icon) and, in `desktop/icons`, the
+PNG, ICO (16–256 px) and ICNS (with a 10 % margin, as macOS icons have) that the installers use (desktop
+ROADMAP D8). Run it after the logo changes; it is a separate script from the Android one so it doesn't need
+shapely.
+
 ## Regenerating the graphics
 
 The SVG text uses the bundled fonts. Point fontconfig at them (`/tmp/fonts.conf`):

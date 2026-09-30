@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="decks-desktop">
+    <output-path>$PROJECT_DIR$/feature/decks/build/libs</output-path>
+    <root id="archive" name="decks-desktop.jar" />
+  </artifact>
+</component>

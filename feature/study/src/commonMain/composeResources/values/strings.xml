@@ -41,6 +41,9 @@
     <string name="feature_study_rate_description">%1$s, next in %2$s</string>
     <string name="feature_study_rate_suggested_description">%1$s, suggested, next in %2$s</string>
     <string name="feature_study_hint_before">Tap the card to see the answer</string>
+    <string name="feature_study_hint_keys_reveal">Press Space to see the answer</string>
+    <string name="feature_study_hint_keys_type_in">Press Enter to check your answer</string>
+    <string name="feature_study_hint_keys_choice">Press 1–%1$d to choose an option</string>
     <string name="feature_study_hint_swipe">Swipe left for Again • Tap card to flip • Swipe right for Good</string>
 
     <string name="feature_study_finished_title">Session complete</string>

@@ -33,6 +33,7 @@
         <item quantity="other">%1$d selected</item>
     </plurals>
     <string name="feature_browse_clear_selection">Clear selection</string>
+    <string name="feature_browse_edit_note">Edit note</string>
     <string name="feature_browse_select_all">Select all</string>
     <string name="feature_browse_more">More actions</string>
     <string name="feature_browse_move">Move to deck</string>

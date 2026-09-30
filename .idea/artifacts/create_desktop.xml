@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="create-desktop">
+    <output-path>$PROJECT_DIR$/feature/create/build/libs</output-path>
+    <root id="archive" name="create-desktop.jar" />
+  </artifact>
+</component>

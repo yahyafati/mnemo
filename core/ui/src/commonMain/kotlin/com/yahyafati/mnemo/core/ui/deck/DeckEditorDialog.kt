@@ -10,12 +10,26 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.ui.resources.core_ui_cancel
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_category
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_category_hint
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_create
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_description
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_edit_title
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_add
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_clear
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_on
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_name
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_name_hint
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_new_title
+import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_save
+import com.yahyafati.mnemo.core.ui.resources.core_ui_ok
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -39,20 +53,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.ui.resources.Res
-import com.yahyafati.mnemo.core.ui.resources.core_ui_cancel
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_category
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_category_hint
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_create
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_description
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_edit_title
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_add
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_clear
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_exam_on
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_name
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_name_hint
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_new_title
-import com.yahyafati.mnemo.core.ui.resources.core_ui_deck_save
-import com.yahyafati.mnemo.core.ui.resources.core_ui_ok
 import org.jetbrains.compose.resources.stringResource
 
 /** What the deck dialog edits. [path] is the full name, e.g. "Languages::Japanese". */
@@ -160,9 +160,11 @@ private fun ExamDateRow(date: LocalDate?, onPick: () -> Unit, onClear: () -> Uni
             )
         }
         if (date != null) {
-            IconButton(onClick = onClear) {
-                Icon(MnemoIcons.Close, contentDescription = stringResource(Res.string.core_ui_deck_exam_clear))
-            }
+            MnemoIconButton(
+                icon = MnemoIcons.Close,
+                contentDescription = stringResource(Res.string.core_ui_deck_exam_clear),
+                onClick = onClear,
+            )
         }
     }
 }

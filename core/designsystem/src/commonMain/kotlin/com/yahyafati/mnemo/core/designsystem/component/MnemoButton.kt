@@ -58,7 +58,7 @@ fun MnemoButton(
     }
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.clickCursor(),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = buttonColors,

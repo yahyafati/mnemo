@@ -86,6 +86,8 @@
         <item quantity="one">%1$d provider · none ready (enable one and pick a model)</item>
         <item quantity="other">%1$d providers · none ready (enable one and pick a model)</item>
     </plurals>
+    <string name="feature_settings_ai_keys_keychain">The key that encrypts your API keys is kept in this computer's keychain.</string>
+    <string name="feature_settings_ai_keys_file">This computer has no usable keychain, so the key that encrypts your API keys is kept in a file that only your account can read, next to your collection (secrets.key). Anyone who can read your files can read the keys.</string>
     <string name="feature_settings_ai_intro">Mnemo talks directly to the providers you add, using the OpenAI-compatible API. Keys are encrypted on this device and never included in backups or exports.</string>
     <string name="feature_settings_ai_add">Add provider</string>
     <string name="feature_settings_ai_empty_title">No AI providers</string>

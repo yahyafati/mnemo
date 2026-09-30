@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -22,7 +23,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -41,6 +41,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,13 +55,20 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
+import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.CardSort
 import com.yahyafati.mnemo.core.model.CardState
 import com.yahyafati.mnemo.core.model.CardStatus
+import com.yahyafati.mnemo.core.ui.adaptive.readingWidth
+import com.yahyafati.mnemo.core.ui.keyboard.LocalFindRequests
+import com.yahyafati.mnemo.core.ui.menu.ContextAction
+import com.yahyafati.mnemo.core.ui.menu.ContextMenuHost
 import com.yahyafati.mnemo.core.ui.format.formatInterval
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.browse.resources.Res
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_add
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_add_tag
@@ -74,6 +83,7 @@ import com.yahyafati.mnemo.feature.browse.resources.feature_browse_delete
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_delete_message
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_delete_title
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_deleted_message
+import com.yahyafati.mnemo.feature.browse.resources.feature_browse_edit_note
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_empty_message
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_empty_title
 import com.yahyafati.mnemo.feature.browse.resources.feature_browse_flag
@@ -120,6 +130,7 @@ import java.time.Instant
 internal fun BrowseRoute(
     onBack: () -> Unit,
     onEditNote: (noteId: String) -> Unit,
+    focusSearchOnStart: Boolean = false,
     viewModel: BrowseViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -131,6 +142,7 @@ internal fun BrowseRoute(
         onAction = viewModel::onAction,
         onBack = onBack,
         onEditNote = onEditNote,
+        focusSearchOnStart = focusSearchOnStart,
     )
 }
 
@@ -144,8 +156,17 @@ internal fun BrowseScreen(
     onBack: () -> Unit,
     onEditNote: (noteId: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Put the cursor in the search box when the screen opens (Find). */
+    focusSearchOnStart: Boolean = false,
 ) {
     val snackbar = remember { SnackbarHostState() }
+    val searchFocus = remember { FocusRequester() }
+    val listState = rememberLazyListState()
+    // Find while the browser is already open.
+    val find = LocalFindRequests.current
+    LaunchedEffect(find) {
+        find?.requests?.collect { runCatching { searchFocus.requestFocus() } }
+    }
     val messageText = uiState.message?.let { messageText(it) }
     LaunchedEffect(uiState.message) {
         if (messageText != null) {
@@ -162,9 +183,10 @@ internal fun BrowseScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .readingWidth(),
         ) {
-            Filters(uiState, onAction)
+            Filters(uiState, onAction, searchFocus, focusOnStart = focusSearchOnStart)
             Text(
                 text = pluralStringResource(Res.plurals.feature_browse_count, uiState.matchCount, uiState.matchCount),
                 style = MnemoTheme.typography.metricSm,
@@ -178,20 +200,27 @@ internal fun BrowseScreen(
                     message = stringResource(Res.string.feature_browse_empty_message),
                 )
             } else {
-                LazyColumn(contentPadding = PaddingValues(bottom = MnemoTheme.spacing.lg)) {
-                    items(count = cards.itemCount, key = cards.itemKey { it.cardId }) { index ->
-                        val item = cards[index] ?: return@items
-                        CardRow(
-                            item = item,
-                            now = now,
-                            selecting = uiState.selecting,
-                            selected = item.cardId in uiState.selection,
-                            onClick = {
-                                if (uiState.selecting) onAction(BrowseAction.ToggleSelected(item.cardId)) else onEditNote(item.noteId)
-                            },
-                            onLongClick = { onAction(BrowseAction.ToggleSelected(item.cardId)) },
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ScrollbarBox(listState, Modifier.weight(1f).fillMaxWidth()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = MnemoTheme.spacing.lg),
+                    ) {
+                        items(count = cards.itemCount, key = cards.itemKey { it.cardId }) { index ->
+                            val item = cards[index] ?: return@items
+                            CardRow(
+                                item = item,
+                                now = now,
+                                selecting = uiState.selecting,
+                                selected = item.cardId in uiState.selection,
+                                onClick = {
+                                    if (uiState.selecting) onAction(BrowseAction.ToggleSelected(item.cardId)) else onEditNote(item.noteId)
+                                },
+                                onLongClick = { onAction(BrowseAction.ToggleSelected(item.cardId)) },
+                                contextActions = rowContextActions(item, uiState.selection, onAction, onEditNote),
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainerHigh)
+                        }
                     }
                 }
             }
@@ -206,11 +235,19 @@ private fun BrowseBar(uiState: BrowseUiState, onAction: (BrowseAction) -> Unit, 
     MnemoTopBar(
         title = uiState.deckName ?: stringResource(Res.string.feature_browse_title),
         navigationIcon = {
-            IconButton(onClick = onBack) { Icon(MnemoIcons.ArrowBack, stringResource(Res.string.feature_browse_back)) }
+            MnemoIconButton(
+                icon = MnemoIcons.ArrowBack,
+                contentDescription = stringResource(Res.string.feature_browse_back),
+                onClick = onBack,
+            )
         },
         actions = {
             Box {
-                IconButton(onClick = { sortMenu = true }) { Icon(MnemoIcons.Sort, stringResource(Res.string.feature_browse_sort)) }
+                MnemoIconButton(
+                    icon = MnemoIcons.Sort,
+                    contentDescription = stringResource(Res.string.feature_browse_sort),
+                    onClick = { sortMenu = true },
+                )
                 DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                     listOf(
                         CardSort.Newest to Res.string.feature_browse_sort_newest,
@@ -238,19 +275,29 @@ private fun SelectionBar(uiState: BrowseUiState, onAction: (BrowseAction) -> Uni
     MnemoTopBar(
         title = pluralStringResource(Res.plurals.feature_browse_selected, uiState.selection.size, uiState.selection.size),
         navigationIcon = {
-            IconButton(onClick = { onAction(BrowseAction.ClearSelection) }) {
-                Icon(MnemoIcons.Close, stringResource(Res.string.feature_browse_clear_selection))
-            }
+            MnemoIconButton(
+                icon = MnemoIcons.Close,
+                contentDescription = stringResource(Res.string.feature_browse_clear_selection),
+                onClick = { onAction(BrowseAction.ClearSelection) },
+            )
         },
         actions = {
-            IconButton(onClick = { onAction(BrowseAction.SelectAll) }) {
-                Icon(MnemoIcons.SelectAll, stringResource(Res.string.feature_browse_select_all))
-            }
-            IconButton(onClick = { onAction(BrowseAction.ShowMove) }) {
-                Icon(MnemoIcons.Move, stringResource(Res.string.feature_browse_move))
-            }
+            MnemoIconButton(
+                icon = MnemoIcons.SelectAll,
+                contentDescription = stringResource(Res.string.feature_browse_select_all),
+                onClick = { onAction(BrowseAction.SelectAll) },
+            )
+            MnemoIconButton(
+                icon = MnemoIcons.Move,
+                contentDescription = stringResource(Res.string.feature_browse_move),
+                onClick = { onAction(BrowseAction.ShowMove) },
+            )
             Box {
-                IconButton(onClick = { menu = true }) { Icon(MnemoIcons.MoreVert, stringResource(Res.string.feature_browse_more)) }
+                MnemoIconButton(
+                    icon = MnemoIcons.MoreVert,
+                    contentDescription = stringResource(Res.string.feature_browse_more),
+                    onClick = { menu = true },
+                )
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     listOf(
                         Triple(Res.string.feature_browse_suspend, MnemoIcons.Suspend, BrowseAction.Suspend(true)),
@@ -277,7 +324,11 @@ private fun SelectionBar(uiState: BrowseUiState, onAction: (BrowseAction) -> Uni
 }
 
 @Composable
-private fun Filters(uiState: BrowseUiState, onAction: (BrowseAction) -> Unit) {
+private fun Filters(uiState: BrowseUiState, onAction: (BrowseAction) -> Unit, searchFocus: FocusRequester, focusOnStart: Boolean) {
+    // Here, not in the screen: the Scaffold composes its content later, and the search box has to exist to take the focus.
+    LaunchedEffect(focusOnStart) {
+        if (focusOnStart) runCatching { searchFocus.requestFocus() }
+    }
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
     Column(
@@ -291,9 +342,11 @@ private fun Filters(uiState: BrowseUiState, onAction: (BrowseAction) -> Unit) {
             leadingIcon = { Icon(MnemoIcons.Search, null, tint = colors.outline) },
             trailingIcon = {
                 if (uiState.query.text.isNotEmpty()) {
-                    IconButton(onClick = { onAction(BrowseAction.TextChanged("")) }) {
-                        Icon(MnemoIcons.Close, stringResource(Res.string.feature_browse_clear_search))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Close,
+                        contentDescription = stringResource(Res.string.feature_browse_clear_search),
+                        onClick = { onAction(BrowseAction.TextChanged("")) },
+                    )
                 }
             },
             singleLine = true,
@@ -306,7 +359,9 @@ private fun Filters(uiState: BrowseUiState, onAction: (BrowseAction) -> Unit) {
                 focusedContainerColor = colors.surfaceContainerLow,
                 unfocusedBorderColor = colors.surfaceContainerHigh,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(searchFocus),
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             item(key = "deck") { DeckChip(uiState, onAction) }
@@ -380,41 +435,72 @@ private fun CardRow(
     selected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    contextActions: List<ContextAction>,
 ) {
     val colors = MaterialTheme.colorScheme
-    Surface(
-        color = if (selected) colors.secondaryContainer.copy(alpha = 0.4f) else colors.background,
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
-    ) {
-        Row(
+    ContextMenuHost(contextActions) {
+        Surface(
+            color = if (selected) colors.secondaryContainer.copy(alpha = 0.4f) else colors.background,
             modifier = Modifier
-                .heightIn(min = 56.dp)
-                .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md),
+                .fillMaxWidth()
+                .clickCursor()
+                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
         ) {
-            if (selecting) {
-                Icon(
-                    if (selected) MnemoIcons.Checked else MnemoIcons.Unchecked,
-                    contentDescription = null,
-                    tint = if (selected) colors.primary else colors.outline,
-                )
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(item.front.ifBlank { "—" }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (item.back.isNotBlank()) {
-                    Text(item.back, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(
+                modifier = Modifier
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md),
+            ) {
+                if (selecting) {
+                    Icon(
+                        if (selected) MnemoIcons.Checked else MnemoIcons.Unchecked,
+                        contentDescription = null,
+                        tint = if (selected) colors.primary else colors.outline,
+                    )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                    Text(item.deckName, style = MnemoTheme.typography.metricSm, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    Text(statusLabel(item, now), style = MnemoTheme.typography.metricSm, color = if (item.suspended) colors.tertiary else colors.secondary)
-                    if (item.flagged) Icon(MnemoIcons.FlagFilled, stringResource(Res.string.feature_browse_flagged), tint = colors.error, modifier = Modifier.size(14.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(item.front.ifBlank { "—" }, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (item.back.isNotBlank()) {
+                        Text(item.back, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                        Text(item.deckName, style = MnemoTheme.typography.metricSm, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Text(statusLabel(item, now), style = MnemoTheme.typography.metricSm, color = if (item.suspended) colors.tertiary else colors.secondary)
+                        if (item.flagged) Icon(MnemoIcons.FlagFilled, stringResource(Res.string.feature_browse_flagged), tint = colors.error, modifier = Modifier.size(14.dp))
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * What a right click on a card offers: edit its note, or act on the cards selected with it. A card
+ * that isn't selected becomes the selection first, so the menu is about the card that was clicked.
+ */
+@Composable
+private fun rowContextActions(
+    item: BrowseItem,
+    selection: Set<String>,
+    onAction: (BrowseAction) -> Unit,
+    onEditNote: (noteId: String) -> Unit,
+): List<ContextAction> {
+    val edit = stringResource(Res.string.feature_browse_edit_note)
+    val suspend = stringResource(if (item.suspended) Res.string.feature_browse_unsuspend else Res.string.feature_browse_suspend)
+    val flag = stringResource(if (item.flagged) Res.string.feature_browse_unflag else Res.string.feature_browse_flag)
+    val delete = stringResource(Res.string.feature_browse_delete)
+    fun onSelection(action: BrowseAction) {
+        if (item.cardId !in selection) onAction(BrowseAction.SelectForMenu(item.cardId))
+        onAction(action)
+    }
+    return listOf(
+        ContextAction(edit) { onEditNote(item.noteId) },
+        ContextAction(suspend) { onSelection(BrowseAction.Suspend(!item.suspended)) },
+        ContextAction(flag) { onSelection(BrowseAction.Flag(!item.flagged)) },
+        ContextAction(delete) { onSelection(BrowseAction.ShowDelete) },
+    )
 }
 
 @Composable

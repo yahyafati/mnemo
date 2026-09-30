@@ -80,6 +80,8 @@
     <string name="feature_create_source_from">From: %1$s</string>
     <string name="feature_create_source_truncated">Only the beginning was read: the source is very long.</string>
     <string name="feature_create_pdf_pick">Choose a PDF</string>
+    <string name="feature_create_drop_file">Drop a PDF or a text file to use it as the source</string>
+    <string name="feature_create_drop_file_hint">You can also drop a PDF, text or Markdown file on this page.</string>
     <string name="feature_create_pdf_hint">Text is read on your device. Scanned PDFs have no text to read.</string>
     <string name="feature_create_link_label">Web page or PDF link</string>
     <string name="feature_create_link_read">Read</string>

@@ -118,6 +118,12 @@ sealed interface SmartExtractAction {
     /** A PDF picked through the Storage Access Framework. */
     data class PdfPicked(val uri: String) : SmartExtractAction
 
+    /**
+     * A file dropped on the screen (desktop): a PDF is read like a picked one, a text or Markdown
+     * file goes into the text box. Other kinds are ignored.
+     */
+    data class FileDropped(val location: String) : SmartExtractAction
+
     /** The microphone permission was granted (or already held): start listening. */
     data object StartDictation : SmartExtractAction
 
@@ -170,4 +176,19 @@ sealed interface SmartExtractAction {
     data object DoneEditing : SmartExtractAction
 
     data object MessageShown : SmartExtractAction
+}
+
+/** The kinds of file Smart Extract takes when one is dropped on it, told apart by their name. */
+enum class DroppedFile {
+    Pdf,
+    Text,
+    ;
+
+    companion object {
+        fun of(location: String): DroppedFile? = when (location.substringAfterLast('.', "").lowercase()) {
+            "pdf" -> Pdf
+            "txt", "text", "md", "markdown" -> Text
+            else -> null
+        }
+    }
 }

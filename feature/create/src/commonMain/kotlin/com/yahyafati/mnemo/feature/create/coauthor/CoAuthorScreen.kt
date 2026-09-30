@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -24,7 +25,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -50,6 +50,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.AiEndpoint
@@ -69,6 +70,7 @@ import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.create.DeckOption
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.resources.Res
@@ -150,23 +152,26 @@ internal fun CoAuthorScreen(
 
     Box(modifier.fillMaxSize().imePadding()) {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .widthIn(max = 720.dp),
-                contentPadding = PaddingValues(horizontal = spacing.screenMargin, vertical = spacing.md),
-                verticalArrangement = Arrangement.spacedBy(spacing.md),
-            ) {
-                item(key = "header") { Header(uiState, onAction, onSetUpAi) }
-                items(uiState.messages, key = { it.id }) { message ->
-                    when (message) {
-                        is CoAuthorMessage.User -> UserBubble(message.text)
-                        is CoAuthorMessage.Reply -> ReplyBubble(message, uiState.route?.modelId)
-                        is CoAuthorMessage.Suggestions -> SuggestionsBlock(message, uiState.route?.modelId, onAction)
-                        is CoAuthorMessage.Duplicates -> DuplicatesBlock(message, onAction)
-                        is CoAuthorMessage.WeakCards -> WeakCardsBlock(message, uiState.route?.modelId, onAction)
+            ScrollbarBox(listState, Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .widthIn(max = 720.dp)
+                        .align(Alignment.TopCenter),
+                    contentPadding = PaddingValues(horizontal = spacing.screenMargin, vertical = spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(spacing.md),
+                ) {
+                    item(key = "header") { Header(uiState, onAction, onSetUpAi) }
+                    items(uiState.messages, key = { it.id }) { message ->
+                        when (message) {
+                            is CoAuthorMessage.User -> UserBubble(message.text)
+                            is CoAuthorMessage.Reply -> ReplyBubble(message, uiState.route?.modelId)
+                            is CoAuthorMessage.Suggestions -> SuggestionsBlock(message, uiState.route?.modelId, onAction)
+                            is CoAuthorMessage.Duplicates -> DuplicatesBlock(message, onAction)
+                            is CoAuthorMessage.WeakCards -> WeakCardsBlock(message, uiState.route?.modelId, onAction)
+                        }
                     }
                 }
             }
@@ -264,9 +269,11 @@ private fun Composer(uiState: CoAuthorUiState, onAction: (CoAuthorAction) -> Uni
                 modifier = Modifier.weight(1f),
             )
             if (uiState.busy) {
-                IconButton(onClick = { onAction(CoAuthorAction.Stop) }) {
-                    Icon(MnemoIcons.Stop, stringResource(Res.string.feature_create_coauthor_stop))
-                }
+                MnemoIconButton(
+                    icon = MnemoIcons.Stop,
+                    contentDescription = stringResource(Res.string.feature_create_coauthor_stop),
+                    onClick = { onAction(CoAuthorAction.Stop) },
+                )
             } else {
                 FilledIconButton(
                     onClick = { onAction(CoAuthorAction.Send) },
@@ -404,9 +411,11 @@ private fun DuplicateNote(note: Note, deleted: Boolean, onDelete: () -> Unit) {
         if (deleted) {
             Status(stringResource(Res.string.feature_create_coauthor_deleted_short), colors.onSurfaceVariant)
         } else {
-            IconButton(onClick = onDelete) {
-                Icon(MnemoIcons.Delete, stringResource(Res.string.feature_create_coauthor_delete, front.take(40)))
-            }
+            MnemoIconButton(
+                icon = MnemoIcons.Delete,
+                contentDescription = stringResource(Res.string.feature_create_coauthor_delete, front.take(40)),
+                onClick = onDelete,
+            )
         }
     }
 }

@@ -2,14 +2,13 @@ package com.yahyafati.mnemo.feature.study
 
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.feature.study.resources.Res
@@ -37,9 +36,11 @@ internal fun StudySessionScreen(
             MnemoTopBar(
                 title = uiState.deckName.orEmpty(),
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(MnemoIcons.Close, stringResource(Res.string.feature_study_close))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Close,
+                        contentDescription = stringResource(Res.string.feature_study_close),
+                        onClick = onClose,
+                    )
                 },
             )
         },

@@ -26,6 +26,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.KeyProtection
 import com.yahyafati.mnemo.core.security.SecretStore
 import com.yahyafati.mnemo.core.security.StoredSecret
 import kotlinx.coroutines.CoroutineDispatcher
@@ -48,6 +49,8 @@ internal class DefaultAiProviderRepository(
     private val clock: Clock,
     private val defaultDispatcher: CoroutineDispatcher,
 ) : AiProviderRepository {
+    override val keyProtection: KeyProtection get() = secrets.protection
+
     override fun observeProviders(): Flow<List<AiProvider>> =
         dao.observeProviders().map { rows -> rows.map { it.toModel(hasApiKey = secrets.contains(it.id)) } }
 

@@ -46,6 +46,7 @@
             <option value="$PROJECT_DIR$/feature/decks" />
             <option value="$PROJECT_DIR$/feature/settings" />
             <option value="$PROJECT_DIR$/feature/study" />
+            <option value="$PROJECT_DIR$/shell" />
           </set>
         </option>
       </GradleProjectSettings>

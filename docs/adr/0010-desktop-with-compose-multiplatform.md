@@ -374,6 +374,69 @@ Every feature and the shell are Kotlin Multiplatform modules; `:app` and `:deskt
    packaging tasks use, and failed on machines whose default JDK has no `jpackage`: the convention
    plugin sets `jdkHome` for it too.
 
+## Findings from D7
+
+The desktop's window, keyboard, menus, mouse and drops. Everything shared lives in `:core:ui` and
+`:shell` so the phone keeps one code base; what only a computer has is gated by one capability flag,
+`PlatformCapabilities.keyboardAndMouse` (off by default, unlike the other flags: the phone is the baseline).
+
+1. **Keys reach only what has the focus, and a text field leaves most of them for its parents.** A handler
+   is a `Modifier.onKeyEvent` on an element that contains the focus. A focused text field consumes the
+   *typed character* and the editing commands (Ctrl+Z, Backspace, arrows), but the key *going down and up*
+   for `e`, Space or `?` still reaches its parents (measured with a scratch test: the parent saw
+   `KeyDown` and `KeyUp`, and saw the typed event only when no field had the focus). So a shortcut on a
+   plain character matches the typed event (`Shortcut(char = …)`, `KeyEventType.Unknown` with the
+   character as code point), never the key going down: typing "e" in an answer must not edit the note.
+   That also keeps plain-character shortcuts off Android, which has no such event. The same leak flipped
+   the study card in D6: the card is `clickable`, a clickable takes Space and Enter going down as a click,
+   and the type-in answer box left them for it, so a space typed into an answer revealed the card.
+   `Modifier.consumeTypingKeys()` (desktop only) stops them at the field. With nothing focused a key goes nowhere, and Compose clears the focus when the focused
+   element leaves the tree (a "Show answer" button that was just clicked). Three rules came out of that:
+   the study screen asks for the focus again whenever the card or its reveal changes; the shell's root takes
+   it back one frame after it is lost, and looks again before asking, so as not to take it from a screen
+   that asked for it in that frame; and the desktop window also passes the
+   shell's global shortcuts to `Window(onKeyEvent)`, which still sees a key when nothing has the focus.
+   A `FocusRequester` in a `Scaffold`'s content can be asked before it is attached (the Scaffold composes its
+   content at layout time): Browse asks for the search box from inside `Filters`, not from the screen.
+2. **macOS's menu bar takes key equivalents before the focused field.** Compose puts the `MenuBar` in the
+   system menu bar (it sets `apple.laf.useScreenMenuBar`), so a menu item with ⌘Z would take ⌘Z from a text
+   field. The menus therefore hold no editing command (Undo, Cut, Copy, Paste, Select all), only actions
+   that a field has no use for. Windows and Linux menus are Swing's; an accelerator fires only for an event
+   Compose didn't consume, so a key handled in the window is not handled twice. **Not proved in a real window
+   on Windows and Linux.**
+3. **One table of shortcuts.** `Shortcut` (a key or a typed character, `primary` = ⌘ on macOS and Ctrl
+   elsewhere, exact modifiers) and `Shortcuts` feed the handlers, the menu (`toKeyShortcut`) and the `?`
+   sheet, and print as `⇧⌘C` or `Ctrl+Shift+C`. `?` is matched by its character (German and French keyboards
+   reach it differently), with Shift+/ as the fallback when a platform reports no character. Every route to
+   an action (menu, key, dropped file) is an `AppCommand` sent to `AppCommands`, carried out in one place,
+   `MnemoRoot`; before the first deck only importing a package and the shortcuts list are taken.
+4. **Tooltips are Material's.** `TooltipBox` shows on hover on the desktop, in the same scene. While one
+   is open the test tree has two roots, and `onRoot()` fails: tests that press keys use
+   `onAllNodes(isRoot()).onFirst()`. Key-injecting tests call `waitForIdle()` first, because a screen takes
+   the focus in an effect and a test is faster than a person. New cards created in the same millisecond come
+   in any order, so a test waits for the rating buttons, not for a particular answer.
+5. **`ContextMenuArea`, `VerticalScrollbar` and `dragAndDropTarget`** are desktop-only (right-click menus,
+   scrollbars) or JVM-specific (`awtTransferable`) APIs, so each sits behind an `expect` function
+   (`ContextMenuHost`, `ScrollbarFor` and `ScrollbarBox`, `Modifier.fileDropTarget`) whose Android actual
+   draws nothing extra. A drop target declines a drag none of whose files it accepts, so the window's
+   target (packages and backups) and Smart Extract's (PDF, text) are meant to coexist. The reading of a drag
+   (`Transferable.droppedFiles`: Java's file list, or `text/uri-list` from some Linux file managers) is
+   tested; the wiring of the target to a real drag from Finder, Explorer or a Linux file manager is not.
+6. **Menu bar shape.** A Compose menu item can't hold a typed character as its shortcut, so `?` is in the
+   Help menu without one. About, Settings… and Quit on macOS come
+   from `java.awt.Desktop` handlers (About, Preferences, Quit, open files), installed once the window is up;
+   Quit closes through the window so its place is saved.
+7. **The icon.** `generate_desktop_icons.py` draws `logo.svg` with `rsvg-convert` and packs the ICO and ICNS
+   itself (PNG entries in both, so no extra tools); `iconutil` accepts the ICNS. macOS icons get a 10 %
+   transparent margin, Windows and Linux ones do not.
+8. **Key storage** (D6 finding 6): `KeyProtection` moved to `:core:model`, `SecretCipher` and `SecretStore`
+   report it (the phone's keystore unless a platform says otherwise), and Settings › AI providers says
+   "keychain" or, in a warning colour, "file only your account can read".
+9. **Still open:** a session by hand in a real window on each OS (D9's runbook), the accelerators on
+   Windows and Linux, dragging from a real file manager, the macOS application menu, the Dock icon and the
+   hand cursor, and a screenshot baseline for the desktop shell (the layouts are checked by tests, not by
+   pictures; the Android baselines did not change).
+
 ## Alternatives
 
 - **Separate desktop project (copy the domain and data code):** rejected in the roadmap; the

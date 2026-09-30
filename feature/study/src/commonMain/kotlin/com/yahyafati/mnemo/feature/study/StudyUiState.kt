@@ -60,6 +60,13 @@ sealed interface StudyAction {
     /** Tap on the card: show (or hide again) the answer. */
     data object Flip : StudyAction
 
+    /**
+     * The keyboard's Space or Enter: show the answer, and never hide it again. (A click on the card
+     * toggles, [Flip]; a key can arrive twice, once from a button's own handling and once as the
+     * typed character, and must not undo itself.)
+     */
+    data object Reveal : StudyAction
+
     data class Rate(val rating: Rating) : StudyAction
 
     /** The type-in answer changed. */

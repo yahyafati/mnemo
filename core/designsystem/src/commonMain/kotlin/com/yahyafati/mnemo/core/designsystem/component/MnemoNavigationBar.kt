@@ -80,6 +80,7 @@ fun RowScope.MnemoNavigationBarItem(
         modifier = modifier
             .weight(1f)
             .fillMaxHeight()
+            .clickCursor()
             .selectable(
                 selected = selected,
                 onClick = onClick,

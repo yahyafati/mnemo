@@ -74,6 +74,12 @@ sealed interface BrowseAction {
 
     data class ToggleSelected(val cardId: String) : BrowseAction
 
+    /**
+     * A right click on a card: if it isn't part of the selection, the selection becomes this card alone,
+     * so the menu's actions (which act on the selection) are about what was clicked.
+     */
+    data class SelectForMenu(val cardId: String) : BrowseAction
+
     data object SelectAll : BrowseAction
 
     data object ClearSelection : BrowseAction

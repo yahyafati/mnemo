@@ -3,8 +3,10 @@ package com.yahyafati.mnemo.feature.settings.ai
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
+import com.yahyafati.mnemo.core.model.KeyProtection
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -28,6 +30,13 @@ class AiProvidersViewModelTest {
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.uiState.collect {} }
         block()
+    }
+
+    @Test
+    fun theScreenKnowsWhereTheKeyBehindTheApiKeysIsKept() = runWithState {
+        assertEquals(KeyProtection.PlatformKeystore, viewModel.uiState.value.keyProtection)
+        repository.keyProtection = KeyProtection.KeyFile
+        assertEquals(KeyProtection.KeyFile, AiProvidersViewModel(repository).uiState.first { !it.loading }.keyProtection)
     }
 
     @Test

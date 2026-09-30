@@ -25,7 +25,7 @@ fun MnemoChip(
     Surface(
         selected = selected,
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.clickCursor(),
         enabled = enabled,
         shape = MaterialTheme.shapes.large,
         color = if (selected) colors.onSurface else colors.surfaceContainerHigh,

@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="shell">
+    <output-path>$PROJECT_DIR$/shell/build/libs</output-path>
+    <root id="archive" name="shell.jar" />
+  </artifact>
+</component>

@@ -13,7 +13,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,9 +29,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.ui.chart.StackedBar
+import com.yahyafati.mnemo.core.ui.menu.ContextAction
+import com.yahyafati.mnemo.core.ui.menu.ContextMenuHost
 import com.yahyafati.mnemo.feature.decks.DeckItem
 import com.yahyafati.mnemo.feature.decks.resources.Res
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_add_cards
@@ -58,12 +60,12 @@ import com.yahyafati.mnemo.feature.decks.resources.feature_decks_star
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_subdecks
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_total_cards
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_unstar
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 /** Callbacks shared by a deck card and its subdeck rows. */
 internal class DeckCallbacks(
@@ -88,55 +90,77 @@ internal fun DeckCard(
 ) {
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = colors.surfaceContainerLowest,
-        shadowElevation = 1.dp,
-    ) {
-        Column(Modifier.padding(spacing.md), verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                        deck.category?.let { Tag(it) }
-                        deck.lastReviewedAt?.let {
-                            Text(
-                                text = stringResource(Res.string.feature_decks_last_review, relativeTime(it, now)),
-                                style = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp),
-                                color = colors.onSurfaceVariant,
-                                maxLines = 1,
-                            )
+    ContextMenuHost(deckContextActions(deck, callbacks)) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            color = colors.surfaceContainerLowest,
+            shadowElevation = 1.dp,
+        ) {
+            Column(Modifier.padding(spacing.md), verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                            deck.category?.let { Tag(it) }
+                            deck.lastReviewedAt?.let {
+                                Text(
+                                    text = stringResource(Res.string.feature_decks_last_review, relativeTime(it, now)),
+                                    style = MnemoTheme.typography.metricSm.copy(fontSize = 10.sp),
+                                    color = colors.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
                         }
+                        Text(
+                            text = deck.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = colors.onSurface,
+                            modifier = Modifier.padding(top = spacing.xs),
+                        )
                     }
-                    Text(
-                        text = deck.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = colors.onSurface,
-                        modifier = Modifier.padding(top = spacing.xs),
-                    )
+                    StarButton(deck, callbacks)
+                    DeckMenu(deck, callbacks)
                 }
-                StarButton(deck, callbacks)
-                DeckMenu(deck, callbacks)
-            }
-            deck.recall?.let { RetentionHealth(it) }
-            deck.examInDays?.let { ExamCountdown(it) }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CountChip(deck)
-                    Text(
-                        text = pluralStringResource(Res.plurals.feature_decks_total_cards, deck.totalCount, deck.totalCount),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant,
-                    )
+                deck.recall?.let { RetentionHealth(it) }
+                deck.examInDays?.let { ExamCountdown(it) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CountChip(deck)
+                        Text(
+                            text = pluralStringResource(Res.plurals.feature_decks_total_cards, deck.totalCount, deck.totalCount),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                    DeckAction(deck, callbacks)
                 }
-                DeckAction(deck, callbacks)
+                if (deck.children.isNotEmpty()) Subdecks(deck, now, callbacks)
             }
-            if (deck.children.isNotEmpty()) Subdecks(deck, now, callbacks)
         }
+    }
+}
+
+/** What a right click on a deck offers: the same as its overflow menu, with the study or add button first. */
+@Composable
+private fun deckContextActions(deck: DeckItem, callbacks: DeckCallbacks): List<ContextAction> {
+    val study = deck.hasCardsToStudy
+    val primary = stringResource(if (study) Res.string.feature_decks_review else Res.string.feature_decks_add_cards)
+    val addCards = stringResource(Res.string.feature_decks_add_cards)
+    val browse = stringResource(Res.string.feature_decks_browse)
+    val export = stringResource(Res.string.feature_decks_export)
+    val edit = stringResource(Res.string.feature_decks_edit)
+    val delete = stringResource(Res.string.feature_decks_delete)
+    return buildList {
+        if (study) add(ContextAction(primary) { callbacks.onStudy(deck.id) })
+        add(ContextAction(addCards) { callbacks.onAddCards(deck.id) })
+        add(ContextAction(browse) { callbacks.onBrowse(deck.id) })
+        add(ContextAction(export) { callbacks.onExport(deck.id, deck.name) })
+        add(ContextAction(edit) { callbacks.onEdit(deck.id) })
+        add(ContextAction(delete) { callbacks.onDelete(deck.id) })
     }
 }
 
@@ -262,24 +286,24 @@ private fun SubdeckRow(deck: DeckItem, depth: Int, now: Instant, callbacks: Deck
 
 @Composable
 private fun StarButton(deck: DeckItem, callbacks: DeckCallbacks) {
-    IconButton(onClick = { callbacks.onToggleStar(deck.id) }) {
-        Icon(
-            imageVector = if (deck.starred) MnemoIcons.Star else MnemoIcons.StarOutline,
-            contentDescription = stringResource(
-                if (deck.starred) Res.string.feature_decks_unstar else Res.string.feature_decks_star,
-            ),
-            tint = if (deck.starred) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
-        )
-    }
+    MnemoIconButton(
+        icon = if (deck.starred) MnemoIcons.Star else MnemoIcons.StarOutline,
+        contentDescription = stringResource(if (deck.starred) Res.string.feature_decks_unstar else Res.string.feature_decks_star),
+        onClick = { callbacks.onToggleStar(deck.id) },
+        tint = if (deck.starred) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
+    )
 }
 
 @Composable
 private fun DeckMenu(deck: DeckItem, callbacks: DeckCallbacks) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { open = true }) {
-            Icon(MnemoIcons.MoreVert, stringResource(Res.string.feature_decks_options), tint = MaterialTheme.colorScheme.outline)
-        }
+        MnemoIconButton(
+            icon = MnemoIcons.MoreVert,
+            contentDescription = stringResource(Res.string.feature_decks_options),
+            onClick = { open = true },
+            tint = MaterialTheme.colorScheme.outline,
+        )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.feature_decks_add_cards)) },

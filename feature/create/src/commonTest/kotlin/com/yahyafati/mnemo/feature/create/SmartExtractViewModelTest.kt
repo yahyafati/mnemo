@@ -242,6 +242,29 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun aDroppedFileBecomesTheSourceByItsKind() = runTest {
+        val vm = readyViewModel(text = "")
+        sources.results[SourceInput.Pdf("/home/me/Lecture 3.pdf")] = SourceResult.Success(SourceText("From the PDF.", title = "Lecture 3"))
+        sources.results[SourceInput.TextFile("/home/me/notes.md")] = SourceResult.Success(SourceText("# Notes\nFrom the file.", title = "notes"))
+
+        vm.onAction(SmartExtractAction.FileDropped("/home/me/Lecture 3.pdf"))
+        assertEquals(SourceKind.Pdf, vm.state.sourceKind)
+        assertEquals("From the PDF.", vm.state.text)
+
+        // A text file goes to the paste box, which shows what was read.
+        vm.onAction(SmartExtractAction.FileDropped("/home/me/notes.md"))
+        assertEquals(SourceKind.Paste, vm.state.sourceKind)
+        assertEquals("# Notes\nFrom the file.", vm.state.text)
+        assertEquals("notes", vm.state.title)
+
+        // Something else is left alone.
+        vm.onAction(SmartExtractAction.FileDropped("/home/me/photo.png"))
+        assertEquals("# Notes\nFrom the file.", vm.state.text)
+        assertEquals(DroppedFile.Pdf, DroppedFile.of("SLIDES.PDF"))
+        assertNull(DroppedFile.of("archive"))
+    }
+
+    @Test
     fun dictationAppendsWhatIsSaid() = runTest {
         val vm = readyViewModel(text = "Notes:")
         vm.onAction(SmartExtractAction.SelectSource(SourceKind.Dictation))

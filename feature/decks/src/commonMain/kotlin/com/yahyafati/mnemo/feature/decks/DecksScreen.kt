@@ -16,10 +16,10 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -40,17 +40,20 @@ import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.StatTile
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
+import com.yahyafati.mnemo.core.ui.adaptive.readingWidth
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
 import com.yahyafati.mnemo.core.ui.files.rememberFileSaver
 import com.yahyafati.mnemo.core.ui.permission.AppPermission
 import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
 import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
@@ -184,77 +187,81 @@ internal fun DecksScreen(
     )
     // One column on phones; a grid of deck cards on tablets and unfolded foldables, as in the
     // mockup's desktop layout. Everything but the decks spans the full width.
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = DECK_MIN_WIDTH),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = spacing.screenMargin, end = spacing.screenMargin, bottom = spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-    ) {
-        item(key = "header", span = FULL_WIDTH) { Header(uiState) }
-        item(key = "transfers", span = FULL_WIDTH) {
-            TransferBanner(
-                importState = uiState.importState,
-                exportState = uiState.exportState,
-                onDismiss = { onAction(DecksAction.DismissTransfer) },
-                modifier = Modifier.padding(top = spacing.xs),
-            )
-        }
-        if (uiState.hasDecks) {
-            item(key = "mix", span = FULL_WIDTH) { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
-            item(key = "stats", span = FULL_WIDTH) { StatsStrip(uiState.today, uiState.retention, Modifier.padding(top = spacing.sm)) }
-            item(key = "search", span = FULL_WIDTH) { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
-            item(key = "library", span = FULL_WIDTH) {
-                LibraryBar(
-                    onNewDeck = { onAction(DecksAction.NewDeck) },
-                    onImport = onImport,
-                    onBrowse = { onBrowse(null) },
-                    modifier = Modifier.padding(top = spacing.sm),
+    val gridState = rememberLazyGridState()
+    ScrollbarBox(gridState, modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            state = gridState,
+            columns = GridCells.Adaptive(minSize = DECK_MIN_WIDTH),
+            modifier = Modifier.fillMaxSize().readingWidth(),
+            contentPadding = PaddingValues(start = spacing.screenMargin, end = spacing.screenMargin, bottom = spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+        ) {
+            item(key = "header", span = FULL_WIDTH) { Header(uiState) }
+            item(key = "transfers", span = FULL_WIDTH) {
+                TransferBanner(
+                    importState = uiState.importState,
+                    exportState = uiState.exportState,
+                    onDismiss = { onAction(DecksAction.DismissTransfer) },
+                    modifier = Modifier.padding(top = spacing.xs),
                 )
             }
-            gridItems(uiState.decks, key = { it.id }) { deck ->
-                DeckCard(deck = deck, now = uiState.now, callbacks = callbacks)
-            }
-            if (uiState.decks.isEmpty()) {
-                item(key = "no-match", span = FULL_WIDTH) {
+            if (uiState.hasDecks) {
+                item(key = "mix", span = FULL_WIDTH) { DailyMixCard(uiState.today, onStart = onStartDailyMix, Modifier.padding(top = spacing.xs)) }
+                item(key = "stats", span = FULL_WIDTH) { StatsStrip(uiState.today, uiState.retention, Modifier.padding(top = spacing.sm)) }
+                item(key = "search", span = FULL_WIDTH) { SearchAndFilters(uiState, onAction, Modifier.padding(top = spacing.md)) }
+                item(key = "library", span = FULL_WIDTH) {
+                    LibraryBar(
+                        onNewDeck = { onAction(DecksAction.NewDeck) },
+                        onImport = onImport,
+                        onBrowse = { onBrowse(null) },
+                        modifier = Modifier.padding(top = spacing.sm),
+                    )
+                }
+                gridItems(uiState.decks, key = { it.id }) { deck ->
+                    DeckCard(deck = deck, now = uiState.now, callbacks = callbacks)
+                }
+                if (uiState.decks.isEmpty()) {
+                    item(key = "no-match", span = FULL_WIDTH) {
+                        EmptyState(
+                            icon = MnemoIcons.Search,
+                            title = stringResource(Res.string.feature_decks_no_match_title),
+                            message = stringResource(Res.string.feature_decks_no_match_message),
+                            action = {
+                                MnemoButton(
+                                    text = stringResource(Res.string.feature_decks_clear_filters),
+                                    onClick = {
+                                        onAction(DecksAction.QueryChanged(""))
+                                        onAction(DecksAction.FilterSelected(DeckFilter.All))
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+            } else {
+                item(key = "empty", span = FULL_WIDTH) {
                     EmptyState(
-                        icon = MnemoIcons.Search,
-                        title = stringResource(Res.string.feature_decks_no_match_title),
-                        message = stringResource(Res.string.feature_decks_no_match_message),
+                        icon = MnemoIcons.Decks,
+                        title = stringResource(Res.string.feature_decks_empty_title),
+                        message = stringResource(Res.string.feature_decks_empty_message),
                         action = {
-                            MnemoButton(
-                                text = stringResource(Res.string.feature_decks_clear_filters),
-                                onClick = {
-                                    onAction(DecksAction.QueryChanged(""))
-                                    onAction(DecksAction.FilterSelected(DeckFilter.All))
-                                },
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                                MnemoButton(
+                                    text = stringResource(Res.string.feature_decks_new_deck),
+                                    onClick = { onAction(DecksAction.NewDeck) },
+                                    leadingIcon = MnemoIcons.Add,
+                                )
+                                MnemoButton(
+                                    text = stringResource(Res.string.feature_decks_import),
+                                    onClick = onImport,
+                                    style = MnemoButtonStyle.Text,
+                                    leadingIcon = MnemoIcons.FileUpload,
+                                )
+                            }
                         },
                     )
                 }
-            }
-        } else {
-            item(key = "empty", span = FULL_WIDTH) {
-                EmptyState(
-                    icon = MnemoIcons.Decks,
-                    title = stringResource(Res.string.feature_decks_empty_title),
-                    message = stringResource(Res.string.feature_decks_empty_message),
-                    action = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-                            MnemoButton(
-                                text = stringResource(Res.string.feature_decks_new_deck),
-                                onClick = { onAction(DecksAction.NewDeck) },
-                                leadingIcon = MnemoIcons.Add,
-                            )
-                            MnemoButton(
-                                text = stringResource(Res.string.feature_decks_import),
-                                onClick = onImport,
-                                style = MnemoButtonStyle.Text,
-                                leadingIcon = MnemoIcons.FileUpload,
-                            )
-                        }
-                    },
-                )
             }
         }
     }
@@ -401,12 +408,18 @@ private fun LibraryBar(onNewDeck: () -> Unit, onImport: () -> Unit, onBrowse: ()
                 .weight(1f)
                 .padding(start = MnemoTheme.spacing.sm),
         )
-        IconButton(onClick = onBrowse) {
-            Icon(MnemoIcons.Browse, stringResource(Res.string.feature_decks_browse_all), tint = colors.onSurfaceVariant)
-        }
-        IconButton(onClick = onImport) {
-            Icon(MnemoIcons.FileUpload, stringResource(Res.string.feature_decks_import), tint = colors.onSurfaceVariant)
-        }
+        MnemoIconButton(
+            icon = MnemoIcons.Browse,
+            contentDescription = stringResource(Res.string.feature_decks_browse_all),
+            onClick = onBrowse,
+            tint = colors.onSurfaceVariant,
+        )
+        MnemoIconButton(
+            icon = MnemoIcons.FileUpload,
+            contentDescription = stringResource(Res.string.feature_decks_import),
+            onClick = onImport,
+            tint = colors.onSurfaceVariant,
+        )
         MnemoButton(
             text = stringResource(Res.string.feature_decks_new_deck),
             onClick = onNewDeck,

@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.study
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,15 +18,18 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,7 +39,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.Card
 import com.yahyafati.mnemo.core.model.Note
@@ -44,17 +50,25 @@ import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.ui.adaptive.LocalWindowLayout
+import com.yahyafati.mnemo.core.ui.keyboard.ShortcutBinding
+import com.yahyafati.mnemo.core.ui.keyboard.Shortcuts
+import com.yahyafati.mnemo.core.ui.keyboard.does
+import com.yahyafati.mnemo.core.ui.keyboard.shortcuts
 import com.yahyafati.mnemo.feature.study.component.FlashCard
 import com.yahyafati.mnemo.feature.study.component.IntervalButtons
 import com.yahyafati.mnemo.feature.study.component.SessionSummaryView
 import com.yahyafati.mnemo.feature.study.component.StudyAssistSheet
 import com.yahyafati.mnemo.feature.study.component.SwipeableCard
+import com.yahyafati.mnemo.feature.study.component.labelRes
 import com.yahyafati.mnemo.feature.study.resources.Res
 import com.yahyafati.mnemo.feature.study.resources.feature_study_check_answer
 import com.yahyafati.mnemo.feature.study.resources.feature_study_daily_mix
 import com.yahyafati.mnemo.feature.study.resources.feature_study_empty_message
 import com.yahyafati.mnemo.feature.study.resources.feature_study_empty_title
 import com.yahyafati.mnemo.feature.study.resources.feature_study_hint_before
+import com.yahyafati.mnemo.feature.study.resources.feature_study_hint_keys_choice
+import com.yahyafati.mnemo.feature.study.resources.feature_study_hint_keys_reveal
+import com.yahyafati.mnemo.feature.study.resources.feature_study_hint_keys_type_in
 import com.yahyafati.mnemo.feature.study.resources.feature_study_hint_swipe
 import com.yahyafati.mnemo.feature.study.resources.feature_study_later_message
 import com.yahyafati.mnemo.feature.study.resources.feature_study_position
@@ -129,7 +143,14 @@ internal fun StudyScreen(
             )
         }
 
-        is StudyPhase.Finished -> Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        is StudyPhase.Finished -> Column(
+            modifier
+                .fillMaxSize()
+                .shortcuts(*undoShortcut(phase.canUndo, onAction))
+                .focusRequester(rememberFocusOn(phase.canUndo))
+                .focusable()
+                .verticalScroll(rememberScrollState()),
+        ) {
             if (phase.canUndo) {
                 UndoRow(onAction, Modifier.align(Alignment.End))
             }
@@ -165,7 +186,15 @@ private fun Reviewing(
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
     val progress by animateFloatAsState(phase.progress, label = "studyProgress")
-    Column(modifier.fillMaxSize()) {
+    // A type-in card's own field has the focus until the answer shows; then nothing does, so take it.
+    val focus = rememberFocusOn(phase.card.card.id, phase.revealed, enabled = !phase.card.sides.typeIn || phase.revealed)
+    Column(
+        modifier
+            .fillMaxSize()
+            .shortcuts(*studyShortcuts(phase, onAction, onEditNote))
+            .focusRequester(focus)
+            .focusable(),
+    ) {
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier.fillMaxWidth(),
@@ -197,9 +226,13 @@ private fun Reviewing(
                     .background(colors.surfaceContainer, MaterialTheme.shapes.large)
                     .padding(horizontal = spacing.sm, vertical = 2.dp),
             )
-            IconButton(onClick = { onAction(StudyAction.Undo) }, enabled = phase.canUndo) {
-                Icon(MnemoIcons.Undo, stringResource(Res.string.feature_study_undo))
-            }
+            MnemoIconButton(
+                icon = MnemoIcons.Undo,
+                contentDescription = stringResource(Res.string.feature_study_undo),
+                onClick = { onAction(StudyAction.Undo) },
+                enabled = phase.canUndo,
+                shortcut = Shortcuts.Undo.label(),
+            )
         }
 
         val layout = LocalWindowLayout.current
@@ -286,14 +319,20 @@ private fun AnswerControls(phase: StudyPhase.Reviewing, onAction: (StudyAction) 
                     .heightIn(min = 56.dp),
             )
         }
+        val keyboard = LocalPlatformCapabilities.current.keyboardAndMouse
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(MnemoIcons.TouchApp, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(14.dp))
+            Icon(
+                if (keyboard) MnemoIcons.Keyboard else MnemoIcons.TouchApp,
+                null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
             Text(
-                text = stringResource(
+                text = if (keyboard) keyboardHint(phase) else stringResource(
                     if (phase.revealed) Res.string.feature_study_hint_swipe else Res.string.feature_study_hint_before,
                 ),
                 style = MaterialTheme.typography.labelMedium,
@@ -305,11 +344,63 @@ private fun AnswerControls(phase: StudyPhase.Reviewing, onAction: (StudyAction) 
     }
 }
 
+/** What the keys do on this card, for the line under the buttons. */
+@Composable
+private fun keyboardHint(phase: StudyPhase.Reviewing): String {
+    val sides = phase.card.sides
+    val ratings = Rating.entries.map { stringResource(it.labelRes()) }
+    return when {
+        phase.revealed -> ratings.withIndex().joinToString(" • ") { (index, label) -> "${index + 1} $label" }
+        sides.choices != null -> stringResource(Res.string.feature_study_hint_keys_choice, sides.choices!!.size)
+        sides.typeIn -> stringResource(Res.string.feature_study_hint_keys_type_in)
+        else -> stringResource(Res.string.feature_study_hint_keys_reveal)
+    }
+}
+
 @Composable
 private fun UndoRow(onAction: (StudyAction) -> Unit, modifier: Modifier = Modifier) {
-    IconButton(onClick = { onAction(StudyAction.Undo) }, modifier = modifier) {
-        Icon(MnemoIcons.Undo, stringResource(Res.string.feature_study_undo))
+    MnemoIconButton(
+        icon = MnemoIcons.Undo,
+        contentDescription = stringResource(Res.string.feature_study_undo),
+        onClick = { onAction(StudyAction.Undo) },
+        modifier = modifier,
+        shortcut = Shortcuts.Undo.label(),
+    )
+}
+
+/**
+ * The keys of the study screen (desktop ROADMAP D7), all typed characters or command keys, so typing an
+ * answer never triggers one. Space and Enter show the answer; 1–4 rate it
+ * (or, on a multiple choice card, pick an option); Ctrl/⌘+Z undoes; E edits the note.
+ */
+private fun studyShortcuts(
+    phase: StudyPhase.Reviewing,
+    onAction: (StudyAction) -> Unit,
+    onEditNote: (noteId: String) -> Unit,
+): Array<ShortcutBinding> = buildList {
+    val choices = phase.card.sides.choices
+    when {
+        phase.revealed -> Shortcuts.Answers.zip(Rating.entries).forEach { (key, rating) ->
+            add(key does { onAction(StudyAction.Rate(rating)) })
+        }
+        choices != null -> Shortcuts.Answers.take(choices.size).forEachIndexed { index, key ->
+            add(key does { onAction(StudyAction.Choose(index)) })
+        }
+        else -> add(Shortcuts.Reveal does { onAction(StudyAction.Reveal) })
     }
+    addAll(undoShortcut(phase.canUndo, onAction))
+    add(Shortcuts.EditNote does { onEditNote(phase.card.note.id) })
+}.toTypedArray()
+
+private fun undoShortcut(canUndo: Boolean, onAction: (StudyAction) -> Unit): Array<ShortcutBinding> =
+    if (canUndo) arrayOf(Shortcuts.Undo does { onAction(StudyAction.Undo) }) else emptyArray()
+
+/** A focus requester that takes the keyboard focus again whenever [keys] change, so the shortcuts keep working. */
+@Composable
+private fun rememberFocusOn(vararg keys: Any?, enabled: Boolean = true): FocusRequester {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(enabled, *keys) { if (enabled) runCatching { focus.requestFocus() } }
+    return focus
 }
 
 @Preview(showBackground = true, heightDp = 800)

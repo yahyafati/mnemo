@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -17,6 +18,9 @@ import kotlinx.coroutines.flow.Flow
  * build a single request; no method here returns one.
  */
 interface AiProviderRepository {
+    /** Where the key that encrypts the API keys is kept, for Settings to say. */
+    val keyProtection: KeyProtection get() = KeyProtection.PlatformKeystore
+
     /** Live providers in list order. The first usable one is the default. */
     fun observeProviders(): Flow<List<AiProvider>>
 

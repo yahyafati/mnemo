@@ -36,10 +36,18 @@ data class PlatformCapabilities(
      * runs the model. On a computer, `localhost` is where a local server such as Ollama runs.
      */
     val localhostHint: Boolean = true,
+    /**
+     * A computer's keyboard and mouse (desktop ROADMAP D7): screens show the keyboard shortcuts in
+     * hints, label icon buttons with hover tooltips, and offer right-click menus and drop targets.
+     * The key handlers themselves work everywhere (a tablet with a keyboard uses them too); this
+     * says whether to advertise them. Off by default, unlike the flags above: the phone is the
+     * baseline and has no pointer.
+     */
+    val keyboardAndMouse: Boolean = false,
 )
 
 /**
  * The platform's [PlatformCapabilities]; provided by the app shell around [MnemoTheme][com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme].
- * Unprovided (previews, tests), everything is on: that is what the phone app has.
+ * Unprovided (previews, tests), everything a phone has is on, and [PlatformCapabilities.keyboardAndMouse] is off.
  */
 val LocalPlatformCapabilities = staticCompositionLocalOf { PlatformCapabilities() }

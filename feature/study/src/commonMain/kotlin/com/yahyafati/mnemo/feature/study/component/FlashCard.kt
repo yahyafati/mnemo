@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +36,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
+import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -48,6 +49,8 @@ import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.card.CardInteraction
 import com.yahyafati.mnemo.core.ui.card.CardResponse
 import com.yahyafati.mnemo.core.ui.card.audio.CardAudio.Companion.playOrSpeak
+import com.yahyafati.mnemo.core.ui.menu.ContextAction
+import com.yahyafati.mnemo.core.ui.menu.ContextMenuHost
 import com.yahyafati.mnemo.core.ui.card.audio.LocalAutoPlayAudio
 import com.yahyafati.mnemo.core.ui.card.audio.LocalCardAudio
 import com.yahyafati.mnemo.feature.study.StudyAction
@@ -126,32 +129,35 @@ internal fun FlashCard(
                 .graphicsLayer { translationY = 4.dp.toPx() }
                 .background(colors.surfaceContainer, MaterialTheme.shapes.large),
         )
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    role = Role.Button,
-                    onClickLabel = stringResource(Res.string.feature_study_flip),
-                ) { onAction(StudyAction.Flip) },
-            shape = MaterialTheme.shapes.large,
-            color = colors.surfaceContainerLowest,
-            shadowElevation = 1.dp,
-        ) {
-            Column(Modifier.padding(MnemoTheme.spacing.lg)) {
-                MetaBar(card, revealed, onAction, onEditNote, onAssist)
-                CardFace(
-                    sides = sides,
-                    revealed = revealed,
-                    hint = card.hint,
-                    response = response,
-                    interaction = interaction,
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = MnemoTheme.spacing.md),
-                )
+        ContextMenuHost(cardContextActions(card, onAction, onEditNote)) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickCursor()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        role = Role.Button,
+                        onClickLabel = stringResource(Res.string.feature_study_flip),
+                    ) { onAction(StudyAction.Flip) },
+                shape = MaterialTheme.shapes.large,
+                color = colors.surfaceContainerLowest,
+                shadowElevation = 1.dp,
+            ) {
+                Column(Modifier.padding(MnemoTheme.spacing.lg)) {
+                    MetaBar(card, revealed, onAction, onEditNote, onAssist)
+                    CardFace(
+                        sides = sides,
+                        revealed = revealed,
+                        hint = card.hint,
+                        response = response,
+                        interaction = interaction,
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = MnemoTheme.spacing.md),
+                    )
+                }
             }
         }
         SwipeHint(Rating.Again, Alignment.TopEnd) { (-swipeFraction() * 3f).coerceIn(0f, 1f) }
@@ -204,57 +210,76 @@ private fun MetaBar(
         }
         Box(Modifier.weight(1f))
         if (onAssist != null) {
-            IconButton(
+            MnemoIconButton(
+                icon = MnemoIcons.Sparkle,
+                contentDescription = stringResource(Res.string.feature_study_ai_open),
                 onClick = onAssist,
-                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.primaryContainer, contentColor = colors.onPrimaryContainer),
                 modifier = Modifier
                     .padding(end = MnemoTheme.spacing.xs)
                     .size(36.dp),
-            ) {
-                Icon(MnemoIcons.Sparkle, stringResource(Res.string.feature_study_ai_open), Modifier.size(19.dp))
-            }
+                iconModifier = Modifier.size(19.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.primaryContainer, contentColor = colors.onPrimaryContainer),
+            )
         }
         // The card's own audio, or text-to-speech of the side showing where the platform has it.
         val spoken = if (revealed) card.sides.back.ifBlank { card.sides.front } else card.sides.front
         if (LocalPlatformCapabilities.current.textToSpeech || Markdown.sounds(spoken).isNotEmpty()) {
-            IconButton(
+            MnemoIconButton(
+                icon = MnemoIcons.Speak,
+                contentDescription = stringResource(Res.string.feature_study_read_aloud),
                 onClick = { audio.playOrSpeak(spoken) },
-                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
                 modifier = Modifier
                     .padding(end = MnemoTheme.spacing.xs)
                     .size(36.dp),
-            ) {
-                Icon(MnemoIcons.Speak, stringResource(Res.string.feature_study_read_aloud), Modifier.size(19.dp))
-            }
-        }
-        val starred = card.card.starred
-        IconButton(
-            onClick = { onAction(StudyAction.ToggleStar) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
-            modifier = Modifier.size(36.dp),
-        ) {
-            Icon(
-                imageVector = if (starred) MnemoIcons.Star else MnemoIcons.StarOutline,
-                contentDescription = stringResource(if (starred) Res.string.feature_study_unstar else Res.string.feature_study_star),
-                tint = if (starred) colors.tertiary else colors.onSurfaceVariant,
-                modifier = Modifier.size(19.dp),
+                iconModifier = Modifier.size(19.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
             )
         }
+        val starred = card.card.starred
+        MnemoIconButton(
+            icon = if (starred) MnemoIcons.Star else MnemoIcons.StarOutline,
+            contentDescription = stringResource(if (starred) Res.string.feature_study_unstar else Res.string.feature_study_star),
+            onClick = { onAction(StudyAction.ToggleStar) },
+            modifier = Modifier.size(36.dp),
+            tint = if (starred) colors.tertiary else colors.onSurfaceVariant,
+            iconModifier = Modifier.size(19.dp),
+            colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
+        )
         CardMenu(card, onAction, onEditNote)
     }
+}
+
+/** What a right click on the card offers: the star and the overflow menu's entries. */
+@Composable
+private fun cardContextActions(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote: (String) -> Unit): List<ContextAction> {
+    val starred = card.card.starred
+    val flagged = card.card.flagged
+    val star = stringResource(if (starred) Res.string.feature_study_unstar else Res.string.feature_study_star)
+    val edit = stringResource(Res.string.feature_study_edit)
+    val flag = stringResource(if (flagged) Res.string.feature_study_unflag else Res.string.feature_study_flag)
+    val bury = stringResource(Res.string.feature_study_bury)
+    val suspend = stringResource(Res.string.feature_study_suspend)
+    return listOf(
+        ContextAction(edit) { onEditNote(card.note.id) },
+        ContextAction(star) { onAction(StudyAction.ToggleStar) },
+        ContextAction(flag) { onAction(StudyAction.ToggleFlag) },
+        ContextAction(bury) { onAction(StudyAction.Bury) },
+        ContextAction(suspend) { onAction(StudyAction.Suspend) },
+    )
 }
 
 @Composable
 private fun CardMenu(card: StudyCard, onAction: (StudyAction) -> Unit, onEditNote: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box(Modifier.padding(start = MnemoTheme.spacing.xs)) {
-        IconButton(
+        MnemoIconButton(
+            icon = MnemoIcons.MoreVert,
+            contentDescription = stringResource(Res.string.feature_study_more),
             onClick = { open = true },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             modifier = Modifier.size(36.dp),
-        ) {
-            Icon(MnemoIcons.MoreVert, stringResource(Res.string.feature_study_more), Modifier.size(19.dp))
-        }
+            iconModifier = Modifier.size(19.dp),
+            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             fun item(label: StringResource, icon: ImageVector, action: () -> Unit) = Triple(label, icon, action)
             listOf(

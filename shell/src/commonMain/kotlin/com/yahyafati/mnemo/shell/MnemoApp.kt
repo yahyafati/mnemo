@@ -9,14 +9,13 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBar
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationBarItem
 import com.yahyafati.mnemo.core.designsystem.component.MnemoNavigationRail
@@ -63,9 +62,11 @@ fun MnemoApp(
         if (rail) {
             MnemoNavigationRail(
                 header = {
-                    IconButton(onClick = appState::navigateToSettings) {
-                        Icon(MnemoIcons.Account, contentDescription = stringResource(Res.string.open_settings))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Account,
+                        contentDescription = stringResource(Res.string.open_settings),
+                        onClick = appState::navigateToSettings,
+                    )
                 },
             ) {
                 TopLevelDestination.entries.forEach { destination ->
@@ -95,9 +96,11 @@ fun MnemoApp(
                         actions = {
                             // On wide windows Settings sits at the top of the rail instead.
                             if (!rail) {
-                                IconButton(onClick = appState::navigateToSettings) {
-                                    Icon(MnemoIcons.Account, contentDescription = stringResource(Res.string.open_settings))
-                                }
+                                MnemoIconButton(
+                                    icon = MnemoIcons.Account,
+                                    contentDescription = stringResource(Res.string.open_settings),
+                                    onClick = appState::navigateToSettings,
+                                )
                             }
                         },
                     )

@@ -36,9 +36,12 @@ data class StudySessionRoute(val deckId: String)
 @Serializable
 data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = null)
 
-/** The card browser, filtered to [deckId] and its subdecks when given. */
+/**
+ * The card browser, filtered to [deckId] and its subdecks when given. [focusSearch] puts the cursor
+ * in the search box on arrival (Find, on a computer).
+ */
 @Serializable
-data class BrowseRoute(val deckId: String? = null)
+data class BrowseRoute(val deckId: String? = null, val focusSearch: Boolean = false)
 
 /** Settings › About › Open-source licenses. */
 @Serializable

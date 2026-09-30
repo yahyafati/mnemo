@@ -88,6 +88,17 @@ class SmartExtractViewModel(
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
             is SmartExtractAction.PdfPicked -> read(SourceInput.Pdf(action.uri))
+            is SmartExtractAction.FileDropped -> when (DroppedFile.of(action.location)) {
+                DroppedFile.Pdf -> {
+                    _uiState.update { it.copy(sourceKind = SourceKind.Pdf) }
+                    read(SourceInput.Pdf(action.location))
+                }
+                DroppedFile.Text -> {
+                    _uiState.update { it.copy(sourceKind = SourceKind.Paste) }
+                    read(SourceInput.TextFile(action.location))
+                }
+                null -> Unit
+            }
             SmartExtractAction.StartDictation -> startDictation()
             SmartExtractAction.StopDictation -> stopDictation()
             SmartExtractAction.DictationPermissionDenied ->

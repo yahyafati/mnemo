@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="browse-desktop">
+    <output-path>$PROJECT_DIR$/feature/browse/build/libs</output-path>
+    <root id="archive" name="browse-desktop.jar" />
+  </artifact>
+</component>

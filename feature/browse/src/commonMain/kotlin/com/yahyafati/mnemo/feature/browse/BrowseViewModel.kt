@@ -78,6 +78,7 @@ class BrowseViewModel(
             is BrowseAction.ToggleSelected -> selection.update {
                 if (action.cardId in it) it - action.cardId else it + action.cardId
             }
+            is BrowseAction.SelectForMenu -> selection.update { if (action.cardId in it) it else setOf(action.cardId) }
             BrowseAction.SelectAll -> viewModelScope.launch { selection.value = browser.cardIds(query.value).toSet() }
             BrowseAction.ClearSelection -> selection.value = emptySet()
             is BrowseAction.Suspend -> bulk({ BrowseMessage.Suspended(it, action.suspended) }) { browser.setSuspended(it, action.suspended) }

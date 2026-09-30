@@ -9,11 +9,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.yahyafati.mnemo.core.ui.card.desktop.DesktopCardAudio.AudioProblem
 import com.yahyafati.mnemo.core.ui.platform.desktop.ProvideDesktopPlatform
+import com.yahyafati.mnemo.shell.AppCommands
 import com.yahyafati.mnemo.shell.MainViewModel
 import com.yahyafati.mnemo.shell.MnemoRoot
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +33,8 @@ fun DesktopApp(
     mediaDirectory: File,
     appVersion: String = AppInfo.version,
     loadLicenses: suspend () -> String = { AppInfo.loadLicenses() },
+    /** What the window's menu bar, key handlers and drop target ask of the app; the window creates it. */
+    commands: AppCommands = remember { AppCommands() },
 ) {
     KoinContext {
         WithViewModelStore {
@@ -44,6 +48,8 @@ fun DesktopApp(
                 MnemoRoot(
                     viewModel = viewModel,
                     loadLicenses = loadLicenses,
+                    commands = commands,
+                    maxContentWidth = MAX_CONTENT_WIDTH,
                     providePlatform = { content ->
                         ProvideDesktopPlatform(
                             mediaDirectory = mediaDirectory,
@@ -58,6 +64,9 @@ fun DesktopApp(
         }
     }
 }
+
+/** Screens stop growing past this and stay centered, so a maximized window doesn't stretch a line of text across a monitor. */
+internal val MAX_CONTENT_WIDTH = 1100.dp
 
 /** What to tell the user when a sound on a card doesn't play (a sound is never part of the answer). */
 internal fun audioProblemMessage(problem: AudioProblem): String = when (problem) {

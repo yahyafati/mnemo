@@ -1,5 +1,7 @@
 package com.yahyafati.mnemo.feature.create
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +26,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -76,10 +79,12 @@ import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.core.ui.files.fileDropTarget
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
 import com.yahyafati.mnemo.core.ui.permission.AppPermission
 import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
 import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarFor
 import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
@@ -114,6 +119,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_dictation_sto
 import com.yahyafati.mnemo.feature.create.resources.feature_create_dictation_unavailable
 import com.yahyafati.mnemo.feature.create.resources.feature_create_discard_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_disclosure_content
+import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file
+import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_extra
 import com.yahyafati.mnemo.feature.create.resources.feature_create_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_front
@@ -195,7 +202,16 @@ internal fun SmartExtractScreen(
         }
     }
 
-    Box(modifier.fillMaxSize()) {
+    // A PDF or a text file dragged from the file manager (desktop) becomes the source.
+    var dropping by remember { mutableStateOf(false) }
+    Box(
+        modifier
+            .fillMaxSize()
+            .fileDropTarget(
+                accepts = { DroppedFile.of(it) != null },
+                onHover = { dropping = it },
+            ) { paths -> onAction(SmartExtractAction.FileDropped(paths.first())) },
+    ) {
         when {
             uiState.isLoading -> Unit
             uiState.route == null -> Box(
@@ -213,7 +229,9 @@ internal fun SmartExtractScreen(
             }
             else -> {
                 val acceptable = uiState.acceptable.size
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxSize()
                         .imePadding(),
@@ -241,6 +259,7 @@ internal fun SmartExtractScreen(
                         )
                     }
                 }
+                ScrollbarFor(listState)
                 if (acceptable > 0) {
                     AcceptAllBar(
                         count = acceptable,
@@ -255,6 +274,7 @@ internal fun SmartExtractScreen(
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = if (uiState.acceptable.isNotEmpty()) 80.dp else 0.dp))
+        if (dropping) DropHint(Modifier.fillMaxSize())
     }
 
     uiState.disclosure?.let { route ->
@@ -314,6 +334,7 @@ private fun Workshop(
             }
 
             SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
+            if (LocalPlatformCapabilities.current.keyboardAndMouse) Hint(stringResource(Res.string.feature_create_drop_file_hint))
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
             SourceTextField(uiState, onAction)
 
@@ -497,9 +518,11 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
             supportingText = { Text(pluralStringResource(Res.plurals.feature_create_source_words, uiState.wordCount, uiState.wordCount)) },
             trailingIcon = if (uiState.text.isNotEmpty()) {
                 {
-                    IconButton(onClick = { onAction(SmartExtractAction.ClearText) }) {
-                        Icon(MnemoIcons.Close, stringResource(Res.string.feature_create_source_clear))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Close,
+                        contentDescription = stringResource(Res.string.feature_create_source_clear),
+                        onClick = { onAction(SmartExtractAction.ClearText) },
+                    )
                 }
             } else {
                 null
@@ -695,19 +718,24 @@ private fun ReviewCard(
                     modifier = Modifier.padding(start = spacing.sm),
                 )
                 Box(Modifier.weight(1f))
-                IconButton(onClick = { onAction(SmartExtractAction.Regenerate(card.id)) }, enabled = !item.regenerating) {
-                    Icon(MnemoIcons.Regenerate, stringResource(Res.string.feature_create_card_regenerate))
-                }
-                IconButton(onClick = { onAction(if (editing) SmartExtractAction.DoneEditing else SmartExtractAction.Edit(card.id)) }, enabled = !item.regenerating) {
-                    Icon(
-                        if (editing) MnemoIcons.Check else MnemoIcons.Edit,
-                        stringResource(if (editing) Res.string.feature_create_card_done else Res.string.feature_create_card_edit),
-                    )
-                }
+                MnemoIconButton(
+                    icon = MnemoIcons.Regenerate,
+                    contentDescription = stringResource(Res.string.feature_create_card_regenerate),
+                    onClick = { onAction(SmartExtractAction.Regenerate(card.id)) },
+                    enabled = !item.regenerating,
+                )
+                MnemoIconButton(
+                    icon = if (editing) MnemoIcons.Check else MnemoIcons.Edit,
+                    contentDescription = stringResource(if (editing) Res.string.feature_create_card_done else Res.string.feature_create_card_edit),
+                    onClick = { onAction(if (editing) SmartExtractAction.DoneEditing else SmartExtractAction.Edit(card.id)) },
+                    enabled = !item.regenerating,
+                )
                 ReportAiButton(AiReport.ofFields(AiReportKind.SmartExtractCard, card.fields, modelId), compact = true)
-                IconButton(onClick = { onAction(SmartExtractAction.Discard(card.id)) }) {
-                    Icon(MnemoIcons.Delete, stringResource(Res.string.feature_create_card_discard))
-                }
+                MnemoIconButton(
+                    icon = MnemoIcons.Delete,
+                    contentDescription = stringResource(Res.string.feature_create_card_discard),
+                    onClick = { onAction(SmartExtractAction.Discard(card.id)) },
+                )
             }
             if (item.regenerating) LinearProgressIndicator(Modifier.fillMaxWidth())
 
@@ -816,6 +844,24 @@ private fun AcceptAllBar(count: Int, deckPath: String?, onAcceptAll: () -> Unit,
 @Composable
 private fun Label(text: String, modifier: Modifier = Modifier) {
     Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = modifier)
+}
+
+/** Over the whole screen while a file is dragged above it: what dropping does. */
+@Composable
+private fun DropHint(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .background(colors.primaryContainer.copy(alpha = 0.85f))
+            .border(2.dp, colors.primary, MaterialTheme.shapes.large),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(Res.string.feature_create_drop_file),
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.onPrimaryContainer,
+        )
+    }
 }
 
 @Composable

@@ -85,6 +85,7 @@ fun MnemoNavigationRailItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clickCursor()
             .selectable(
                 selected = selected,
                 onClick = onClick,

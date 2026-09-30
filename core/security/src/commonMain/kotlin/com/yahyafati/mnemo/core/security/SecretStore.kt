@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.security
 
 import com.yahyafati.mnemo.core.common.platform.AppDirectories
+import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -23,6 +24,9 @@ sealed interface StoredSecret {
  * only decrypted by [get], in memory, for the request that needs them.
  */
 interface SecretStore {
+    /** Where the key that encrypts these secrets is kept. */
+    val protection: KeyProtection get() = KeyProtection.PlatformKeystore
+
     suspend fun put(id: String, secret: String)
 
     suspend fun get(id: String): StoredSecret
@@ -50,6 +54,8 @@ class FileSecretStore internal constructor(
         cipher: SecretCipher,
         ioDispatcher: CoroutineDispatcher,
     ) : this({ directories.secrets }, cipher, ioDispatcher)
+
+    override val protection: KeyProtection get() = cipher.protection
 
     override suspend fun put(id: String, secret: String) = withContext(ioDispatcher) {
         val dir = directory().apply { mkdirs() }

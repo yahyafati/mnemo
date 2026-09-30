@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -26,7 +25,6 @@ import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.ExportFormat
-import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
 import com.yahyafati.mnemo.core.ui.files.rememberFileSaver
@@ -39,13 +37,8 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_backing_u
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_backup_done
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_backup_now
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_backup_summary
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_cancel
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_change_folder
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_data
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_error_corrupt
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_error_storage
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_error_unknown
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_error_unsupported
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_export_apkg
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_export_apkg_summary
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_export_done
@@ -56,18 +49,11 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_go
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_last_backup
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ok
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore_confirm
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore_failed
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore_message
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore_summary
-import com.yahyafati.mnemo.feature.settings.resources.feature_settings_restore_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import java.net.URLDecoder
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /** Everything the Data section can ask for; the system file pickers are opened by the screen. */
 internal class DataCallbacks(
@@ -160,27 +146,7 @@ internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: 
         TransferStatus(state.exportState, Res.string.feature_settings_exporting, Res.string.feature_settings_export_done, callbacks.onDismissTransfers)
     }
 
-    when (val restore = state.restore) {
-        null -> Unit
-        is RestoreStep.Confirm -> AlertDialog(
-            onDismissRequest = callbacks.onDismissRestore,
-            icon = { Icon(MnemoIcons.Restore, null) },
-            title = { Text(stringResource(Res.string.feature_settings_restore_title)) },
-            text = { Text(stringResource(Res.string.feature_settings_restore_message, formatted(restore.createdAt))) },
-            confirmButton = {
-                TextButton(onClick = callbacks.onConfirmRestore) {
-                    Text(stringResource(Res.string.feature_settings_restore_confirm), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = callbacks.onDismissRestore) { Text(stringResource(Res.string.feature_settings_cancel)) } },
-        )
-        is RestoreStep.Failed -> AlertDialog(
-            onDismissRequest = callbacks.onDismissRestore,
-            title = { Text(stringResource(Res.string.feature_settings_restore_failed)) },
-            text = { Text(errorText(restore.error)) },
-            confirmButton = { TextButton(onClick = callbacks.onDismissRestore) { Text(stringResource(Res.string.feature_settings_ok)) } },
-        )
-    }
+    RestoreDialogs(state.restore, callbacks.onConfirmRestore, callbacks.onDismissRestore)
 }
 
 @Composable
@@ -224,24 +190,7 @@ private fun StatusLine(text: String, isError: Boolean, onDismiss: () -> Unit) {
     }
 }
 
-@Composable
-private fun errorText(error: TransferError): String = stringResource(
-    when (error) {
-        TransferError.UnsupportedFile -> Res.string.feature_settings_error_unsupported
-        TransferError.Corrupt -> Res.string.feature_settings_error_corrupt
-        TransferError.Storage -> Res.string.feature_settings_error_storage
-        TransferError.Unknown -> Res.string.feature_settings_error_unknown
-    },
-)
-
 private const val ZIP_MIME = "application/zip"
-
-private val FILE_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmm")
-
-private fun backupFileName(now: Instant) = "mnemo-backup-${FILE_TIME.format(now.atZone(ZoneId.systemDefault()))}.zip"
-
-private fun formatted(instant: Instant): String =
-    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).format(instant.atZone(ZoneId.systemDefault()))
 
 /** A readable name for a SAF folder: "primary:Documents/Mnemo" → "Documents/Mnemo". */
 private fun folderName(uri: String): String =

@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.ui.platform.LocalAppVersion
@@ -42,9 +42,12 @@ import org.jetbrains.compose.resources.stringResource
 fun ReportAiButton(report: AiReport, modifier: Modifier = Modifier, compact: Boolean = false) {
     var asking by rememberSaveable { mutableStateOf(false) }
     if (compact) {
-        IconButton(onClick = { asking = true }, modifier = modifier) {
-            Icon(MnemoIcons.Flag, contentDescription = stringResource(Res.string.core_ui_ai_report))
-        }
+        MnemoIconButton(
+            icon = MnemoIcons.Flag,
+            contentDescription = stringResource(Res.string.core_ui_ai_report),
+            onClick = { asking = true },
+            modifier = modifier,
+        )
     } else {
         TextButton(onClick = { asking = true }, modifier = modifier) {
             Icon(MnemoIcons.Flag, contentDescription = null)

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +58,7 @@ import com.yahyafati.mnemo.core.ui.chart.ForgettingCurveChart
 import com.yahyafati.mnemo.core.ui.chart.HeatmapDay
 import com.yahyafati.mnemo.core.ui.chart.ReviewHeatmap
 import com.yahyafati.mnemo.core.ui.chart.StackedBar
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarFor
 import com.yahyafati.mnemo.feature.analytics.resources.Res
 import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_active_days
 import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_active_days_label
@@ -119,6 +121,7 @@ import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_none
 import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_streak
 import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_title
 import com.yahyafati.mnemo.feature.analytics.resources.feature_analytics_young
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -131,7 +134,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 @Composable
 internal fun AnalyticsScreen(
@@ -171,8 +173,10 @@ internal fun AnalyticsScreen(
 private fun Ready(state: AnalyticsUiState.Ready, onEditNote: (String) -> Unit, modifier: Modifier) {
     val spacing = MnemoTheme.spacing
     val stats = state.stats
+    val listState = rememberLazyListState()
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 720.dp),
@@ -197,6 +201,7 @@ private fun Ready(state: AnalyticsUiState.Ready, onEditNote: (String) -> Unit, m
                 item(key = "hardest") { HardestCards(state.hardestCards, onEditNote) }
             }
         }
+        ScrollbarFor(listState)
     }
 }
 

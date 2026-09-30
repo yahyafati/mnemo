@@ -1,9 +1,15 @@
 package com.yahyafati.mnemo.core.ui.adaptive
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.window.core.layout.WindowSizeClass
 
 /**
@@ -32,3 +38,18 @@ fun currentWindowLayout(): WindowLayout {
         short = !sizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND),
     )
 }
+
+/**
+ * How wide the body of a screen may get before it stops growing and stays centered, so lines stay
+ * readable on a maximized desktop window (desktop ROADMAP D7). Unlimited until the shell sets it: a
+ * phone or tablet uses all its width.
+ */
+val LocalMaxContentWidth = staticCompositionLocalOf { Dp.Unspecified }
+
+/**
+ * Caps this element at [LocalMaxContentWidth] and centers it in the space it was given. Put it on
+ * the body of a screen, below the top bar, which stays as wide as the window.
+ */
+@Composable
+fun Modifier.readingWidth(): Modifier =
+    fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = LocalMaxContentWidth.current)

@@ -80,7 +80,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | Module | Type | Responsibility |
 |---|---|---|
 | `:app` | Android app | The Android launcher: `MainActivity` (splash, edge-to-edge, the platform's providers around `MnemoRoot`), `MnemoApplication`, Koin start-up (`di/AppModules.kt`), WorkManager setup, the home-screen widget, the licenses JSON as a raw resource |
-| `:desktop` | JVM app | The desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); `DesktopApp` puts `MnemoRoot` in a window with `ProvideDesktopPlatform`. Builds the licenses JSON from its own classpath (`desktop/config` adds what only it bundles) |
+| `:desktop` | JVM app | The desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); `DesktopApp` puts `MnemoRoot` in a window with `ProvideDesktopPlatform`; `Main.kt` adds the window's size and place, menu bar and macOS application menu (D7). Builds the licenses JSON from its own classpath (`desktop/config` adds what only it bundles) |
 | `:shell` | KMP lib | The app shell both launchers share (D6): `MnemoRoot` (theme, onboarding or the app), `MnemoApp` (top bar, bottom bar or rail), `MnemoNavHost` (composes each feature's graph), `TopLevelDestination`, onboarding, `MainViewModel` (appearance, first run, where to open), `shellModule`. The one module that depends on every feature |
 | `:feature:decks` | KMP lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | KMP lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
@@ -161,7 +161,9 @@ mnemo/
 │
 ├── desktop/
 │   ├── config/                                          # licenses only the desktop bundles (the Java runtime)
-│   └── src/main/kotlin/com/yahyafati/mnemo/desktop/     # Main.kt, DesktopApp.kt, Startup.kt (openCollection), DesktopModules.kt
+│   ├── icons/                                           # PNG, ICO and ICNS for the installers (generate_desktop_icons.py)
+│   └── src/main/kotlin/com/yahyafati/mnemo/desktop/     # Main.kt, DesktopApp.kt, Startup.kt (openCollection), DesktopModules.kt,
+│                                                        # DesktopMenu.kt, WindowPlacement.kt, DesktopIntegration.kt
 │
 ├── core/
 │   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/
@@ -367,6 +369,14 @@ The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code wi
 | Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | `DesktopCardAudio` (`javax.sound`, mp3spi, vorbisspi; no text-to-speech) |
 
 Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The launchers provide the platform's values around `MnemoRoot` (`MainActivity` on Android; `ProvideDesktopPlatform` in `:core:ui/desktopMain` on the desktop: capabilities, window layout, image loader, math renderer, audio); unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
+
+### 4.4 The desktop experience
+
+What makes the desktop app a desktop app sits in shared modules, gated by `PlatformCapabilities.keyboardAndMouse`, with the window itself in `:desktop` (ROADMAP D7, ADR 0010 "Findings from D7"):
+
+- **Keyboard.** `Shortcuts` (`:core:ui/keyboard`) is the one table of key combinations; screens handle them with `Modifier.shortcuts`, the menu bar shows them, and `ShortcutsDialog` (`:shell`) lists them. Global ones, and everything a menu item or a dropped file asks for, are `AppCommand`s sent to `AppCommands` and carried out by `MnemoRoot`; the shell keeps the keyboard focus so they work on every screen.
+- **Mouse.** `MnemoIconButton` (tooltips), `clickCursor()`, `ContextMenuHost` (right-click menus), `ScrollbarBox` (scrollbars) and `Modifier.fileDropTarget` are `expect` functions or modifiers in `:core:ui` and `:core:designsystem`; on Android they add nothing.
+- **Window.** `:desktop` keeps the window's size, place and maximized state (`window.properties`), sets the minimum size and icon, builds the menu bar, and installs the macOS application menu handlers. The body of a wide window stops growing at `LocalMaxContentWidth` (`readingWidth()`).
 
 ## 5. Key flows
 

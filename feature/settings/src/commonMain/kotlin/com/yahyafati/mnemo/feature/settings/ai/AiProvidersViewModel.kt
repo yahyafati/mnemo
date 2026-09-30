@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -23,6 +24,8 @@ data class AiProvidersUiState(
     /** What each task uses right now. */
     val effective: Map<AiTask, AiRoute?> = emptyMap(),
     val usage: List<AiUsageTotal> = emptyList(),
+    /** Where the key behind the API keys is kept; the screen says so on a computer. */
+    val keyProtection: KeyProtection = KeyProtection.PlatformKeystore,
 ) {
     /** The provider tasks without a route of their own use: the first usable one. */
     val defaultProviderId: String? get() = providers.firstOrNull { it.isUsable }?.id
@@ -54,6 +57,7 @@ class AiProvidersViewModel(
             routes = routes.associateBy { it.task },
             effective = effective,
             usage = usage,
+            keyProtection = repository.keyProtection,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AiProvidersUiState())
 

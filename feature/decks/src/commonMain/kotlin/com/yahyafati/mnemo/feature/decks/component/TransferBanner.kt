@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.ImportSummary
@@ -116,7 +116,11 @@ private fun Result(icon: ImageVector, title: String, message: String?, onDismiss
                 Text(title, style = MaterialTheme.typography.titleSmall)
                 if (message != null) Text(message, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
-            IconButton(onClick = onDismiss) { Icon(MnemoIcons.Close, stringResource(Res.string.feature_decks_dismiss)) }
+            MnemoIconButton(
+                icon = MnemoIcons.Close,
+                contentDescription = stringResource(Res.string.feature_decks_dismiss),
+                onClick = onDismiss,
+            )
         }
     }
 }

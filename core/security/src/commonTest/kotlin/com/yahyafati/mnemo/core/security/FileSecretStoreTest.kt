@@ -1,6 +1,8 @@
 package com.yahyafati.mnemo.core.security
 
+import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import java.io.File
 import java.nio.file.Files
@@ -22,6 +24,17 @@ class FileSecretStoreTest {
     @AfterTest
     fun deleteFiles() {
         folder.deleteRecursively()
+    }
+
+    @Test
+    fun aStoreSaysWhereItsKeyIsKept() {
+        val dispatcher = UnconfinedTestDispatcher()
+        val keychain = object : SecretCipher by TestCipher() {
+            override val protection = KeyProtection.OsKeychain
+        }
+        assertEquals(KeyProtection.OsKeychain, FileSecretStore({ folder }, keychain, dispatcher).protection)
+        // The phone's keystore is what a cipher says unless it says otherwise.
+        assertEquals(KeyProtection.PlatformKeystore, FileSecretStore({ folder }, TestCipher(), dispatcher).protection)
     }
 
     /** Software AES-GCM, standing in for the Keystore (not available on the JVM). */

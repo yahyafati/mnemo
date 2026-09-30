@@ -20,7 +20,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
@@ -59,6 +59,7 @@ import com.yahyafati.mnemo.core.model.AiModel
 import com.yahyafati.mnemo.core.model.AiProviderPresets
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.settings.Hint
 import com.yahyafati.mnemo.feature.settings.Section
 import com.yahyafati.mnemo.feature.settings.resources.Res
@@ -155,9 +156,11 @@ internal fun ProviderEditorScreen(
             MnemoTopBar(
                 title = stringResource(if (uiState.isNew) Res.string.feature_settings_ai_new else Res.string.feature_settings_ai_edit),
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(MnemoIcons.Close, contentDescription = stringResource(Res.string.feature_settings_cancel))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Close,
+                        contentDescription = stringResource(Res.string.feature_settings_cancel),
+                        onClick = onClose,
+                    )
                 },
                 actions = {
                     TextButton(onClick = { onAction(ProviderEditorAction.Save) }, enabled = uiState.canSave) {
@@ -167,35 +170,31 @@ internal fun ProviderEditorScreen(
             )
         },
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            if (uiState.loading) return@Box
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 680.dp)
-                    .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
-                verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
-            ) {
-                if (uiState.isNew) PresetPicker(uiState.presetId, onAction)
-                ConnectionSection(uiState, onAction)
-                ModelSection(uiState, onAction)
-                TestSection(uiState, onAction)
-                AdvancedSection(uiState, onAction)
-                if (!uiState.isNew) {
-                    MnemoButton(
-                        text = stringResource(Res.string.feature_settings_ai_delete),
-                        onClick = { onAction(ProviderEditorAction.Delete) },
-                        style = MnemoButtonStyle.Text,
-                        leadingIcon = MnemoIcons.Delete,
-                    )
+        val scroll = rememberScrollState()
+        ScrollbarBox(scroll, Modifier.fillMaxSize().padding(padding).imePadding()) {
+            Box(Modifier.fillMaxSize().verticalScroll(scroll), contentAlignment = Alignment.TopCenter) {
+                if (uiState.loading) return@Box
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 680.dp)
+                        .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
+                ) {
+                    if (uiState.isNew) PresetPicker(uiState.presetId, onAction)
+                    ConnectionSection(uiState, onAction)
+                    ModelSection(uiState, onAction)
+                    TestSection(uiState, onAction)
+                    AdvancedSection(uiState, onAction)
+                    if (!uiState.isNew) {
+                        MnemoButton(
+                            text = stringResource(Res.string.feature_settings_ai_delete),
+                            onClick = { onAction(ProviderEditorAction.Delete) },
+                            style = MnemoButtonStyle.Text,
+                            leadingIcon = MnemoIcons.Delete,
+                        )
+                    }
                 }
-            }
+                    }
         }
     }
 
@@ -322,12 +321,11 @@ private fun ApiKeyField(uiState: ProviderEditorUiState, onAction: (ProviderEdito
                 visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                 trailingIcon = {
-                    IconButton(onClick = { visible = !visible }) {
-                        Icon(
-                            if (visible) MnemoIcons.Hide else MnemoIcons.Show,
-                            stringResource(if (visible) Res.string.feature_settings_ai_key_hide else Res.string.feature_settings_ai_key_show),
-                        )
-                    }
+                    MnemoIconButton(
+                        icon = if (visible) MnemoIcons.Hide else MnemoIcons.Show,
+                        contentDescription = stringResource(if (visible) Res.string.feature_settings_ai_key_hide else Res.string.feature_settings_ai_key_show),
+                        onClick = { visible = !visible },
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -375,9 +373,11 @@ private fun ModelSection(uiState: ProviderEditorUiState, onAction: (ProviderEdit
                 keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
                 trailingIcon = if (uiState.modelChoices.isEmpty()) null else {
                     {
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(MnemoIcons.ExpandMore, stringResource(Res.string.feature_settings_ai_models_choose))
-                        }
+                        MnemoIconButton(
+                            icon = MnemoIcons.ExpandMore,
+                            contentDescription = stringResource(Res.string.feature_settings_ai_models_choose),
+                            onClick = { expanded = true },
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -486,9 +486,11 @@ private fun AdvancedSection(uiState: ProviderEditorUiState, onAction: (ProviderE
                     keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { onAction(ProviderEditorAction.RemoveHeader(index)) }) {
-                    Icon(MnemoIcons.Close, stringResource(Res.string.feature_settings_ai_header_remove))
-                }
+                MnemoIconButton(
+                    icon = MnemoIcons.Close,
+                    contentDescription = stringResource(Res.string.feature_settings_ai_header_remove),
+                    onClick = { onAction(ProviderEditorAction.RemoveHeader(index)) },
+                )
             }
         }
         if (!uiState.headersValid) {

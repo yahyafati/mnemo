@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.core.security
 
+import com.yahyafati.mnemo.core.model.KeyProtection
 import java.security.GeneralSecurityException
 
 /**
@@ -10,6 +11,9 @@ import java.security.GeneralSecurityException
  * the OS keychain or a key file on the desktop (`DesktopSecretCipher`).
  */
 interface SecretCipher {
+    /** Where the key lives; the phone's keystore unless a platform says otherwise. */
+    val protection: KeyProtection get() = KeyProtection.PlatformKeystore
+
     fun encrypt(plaintext: ByteArray, associatedData: ByteArray): ByteArray
 
     /** @throws GeneralSecurityException if the data was tampered with, or the key is gone. */

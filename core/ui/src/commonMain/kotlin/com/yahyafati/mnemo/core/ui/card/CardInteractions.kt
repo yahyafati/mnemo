@@ -40,9 +40,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.TypedAnswer
 import com.yahyafati.mnemo.core.ui.card.markdown.MarkdownText
+import com.yahyafati.mnemo.core.ui.keyboard.consumeTypingKeys
 import com.yahyafati.mnemo.core.ui.resources.Res
 import com.yahyafati.mnemo.core.ui.resources.core_ui_card_check
 import com.yahyafati.mnemo.core.ui.resources.core_ui_card_choice_correct
@@ -190,6 +192,9 @@ internal fun TypedAnswerField(value: String, onValueChange: (String) -> Unit, on
             keyboardActions = KeyboardActions(onDone = { onSubmit() }),
             modifier = Modifier
                 .weight(1f)
+                // On a computer only: a phone's hardware keyboard types through the keyboard service, which
+                // never sees a key that was consumed here.
+                .then(if (LocalPlatformCapabilities.current.keyboardAndMouse) Modifier.consumeTypingKeys() else Modifier)
                 .focusRequester(focus),
         )
         TextButton(onClick = onSubmit, modifier = Modifier.padding(start = MnemoTheme.spacing.xs)) {

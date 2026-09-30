@@ -137,4 +137,25 @@ class BrowseViewModelTest {
             assertTrue(vm.uiState.value.selection.isEmpty())
         }
     }
+
+    @Test
+    fun aRightClickMakesTheClickedCardTheSelectionUnlessItIsInIt() {
+        val vm = viewModel()
+        runWith(vm) {
+            // Nothing selected: the card clicked becomes the selection, and the menu's action is about it alone.
+            vm.onAction(BrowseAction.SelectForMenu("c2"))
+            assertEquals(setOf("c2"), vm.uiState.value.selection)
+
+            // Another card replaces it...
+            vm.onAction(BrowseAction.SelectForMenu("c1"))
+            assertEquals(setOf("c1"), vm.uiState.value.selection)
+
+            // ...but a card that is already selected keeps the whole selection, so the action covers all of it.
+            vm.onAction(BrowseAction.ToggleSelected("c3"))
+            vm.onAction(BrowseAction.SelectForMenu("c3"))
+            assertEquals(setOf("c1", "c3"), vm.uiState.value.selection)
+            vm.onAction(BrowseAction.Flag(true))
+            assertEquals(BrowseMessage.Flagged(2, true), vm.uiState.value.message)
+        }
+    }
 }

@@ -14,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -33,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -44,6 +44,8 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.KeyProtection
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.settings.Hint
 import com.yahyafati.mnemo.feature.settings.Section
 import com.yahyafati.mnemo.feature.settings.resources.Res
@@ -55,6 +57,8 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_empty_
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_empty_title
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_enable
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_intro
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_keys_file
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_keys_keychain
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_local
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_move_down
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_move_up
@@ -115,44 +119,52 @@ internal fun AiProvidersScreen(
             MnemoTopBar(
                 title = stringResource(Res.string.feature_settings_ai_providers),
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(MnemoIcons.ArrowBack, contentDescription = stringResource(Res.string.feature_settings_back))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.ArrowBack,
+                        contentDescription = stringResource(Res.string.feature_settings_back),
+                        onClick = onBack,
+                    )
                 },
             )
         },
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            if (uiState.loading) return@Box
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 680.dp)
-                    .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
-                verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
-                    Icon(MnemoIcons.Privacy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Hint(stringResource(Res.string.feature_settings_ai_intro))
+        val scroll = rememberScrollState()
+        ScrollbarBox(scroll, Modifier.fillMaxSize().padding(padding)) {
+            Box(Modifier.fillMaxSize().verticalScroll(scroll), contentAlignment = Alignment.TopCenter) {
+                if (uiState.loading) return@Box
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 680.dp)
+                        .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                        Icon(MnemoIcons.Privacy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Hint(stringResource(Res.string.feature_settings_ai_intro))
+                    }
+                    // On a computer, where the key behind the API keys is kept matters: say it, and warn when it's a file.
+                    when (uiState.keyProtection) {
+                        KeyProtection.PlatformKeystore -> Unit
+                        KeyProtection.OsKeychain -> Hint(stringResource(Res.string.feature_settings_ai_keys_keychain))
+                        KeyProtection.KeyFile -> Hint(
+                            text = stringResource(Res.string.feature_settings_ai_keys_file),
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                    if (uiState.providers.isEmpty()) {
+                        EmptyState(
+                            icon = MnemoIcons.Cloud,
+                            title = stringResource(Res.string.feature_settings_ai_empty_title),
+                            message = stringResource(Res.string.feature_settings_ai_empty_message),
+                            action = { MnemoButton(stringResource(Res.string.feature_settings_ai_add), onAddProvider, leadingIcon = MnemoIcons.Add) },
+                        )
+                    } else {
+                        ProvidersSection(uiState, onAction, onAddProvider, onEditProvider)
+                        RoutingSection(uiState, onAction)
+                    }
+                    UsageSection(uiState.usage)
                 }
-                if (uiState.providers.isEmpty()) {
-                    EmptyState(
-                        icon = MnemoIcons.Cloud,
-                        title = stringResource(Res.string.feature_settings_ai_empty_title),
-                        message = stringResource(Res.string.feature_settings_ai_empty_message),
-                        action = { MnemoButton(stringResource(Res.string.feature_settings_ai_add), onAddProvider, leadingIcon = MnemoIcons.Add) },
-                    )
-                } else {
-                    ProvidersSection(uiState, onAction, onAddProvider, onEditProvider)
-                    RoutingSection(uiState, onAction)
-                }
-                UsageSection(uiState.usage)
-            }
+                    }
         }
     }
 }
@@ -230,12 +242,18 @@ private fun ProviderRow(
                 }
             }
         }
-        IconButton(onClick = { onAction(AiProvidersAction.Move(provider.id, -1)) }, enabled = canMoveUp) {
-            Icon(MnemoIcons.MoveUp, stringResource(Res.string.feature_settings_ai_move_up, provider.name))
-        }
-        IconButton(onClick = { onAction(AiProvidersAction.Move(provider.id, 1)) }, enabled = canMoveDown) {
-            Icon(MnemoIcons.MoveDown, stringResource(Res.string.feature_settings_ai_move_down, provider.name))
-        }
+        MnemoIconButton(
+            icon = MnemoIcons.MoveUp,
+            contentDescription = stringResource(Res.string.feature_settings_ai_move_up, provider.name),
+            onClick = { onAction(AiProvidersAction.Move(provider.id, -1)) },
+            enabled = canMoveUp,
+        )
+        MnemoIconButton(
+            icon = MnemoIcons.MoveDown,
+            contentDescription = stringResource(Res.string.feature_settings_ai_move_down, provider.name),
+            onClick = { onAction(AiProvidersAction.Move(provider.id, 1)) },
+            enabled = canMoveDown,
+        )
         val toggle = stringResource(Res.string.feature_settings_ai_enable, provider.name)
         Switch(
             checked = provider.enabled,

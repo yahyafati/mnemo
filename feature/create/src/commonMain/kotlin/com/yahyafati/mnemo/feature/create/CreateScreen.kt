@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -21,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -120,9 +119,11 @@ internal fun NoteEditorFullScreen(
             MnemoTopBar(
                 title = stringResource(if (uiState.isEditing) Res.string.feature_create_title_edit else Res.string.feature_create_title_new),
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
-                        Icon(MnemoIcons.Close, stringResource(Res.string.feature_create_close))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.Close,
+                        contentDescription = stringResource(Res.string.feature_create_close),
+                        onClick = onClose,
+                    )
                 },
             )
         },

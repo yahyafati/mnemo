@@ -8,6 +8,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.core.common)
+            api(projects.core.model)
             implementation(libs.koin.core)
         }
         desktopMain.dependencies {

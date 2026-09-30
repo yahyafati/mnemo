@@ -86,6 +86,10 @@ class StudyViewModel(
                 revealed = !revealed
                 render()
             }
+            StudyAction.Reveal -> if (current != null && !revealed) {
+                revealed = true
+                render()
+            }
             is StudyAction.Rate -> rate(action.rating)
             is StudyAction.TypeAnswer -> if (current != null && !revealed) {
                 response = response.copy(typed = action.text)

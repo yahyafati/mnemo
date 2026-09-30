@@ -5,6 +5,9 @@ sealed interface SourceInput {
     /** A PDF picked through the Storage Access Framework (a `content://` URI). */
     data class Pdf(val uri: String) : SourceInput
 
+    /** A plain text or Markdown file (a file dropped on the desktop window). */
+    data class TextFile(val uri: String) : SourceInput
+
     /** A web page, or a PDF behind a link. */
     data class Link(val url: String) : SourceInput
 }

@@ -14,6 +14,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,6 +27,8 @@ import java.time.Instant
  * what was saved. [testConnection] answers with [nextReport] and remembers the drafts it got.
  */
 class FakeAiProviderRepository : AiProviderRepository {
+    override var keyProtection: KeyProtection = KeyProtection.PlatformKeystore
+
     private val providers = MutableStateFlow<List<AiProvider>>(emptyList())
     private val models = MutableStateFlow<Map<String, List<AiModel>>>(emptyMap())
     private val routes = MutableStateFlow<List<AiTaskRoute>>(emptyList())

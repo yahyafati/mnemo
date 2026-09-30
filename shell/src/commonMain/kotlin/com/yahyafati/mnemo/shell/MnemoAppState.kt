@@ -63,6 +63,17 @@ class MnemoAppState(val navController: NavHostController) {
         }
     }
 
+    /** Leaves a full-screen page for the one before it; on a tab there is nowhere to go, and nothing happens. */
+    fun navigateBack() {
+        val destination = navController.currentDestination ?: return
+        if (TopLevelDestination.entries.none { destination.hierarchy.any { node -> node.hasRoute(it.route) } }) {
+            navController.popBackStack()
+        }
+    }
+
+    /** Whether the screen showing now is the route [T] (for commands, which aren't composable). */
+    inline fun <reified T : Any> isShowing(): Boolean = navController.currentDestination?.hasRoute<T>() == true
+
     fun navigateToSettings() {
         navController.navigateToSettings(navOptions { launchSingleTop = true })
     }

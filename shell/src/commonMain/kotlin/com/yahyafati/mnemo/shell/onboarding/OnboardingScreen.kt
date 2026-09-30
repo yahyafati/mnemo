@@ -72,7 +72,9 @@ import com.yahyafati.mnemo.shell.resources.onboarding_skip
 import com.yahyafati.mnemo.shell.resources.onboarding_start_message
 import com.yahyafati.mnemo.shell.resources.onboarding_start_title
 import com.yahyafati.mnemo.shell.resources.onboarding_study_flip
+import com.yahyafati.mnemo.shell.resources.onboarding_study_flip_keys
 import com.yahyafati.mnemo.shell.resources.onboarding_study_rate
+import com.yahyafati.mnemo.shell.resources.onboarding_study_rate_keys
 import com.yahyafati.mnemo.shell.resources.onboarding_study_title
 import com.yahyafati.mnemo.shell.resources.onboarding_study_types
 import com.yahyafati.mnemo.shell.resources.onboarding_welcome_ai
@@ -98,6 +100,7 @@ internal fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val pager = rememberPagerState { PAGES }
+    val keyboard = LocalPlatformCapabilities.current.keyboardAndMouse
     val scope = rememberCoroutineScope()
     var reminder by rememberSaveable { mutableStateOf(false) }
     val importPicker = rememberFilePicker { onImport(it, reminder) }
@@ -142,8 +145,14 @@ internal fun OnboardingScreen(
                                 header = { IconBadge(MnemoIcons.StudySelected) },
                                 title = stringResource(Res.string.onboarding_study_title),
                                 points = listOf(
-                                    MnemoIcons.TouchApp to stringResource(Res.string.onboarding_study_flip),
-                                    MnemoIcons.Schedule to stringResource(Res.string.onboarding_study_rate),
+                                    if (keyboard) {
+                                        MnemoIcons.Keyboard to stringResource(Res.string.onboarding_study_flip_keys)
+                                    } else {
+                                        MnemoIcons.TouchApp to stringResource(Res.string.onboarding_study_flip)
+                                    },
+                                    MnemoIcons.Schedule to stringResource(
+                                        if (keyboard) Res.string.onboarding_study_rate_keys else Res.string.onboarding_study_rate,
+                                    ),
                                     MnemoIcons.Quiz to stringResource(Res.string.onboarding_study_types),
                                 ),
                             )

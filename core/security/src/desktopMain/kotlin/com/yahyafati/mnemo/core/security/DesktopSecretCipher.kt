@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.core.security
 
+import com.yahyafati.mnemo.core.model.KeyProtection
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.security.GeneralSecurityException
@@ -7,15 +8,6 @@ import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
-
-/** How the key behind the encrypted API keys is kept on this computer. Settings says which one it is. */
-enum class KeyProtection {
-    /** Windows Credential Manager, macOS Keychain or the Secret Service (GNOME Keyring, KWallet). */
-    OsKeychain,
-
-    /** A file only this user can read, because the computer has no usable keychain. */
-    KeyFile,
-}
 
 /** Somewhere to keep the AES key of a [DesktopSecretCipher]. */
 interface KeyStorage {
@@ -48,7 +40,7 @@ class DesktopSecretCipher(
     private var cached: SecretKeySpec? = null
 
     /** Where the key is, or will be saved on first use. */
-    val protection: KeyProtection
+    override val protection: KeyProtection
         get() = when {
             keychain?.load() != null -> KeyProtection.OsKeychain
             keyFile.load() != null -> KeyProtection.KeyFile

@@ -41,6 +41,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -54,11 +56,16 @@ import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.core.ui.files.rememberMediaPicker
+import com.yahyafati.mnemo.core.ui.keyboard.Shortcuts
+import com.yahyafati.mnemo.core.ui.keyboard.does
+import com.yahyafati.mnemo.core.ui.keyboard.previewShortcuts
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarFor
 import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
@@ -129,19 +136,36 @@ internal fun NoteEditorScreen(
         if (uiState.attachFailedEvent > 0) snackbar.showSnackbar(getString(Res.string.feature_create_attach_failed))
     }
 
-    Box(modifier.fillMaxSize()) {
+    // On a computer the cursor starts in the front field, and goes back there after a card is added,
+    // so a batch of cards can be typed without the mouse. A phone would pop its keyboard up instead.
+    val frontFocus = remember { FocusRequester() }
+    val keyboard = LocalPlatformCapabilities.current.keyboardAndMouse
+    LaunchedEffect(uiState.isLoading, uiState.addEvent) {
+        if (keyboard && !uiState.isLoading) runCatching { frontFocus.requestFocus() }
+    }
+    val scroll = rememberScrollState()
+    Box(
+        modifier
+            .fillMaxSize()
+            // Before the focused field sees the key: a multi-line field would insert a line break for Ctrl+Enter.
+            .previewShortcuts(
+                Shortcuts.Save does { if (uiState.canSave) onAction(NoteEditorAction.Save) },
+                Shortcuts.Cloze does { if (uiState.kind == NoteKind.Cloze) onAction(NoteEditorAction.InsertCloze) },
+            ),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(horizontal = spacing.screenMargin, vertical = spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.lg),
         ) {
-            EditorCard(uiState, onAction, Modifier.widthIn(max = 680.dp))
+            EditorCard(uiState, onAction, frontFocus, Modifier.widthIn(max = 680.dp))
             PreviewSection(uiState, Modifier.widthIn(max = 680.dp))
         }
+        ScrollbarFor(scroll)
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 
@@ -154,7 +178,12 @@ internal fun NoteEditorScreen(
 }
 
 @Composable
-private fun EditorCard(uiState: NoteEditorUiState, onAction: (NoteEditorAction) -> Unit, modifier: Modifier = Modifier) {
+private fun EditorCard(
+    uiState: NoteEditorUiState,
+    onAction: (NoteEditorAction) -> Unit,
+    frontFocus: FocusRequester,
+    modifier: Modifier = Modifier,
+) {
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
     Surface(
@@ -203,6 +232,7 @@ private fun EditorCard(uiState: NoteEditorUiState, onAction: (NoteEditorAction) 
                     ),
                     textStyle = MnemoTheme.typography.studyPromptCompact,
                     onFocused = { onAction(NoteEditorAction.FieldFocused(EditorField.Front)) },
+                    focusRequester = frontFocus,
                 )
                 if (kind == NoteKind.Cloze) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -326,6 +356,7 @@ private fun EditorField(
     supportingText: String? = null,
     minLines: Int = 2,
     onFocused: (() -> Unit)? = null,
+    focusRequester: FocusRequester? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -339,6 +370,7 @@ private fun EditorField(
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { if (it.isFocused) onFocused?.invoke() },
     )
 }

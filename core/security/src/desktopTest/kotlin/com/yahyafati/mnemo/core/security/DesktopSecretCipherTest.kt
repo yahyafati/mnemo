@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.core.security
 
+import com.yahyafati.mnemo.core.model.KeyProtection
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files

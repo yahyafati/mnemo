@@ -483,31 +483,52 @@ the JVM module tests, `:desktop:test`, `verifyRoborazziDebug`, `verifyRoborazziA
 such as Ollama counts), run Smart Extract from paste, PDF and link, use Explain/Example/Rewrite
 and Co-Author, and see Analytics and run the optimizer. Met as far as the automated tests reach
 (above); the by-hand pass is part of D9's runbook. **Findings:** see ADR 0010, "Findings from D6".
-Wording that assumes touch ("Tap the card", "Swipe left…") is left for D7.
+Wording that assumes touch ("Tap the card", "Swipe left…") was left for D7 (done there).
 
 ## D7 — Desktop experience
 
 **Goal:** Mnemo feels like a desktop app, not a phone app in a window.
 
-- [ ] **Window:** minimum size, remembered size, position and maximized state; app icon (extend
-      `docs/release/assets/generate_icon_drawables.py` to write PNG, ICO and ICNS); the expanded
-      (navigation-rail) layouts from the tablet work; a maximum content width for reading.
-- [ ] **Keyboard:** study (Space/Enter reveal, 1–4 rate, Ctrl/⌘+Z undo, E edit); global
-      (Ctrl/⌘+N new note, Ctrl/⌘+F search in Browse, Ctrl/⌘+, Settings, Ctrl/⌘+1–4 tabs);
-      editor (Ctrl/⌘+Enter save, cloze shortcut). A shortcuts sheet on `?`. Focus order and Tab
-      navigation work everywhere.
-- [ ] **Menu bar:** File (Import…, Export…, Back up…, Restore…, Quit), Edit, View, Help (About,
-      Licenses, Report an issue). On macOS, the app menu follows platform conventions
-      (⌘Q, Settings…).
-- [ ] **Mouse:** hover states, tooltips on icon buttons, right-click menus in Browse and on deck
-      cards, visible scrollbars.
-- [ ] **Drag and drop:** drop an `.apkg`, `.colpkg` or backup onto the window to import it; drop a
-      PDF or text file onto Smart Extract.
-- [ ] **Theme:** follow the OS light/dark setting where the platform reports it; the manual
+- [x] **Window:** minimum size 720 × 520, and the size, position and maximized state come back
+      (`window.properties` next to the collection, never in a backup: saved half a second after the
+      window stops changing and on closing; a position whose title bar would be off every connected
+      screen falls back to the system's). The app icon is `docs/release/assets/generate_desktop_icons.py`
+      (PNG for the window and the Dock, ICO and ICNS for D8's installers, all from `logo.svg`; a script of
+      its own, so it doesn't need shapely). The navigation rail of the tablet layouts shows from 600 dp, and
+      `LocalMaxContentWidth` (1,100 dp on the desktop, `readingWidth()`) stops Decks, Browse and Licenses
+      stretching across a big monitor; the other screens already cap at 560–720 dp.
+- [x] **Keyboard:** every shortcut is in `Shortcuts` (`:core:ui/keyboard`), which the handlers, the menu bar
+      and the `?` sheet read. Study: Space or Enter show the answer, 1–4 rate (or pick a multiple choice
+      option), Ctrl/⌘+Z undo, E edit. Anywhere: Ctrl/⌘+N new note, +F find cards, +, Settings, +O import,
+      +1–4 tabs, Esc leaves a full-screen page, `?` lists them. The plain-character ones (Space, Enter,
+      1–4, E, `?`) are matched as typed characters, so typing in a text field never triggers them; the same
+      work fixed the study card flipping when a space was typed into a type-in answer (a D6 bug). Editor: Ctrl/⌘+Enter adds the card (the
+      cursor goes back to the front field for the next), Ctrl/⌘+Shift+C makes a cloze. Hints, onboarding and
+      the study buttons' tooltips name the keys instead of "tap" and "swipe" where there is a keyboard.
+- [x] **Menu bar:** File (Import…, Export as .apkg or JSON…, Back up…, Restore from backup…, Quit), Edit (New
+      note, Find cards, Settings…), View (the four tabs), Help (Keyboard shortcuts, Open-source licenses, Report
+      an issue, Privacy policy, About). On macOS, About, Settings… and Quit are in the application menu, the
+      Dock icon is set, and files handed to the app open. Every item sends an `AppCommand`, as the keys do.
+- [x] **Mouse:** tooltips on icon buttons (`MnemoIconButton`, with the shortcut in them), the hand cursor on
+      buttons, chips, rail items and rows (`clickCursor`), right-click menus on deck cards, Browse rows and the
+      study card (`ContextMenuHost`), scrollbars on every long page (`ScrollbarBox`).
+- [x] **Drag and drop:** an `.apkg` or `.colpkg` dropped on the window is imported (each one, in turn), a
+      `.zip` asks to restore it; a PDF, text or Markdown file dropped on Smart Extract becomes its source
+      (new: `SourceInput.TextFile`).
+- [x] **Theme:** follows the OS (Compose's `isSystemInDarkTheme()`; the title bar on macOS too); the manual
       setting still wins.
+- [x] **Key storage:** Settings › AI providers says whether the key behind the API keys is in the OS keychain
+      or in a file (ADR 0010, finding 6 of D6).
+- [~] Exit: a full session with the keyboard only is tested end to end on the desktop graph
+      (`DesktopAppTest`: studying with the keys, adding a batch of cards, every page by shortcut), and each
+      menu command, drop and right-click menu has a test. **Not done:** a session by hand in the real window
+      on each OS. The menu bar, the accelerators on Windows and Linux, dragging from a real file manager, the
+      hand cursor and the macOS application menu are proved only as far as a unit test or a macOS run of the
+      menu's structure reaches; they belong to D9's runbook.
 
-**Exit:** a full session (import a deck, study 50 cards, add 10 notes) works without the mouse,
-checked on each OS.
+**Exit:** a full session (import a deck, study 50 cards, add 10 notes) works without the mouse, checked on
+each OS. Met by the automated tests above on macOS arm64; open on Windows and Linux and in a real window
+(see the last item). **Findings:** see ADR 0010, "Findings from D7".
 
 ## D8 — Packaging and distribution
 

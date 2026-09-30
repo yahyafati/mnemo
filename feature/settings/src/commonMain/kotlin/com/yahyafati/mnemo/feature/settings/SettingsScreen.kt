@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -23,7 +22,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
@@ -54,6 +54,7 @@ import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
+import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.settings.resources.Res
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_none
@@ -85,11 +86,11 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme_dar
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme_light
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme_system
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_title
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import kotlin.math.roundToInt
 
 /** Callbacks for every setting, so the stateless screen stays previewable. */
 internal class SettingsCallbacks(
@@ -177,37 +178,36 @@ internal fun SettingsScreen(
             MnemoTopBar(
                 title = stringResource(Res.string.feature_settings_title),
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(MnemoIcons.ArrowBack, contentDescription = stringResource(Res.string.feature_settings_back))
-                    }
+                    MnemoIconButton(
+                        icon = MnemoIcons.ArrowBack,
+                        contentDescription = stringResource(Res.string.feature_settings_back),
+                        onClick = onBackClick,
+                    )
                 },
             )
         },
     ) { padding ->
         val settings = (uiState as? SettingsUiState.Success)?.settings
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            if (settings != null) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = 680.dp)
-                        .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
-                ) {
-                    SchedulingSection(settings, callbacks) { FsrsParametersSetting(settings.fsrsWeights, optimizerState, optimizerCallbacks) }
-                    StudySection(settings, callbacks.onAutoPlayAudio)
-                    if (LocalPlatformCapabilities.current.reminders) ReminderSection(settings.reminder, callbacks.onReminder)
-                    AppearanceSection(settings, callbacks)
-                    AiSection(aiSummary, onOpenAiProviders)
-                    DataSection(settings.backup, dataState, dataCallbacks)
-                    AboutSection(onOpenLicenses)
+        val scroll = rememberScrollState()
+        ScrollbarBox(scroll, Modifier.fillMaxSize().padding(padding)) {
+            Box(Modifier.fillMaxSize().verticalScroll(scroll), contentAlignment = Alignment.TopCenter) {
+                if (settings != null) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 680.dp)
+                            .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.lg),
+                    ) {
+                        SchedulingSection(settings, callbacks) { FsrsParametersSetting(settings.fsrsWeights, optimizerState, optimizerCallbacks) }
+                        StudySection(settings, callbacks.onAutoPlayAudio)
+                        if (LocalPlatformCapabilities.current.reminders) ReminderSection(settings.reminder, callbacks.onReminder)
+                        AppearanceSection(settings, callbacks)
+                        AiSection(aiSummary, onOpenAiProviders)
+                        DataSection(settings.backup, dataState, dataCallbacks)
+                        AboutSection(onOpenLicenses)
+                    }
                 }
-            }
+                    }
         }
     }
 }
@@ -349,8 +349,9 @@ private fun NumberSetting(label: String, value: Int, step: Int, onChange: (Int) 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         val decrease = stringResource(Res.string.feature_settings_decrease, label)
-        IconButton(
+        MnemoIconButton(
             onClick = { onChange((value - step).coerceAtLeast(0)) },
+            tooltip = decrease,
             enabled = value > 0,
             modifier = Modifier.semantics { contentDescription = decrease },
         ) {
@@ -361,9 +362,11 @@ private fun NumberSetting(label: String, value: Int, step: Int, onChange: (Int) 
             style = MnemoTheme.typography.metricLg,
             modifier = Modifier.widthIn(min = 40.dp),
         )
-        IconButton(onClick = { onChange(value + step) }) {
-            Icon(MnemoIcons.Add, stringResource(Res.string.feature_settings_increase, label))
-        }
+        MnemoIconButton(
+            icon = MnemoIcons.Add,
+            contentDescription = stringResource(Res.string.feature_settings_increase, label),
+            onClick = { onChange(value + step) },
+        )
     }
 }
 
@@ -414,8 +417,8 @@ private fun <T> Choice(options: List<Pair<T, StringResource>>, selected: T, onSe
 }
 
 @Composable
-internal fun Hint(text: String) {
-    Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun Hint(text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Text(text, style = MaterialTheme.typography.labelMedium, color = color)
 }
 
 @Preview(heightDp = 1000)
