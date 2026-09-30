@@ -1,0 +1,16 @@
+{
+  "uniqueId": "bundled:openjdk",
+  "name": "OpenJDK runtime",
+  "description": "The Java runtime that the desktop installers bundle (a jlink image of a Temurin build).",
+  "website": "https://openjdk.org",
+  "developers": [
+    {
+      "name": "Oracle, the Eclipse Adoptium project and other OpenJDK contributors"
+    }
+  ],
+  "licenses": [
+    "GPL-2.0-with-classpath-exception"
+  ],
+  "openSource": true,
+  "artifactVersion": "21"
+}

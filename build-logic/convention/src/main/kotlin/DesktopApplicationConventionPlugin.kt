@@ -13,6 +13,7 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.desktop.DesktopExtension
+import org.jetbrains.compose.desktop.application.tasks.AbstractCheckNativeDistributionRuntime
 import org.jetbrains.compose.desktop.application.tasks.AbstractJvmToolOperationTask
 
 /**
@@ -69,6 +70,10 @@ class DesktopApplicationConventionPlugin : Plugin<Project> {
             afterEvaluate {
                 tasks.withType<AbstractJvmToolOperationTask>().configureEach {
                     javaHome.set(packagingJdk.map { it.metadata.installationPath.asFile.absolutePath })
+                }
+                // `checkRuntime` looks for `jpackage` in the same JDK.
+                tasks.withType<AbstractCheckNativeDistributionRuntime>().configureEach {
+                    jdkHome.set(packagingJdk.map { it.metadata.installationPath.asFile.absolutePath })
                 }
             }
 

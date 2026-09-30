@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.mnemo.android.application)
     alias(libs.plugins.mnemo.android.compose)
-    alias(libs.plugins.roborazzi)
     alias(libs.plugins.aboutlibraries)
 }
 
@@ -35,12 +34,14 @@ android {
 }
 
 dependencies {
+    // The features and the shell's navigation live in :shell; this module is the Android launcher.
     implementation(projects.feature.analytics)
     implementation(projects.feature.browse)
     implementation(projects.feature.create)
     implementation(projects.feature.decks)
     implementation(projects.feature.settings)
     implementation(projects.feature.study)
+    implementation(projects.shell)
 
     implementation(projects.core.common)
     implementation(projects.core.data)
@@ -53,13 +54,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.navigation.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.workmanager)
-    implementation(libs.koin.compose)
-    implementation(libs.koin.compose.viewmodel)
     implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.aboutlibraries.core)
@@ -73,8 +69,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.koin.test)
     testImplementation(libs.robolectric)
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     androidTestImplementation(projects.core.testing)

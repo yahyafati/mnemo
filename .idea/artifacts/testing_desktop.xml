@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="testing-desktop">
+    <output-path>$PROJECT_DIR$/core/testing/build/libs</output-path>
+    <root id="archive" name="testing-desktop.jar" />
+  </artifact>
+</component>

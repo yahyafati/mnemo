@@ -1,7 +1,5 @@
 package com.yahyafati.mnemo.di
 
-import com.yahyafati.mnemo.MainViewModel
-import com.yahyafati.mnemo.widget.TodayWidgetUpdater
 import com.yahyafati.mnemo.core.common.di.commonModule
 import com.yahyafati.mnemo.core.data.di.dataLayerModules
 import com.yahyafati.mnemo.core.domain.di.domainModule
@@ -11,13 +9,13 @@ import com.yahyafati.mnemo.feature.create.createModule
 import com.yahyafati.mnemo.feature.decks.decksModule
 import com.yahyafati.mnemo.feature.settings.settingsModule
 import com.yahyafati.mnemo.feature.study.studyModule
+import com.yahyafati.mnemo.shell.shellModule
+import com.yahyafati.mnemo.widget.TodayWidgetUpdater
 import org.koin.core.module.dsl.singleOf
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-/** What only the app itself provides: the shell's ViewModel and the widget. */
+/** What only the Android app provides: the widget. */
 val appModule = module {
-    viewModelOf(::MainViewModel)
     singleOf(::TodayWidgetUpdater)
 }
 
@@ -33,5 +31,6 @@ val mnemoModules = listOf(commonModule) + dataLayerModules + listOf(
     decksModule,
     settingsModule,
     studyModule,
+    shellModule,
     appModule,
 )

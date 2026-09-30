@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.desktop
 
+import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import com.yahyafati.mnemo.core.data.desktop.DesktopAppDirectories
 import com.yahyafati.mnemo.core.security.SecretCipher
@@ -27,10 +28,23 @@ class DesktopGraphTest {
                         single<SecretCipher> { SoftwareSecretCipher() }
                     },
                 )
-                checkModules()
+                checkModules {
+                    // ViewModels read their navigation arguments from the handle.
+                    for (name in VIEW_MODELS_WITH_ARGUMENTS) withParameter(Class.forName(name).kotlin) { SavedStateHandle() }
+                }
             }.close()
         } finally {
             root.deleteRecursively()
         }
+    }
+
+    private companion object {
+        val VIEW_MODELS_WITH_ARGUMENTS = listOf(
+            "com.yahyafati.mnemo.feature.study.StudyViewModel",
+            "com.yahyafati.mnemo.feature.create.NoteEditorViewModel",
+            "com.yahyafati.mnemo.feature.create.coauthor.CoAuthorViewModel",
+            "com.yahyafati.mnemo.feature.browse.BrowseViewModel",
+            "com.yahyafati.mnemo.feature.settings.ai.ProviderEditorViewModel",
+        )
     }
 }

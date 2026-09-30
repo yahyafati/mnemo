@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="security">
+    <output-path>$PROJECT_DIR$/core/security/build/libs</output-path>
+    <root id="archive" name="security.jar" />
+  </artifact>
+</component>

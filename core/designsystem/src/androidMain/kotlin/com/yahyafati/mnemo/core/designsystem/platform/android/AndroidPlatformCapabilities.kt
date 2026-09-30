@@ -11,4 +11,6 @@ fun androidPlatformCapabilities(sdk: Int = Build.VERSION.SDK_INT) = PlatformCapa
     dictation = true,
     textToSpeech = true,
     runtimePermissions = true,
+    dynamicColorSetting = true,
+    localhostHint = true,
 )

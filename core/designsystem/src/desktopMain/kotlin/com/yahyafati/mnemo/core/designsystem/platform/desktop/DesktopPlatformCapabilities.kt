@@ -13,4 +13,6 @@ fun desktopPlatformCapabilities() = PlatformCapabilities(
     dictation = false,
     textToSpeech = false,
     runtimePermissions = false,
+    dynamicColorSetting = false,
+    localhostHint = false,
 )

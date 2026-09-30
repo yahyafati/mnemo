@@ -51,8 +51,6 @@ PENDING = {
     "app/src/main/java/com/yahyafati/mnemo/MainActivity.kt": "Android launcher (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/MnemoApplication.kt": "Android launcher (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/widget/TodayWidget.kt": "home-screen widget: Android only (stays in :app)",
-    # The licenses list reads AboutLibraries' JSON from an Android raw resource: D6 passes it in as text.
-    "feature/settings/src/main/kotlin/com/yahyafati/mnemo/feature/settings/LicensesScreen.kt": "D6: raw resource id",
 }
 
 

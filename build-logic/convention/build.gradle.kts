@@ -41,21 +41,9 @@ gradlePlugin {
             id = libs.plugins.mnemo.android.application.get().pluginId
             implementationClass = "AndroidApplicationConventionPlugin"
         }
-        register("androidLibrary") {
-            id = libs.plugins.mnemo.android.library.get().pluginId
-            implementationClass = "AndroidLibraryConventionPlugin"
-        }
         register("androidCompose") {
             id = libs.plugins.mnemo.android.compose.get().pluginId
             implementationClass = "AndroidComposeConventionPlugin"
-        }
-        register("androidFeature") {
-            id = libs.plugins.mnemo.android.feature.get().pluginId
-            implementationClass = "AndroidFeatureConventionPlugin"
-        }
-        register("androidRoom") {
-            id = libs.plugins.mnemo.android.room.get().pluginId
-            implementationClass = "AndroidRoomConventionPlugin"
         }
         register("kmpLibrary") {
             id = libs.plugins.mnemo.kmp.library.get().pluginId

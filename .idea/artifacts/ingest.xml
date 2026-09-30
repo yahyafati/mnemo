@@ -1,0 +1,6 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ingest">
+    <output-path>$PROJECT_DIR$/core/ingest/build/libs</output-path>
+    <root id="archive" name="ingest.jar" />
+  </artifact>
+</component>

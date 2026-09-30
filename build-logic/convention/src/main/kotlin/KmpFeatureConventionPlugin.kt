@@ -7,9 +7,9 @@ import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
- * `mnemo.kmp.feature`: the KMP twin of `mnemo.android.feature` (D6): library + Compose
- * Multiplatform + serialization + the core modules every feature uses. Features depend on `core`
- * only, never on each other (ARCHITECTURE §3).
+ * `mnemo.kmp.feature` (D6): library + Compose Multiplatform + serialization + the core modules every
+ * feature uses. Features depend on `core` only, never on each other (ARCHITECTURE §3). `:shell`, which
+ * knows every feature, uses it too.
  *
  * Koin is the DI library (D2); ViewModels, navigation and lifecycle come from the JetBrains artifacts.
  * Apply it only once `:core:designsystem`, `:core:domain` and `:core:ui` are KMP modules (D4, D5):
@@ -31,6 +31,7 @@ class KmpFeatureConventionPlugin : Plugin<Project> {
                     implementation(project(":core:ui"))
 
                     implementation(libs.library("jetbrains-navigation-compose"))
+                    implementation(libs.library("jetbrains-lifecycle-runtime-compose"))
                     implementation(libs.library("jetbrains-lifecycle-viewmodel-compose"))
                     implementation(libs.library("koin-core"))
                     implementation(libs.library("koin-compose"))

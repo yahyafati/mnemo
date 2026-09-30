@@ -290,7 +290,7 @@ and their implementations is ARCHITECTURE §4.3.
         Settings hides the reminder section without `reminders`, Smart Extract hides Dictation, and
         the study screen's read-aloud button needs `textToSpeech` or a sound on the card. The
         dynamic-color row still shows its "Needs Android 12 or newer" text when the capability is
-        off: D6/D7 decide what the desktop shows.
+        off. D6: the desktop does not list the row (`dynamicColorSetting`).
   - [x] File dialogs: `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver` and
         `rememberFolderPicker` (`:core:ui/files`) replace the activity-result launchers in
         `NoteEditorScreen`, `SmartExtractScreen`, `DataSection`, `DecksScreen` and onboarding. The
@@ -431,9 +431,9 @@ the widget and a reminder (the same checks as D2, now over the driver API).
       `:core:designsystem` and cards with math, an image and a sound link, in `:core:ui`
       (`src/desktopTest/screenshots`).
 - [x] `:desktop` shows the sample cards with `MnemoTheme` and `CardFace` (a math card included).
-- [ ] Not done, left for D6/D7: the desktop message when a sound has an unsupported format
-      (`DesktopCardAudio` reports it through a callback), a check of the KaTeX WebView on a device, the
-      desktop baselines on Windows/Linux (recorded on macOS arm64 only), hearing the audio.
+- [ ] Not done: a check of the KaTeX WebView on a device, the desktop baselines on Windows/Linux
+      (recorded on macOS arm64 only), hearing the audio. The message for a sound in an unsupported
+      format came in D6 (`DesktopApp` shows `DesktopCardAudio`'s problems in a snackbar).
 
 **Exit:** the component catalog and sample cards render on desktop; `verifyRoborazziDebug` passes
 on Android. Met on macOS arm64: `assembleDebug testDebugUnitTest testAndroidHostTest desktopTest lint`,
@@ -445,27 +445,45 @@ the JVM module tests, `:desktop:test`, `verifyRoborazziDebug`, `verifyRoborazziA
 
 **Goal:** every tab and Settings works on desktop.
 
-- [ ] Features to `mnemo.kmp.feature`, smallest first: analytics → browse → decks → study →
-      settings → create. ViewModels and screens are shared; Android-only UI (reminder settings,
-      dictation, permission prompts, widget hints) sits in the Android source set or behind
-      capability flags.
-- [ ] A shared shell module (`:shell`) takes `MnemoApp`, `TopLevelDestination`, the nav host and
-      onboarding from `:app`. It depends on the features, as `:app` does today; features still
-      never depend on each other. `:app` and `:desktop` become thin launchers.
-- [ ] Onboarding on desktop skips the notification-permission page.
-- [ ] Licenses: AboutLibraries generates the desktop list too, and `LicensesScreen` takes the
-      library JSON instead of an Android raw resource id. Desktop-only bundles (the JRE, Skia,
-      the math and audio libraries) go into `NOTICE` and `app/config`.
-- [ ] Tests: ViewModel tests move to shared test source sets. Android Compose UI tests stay on
-      Robolectric. Desktop gets Compose UI tests (`runComposeUiTest`) for the first session and
-      the study loop.
-- [ ] Remove the Android-only convention plugins that nothing uses any more, and update
-      `CLAUDE.md` and ARCHITECTURE §3–4 for the new module layout.
+- [x] Features to `mnemo.kmp.feature`: analytics, browse, decks, study, settings, create. The
+      sources moved to `commonMain`, the 705 strings (and 58 plurals) to `composeResources`, the
+      ViewModel tests to `commonTest` (they now run on both targets), and the Robolectric Compose
+      and screenshot tests, with their baselines, to `androidHostTest`. No baseline changed.
+      Android-only UI needed no source set of its own: the reminder section, Smart Extract's
+      dictation and the permission prompts already sit behind `PlatformCapabilities` (D3), and two
+      flags joined it (`dynamicColorSetting`, `localhostHint`).
+- [x] `:shell` (KMP) takes `MnemoApp`, `MnemoAppState`, `TopLevelDestination`, the nav host,
+      onboarding and `MainViewModel` from `:app`, plus `MnemoRoot` (settings → theme → onboarding or
+      the app) that `MainActivity` and the desktop window both call. `:app` is the Android launcher
+      (splash, edge-to-edge, the platform's providers, the widget); `:desktop` the desktop one
+      (`DesktopApp`).
+- [x] Onboarding on desktop skips the reminder row (notification permission page), which is hidden
+      by the `reminders` capability. The welcome text says "this device".
+- [x] Licenses: `LicensesScreen` takes a loader that returns the JSON. `:desktop` applies the
+      AboutLibraries JVM plugin offline and ships the list on its classpath; `desktop/config` adds
+      the Java runtime and the license texts its libraries need. `NOTICE` lists the runtime. The
+      desktop's other bundles (Skia, JLaTeXMath, the audio decoders, java-keyring, PDFBox) were
+      already in `NOTICE` from D4/D5 and come from Gradle's graph.
+- [x] Tests: ViewModel tests are shared; Android Compose UI tests stay on Robolectric; `:desktop`'s
+      `DesktopAppTest` runs the first session (onboarding → deck → card → study → Analytics), the
+      study loop with undo, every tab and Settings, and the licenses screen with `runComposeUiTest`
+      on the real desktop graph.
+- [x] The Android-only convention plugins nothing uses any more are gone (`mnemo.android.library`,
+      `.feature`, `.room`); `CLAUDE.md` and ARCHITECTURE §3–4 describe the new layout.
+- [~] Exit: create a deck, study with undo, Analytics, Settings and the licenses are covered by
+      `DesktopAppTest`; import, export, back up and restore by `DesktopCollectionTest` (D4); Smart
+      Extract, Explain/Example/Rewrite and Co-Author by their ViewModel tests, which run on the
+      desktop target too. **Not done by hand yet:** all five note types in the desktop editor, an
+      `.apkg` picked in the real file dialog, a real AI provider and "Test connection" (a local
+      Ollama counts), a PDF and a link through Smart Extract, and running the optimizer, on each OS.
+      The packaged app (`createDistributable`) starts on macOS arm64 and creates its database.
 
 **Exit:** on desktop you can create a deck, add all five note types, study with undo, import an
 `.apkg`, export, back up and restore, add an AI provider and test the connection (a local one
 such as Ollama counts), run Smart Extract from paste, PDF and link, use Explain/Example/Rewrite
-and Co-Author, and see Analytics and run the optimizer.
+and Co-Author, and see Analytics and run the optimizer. Met as far as the automated tests reach
+(above); the by-hand pass is part of D9's runbook. **Findings:** see ADR 0010, "Findings from D6".
+Wording that assumes touch ("Tap the card", "Swipe left…") is left for D7.
 
 ## D7 — Desktop experience
 

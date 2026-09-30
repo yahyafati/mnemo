@@ -54,7 +54,9 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 ## 3. Module map
 
 ```
-                         :app
+                :app (Android)          :desktop
+                          └──────┬──────┘
+                              :shell
                           │
      ┌──────────┬─────────┼──────────┬───────────┬──────────┐
  :feature:  :feature:  :feature:  :feature:  :feature:  :feature:
@@ -73,18 +75,19 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
       :core:model   :core:scheduler   :core:common      (pure JVM)
 ```
 
-From D4 on, `:core:domain`, `:core:data`, `:core:database`, `:core:datastore`, `:core:ingest`, `:core:security` and `:core:testing` are Kotlin Multiplatform modules with two targets, Android and `desktop` (JVM): shared code in `commonMain`, the platform's in `androidMain` and `desktopMain` (ADR 0010). The pure JVM modules are used from `commonMain` as they are.
+`:core:domain`, `:core:data`, `:core:database`, `:core:datastore`, `:core:ingest`, `:core:security`, `:core:testing` (D4), `:core:designsystem`, `:core:ui` (D5), the six features and `:shell` (D6) are Kotlin Multiplatform modules with two targets, Android and `desktop` (JVM): shared code in `commonMain`, the platform's in `androidMain` and `desktopMain` (ADR 0010). The pure JVM modules are used from `commonMain` as they are. `:app` and `:desktop` are the only launchers: thin, one per platform.
 
 | Module | Type | Responsibility |
 |---|---|---|
-| `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Koin start-up (`di/AppModules.kt`), WorkManager setup |
-| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); the window shows sample cards with the shared theme and card rendering (D5) until the app shell arrives (D6) |
-| `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
-| `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
-| `:feature:create` | Android lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
-| `:feature:browse` | Android lib | Card browser: search, filter, bulk edit/suspend/move |
-| `:feature:analytics` | Android lib | KPIs, forgetting curve, heatmap, forecast, leeches |
-| `:feature:settings` | Android lib | AI providers, scheduling options, study audio, reminders, appearance, backup/import/export, about and privacy policy |
+| `:app` | Android app | The Android launcher: `MainActivity` (splash, edge-to-edge, the platform's providers around `MnemoRoot`), `MnemoApplication`, Koin start-up (`di/AppModules.kt`), WorkManager setup, the home-screen widget, the licenses JSON as a raw resource |
+| `:desktop` | JVM app | The desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); `DesktopApp` puts `MnemoRoot` in a window with `ProvideDesktopPlatform`. Builds the licenses JSON from its own classpath (`desktop/config` adds what only it bundles) |
+| `:shell` | KMP lib | The app shell both launchers share (D6): `MnemoRoot` (theme, onboarding or the app), `MnemoApp` (top bar, bottom bar or rail), `MnemoNavHost` (composes each feature's graph), `TopLevelDestination`, onboarding, `MainViewModel` (appearance, first run, where to open), `shellModule`. The one module that depends on every feature |
+| `:feature:decks` | KMP lib | Home/Decks screen, deck create/edit, deck detail |
+| `:feature:study` | KMP lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
+| `:feature:create` | KMP lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
+| `:feature:browse` | KMP lib | Card browser: search, filter, bulk edit/suspend/move |
+| `:feature:analytics` | KMP lib | KPIs, forgetting curve, heatmap, forecast, leeches |
+| `:feature:settings` | KMP lib | AI providers, scheduling options, study audio, reminders, appearance, backup/import/export, about and privacy policy |
 | `:core:designsystem` | KMP lib | `MnemoTheme`, color/type/shape/spacing tokens, fonts, generic components (buttons, chips, stat tile, rating bar) |
 | `:core:ui` | KMP lib | Shared composables that know the domain models: `DeckCard`, `CardFace` renderer (Markdown/LaTeX/cloze), charts |
 | `:core:domain` | KMP lib | Use cases. No Android APIs |
@@ -105,7 +108,7 @@ From D4 on, `:core:domain`, `:core:data`, `:core:database`, `:core:datastore`, `
 1. `feature → core` only. **No `feature → feature` dependencies.** Features navigate to each other through route types declared in `:core:ui/navigation`.
 2. `:core:model`, `:core:scheduler`, and `:core:common` depend on nothing but the Kotlin stdlib, coroutines, and kotlinx.serialization.
 3. Only `:core:data` depends on `:core:database`, `:core:ai`, `:core:anki`, `:core:ingest`, and `:core:security`. Features never see Room or HTTP.
-4. Only `:app` wires everything together.
+4. Only `:shell` knows every feature, and only the launchers (`:app`, `:desktop`) wire the dependency graph together.
 
 ## 4. Folder structure
 
@@ -125,14 +128,11 @@ mnemo/
 │       ├── build.gradle.kts
 │       └── src/main/kotlin/
 │           ├── AndroidApplicationConventionPlugin.kt   # mnemo.android.application
-│           ├── AndroidLibraryConventionPlugin.kt       # mnemo.android.library
 │           ├── AndroidComposeConventionPlugin.kt       # mnemo.android.compose
-│           ├── AndroidFeatureConventionPlugin.kt       # mnemo.android.feature (lib+compose+koin+core deps)
-│           ├── AndroidRoomConventionPlugin.kt          # mnemo.android.room (KSP + schema dir)
 │           ├── JvmLibraryConventionPlugin.kt           # mnemo.jvm.library
 │           ├── KmpLibraryConventionPlugin.kt           # mnemo.kmp.library (Android + desktop targets)
 │           ├── KmpComposeConventionPlugin.kt           # mnemo.kmp.compose (Compose Multiplatform)
-│           ├── KmpFeatureConventionPlugin.kt           # mnemo.kmp.feature (KMP twin of mnemo.android.feature)
+│           ├── KmpFeatureConventionPlugin.kt           # mnemo.kmp.feature (lib+compose+koin+core deps; features and :shell)
 │           ├── DesktopApplicationConventionPlugin.kt   # mnemo.desktop.application (:desktop)
 │           └── com/yahyafati/mnemo/buildlogic/
 │               ├── KotlinAndroid.kt                    # compileSdk 37, minSdk 29, Java 11
@@ -147,18 +147,21 @@ mnemo/
 │       │   ├── res/                                     # launcher icons, strings, themes.xml (splash)
 │       │   └── java/com/yahyafati/mnemo/
 │       │       ├── MnemoApplication.kt                  # starts Koin, WorkManager config
-│       │       ├── MainActivity.kt                      # enableEdgeToEdge, setContent { MnemoApp() }
-│       │       ├── MainViewModel.kt                     # theme prefs, onboarding state, deep links
-│       │       ├── widget/TodayWidget.kt                # home-screen widget (RemoteViews) + updater
-│       │       ├── navigation/
-│       │       │   ├── MnemoNavHost.kt                  # composes each feature's nav graph
-│       │       │   └── TopLevelDestination.kt           # Decks · Study · Create · Analytics
-│       │       └── ui/
-│       │           ├── MnemoApp.kt                      # Scaffold + bottom bar (rail on wide windows) + NavHost
-│       │           ├── onboarding/OnboardingScreen.kt   # first run
-│       │           └── MnemoAppState.kt
-│       ├── test/
-│       └── androidTest/                                 # end-to-end navigation tests
+│       │       ├── MainActivity.kt                      # splash, edge-to-edge, setContent { MnemoRoot(…) }
+│       │       └── widget/TodayWidget.kt                # home-screen widget (RemoteViews) + updater
+│       ├── test/                                        # app tests on TestMnemoApplication (first session, navigation, DI graph)
+│       └── androidTest/
+│
+├── shell/src/commonMain/kotlin/com/yahyafati/mnemo/shell/
+│   ├── MnemoRoot.kt                                     # settings → theme → onboarding or MnemoApp
+│   ├── MnemoApp.kt  MnemoAppState.kt                    # Scaffold + bottom bar (rail on wide windows) + NavHost
+│   ├── MainViewModel.kt  ShellModule.kt                 # theme prefs, onboarding state, deep links
+│   ├── navigation/ MnemoNavHost.kt TopLevelDestination.kt
+│   └── onboarding/OnboardingScreen.kt                   # first run
+│
+├── desktop/
+│   ├── config/                                          # licenses only the desktop bundles (the Java runtime)
+│   └── src/main/kotlin/com/yahyafati/mnemo/desktop/     # Main.kt, DesktopApp.kt, Startup.kt (openCollection), DesktopModules.kt
 │
 ├── core/
 │   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/
@@ -320,9 +323,9 @@ Every feature module has the same shape. Example: `:feature:study`.
 
 ```
 feature/study/
-├── build.gradle.kts                    # plugins { id("mnemo.android.feature") }
+├── build.gradle.kts                    # plugins { id("mnemo.kmp.feature") }, compose.resources { packageOfResClass }
 └── src/
-    ├── main/kotlin/com/yahyafati/mnemo/feature/study/
+    ├── commonMain/kotlin/com/yahyafati/mnemo/feature/study/
     │   ├── navigation/StudyNavigation.kt   # NavGraphBuilder.studyScreen(), NavController.navigateToStudy()
     │   ├── StudyRoute.kt                   # stateful: koinViewModel(), collectAsStateWithLifecycle()
     │   ├── StudyScreen.kt                  # stateless: (uiState, onAction) → UI, with @Previews
@@ -330,12 +333,13 @@ feature/study/
     │   ├── StudyUiState.kt                 # sealed: Loading | Reviewing | Finished | Empty
     │   ├── StudyAction.kt                  # Flip, Rate(rating), Undo, Bury, Suspend, Star …
     │   └── component/ FlipCard.kt SwipeableCard.kt IntervalButtons.kt
-    ├── test/                               # ViewModel tests with fake repositories
-    └── androidTest/                        # Compose UI tests for StudyScreen
+    ├── commonMain/composeResources/values/strings.xml   # `stringResource(Res.string.x)`
+    ├── commonTest/                         # ViewModel tests with fake repositories (run on both targets)
+    └── androidHostTest/                    # Compose UI and screenshot tests on Robolectric, with their baselines
 ```
 
 - The **Route / Screen split** keeps `*Screen` composables stateless, previewable, and easy to test.
-- Each feature owns its own `navigation/` file and exposes only extension functions. `:app` composes them.
+- Each feature owns its own `navigation/` file and exposes only extension functions. `:shell` composes them.
 
 ### 4.2 Package naming
 
@@ -362,7 +366,7 @@ The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code wi
 | Card images | `MediaImageLoader` + `LocalMediaImageLoader` (`:core:ui/card`) | `AndroidMediaImageLoader` (`BitmapFactory`, LRU cache) | `DesktopMediaImageLoader` (Skia, LRU cache, 2048 px cap) |
 | Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | `DesktopCardAudio` (`javax.sound`, mp3spi, vorbisspi; no text-to-speech) |
 
-Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The app shell provides the platform's values (`MainActivity` on Android; `ProvideDesktopPlatform` in `:core:ui/desktopMain` on the desktop: capabilities, window layout, image loader, math renderer, audio); unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
+Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The launchers provide the platform's values around `MnemoRoot` (`MainActivity` on Android; `ProvideDesktopPlatform` in `:core:ui/desktopMain` on the desktop: capabilities, window layout, image loader, math renderer, audio); unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
 
 ## 5. Key flows
 
@@ -472,10 +476,10 @@ Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.je
 | Level | Target | Where |
 |---|---|---|
 | Unit (JVM) | FSRS math, AI output parser, prompt building, `.apkg` mapping, use cases | `core/*/src/test`; in multiplatform modules `src/commonTest`, which runs on both targets (`testAndroidHostTest`, `desktopTest`) |
-| ViewModel | State transitions using `:core:testing` fakes and Turbine | `feature/*/src/test` |
+| ViewModel | State transitions using `:core:testing` fakes and Turbine | `feature/*/src/commonTest` (both targets) |
 | Integration | DAOs, migrations and repositories on Room (in memory, or a file); the transfer, backup and restore flows against real Anki packages and fixture backups made by each platform; AI client against MockWebServer; the desktop collection flow (`DesktopCollectionTest`) | `core/database`, `core/data` `src/commonTest`, `desktop/src/test`, `core/ai/src/test` |
-| UI | Stateless `*Screen` composables; screenshot tests compared with the design | `feature/*/src/androidTest`, Roborazzi |
-| End-to-end | Onboarding → create deck → study → stats | `app/src/androidTest` |
+| UI | Stateless `*Screen` composables; screenshot tests compared with the design | `feature/*/src/androidHostTest` (Robolectric, Roborazzi baselines next to them), `shell`; on the desktop `runComposeUiTest` in `desktop/src/test` (`DesktopAppTest`) |
+| End-to-end | Onboarding → create deck → study → stats | `app/src/test` (`FirstSessionTest`, Robolectric), `desktop/src/test` (`DesktopAppTest`) |
 
 ## 10. Security and privacy
 

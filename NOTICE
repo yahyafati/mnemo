@@ -96,6 +96,13 @@ BSD licenses
     macOS Keychain, Secret Service) that keeps the key behind the encrypted API keys.
   - jkeychain (pt.davidafsilva.apple, BSD-2-Clause), which java-keyring uses on macOS.
 
+GNU General Public License 2.0, with the classpath (linking) exception
+  - The OpenJDK runtime that the desktop app image and installers bundle (a jlink image of a
+    Temurin build), https://openjdk.org. Copyright Oracle and/or its affiliates and the OpenJDK
+    contributors. Its source code is at https://openjdk.org and its license texts are in the
+    `legal` folder of the installed runtime. It is listed in the desktop app's Open-source licenses
+    screen from `desktop/config`.
+
 GNU General Public License 2.0 or later, with the classpath (linking) exception
   - JLaTeXMath (org.scilab.forge:jlatexmath 1.0.7), which draws the math on cards. Copyright
     Calixte Denizet and the JLaTeXMath contributors. Its Greek and Cyrillic font packages are

@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  *
  * Source sets: `commonMain`, `androidMain`, `desktopMain`; tests in `commonTest`,
  * `androidHostTest` (Robolectric, with Android resources) and `desktopTest`. The namespace follows
- * the module path, as in `mnemo.android.library`. A KMP module has no `testDebugUnitTest`: its
+ * the module path (`:core:designsystem` → `com.yahyafati.mnemo.core.designsystem`). A KMP module has no `testDebugUnitTest`: its
  * tests are `testAndroidHostTest` and `desktopTest` (ADR 0010, finding 4).
  *
  * Pure JVM modules (`:core:model` …) stay JVM and can be used from `commonMain`: Kotlin treats a
@@ -63,6 +63,13 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                         implementation(libs.library("junit"))
                     }
                 }
+            }
+
+            // Roborazzi's two finalize tasks (one per target) copy their results into the same report
+            // folder; run in parallel they fail with "Source file wasn't copied completely".
+            val androidFinalize = tasks.matching { it.name == "finalizeTestRoborazziAndroidHostTest" }
+            tasks.matching { it.name == "finalizeTestRoborazziDesktop" }.configureEach {
+                mustRunAfter(androidFinalize)
             }
 
             tasks.withType<Test>().configureEach {

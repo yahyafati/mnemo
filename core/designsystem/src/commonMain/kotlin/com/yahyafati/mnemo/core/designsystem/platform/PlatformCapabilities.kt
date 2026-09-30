@@ -26,6 +26,16 @@ data class PlatformCapabilities(
     val textToSpeech: Boolean = true,
     /** Permissions the user grants at run time (notifications, microphone). */
     val runtimePermissions: Boolean = true,
+    /**
+     * Settings lists the dynamic color option at all. A phone lists it even where it can't work
+     * ([dynamicColor] off: it says why); a computer has no wallpaper to take colors from.
+     */
+    val dynamicColorSetting: Boolean = true,
+    /**
+     * The AI provider editor explains that `localhost` is the phone itself, not the computer that
+     * runs the model. On a computer, `localhost` is where a local server such as Ollama runs.
+     */
+    val localhostHint: Boolean = true,
 )
 
 /**

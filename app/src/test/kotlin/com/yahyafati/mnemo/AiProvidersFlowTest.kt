@@ -79,6 +79,7 @@ class AiProvidersFlowTest : KoinTest {
         composeRule.onNodeWithContentDescription("Settings").performClick()
         awaitText("No provider yet")
         composeRule.onNodeWithText("AI providers").performScrollTo().performClick()
+        awaitText("Add provider")
         composeRule.onNodeWithText("Add provider").performClick()
         awaitText("Start from")
         composeRule.onNodeWithText("Custom").performClick()

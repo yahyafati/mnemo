@@ -7,7 +7,6 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import java.awt.GraphicsEnvironment
-import java.time.Instant
 import javax.swing.JOptionPane
 import kotlin.system.exitProcess
 
@@ -20,13 +19,12 @@ fun main() {
         exitProcess(1)
     }
     application {
-        val cards = sampleCards(Instant.now())
         Window(
             onCloseRequest = ::exitApplication,
             title = "Mnemo",
-            state = rememberWindowState(size = DpSize(820.dp, 760.dp)),
+            state = rememberWindowState(size = DpSize(1100.dp, 800.dp)),
         ) {
-            SampleCardScreen(cards, mediaDirectory = session.koin.get<AppDirectories>().media)
+            DesktopApp(mediaDirectory = session.koin.get<AppDirectories>().media)
         }
     }
     session.close()

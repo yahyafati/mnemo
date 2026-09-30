@@ -333,6 +333,47 @@ and a debug install on an API 35 emulator (home screen with all three fonts, str
     a folder uses the same dialog with `apple.awt.fileDialogForDirectories` on macOS and Swing's
     `JFileChooser` elsewhere. Only the extension mapping is tested: the dialogs need a person.
 
+## Findings from D6
+
+Every feature and the shell are Kotlin Multiplatform modules; `:app` and `:desktop` are launchers.
+
+1. **Compose resources want one import per string.** `Res.string.x` is an extension property of
+   the generated `Res.string`, so every file imports `<package>.resources.x` as well as `Res`
+   (core:ui already did). Migrating 705 strings was a script: move `res/values/strings.xml` to
+   `composeResources/values`, rewrite `R.string.x` and `R.plurals.x`, add the imports. It produced
+   no pixel change in the 25 feature screenshots (Android's `verifyRoborazzi…` passed unchanged).
+2. **The resource format is a subset of Android's.** `\'` is unescaped by Android only: write `'`.
+   Formats must be positional (`%1$s`, `%1$d`), and `%02d` is not supported at all (the card number
+   in Smart Extract is padded in code). `resources.getString` and `getQuantityString` (snackbars
+   in a `LaunchedEffect`) became the suspend `getString` and `getPluralString`. A `@StringRes Int`
+   parameter is a `StringResource`.
+3. **Licenses.** `LicensesScreen` takes a loader that returns the AboutLibraries JSON
+   (`licensesScreen(loadLibraries = …)`): a raw resource in `:app`, a classpath resource in
+   `:desktop`. The AboutLibraries JVM plugin (`com.mikepenz.aboutlibraries.plugin`, same version)
+   exports the desktop list offline. Its config is `app/config` without KaTeX, plus
+   `desktop/config` (the Java runtime), assembled by a `Sync` task. Offline mode needs a license
+   text for every license id a dependency names, including hash ids (`a09e…` for java-keyring's
+   "BSD-3", for example); the desktop's texts come from the jars themselves (JNA ships
+   `LGPL2.1`, JLaTeXMath `COPYING`). JLayer's test-only JUnit 3.8 (CPL-1.0, no text available
+   offline) is excluded from both the runtime classpath and the list.
+4. **Desktop UI tests need a test `Dispatchers.Main`.** Navigation and lifecycle check that
+   state changes happen on the main thread. In the window that is the AWT thread; a
+   `runComposeUiTest` body runs elsewhere, so `DesktopAppTest` sets `Dispatchers.Main` to an
+   `UnconfinedTestDispatcher`. Koin ViewModels with navigation arguments (the open D0 question)
+   work: `koinViewModel()` inside `KoinContext`, and `DesktopApp` provides a
+   `ViewModelStoreOwner` of its own when the window has none.
+5. **What a computer doesn't have is hidden, not explained.** Two capability flags joined
+   `PlatformCapabilities`: `dynamicColorSetting` (the row is not listed; a phone below Android 12
+   still lists it with its reason) and `localhostHint` (on a phone `localhost` is the phone, on a
+   computer it is where Ollama runs). The onboarding reminder row hides with `reminders`. The
+   privacy text about keys and permissions names both platforms.
+6. **Left for D7:** wording that assumes touch ("Tap the card", "Swipe left for Again", in the study
+   hints and onboarding), keyboard shortcuts, and showing which key storage is in use (keychain or
+   key file) in Settings › AI providers.
+7. **Build.** `checkRuntime` (Compose's JDK probe) did not follow the JDK 21 toolchain that the
+   packaging tasks use, and failed on machines whose default JDK has no `jpackage`: the convention
+   plugin sets `jdkHome` for it too.
+
 ## Alternatives
 
 - **Separate desktop project (copy the domain and data code):** rejected in the roadmap; the

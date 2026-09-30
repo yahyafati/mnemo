@@ -1,15 +1,62 @@
+import java.util.regex.Pattern
+
 plugins {
     alias(libs.plugins.mnemo.desktop.application)
+    alias(libs.plugins.aboutlibraries.jvm)
 }
 
 // The desktop launcher (docs/desktop/ROADMAP.md, ADR 0010). It starts the data layer (D4): the
 // collection's directory and its single-instance lock, a staged restore, and the Koin graph. The
-// window shows sample cards with the shared theme and card rendering (D5) until the app shell
-// arrives (D6).
+// window shows the app shell (D6), the same UI as the Android app.
 compose.desktop {
     application {
         mainClass = "com.yahyafati.mnemo.desktop.MainKt"
     }
+}
+
+// The open-source licenses screen (Settings > About) reads the JSON this plugin writes from the
+// desktop runtime classpath. It is the list of `:app` (the bundled fonts and py-fsrs, the license
+// texts: `app/config`) without KaTeX, which only the Android app bundles, plus what only the
+// desktop bundles (`config`: the Java runtime). Offline: the build never calls the network.
+val licenseConfig = layout.buildDirectory.dir("licenseConfig")
+val prepareLicenseConfig = tasks.register<Sync>("prepareLicenseConfig") {
+    from(rootProject.layout.projectDirectory.dir("app/config")) { exclude("libraries/katex.json") }
+    from(layout.projectDirectory.dir("config"))
+    into(licenseConfig)
+}
+val licensesOutput = layout.buildDirectory.dir("generated/licenses")
+aboutLibraries {
+    offlineMode = true
+    collect {
+        configPath = licenseConfig.get().asFile
+    }
+    library {
+        // Not shipped: JLayer's test-only JUnit 3.8 (excluded from the runtime classpath below).
+        exclusionPatterns.add(Pattern.compile("junit:junit"))
+    }
+    export {
+        outputFile = licensesOutput.get().file("aboutlibraries.json").asFile
+    }
+}
+tasks.named("exportLibraryDefinitions") {
+    dependsOn(prepareLicenseConfig)
+}
+sourceSets.main {
+    resources.srcDir(tasks.named("exportLibraryDefinitions").map { licensesOutput })
+}
+// The version the About section shows: `mnemo.versionName`, the same number as the Android app.
+val versionDirectory = layout.buildDirectory.dir("generated/version")
+val generateVersionProperties = tasks.register<WriteProperties>("generateVersionProperties") {
+    destinationFile = versionDirectory.get().file("mnemo-version.properties")
+    property("version", providers.gradleProperty("mnemo.versionName"))
+}
+sourceSets.main {
+    resources.srcDir(generateVersionProperties.map { versionDirectory })
+}
+
+// JLayer (MP3) lists JUnit 3.8 as a dependency; it isn't used at run time.
+configurations.runtimeClasspath {
+    exclude(group = "junit", module = "junit")
 }
 
 dependencies {
@@ -18,14 +65,24 @@ dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.core.domain)
     implementation(projects.core.model)
-    implementation(projects.core.scheduler)
     implementation(projects.core.ui)
+    implementation(projects.shell)
+    implementation(projects.feature.analytics)
+    implementation(projects.feature.browse)
+    implementation(projects.feature.create)
+    implementation(projects.feature.decks)
+    implementation(projects.feature.settings)
+    implementation(projects.feature.study)
     implementation(libs.koin.core)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
 
     implementation(libs.cmp.runtime)
     implementation(libs.cmp.foundation)
     implementation(libs.cmp.ui)
     implementation(libs.cmp.material3)
+    implementation(libs.jetbrains.lifecycle.runtime.compose)
+    implementation(libs.jetbrains.lifecycle.viewmodel.compose)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
 

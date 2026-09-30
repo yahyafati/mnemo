@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_decks_empty_title">No decks yet</string>
+    <string name="feature_decks_empty_message">Create a deck, add a few cards, and your first session is ready.</string>
+    <string name="feature_decks_no_match_title">No decks match</string>
+    <string name="feature_decks_no_match_message">Try another search or filter.</string>
+    <string name="feature_decks_clear_filters">Clear filters</string>
+
+    <string name="feature_decks_greeting_morning">Good morning</string>
+    <string name="feature_decks_greeting_afternoon">Good afternoon</string>
+    <string name="feature_decks_greeting_evening">Good evening</string>
+    <plurals name="feature_decks_headline_cards">
+        <item quantity="one">Ready for your daily card?</item>
+        <item quantity="other">Ready for your daily %1$d cards?</item>
+    </plurals>
+    <string name="feature_decks_headline_done">You're all caught up.</string>
+    <string name="feature_decks_headline_first">Let's build your first deck.</string>
+    <string name="feature_decks_estimate">Est. %1$d min</string>
+
+    <string name="feature_decks_mix_label">Spaced interval</string>
+    <string name="feature_decks_mix_title">Daily Retention Mix</string>
+    <string name="feature_decks_mix_message">Today's due and new cards from every deck, scheduled by FSRS.</string>
+    <string name="feature_decks_mix_done_message">Nothing is due right now. Add cards or come back later.</string>
+    <string name="feature_decks_due">Due</string>
+    <string name="feature_decks_new">New</string>
+    <string name="feature_decks_learning">Learning</string>
+    <string name="feature_decks_start_session">Start Session</string>
+
+    <string name="feature_decks_stat_streak">Streak</string>
+    <plurals name="feature_decks_stat_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <string name="feature_decks_stat_retained">Retained</string>
+    <string name="feature_decks_stat_mastered">Mastered</string>
+    <string name="feature_decks_stat_none">—</string>
+    <string name="feature_decks_retention_health">Retention health</string>
+    <string name="feature_decks_exam_today">Exam today</string>
+    <plurals name="feature_decks_exam_in">
+        <item quantity="one">Exam in %1$d day</item>
+        <item quantity="other">Exam in %1$d days</item>
+    </plurals>
+    <string name="feature_decks_retention_recall">%1$s recall</string>
+
+    <string name="feature_decks_search">Filter your library…</string>
+    <string name="feature_decks_filter_all">All Decks (%1$d)</string>
+    <string name="feature_decks_filter_due">Due Today (%1$d)</string>
+    <string name="feature_decks_filter_starred">Starred ★ (%1$d)</string>
+    <string name="feature_decks_library">Library</string>
+    <string name="feature_decks_new_deck">New Deck</string>
+
+    <plurals name="feature_decks_due_count">
+        <item quantity="one">%1$d due</item>
+        <item quantity="other">%1$d due</item>
+    </plurals>
+    <plurals name="feature_decks_new_count">
+        <item quantity="one">%1$d new</item>
+        <item quantity="other">%1$d new</item>
+    </plurals>
+    <string name="feature_decks_done">Done for today</string>
+    <plurals name="feature_decks_total_cards">
+        <item quantity="one">%1$d card</item>
+        <item quantity="other">%1$d cards</item>
+    </plurals>
+    <string name="feature_decks_last_review">Last rev: %1$s</string>
+    <string name="feature_decks_just_now">just now</string>
+    <plurals name="feature_decks_minutes_ago">
+        <item quantity="one">%1$d min. ago</item>
+        <item quantity="other">%1$d min. ago</item>
+    </plurals>
+    <plurals name="feature_decks_hours_ago">
+        <item quantity="one">%1$d hr. ago</item>
+        <item quantity="other">%1$d hr. ago</item>
+    </plurals>
+    <plurals name="feature_decks_days_ago">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <string name="feature_decks_review">Review</string>
+    <string name="feature_decks_add_cards">Add cards</string>
+    <plurals name="feature_decks_subdecks">
+        <item quantity="one">%1$d subdeck</item>
+        <item quantity="other">%1$d subdecks</item>
+    </plurals>
+    <string name="feature_decks_star">Star deck</string>
+    <string name="feature_decks_unstar">Unstar deck</string>
+    <string name="feature_decks_options">Deck options</string>
+    <string name="feature_decks_edit">Edit deck</string>
+    <string name="feature_decks_delete">Delete deck</string>
+
+    <string name="feature_decks_delete_title">Delete “%1$s”?</string>
+    <plurals name="feature_decks_delete_message">
+        <item quantity="one">This deletes the deck, its subdecks and %1$d card, with its review history.</item>
+        <item quantity="other">This deletes the deck, its subdecks and %1$d cards, with their review history.</item>
+    </plurals>
+    <string name="feature_decks_delete_confirm">Delete</string>
+    <string name="feature_decks_cancel">Cancel</string>
+
+    <string name="feature_decks_import">Import Anki (.apkg)</string>
+    <string name="feature_decks_browse_all">Browse all cards</string>
+    <string name="feature_decks_browse">Browse cards</string>
+    <string name="feature_decks_export">Export (.apkg)</string>
+    <string name="feature_decks_dismiss">Dismiss</string>
+    <string name="feature_decks_importing">Importing Anki deck…</string>
+    <string name="feature_decks_notifications_title">Show import progress?</string>
+    <string name="feature_decks_notifications_message">A big import keeps running if you leave the app, and shows its progress in a notification. Android will ask for permission next. You can say no: the import still works.</string>
+    <string name="feature_decks_import_done">Import finished</string>
+    <string name="feature_decks_import_failed">Import failed</string>
+    <string name="feature_decks_exporting">Exporting deck…</string>
+    <string name="feature_decks_export_done">Deck exported</string>
+    <string name="feature_decks_export_failed">Export failed</string>
+    <plurals name="feature_decks_import_notes">
+        <item quantity="one">%1$d note</item>
+        <item quantity="other">%1$d notes</item>
+    </plurals>
+    <plurals name="feature_decks_import_cards">
+        <item quantity="one">%1$d card</item>
+        <item quantity="other">%1$d cards</item>
+    </plurals>
+    <plurals name="feature_decks_import_reviews">
+        <item quantity="one">%1$d review</item>
+        <item quantity="other">%1$d reviews</item>
+    </plurals>
+    <plurals name="feature_decks_import_media">
+        <item quantity="one">%1$d media file</item>
+        <item quantity="other">%1$d media files</item>
+    </plurals>
+    <plurals name="feature_decks_import_duplicates">
+        <item quantity="one">%1$d duplicate skipped</item>
+        <item quantity="other">%1$d duplicates skipped</item>
+    </plurals>
+    <plurals name="feature_decks_import_skipped">
+        <item quantity="one">%1$d card of an unsupported template left out</item>
+        <item quantity="other">%1$d cards of unsupported templates left out</item>
+    </plurals>
+    <string name="feature_decks_error_unsupported">That file isn't an Anki package (.apkg or .colpkg).</string>
+    <string name="feature_decks_error_corrupt">The file is damaged and can't be read.</string>
+    <string name="feature_decks_error_storage">The file couldn't be read or written. Check storage space and try again.</string>
+    <string name="feature_decks_error_unknown">Something went wrong. Try again.</string>
+</resources>

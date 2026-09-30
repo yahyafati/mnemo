@@ -50,4 +50,6 @@ include(":feature:decks")
 include(":feature:settings")
 include(":feature:study")
 
+include(":shell")
+
 include(":desktop")

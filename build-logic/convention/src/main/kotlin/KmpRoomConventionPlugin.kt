@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
  * `mnemo.kmp.room`: Room for a `mnemo.kmp.library` module, through KSP on both targets. Schemas are
- * exported to `<module>/schemas` and committed (same layout as `mnemo.android.room`), so every
+ * exported to `<module>/schemas` and committed, so every
  * migration can be tested against them on both targets (ARCHITECTURE §6).
  *
  * The driver is chosen where the database is built: the framework driver on Android (no new native

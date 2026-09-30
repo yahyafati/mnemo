@@ -5,7 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
 
-/** `mnemo.android.compose`: apply after `mnemo.android.application` or `mnemo.android.library`. */
+/** `mnemo.android.compose`: apply after `mnemo.android.application`. */
 class AndroidComposeConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
