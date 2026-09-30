@@ -1,9 +1,5 @@
 package com.yahyafati.mnemo.ui.onboarding
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +55,9 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoLogo
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
+import com.yahyafati.mnemo.core.ui.permission.AppPermission
+import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -79,10 +78,8 @@ internal fun OnboardingScreen(
     val pager = rememberPagerState { PAGES }
     val scope = rememberCoroutineScope()
     var reminder by rememberSaveable { mutableStateOf(false) }
-    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { onImport(it.toString(), reminder) }
-    }
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> reminder = granted }
+    val importPicker = rememberFilePicker { onImport(it, reminder) }
+    val notifications = rememberPermissionRequest(AppPermission.Notifications) { granted -> reminder = granted }
 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -132,14 +129,14 @@ internal fun OnboardingScreen(
                                 reminder = reminder,
                                 reminderTime = reminderTime,
                                 onReminder = { on ->
-                                    if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    if (on && notifications.canRequest) {
+                                        notifications.launch()
                                     } else {
                                         reminder = on
                                     }
                                 },
                                 onCreateDeck = { onCreateDeck(it, reminder) },
-                                onImport = { importPicker.launch(arrayOf("*/*")) },
+                                onImport = { importPicker.launch() },
                                 onSkip = { onSkip(reminder) },
                             )
                         }

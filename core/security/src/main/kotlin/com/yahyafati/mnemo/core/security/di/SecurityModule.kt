@@ -1,6 +1,6 @@
 package com.yahyafati.mnemo.core.security.di
 
-import android.content.Context
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import com.yahyafati.mnemo.core.common.di.dispatcher
 import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.security.FileSecretStore
@@ -12,5 +12,5 @@ import org.koin.dsl.module
 /** Encrypted secrets. Tests replace [SecretCipher]: Robolectric has no Android Keystore. */
 val securityModule = module {
     single<SecretCipher> { KeystoreSecretCipher() }
-    single<SecretStore> { FileSecretStore(get<Context>(), get(), dispatcher(MnemoDispatchers.IO)) }
+    single<SecretStore> { FileSecretStore(get<AppDirectories>(), get(), dispatcher(MnemoDispatchers.IO)) }
 }

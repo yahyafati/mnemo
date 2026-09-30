@@ -253,38 +253,86 @@ manual smoke test (study, import, AI test connection, widget, reminder) behaves 
 **Goal:** every Android API that shared code needs sits behind a small interface with its Android
 implementation next to it. Android only; the existing tests prove it.
 
-- **Data**
-  - [ ] `DocumentAccess` (open a stream, display name, MIME type for a URI string) replaces direct
-        `ContentResolver`, `DocumentFile` and `OpenableColumns` use in `FileMediaRepository`,
-        `SourceRepository`, `TransferWorkers` and `BackupManager`.
-  - [ ] `AppDirectories` (files, media, secrets, cache, database, DataStore file) replaces
-        `Context` paths.
-  - [ ] Worker bodies move into plain job classes (import, export, backup, media cleanup,
-        optimize) that report progress through a callback. The `CoroutineWorker`s only adapt
-        them, and transfer notifications stay in the Android adapter.
-  - [ ] `PdfTextExtractor` becomes an interface; PdfBox-Android is its Android implementation.
-  - [ ] `SpeechTranscriber` reports whether it's available, and the UI hides dictation when it
-        isn't.
-- **UI**
-  - [ ] `PlatformCapabilities` (dynamic color, reminders, widget, dictation, TTS, runtime
-        permissions), provided to the UI, replaces the `Build.VERSION` checks in `Theme.kt` and
-        Settings.
-  - [ ] File pickers: `rememberFilePicker` / `rememberFileSaver` in `:core:ui/files` replace the
-        activity-result launchers in `NoteEditorScreen`, `SmartExtractScreen`, `DataSection`
-        and `DecksScreen`.
-  - [ ] Permission requests (notification, microphone) move into Android-only composables behind
-        the capability flags.
-  - [ ] `ReportAiContent` opens the issue URL through `LocalUriHandler`, not an `Intent`.
-  - [ ] `DeckCard` formats relative dates with its own tested formatter, not
-        `android.text.format.DateUtils`.
-  - [ ] Card rendering: `MathText` behind a `MathRenderer` seam (Android keeps the KaTeX
-        WebView); `MediaImage` decodes through a seam (`BitmapFactory` today, Skia on desktop).
-        `CardAudio` is already an interface.
-- [ ] `scripts/desktop/check-android-imports.py`: fails if `android.*`, `androidx.work`,
-      `androidx.activity`, `androidx.webkit` or `androidx.documentfile` is imported outside the
-      designated Android files. Runs in CI.
+Convention: an Android implementation lives in a package named `android` (`AndroidXxx.kt`) in the
+module that owns the interface; D4–D6 turn those directories into `androidMain`. The list of seams
+and their implementations is ARCHITECTURE §4.3.
 
-**Exit:** the import check passes; the Android exit check and screenshots are green.
+- **Data**
+  - [x] `DocumentAccess` (`:core:common`) replaces direct `ContentResolver`, `DocumentFile` and
+        `OpenableColumns` use in `FileMediaRepository`, `SourceRepository`, the transfer workers
+        and `BackupManager`. Beyond the roadmap's "open a stream, name, MIME type" it also covers
+        what automatic backups and the auto-backup setting need: create and list files in a picked
+        folder, delete, keep and release access. Every failure is an `IOException`
+        (`AndroidDocumentAccess` turns a revoked grant into one), so callers no longer catch
+        `SecurityException`. `MediaRef.extensionFor` (the reverse of `mimeTypeFor`) replaced
+        `MimeTypeMap`.
+  - [x] `AppDirectories` (`:core:common`: files, cache, media, secrets, restore staging, database
+        file, DataStore file) replaces `Context` paths in `DatabaseSnapshot`, `PendingRestore`,
+        `BackupManager`, `FileSecretStore`, `FileMediaRepository` and the DataStore module.
+        `MnemoApplication` builds an `AndroidAppDirectories` for `PendingRestore` before Koin
+        starts; the graph binds both seams in `androidPlatformModule`.
+  - [x] Worker bodies moved into plain jobs (`ImportJob`, `ExportJob`, `BackupJob` in
+        `:core:data/job`) that report progress through a callback and throw on failure. The
+        `CoroutineWorker`s only adapt them (input data, foreground notification, retry, error
+        mapping through `toTransferError`). The media-cleanup and optimizer bodies were already
+        plain (`MediaRepository.collectGarbage`, `FsrsOptimization.run`), so they got no class of
+        their own. Automatic backups and export cleanup are now unit-tested against
+        `FakeDocumentAccess`, which they weren't before.
+  - [x] `PdfTextExtractor` is an interface; `PdfBoxAndroidTextExtractor` is its Android
+        implementation.
+  - [x] `SpeechTranscriber` is an interface with `isAvailable()`; the Dictation source is hidden
+        when the device has no recognizer (`SmartExtractUiState.dictationAvailable`) or the
+        platform has no dictation capability.
+- **UI**
+  - [x] `PlatformCapabilities` (`:core:designsystem`) replaces the `Build.VERSION` checks in
+        `Theme.kt` and Settings. Provided by `MainActivity` around the theme; unprovided, every
+        capability is on, which is what the phone app has, so screens and tests need no setup.
+        Settings hides the reminder section without `reminders`, Smart Extract hides Dictation, and
+        the study screen's read-aloud button needs `textToSpeech` or a sound on the card. The
+        dynamic-color row still shows its "Needs Android 12 or newer" text when the capability is
+        off: D6/D7 decide what the desktop shows.
+  - [x] File dialogs: `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver` and
+        `rememberFolderPicker` (`:core:ui/files`) replace the activity-result launchers in
+        `NoteEditorScreen`, `SmartExtractScreen`, `DataSection`, `DecksScreen` and onboarding. The
+        roadmap named two functions; the folder picker and the gallery-style media picker are the
+        other two call sites. They report a location string and nothing on cancel.
+  - [x] Permission requests (notifications, microphone) go through
+        `rememberPermissionRequest(AppPermission)` (`:core:ui/permission`), whose Android part is in
+        `permission/android`. It reports `isGranted` and `canRequest`; a platform without
+        `runtimePermissions` grants everything and asks nothing. Behavior is unchanged on Android,
+        including the reminder's "notifications are blocked" hint.
+  - [x] `ReportAiDialog` opens the issue URL through `LocalUriHandler`; the version name comes
+        from `LocalAppVersion` (also used by About).
+  - [x] `DeckCard` formats relative dates with `RelativeAge` (tested, same English wording as
+        `DateUtils`' abbreviated form, so the baselines did not change); `ReminderTimeDialog`
+        asks `rememberIs24HourFormat()`.
+  - [x] Card rendering: `MathText` calls a `MathRenderer` (`KatexMathRenderer` on Android; raw TeX
+        when unprovided), `MediaImage` a `MediaImageLoader` (`AndroidMediaImageLoader`),
+        `AndroidCardAudio` moved out of the shared file. `MainActivity` provides all three.
+- [x] `scripts/desktop/check-android-imports.py` fails on `android.*`, `androidx.work`,
+      `androidx.activity`, `androidx.webkit`, `androidx.documentfile`, `androidx.core`,
+      `LocalContext` and `AndroidView` imports outside `android` directories and its `PENDING`
+      list; the `android-imports` job in `ci.yml` runs it. `PENDING` holds what D4–D6 still have to
+      move: Room and its snapshot, the Keystore cipher, WorkManager and its notifications,
+      the Koin bindings that name them, the licenses screen's raw resource, and the launcher
+      (`MainActivity`, `MnemoApplication`, the widget), which stay in `:app`. A listed file that no
+      longer has an Android import fails, so the list can only shrink.
+
+**Exit:** the import check passes; the Android exit check and screenshots are green. Met:
+`assembleDebug testDebugUnitTest lint`, the JVM module tests and `verifyRoborazziDebug` pass, with
+no baseline changed. Not run: the instrumented tests and a manual pass on a device (file pickers,
+the notification prompts, dictation, KaTeX and images on cards, an automatic backup into a real
+folder), which the seams touch. **(owner: worth a smoke test before the next release build.)**
+
+**Findings**
+
+- Theme's dynamic color call moved into `platform/android/AndroidDynamicColor.kt` with a
+  `@SuppressLint("NewApi")`: lint can't see that the capability is `Build.VERSION >= S`.
+- A KDoc line that contains a MIME wildcard such as `image/*` opens a nested comment in Kotlin and
+  fails the build with "Unclosed comment".
+- `rememberAndroidPermissionRequest`'s `launch()` on Android 12 and older (no notification
+  permission) reports `isGranted` at once instead of asking, which is what the onboarding and
+  reminder code did by hand.
 
 ## D4 — Data layer multiplatform
 

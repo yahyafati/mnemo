@@ -1,22 +1,20 @@
 package com.yahyafati.mnemo.core.designsystem.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalContext
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
+import com.yahyafati.mnemo.core.designsystem.platform.android.androidDynamicColorScheme
 
 internal val LocalMnemoTypography = staticCompositionLocalOf { DefaultMnemoTypography }
 internal val LocalMnemoSpacing = staticCompositionLocalOf { MnemoSpacing() }
 
 /**
  * Mnemo's theme. The brand palette from the mockups is the default; Material You dynamic color
- * is opt-in (Android 12+) and falls back to the brand palette on older versions.
+ * is opt-in, and falls back to the brand palette where the platform has none ([PlatformCapabilities.dynamicColor]).
  */
 @Composable
 fun MnemoTheme(
@@ -25,10 +23,7 @@ fun MnemoTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+        dynamicColor && LocalPlatformCapabilities.current.dynamicColor -> androidDynamicColorScheme(darkTheme)
 
         darkTheme -> MnemoDarkColorScheme
         else -> MnemoLightColorScheme

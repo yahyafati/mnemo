@@ -1,8 +1,5 @@
 package com.yahyafati.mnemo.core.ui.ai
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
@@ -19,17 +16,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.ui.R
+import com.yahyafati.mnemo.core.ui.platform.LocalAppVersion
 
 /**
  * A "Report" button for one piece of AI output ([compact]: just the flag icon). It asks first, then opens a prefilled
@@ -54,10 +51,8 @@ fun ReportAiButton(report: AiReport, modifier: Modifier = Modifier, compact: Boo
 /** The confirmation before the draft opens: what it is, what is in it, and that it is public. */
 @Composable
 fun ReportAiDialog(report: AiReport, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val appVersion = remember(context) {
-        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
-    }
+    val uriHandler = LocalUriHandler.current
+    val appVersion = LocalAppVersion.current
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(MnemoIcons.Flag, contentDescription = null) },
@@ -85,11 +80,10 @@ fun ReportAiDialog(report: AiReport, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AiReportIssue.url(report, appVersion)))
                     try {
-                        context.startActivity(intent)
-                    } catch (_: ActivityNotFoundException) {
-                        // No browser installed: nothing to open, and nothing was sent.
+                        uriHandler.openUri(AiReportIssue.url(report, appVersion))
+                    } catch (_: IllegalArgumentException) {
+                        // No browser to open it: nothing was sent.
                     }
                     onDismiss()
                 },

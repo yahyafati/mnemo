@@ -1,8 +1,5 @@
 package com.yahyafati.mnemo.core.ui.card
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -15,12 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -29,23 +25,40 @@ import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
- * An image from media storage (`![alt](media:<hash>)`), full width and at most [maxHeight] tall.
- * Other sources (web URLs, missing files, formats Android can't decode such as SVG) show a small
- * placeholder with the alt text: cards never load anything from the network.
+ * Reads a stored image (`media:<hash>`) for display: finds its file, decodes it, keeps recent ones
+ * in memory. Android decodes with `BitmapFactory`; the desktop app with Skia (desktop D5).
+ */
+interface MediaImageLoader {
+    /** The image for media [hash], downsampled to screen size; null if it's missing or can't be decoded. Blocking. */
+    fun load(hash: String): ImageBitmap?
+
+    companion object {
+        /** Loads nothing: previews, tests, and a platform that has not provided a loader. */
+        val None: MediaImageLoader = object : MediaImageLoader {
+            override fun load(hash: String): ImageBitmap? = null
+        }
+    }
+}
+
+/** The app's [MediaImageLoader]; [MediaImageLoader.None] unless the app shell provides one. */
+val LocalMediaImageLoader = staticCompositionLocalOf { MediaImageLoader.None }
+
+/**
+ * An image from media storage (`![alt](media:<hash>)`), full width and at most [MAX_HEIGHT] tall.
+ * Other sources (web URLs, missing files, formats the platform can't decode such as SVG) show a
+ * small placeholder with the alt text: cards never load anything from the network.
  */
 @Composable
 fun MediaImage(src: String, alt: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
+    val loader = LocalMediaImageLoader.current
     val hash = MediaRef.hashOf(src)
-    val state by produceState<ImageState>(ImageState.Loading, hash) {
+    val state by produceState<ImageState>(ImageState.Loading, hash, loader) {
         value = if (hash == null) {
             ImageState.Missing
         } else {
-            withContext(Dispatchers.IO) { MediaBitmaps.load(File(File(context.filesDir, MediaRef.DIRECTORY), hash)) }
-                ?.let(ImageState::Loaded) ?: ImageState.Missing
+            withContext(Dispatchers.IO) { loader.load(hash) }?.let(ImageState::Loaded) ?: ImageState.Missing
         }
     }
     when (val s = state) {
@@ -83,25 +96,4 @@ private sealed interface ImageState {
     data class Loaded(val bitmap: ImageBitmap) : ImageState
 
     data object Missing : ImageState
-}
-
-/** Decoded images, downsampled to screen size and kept in a small memory cache. */
-internal object MediaBitmaps {
-    private const val MAX_SIDE = 2048
-    private val cache = object : LruCache<String, ImageBitmap>(32 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
-    }
-
-    fun load(file: File): ImageBitmap? {
-        cache.get(file.path)?.let { return it }
-        if (!file.isFile) return null
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.path, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var sample = 1
-        while (bounds.outWidth / (sample * 2) >= MAX_SIDE || bounds.outHeight / (sample * 2) >= MAX_SIDE) sample *= 2
-        val bitmap: Bitmap = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
-            ?: return null
-        return bitmap.asImageBitmap().also { cache.put(file.path, it) }
-    }
 }

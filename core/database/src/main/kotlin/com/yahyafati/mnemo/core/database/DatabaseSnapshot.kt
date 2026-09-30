@@ -1,7 +1,7 @@
 package com.yahyafati.mnemo.core.database
 
-import android.content.Context
 import androidx.room.withTransaction
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import java.io.File
 
 /**
@@ -12,7 +12,7 @@ import java.io.File
  * land halfway through the copy. SQLite replays a copied WAL when the file is opened again.
  */
 class DatabaseSnapshot(
-    private val context: Context,
+    private val directories: AppDirectories,
     private val database: MnemoDatabase,
 ) {
     /** The schema version, recorded in backups so a restore can refuse a newer one. */
@@ -23,7 +23,7 @@ class DatabaseSnapshot(
         val name = checkNotNull(database.openHelper.databaseName) { "An in-memory database has no file to copy" }
         database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
         return database.withTransaction {
-            val main = context.getDatabasePath(name)
+            val main = directories.databaseFile(name)
             listOf(main, File(main.path + WAL_SUFFIX))
                 .filter { it.exists() && it.length() > 0 }
                 .map { it.copyTo(File(dir, it.name), overwrite = true) }
@@ -34,8 +34,8 @@ class DatabaseSnapshot(
         const val WAL_SUFFIX = "-wal"
 
         /** Every file SQLite may keep for the database [name]. */
-        fun files(context: Context, name: String = MnemoDatabase.NAME): List<File> {
-            val main = context.getDatabasePath(name)
+        fun files(directories: AppDirectories, name: String = MnemoDatabase.NAME): List<File> {
+            val main = directories.databaseFile(name)
             return listOf(main) + listOf(WAL_SUFFIX, "-shm", "-journal").map { File(main.path + it) }
         }
     }

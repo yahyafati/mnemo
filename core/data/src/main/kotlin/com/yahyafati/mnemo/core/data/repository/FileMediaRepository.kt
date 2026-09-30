@@ -1,10 +1,6 @@
 package com.yahyafati.mnemo.core.data.repository
 
-import android.content.ContentResolver
-import android.content.Context
-import android.provider.OpenableColumns
-import android.webkit.MimeTypeMap
-import androidx.core.net.toUri
+import com.yahyafati.mnemo.core.common.platform.DocumentAccess
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
@@ -14,6 +10,7 @@ import com.yahyafati.mnemo.core.model.MediaRef
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
 import java.time.Duration
@@ -27,35 +24,21 @@ internal class FileMediaRepository(
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
     /** Opens picked files for [importUri]; null in tests that only store streams. */
-    private val contentResolver: ContentResolver? = null,
+    private val documents: DocumentAccess? = null,
 ) : MediaRepository {
-    constructor(
-        context: Context,
-        mediaDao: MediaDao,
-        noteDao: NoteDao,
-        clock: Clock,
-        ioDispatcher: CoroutineDispatcher,
-    ) : this(File(context.filesDir, MediaRef.DIRECTORY), mediaDao, noteDao, clock, ioDispatcher, context.contentResolver)
-
     override suspend fun importUri(uri: String): Media? = withContext(ioDispatcher) {
-        val resolver = contentResolver ?: return@withContext null
-        val parsed = uri.toUri()
-        val name = runCatching {
-            resolver.query(parsed, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getString(0) else null
-            }
-        }.getOrNull() ?: parsed.lastPathSegment?.substringAfterLast('/') ?: "attachment"
+        val documents = documents ?: return@withContext null
+        val info = documents.info(uri)
+        val name = info.name ?: "attachment"
         val named = if ('.' in name) {
             name
         } else {
-            val extension = resolver.getType(parsed)?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+            val extension = info.mimeType?.let(MediaRef::extensionFor)
             if (extension != null) "$name.$extension" else name
         }
         try {
-            resolver.openInputStream(parsed)?.use { store(it, named) }
-        } catch (e: java.io.IOException) {
-            null
-        } catch (e: SecurityException) {
+            documents.openInput(uri).use { store(it, named) }
+        } catch (e: IOException) {
             null
         }
     }

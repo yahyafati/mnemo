@@ -1,4 +1,4 @@
-package com.yahyafati.mnemo.core.ui.card.web
+package com.yahyafati.mnemo.core.ui.card.web.android
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -26,42 +26,46 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import com.yahyafati.mnemo.core.model.MediaRef
+import com.yahyafati.mnemo.core.ui.card.web.CardHtml
+import com.yahyafati.mnemo.core.ui.card.web.CardHtmlStyle
+import com.yahyafati.mnemo.core.ui.card.web.MathRenderer
 import java.io.File
 
 /**
- * Card Markdown that contains math, rendered by KaTeX in a WebView (ADR 0004). Only such cards pay
- * for a WebView; the rest render natively. The view sizes itself to its content, and revealing a
- * cloze toggles the page instead of reloading it.
+ * Card math rendered by KaTeX in a WebView (ADR 0004). Only such cards pay for a WebView; the rest
+ * render natively. The view sizes itself to its content, and revealing a cloze toggles the page
+ * instead of reloading it.
  */
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-fun MathText(
-    markdown: String,
-    style: TextStyle,
-    serif: Boolean,
-    modifier: Modifier = Modifier,
-    clozeOrdinal: Int? = null,
-    revealed: Boolean = true,
-) {
-    val colors = MaterialTheme.colorScheme
-    var heightPx by remember { mutableIntStateOf(0) }
-    val cssStyle = remember(colors, style, serif) { cssStyle(colors, style, serif) }
-    // The document doesn't depend on `revealed`, so revealing never reloads it.
-    val html = remember(markdown, clozeOrdinal, cssStyle) { CardHtml.document(markdown, clozeOrdinal, revealed, cssStyle) }
-    AndroidView(
-        factory = { context -> cardWebView(context) { heightPx = it } },
-        update = { view ->
-            if (view.tag != html) {
-                view.tag = html
-                view.loadDataWithBaseURL(CardHtml.ORIGIN + "/", html, "text/html", "utf-8", null)
-            } else {
-                view.evaluateJavascript("setRevealed($revealed)", null)
-            }
-        },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(heightPx.dp),
-    )
+object KatexMathRenderer : MathRenderer {
+    @Composable
+    override fun Render(
+        markdown: String,
+        style: TextStyle,
+        serif: Boolean,
+        modifier: Modifier,
+        clozeOrdinal: Int?,
+        revealed: Boolean,
+    ) {
+        val colors = MaterialTheme.colorScheme
+        var heightPx by remember { mutableIntStateOf(0) }
+        val cssStyle = remember(colors, style, serif) { cssStyle(colors, style, serif) }
+        // The document doesn't depend on `revealed`, so revealing never reloads it.
+        val html = remember(markdown, clozeOrdinal, cssStyle) { CardHtml.document(markdown, clozeOrdinal, revealed, cssStyle) }
+        AndroidView(
+            factory = { context -> cardWebView(context) { heightPx = it } },
+            update = { view ->
+                if (view.tag != html) {
+                    view.tag = html
+                    view.loadDataWithBaseURL(CardHtml.ORIGIN + "/", html, "text/html", "utf-8", null)
+                } else {
+                    view.evaluateJavascript("setRevealed($revealed)", null)
+                }
+            },
+            modifier = modifier
+                .fillMaxWidth()
+                .height(heightPx.dp),
+        )
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")

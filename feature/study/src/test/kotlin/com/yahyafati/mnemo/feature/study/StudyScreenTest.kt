@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.study
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -13,6 +14,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
+import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.Rating
@@ -150,5 +153,25 @@ class StudyScreenTest {
         setContent(viewModel)
         composeRule.onNodeWithText("Show answer").assertIsDisplayed().performClick()
         listOf("Again", "Hard", "Good", "Easy").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+    }
+
+    @Test
+    fun readAloudNeedsTextToSpeechOrASoundOnTheCard() {
+        // A platform without text-to-speech: a card with no sound of its own has nothing to play.
+        composeRule.setContent {
+            CompositionLocalProvider(LocalPlatformCapabilities provides PlatformCapabilities(textToSpeech = false)) {
+                MnemoTheme {
+                    StudyScreen(onEditNote = {}, onDone = {}, doneLabel = "Done", viewModel = fixture.viewModel(), assistViewModel = fixture.assistViewModel())
+                }
+            }
+        }
+        composeRule.onNodeWithText("What do mitochondria make?").assertExists()
+        composeRule.onNodeWithContentDescription("Play audio or read aloud").assertDoesNotExist()
+    }
+
+    @Test
+    fun readAloudShowsWhereThePlatformHasTextToSpeech() {
+        setContent(fixture.viewModel())
+        composeRule.onNodeWithContentDescription("Play audio or read aloud").assertExists()
     }
 }

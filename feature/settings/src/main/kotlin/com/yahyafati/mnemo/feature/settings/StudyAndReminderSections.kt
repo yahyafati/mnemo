@@ -1,9 +1,5 @@
 package com.yahyafati.mnemo.feature.settings
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,15 +24,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationManagerCompat
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
+import com.yahyafati.mnemo.core.ui.format.rememberIs24HourFormat
+import com.yahyafati.mnemo.core.ui.permission.AppPermission
+import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -83,16 +80,13 @@ internal fun StudySection(settings: UserSettings, onAutoPlayAudio: (Boolean) -> 
 
 /**
  * Settings › Reminders: one notification a day at a chosen time, only when cards are due. Turning
- * it on asks for notification permission first (Android 13+); without it the reminder can't show.
+ * it on asks for notification permission first where the platform requires it (Android 13+);
+ * without it the reminder can't show. Only shown where the platform has reminders.
  */
 @Composable
 internal fun ReminderSection(reminder: ReminderSettings, onChange: (ReminderSettings) -> Unit) {
-    val context = LocalContext.current
-    var notificationsAllowed by rememberSaveable { mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled()) }
-    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        notificationsAllowed = granted
-        onChange(reminder.copy(enabled = true))
-    }
+    // Whatever the answer, the reminder turns on; the hint below says when notifications are blocked.
+    val notifications = rememberPermissionRequest(AppPermission.Notifications) { onChange(reminder.copy(enabled = true)) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     Section(stringResource(R.string.feature_settings_reminders), MnemoIcons.Notifications) {
         SwitchRow(
@@ -100,8 +94,8 @@ internal fun ReminderSection(reminder: ReminderSettings, onChange: (ReminderSett
             summary = stringResource(R.string.feature_settings_reminder_summary),
             checked = reminder.enabled,
             onCheckedChange = { on ->
-                if (on && !notificationsAllowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                if (on && notifications.canRequest) {
+                    notifications.launch()
                 } else {
                     onChange(reminder.copy(enabled = on))
                 }
@@ -115,7 +109,7 @@ internal fun ReminderSection(reminder: ReminderSettings, onChange: (ReminderSett
                     modifier = Modifier.padding(start = MnemoTheme.spacing.sm),
                 )
             }
-            if (!notificationsAllowed) Hint(stringResource(R.string.feature_settings_reminder_blocked))
+            if (!notifications.isGranted) Hint(stringResource(R.string.feature_settings_reminder_blocked))
         }
     }
     if (pickingTime) {
@@ -133,11 +127,10 @@ internal fun ReminderSection(reminder: ReminderSettings, onChange: (ReminderSett
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReminderTimeDialog(initial: LocalTime, onPicked: (LocalTime) -> Unit, onDismiss: () -> Unit) {
-    val context = LocalContext.current
     val state = rememberTimePickerState(
         initialHour = initial.hour,
         initialMinute = initial.minute,
-        is24Hour = android.text.format.DateFormat.is24HourFormat(context),
+        is24Hour = rememberIs24HourFormat(),
     )
     AlertDialog(
         onDismissRequest = onDismiss,

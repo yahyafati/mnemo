@@ -1,14 +1,13 @@
 package com.yahyafati.mnemo.core.data.backup
 
-import android.content.Context
-import androidx.core.net.toUri
-import androidx.datastore.preferences.preferencesDataStoreFile
-import androidx.documentfile.provider.DocumentFile
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
+import com.yahyafati.mnemo.core.common.platform.DocumentAccess
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.data.repository.MediaRepository
 import com.yahyafati.mnemo.core.database.DatabaseSnapshot
 import com.yahyafati.mnemo.core.datastore.di.DataStoreFiles
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -34,7 +33,8 @@ class BackupFormatException(message: String) : Exception(message)
  * start ([PendingRestore]), before Room or DataStore have opened anything.
  */
 class BackupManager internal constructor(
-    private val context: Context,
+    private val directories: AppDirectories,
+    private val documents: DocumentAccess,
     private val snapshot: DatabaseSnapshot,
     private val mediaRepository: MediaRepository,
     private val clock: Clock,
@@ -70,26 +70,24 @@ class BackupManager internal constructor(
     }
 
     /**
-     * Writes an automatic backup into the SAF folder [treeUri] and deletes Mnemo's older backups
+     * Writes an automatic backup into the folder [folderUri] and deletes Mnemo's older backups
      * there beyond [keep]. Files the user put in the folder are never touched.
      */
-    suspend fun writeToFolder(treeUri: String, keep: Int, workDir: File) {
-        val folder = DocumentFile.fromTreeUri(context, treeUri.toUri()) ?: throw java.io.IOException("Backup folder is gone")
+    suspend fun writeToFolder(folderUri: String, keep: Int, workDir: File) {
         val name = AUTO_PREFIX + NAME_FORMAT.format(clock.now().atZone(ZoneId.systemDefault())) + ".zip"
-        val file = folder.createFile(ZIP_MIME, name) ?: throw java.io.IOException("Can't create a file in the backup folder")
+        val file = withContext(ioDispatcher) { documents.createInFolder(folderUri, name, ZIP_MIME) }
         try {
-            val output = context.contentResolver.openOutputStream(file.uri) ?: throw java.io.IOException("Can't write the backup")
-            output.use { write(it, workDir) }
+            withContext(ioDispatcher) { documents.openOutput(file) }.use { write(it, workDir) }
         } catch (e: Exception) {
-            file.delete()
+            withContext(NonCancellable + ioDispatcher) { documents.delete(file) }
             throw e
         }
         withContext(ioDispatcher) {
-            folder.listFiles()
-                .filter { it.isFile && it.name?.startsWith(AUTO_PREFIX) == true && it.name?.endsWith(".zip") == true }
+            documents.listFolder(folderUri)
+                .filter { it.name.startsWith(AUTO_PREFIX) && it.name.endsWith(".zip") }
                 .sortedByDescending { it.name }
                 .drop(keep.coerceAtLeast(1))
-                .forEach { it.delete() }
+                .forEach { documents.delete(it.uri) }
         }
     }
 
@@ -100,7 +98,7 @@ class BackupManager internal constructor(
      * @throws BackupFormatException if it isn't a backup this version can restore.
      */
     suspend fun stage(input: InputStream): BackupInfo = withContext(ioDispatcher) {
-        val dir = PendingRestore.directory(context)
+        val dir = directories.restoreStaging
         dir.deleteRecursively()
         dir.mkdirs()
         try {
@@ -138,7 +136,7 @@ class BackupManager internal constructor(
         }
     }
 
-    private fun preferencesFile(): File = context.preferencesDataStoreFile(DataStoreFiles.USER_PREFERENCES)
+    private fun preferencesFile(): File = directories.dataStoreFile(DataStoreFiles.USER_PREFERENCES)
 
     private inline fun ZipOutputStream.entry(name: String, write: (OutputStream) -> Unit) {
         putNextEntry(ZipEntry(name))

@@ -1,7 +1,6 @@
 package com.yahyafati.mnemo.di
 
 import android.app.Application
-import android.content.ContentResolver
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
@@ -43,7 +42,7 @@ class DependencyGraphTest {
             // These are built through a secondary constructor that takes a Context; the primary one
             // takes the pieces the secondary derives from it, which verify() would look for.
             injections = injectedParameters(
-                ParameterTypeInjection(Class.forName("com.yahyafati.mnemo.core.data.repository.FileMediaRepository").kotlin, listOf(File::class, ContentResolver::class)),
+                ParameterTypeInjection(Class.forName("com.yahyafati.mnemo.core.data.repository.FileMediaRepository").kotlin, listOf(File::class)),
                 ParameterTypeInjection(FileSecretStore::class, listOf(Function0::class)),
             ),
         )

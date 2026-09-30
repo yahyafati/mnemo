@@ -1,33 +1,26 @@
 package com.yahyafati.mnemo.core.data.work
 
 import android.content.Context
-import android.net.Uri
-import android.provider.DocumentsContract
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import com.yahyafati.mnemo.core.anki.AnkiFormatException
-import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.data.R
-import com.yahyafati.mnemo.core.data.backup.BackupManager
+import com.yahyafati.mnemo.core.data.job.BackupJob
+import com.yahyafati.mnemo.core.data.job.ExportJob
+import com.yahyafati.mnemo.core.data.job.ImportJob
+import com.yahyafati.mnemo.core.data.job.toTransferError
 import com.yahyafati.mnemo.core.data.repository.MediaRepository
-import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
-import com.yahyafati.mnemo.core.data.transfer.AnkiExporter
-import com.yahyafati.mnemo.core.data.transfer.AnkiImporter
-import com.yahyafati.mnemo.core.data.transfer.JsonExporter
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TransferError
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
-import java.io.File
 import java.io.IOException
-import java.util.zip.ZipException
 
-// Background work for the data transfers (ARCHITECTURE §5.4). Workers read and write the user's
-// files through the content URIs the system pickers returned; results and errors go back through
-// the output data, which `WorkManagerDataTransferRepository` turns into `TransferState`s.
+// Background work for the data transfers (ARCHITECTURE §5.4), on Android. The workers only adapt
+// the jobs in `job/` to WorkManager: input and output data, the foreground notification, retries.
+// Results and errors go back through the output data, which `WorkManagerDataTransferRepository`
+// turns into `TransferState`s.
 
 internal object WorkKeys {
     const val URI = "uri"
@@ -60,31 +53,16 @@ internal object WorkKeys {
 /** A failure result carrying [error]. */
 private fun failure(error: TransferError) = androidx.work.ListenableWorker.Result.failure(workDataOf(WorkKeys.ERROR to error.name))
 
-/** What went wrong, for the user. Programmer errors are reported as unknown rather than crashing a background job. */
-private fun Throwable.toTransferError(): TransferError = when (this) {
-    is AnkiFormatException -> TransferError.UnsupportedFile
-    is com.yahyafati.mnemo.core.data.backup.BackupFormatException -> TransferError.UnsupportedFile
-    is ZipException -> TransferError.Corrupt
-    is IOException, is SecurityException -> TransferError.Storage
-    else -> TransferError.Unknown
-}
-
 internal class ImportWorker(
     context: Context,
     params: WorkerParameters,
-    private val importer: AnkiImporter,
+    private val job: ImportJob,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val uri = inputData.getString(WorkKeys.URI)?.let(Uri::parse) ?: return failure(TransferError.UnsupportedFile)
+        val uri = inputData.getString(WorkKeys.URI) ?: return failure(TransferError.UnsupportedFile)
         tryForeground(NOTIFICATION_ID, R.string.core_data_importing, null)
-        val work = File(applicationContext.cacheDir, "import-$id")
         return try {
-            work.mkdirs()
-            // A local copy: the package is read with random access, and the URI grant is short-lived.
-            val copy = File(work, "package.apkg")
-            val input = applicationContext.contentResolver.openInputStream(uri) ?: throw IOException("Can't open $uri")
-            input.use { source -> copy.outputStream().use { source.copyTo(it) } }
-            val summary = importer.import(copy, File(work, "unpacked")) { progress ->
+            val summary = job.run(uri, id.toString()) { progress ->
                 setProgress(workDataOf(WorkKeys.PROGRESS to progress))
                 tryForeground(NOTIFICATION_ID, R.string.core_data_importing, progress)
             }
@@ -103,8 +81,6 @@ internal class ImportWorker(
             throw e
         } catch (e: Exception) {
             failure(e.toTransferError())
-        } finally {
-            work.deleteRecursively()
         }
     }
 
@@ -117,32 +93,19 @@ internal class ImportWorker(
 internal class ExportWorker(
     context: Context,
     params: WorkerParameters,
-    private val ankiExporter: AnkiExporter,
-    private val jsonExporter: JsonExporter,
+    private val job: ExportJob,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val uri = inputData.getString(WorkKeys.URI)?.let(Uri::parse) ?: return failure(TransferError.Storage)
+        val uri = inputData.getString(WorkKeys.URI) ?: return failure(TransferError.Storage)
         val format = ExportFormat.entries.firstOrNull { it.name == inputData.getString(WorkKeys.FORMAT) } ?: ExportFormat.Apkg
         tryForeground(NOTIFICATION_ID, R.string.core_data_exporting, null)
-        val work = File(applicationContext.cacheDir, "export-$id")
         return try {
-            val output = applicationContext.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Can't write $uri")
-            output.use { out ->
-                val onProgress: suspend (Float) -> Unit = { setProgress(workDataOf(WorkKeys.PROGRESS to it)) }
-                when (format) {
-                    ExportFormat.Apkg -> ankiExporter.export(inputData.getString(WorkKeys.DECK_ID), out, work, onProgress)
-                    ExportFormat.Json -> jsonExporter.export(out, onProgress)
-                }
-            }
+            job.run(uri, format, inputData.getString(WorkKeys.DECK_ID), id.toString()) { setProgress(workDataOf(WorkKeys.PROGRESS to it)) }
             Result.success()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // Don't leave a half-written file behind.
-            runCatching { DocumentsContract.deleteDocument(applicationContext.contentResolver, uri) }
             failure(e.toTransferError())
-        } finally {
-            work.deleteRecursively()
         }
     }
 
@@ -156,34 +119,19 @@ internal class ExportWorker(
 internal class BackupWorker(
     context: Context,
     params: WorkerParameters,
-    private val backups: BackupManager,
-    private val settingsRepository: UserSettingsRepository,
-    private val clock: Clock,
+    private val job: BackupJob,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val uri = inputData.getString(WorkKeys.URI)?.let(Uri::parse)
-        val work = File(applicationContext.cacheDir, "backup-$id")
+        val uri = inputData.getString(WorkKeys.URI)
         return try {
-            if (uri != null) {
-                tryForeground(NOTIFICATION_ID, R.string.core_data_backing_up, null)
-                val output = applicationContext.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Can't write $uri")
-                output.use { out -> backups.write(out, work) { setProgress(workDataOf(WorkKeys.PROGRESS to it)) } }
-            } else {
-                val settings = settingsRepository.settings.first().backup
-                val folder = settings.folderUri
-                if (!settings.autoBackupEnabled || folder == null) return Result.success()
-                backups.writeToFolder(folder, settings.keepCount, work)
-            }
-            settingsRepository.setLastBackupAt(clock.now())
+            if (uri != null) tryForeground(NOTIFICATION_ID, R.string.core_data_backing_up, null)
+            job.run(uri, id.toString()) { setProgress(workDataOf(WorkKeys.PROGRESS to it)) }
             Result.success()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (uri != null) runCatching { DocumentsContract.deleteDocument(applicationContext.contentResolver, uri) }
             // An automatic backup tries again later; a manual one reports the error.
             if (uri == null && runAttemptCount < MAX_ATTEMPTS) Result.retry() else failure(e.toTransferError())
-        } finally {
-            work.deleteRecursively()
         }
     }
 

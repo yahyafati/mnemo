@@ -1,10 +1,5 @@
 package com.yahyafati.mnemo.feature.decks
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,8 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -55,7 +48,11 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
+import com.yahyafati.mnemo.core.ui.files.rememberFileSaver
+import com.yahyafati.mnemo.core.ui.permission.AppPermission
 import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
+import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
@@ -77,20 +74,14 @@ internal fun DecksScreen(
     viewModel: DecksViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     // .apkg and .colpkg have no registered MIME type, so the picker shows every file.
-    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { viewModel.onAction(DecksAction.Import(it.toString())) }
-    }
-    // The progress notification needs permission on Android 13+; the import runs either way.
-    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        importPicker.launch(arrayOf("*/*"))
-    }
+    val importPicker = rememberFilePicker { viewModel.onAction(DecksAction.Import(it)) }
+    // The progress notification needs permission on some platforms; the import runs either way.
+    val notifications = rememberPermissionRequest(AppPermission.Notifications) { importPicker.launch() }
     var explainNotifications by rememberSaveable { mutableStateOf(false) }
     var exportDeckId by rememberSaveable { mutableStateOf<String?>(null) }
-    val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(APKG_MIME)) { uri ->
-        val deckId = exportDeckId
-        if (uri != null && deckId != null) viewModel.onAction(DecksAction.Export(deckId, uri.toString()))
+    val exportPicker = rememberFileSaver(APKG_MIME) { uri ->
+        exportDeckId?.let { viewModel.onAction(DecksAction.Export(it, uri)) }
         exportDeckId = null
     }
     DecksScreen(
@@ -100,11 +91,7 @@ internal fun DecksScreen(
         onStartDailyMix = onStartDailyMix,
         onAddCards = onAddCards,
         onBrowse = onBrowse,
-        onImport = {
-            val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-            if (needsPermission) explainNotifications = true else importPicker.launch(arrayOf("*/*"))
-        },
+        onImport = { if (notifications.canRequest) explainNotifications = true else importPicker.launch() },
         onExportDeck = { deckId, name ->
             exportDeckId = deckId
             exportPicker.launch("$name.apkg")
@@ -118,12 +105,12 @@ internal fun DecksScreen(
             message = stringResource(R.string.feature_decks_notifications_message),
             onContinue = {
                 explainNotifications = false
-                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                notifications.launch()
             },
             // Declining only means no progress notification: the import goes ahead.
             onNotNow = {
                 explainNotifications = false
-                importPicker.launch(arrayOf("*/*"))
+                importPicker.launch()
             },
         )
     }

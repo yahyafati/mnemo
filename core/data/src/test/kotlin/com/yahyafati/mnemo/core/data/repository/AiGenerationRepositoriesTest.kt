@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.generate.ChatTextRunner
 import com.yahyafati.mnemo.core.ai.generate.CoAuthorClient
 import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
+import com.yahyafati.mnemo.core.data.android.AndroidAppDirectories
 import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
@@ -49,7 +50,7 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 class AiGenerationRepositoriesTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val secrets = FileSecretStore(context, SoftwareSecretCipher(), Dispatchers.Unconfined)
+    private val secrets = FileSecretStore(AndroidAppDirectories(context), SoftwareSecretCipher(), Dispatchers.Unconfined)
     private val providers = FakeAiProviderRepository()
     private val server = MockWebServer()
     private val runner = ChatTextRunner(OpenAiCompatibleClient(OkHttpClient()))

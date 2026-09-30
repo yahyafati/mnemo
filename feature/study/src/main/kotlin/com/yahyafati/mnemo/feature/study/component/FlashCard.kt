@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.Rating
@@ -196,15 +197,18 @@ private fun MetaBar(
                 Icon(MnemoIcons.Sparkle, stringResource(R.string.feature_study_ai_open), Modifier.size(19.dp))
             }
         }
-        // The card's own audio, or text-to-speech of the side showing.
-        IconButton(
-            onClick = { audio.playOrSpeak(if (revealed) card.sides.back.ifBlank { card.sides.front } else card.sides.front) },
-            colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
-            modifier = Modifier
-                .padding(end = MnemoTheme.spacing.xs)
-                .size(36.dp),
-        ) {
-            Icon(MnemoIcons.Speak, stringResource(R.string.feature_study_read_aloud), Modifier.size(19.dp))
+        // The card's own audio, or text-to-speech of the side showing where the platform has it.
+        val spoken = if (revealed) card.sides.back.ifBlank { card.sides.front } else card.sides.front
+        if (LocalPlatformCapabilities.current.textToSpeech || Markdown.sounds(spoken).isNotEmpty()) {
+            IconButton(
+                onClick = { audio.playOrSpeak(spoken) },
+                colors = IconButtonDefaults.iconButtonColors(containerColor = colors.surfaceContainerLow),
+                modifier = Modifier
+                    .padding(end = MnemoTheme.spacing.xs)
+                    .size(36.dp),
+            ) {
+                Icon(MnemoIcons.Speak, stringResource(R.string.feature_study_read_aloud), Modifier.size(19.dp))
+            }
         }
         val starred = card.card.starred
         IconButton(

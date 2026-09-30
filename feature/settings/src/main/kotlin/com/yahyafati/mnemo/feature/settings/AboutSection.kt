@@ -17,13 +17,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -34,6 +32,7 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoLogo
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.ProjectLinks
+import com.yahyafati.mnemo.core.ui.platform.LocalAppVersion
 
 /**
  * Settings › About: the version, the license and where the source is (the GPL asks for that),
@@ -44,10 +43,7 @@ internal fun AboutSection(onOpenLicenses: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     // No browser installed: nothing to open.
     val openLink: (String) -> Unit = { url -> runCatching { uriHandler.openUri(url) } }
-    val context = LocalContext.current
-    val version = remember(context) {
-        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
-    }
+    val version = LocalAppVersion.current
     var showPolicy by rememberSaveable { mutableStateOf(false) }
     Section(stringResource(R.string.feature_settings_about), MnemoIcons.Info) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = MnemoTheme.spacing.xs)) {

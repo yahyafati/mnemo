@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
+import com.yahyafati.mnemo.core.data.android.AndroidAppDirectories
 import com.yahyafati.mnemo.core.data.repository.AiProviderDraft
 import com.yahyafati.mnemo.core.data.repository.ApiKeyChange
 import com.yahyafati.mnemo.core.data.repository.DefaultAiProviderRepository
@@ -17,6 +18,7 @@ import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.testing.TestClock
+import com.yahyafati.mnemo.core.testing.platform.FakeDocumentAccess
 import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -44,6 +46,7 @@ class BackupTest {
     val tmp = TemporaryFolder()
 
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private val directories = AndroidAppDirectories(context)
     private val clock = TestClock()
     private var db: MnemoDatabase? = null
 
@@ -55,10 +58,10 @@ class BackupTest {
     private fun open(): MnemoDatabase = MnemoDatabase.build(context).also { db = it }
 
     private fun media(database: MnemoDatabase) =
-        FileMediaRepository(File(context.filesDir, MediaRef.DIRECTORY), database.mediaDao(), database.noteDao(), clock, Dispatchers.Unconfined)
+        FileMediaRepository(directories.media, database.mediaDao(), database.noteDao(), clock, Dispatchers.Unconfined)
 
     private fun manager(database: MnemoDatabase) =
-        BackupManager(context, DatabaseSnapshot(context, database), media(database), clock, Dispatchers.Unconfined)
+        BackupManager(directories, FakeDocumentAccess(), DatabaseSnapshot(directories, database), media(database), clock, Dispatchers.Unconfined)
 
     @Test
     fun backupAndRestoreOnAFreshInstall() = runTest {
@@ -77,8 +80,8 @@ class BackupTest {
         // "Fresh install": everything is wiped.
         database.close()
         db = null
-        DatabaseSnapshot.files(context).forEach { it.delete() }
-        File(context.filesDir, MediaRef.DIRECTORY).deleteRecursively()
+        DatabaseSnapshot.files(directories).forEach { it.delete() }
+        directories.media.deleteRecursively()
 
         val empty = open()
         assertTrue(empty.deckDao().getDecks().isEmpty())
@@ -88,15 +91,15 @@ class BackupTest {
         db = null
 
         // The next start applies it before anything opens the database.
-        assertTrue(PendingRestore.applyIfPresent(context))
-        assertFalse(PendingRestore.directory(context).exists())
+        assertTrue(PendingRestore.applyIfPresent(directories))
+        assertFalse(directories.restoreStaging.exists())
         val restored = open()
         assertEquals(setOf("Biology", "Cells"), restored.deckDao().getDecks().map { it.name }.toSet())
         val note = restored.noteDao().getPage(0, 10).single().note
         assertEquals("A cell", note.fields[1])
         assertEquals(1, restored.cardDao().observeTotalCount().first())
         assertEquals(listOf("cell.png"), restored.mediaDao().getAll().map { it.name })
-        assertEquals("png-bytes", File(context.filesDir, "${MediaRef.DIRECTORY}/${image.id}").readText())
+        assertEquals("png-bytes", File(directories.media, image.id).readText())
     }
 
     /** API keys live encrypted outside the database, so no backup carries them (ADR 0005). */
@@ -104,7 +107,7 @@ class BackupTest {
     fun backupsNeverContainApiKeys() = runTest {
         val database = open()
         val cipher = SoftwareSecretCipher()
-        val secrets = FileSecretStore(context, cipher, Dispatchers.Unconfined)
+        val secrets = FileSecretStore(directories, cipher, Dispatchers.Unconfined)
         fun providers(db: MnemoDatabase) = DefaultAiProviderRepository(
             db.aiProviderDao(), secrets, ConnectionProbe(OpenAiCompatibleClient(okhttp3.OkHttpClient())),
             RoomTransactionRunner(db), clock, Dispatchers.Unconfined,
@@ -112,7 +115,7 @@ class BackupTest {
         providers(database).saveProvider(
             AiProviderDraft(id = "p", name = "OpenAI", baseUrl = "https://api.openai.com/v1", apiKey = ApiKeyChange.Set(KEY), defaultModel = "m"),
         )
-        val sealed = File(context.noBackupFilesDir, "secrets").listFiles()!!.single().readBytes()
+        val sealed = directories.secrets.listFiles()!!.single().readBytes()
 
         val backup = ByteArrayOutputStream()
         manager(database).write(backup, tmp.newFolder())
@@ -128,13 +131,13 @@ class BackupTest {
         // A fresh install has no Keystore key and no secrets: the provider comes back without its key.
         database.close()
         db = null
-        DatabaseSnapshot.files(context).forEach { it.delete() }
-        File(context.noBackupFilesDir, "secrets").deleteRecursively()
+        DatabaseSnapshot.files(directories).forEach { it.delete() }
+        directories.secrets.deleteRecursively()
         val empty = open()
         manager(empty).stage(bytes.inputStream())
         empty.close()
         db = null
-        assertTrue(PendingRestore.applyIfPresent(context))
+        assertTrue(PendingRestore.applyIfPresent(directories))
         val restored = providers(open()).getProvider("p")!!
         assertEquals("OpenAI", restored.name)
         assertFalse(restored.hasApiKey)
@@ -157,7 +160,7 @@ class BackupTest {
         }
         assertFailsWith<BackupFormatException> { manager(database).stage(noManifest.toByteArray().inputStream()) }
         // A failed stage leaves nothing for the next start to apply.
-        assertFalse(PendingRestore.applyIfPresent(context))
+        assertFalse(PendingRestore.applyIfPresent(directories))
     }
 
     @Test

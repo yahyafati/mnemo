@@ -1,10 +1,9 @@
 package com.yahyafati.mnemo.core.datastore.di
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStoreFile
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import com.yahyafati.mnemo.core.common.di.dispatcher
 import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
@@ -18,13 +17,13 @@ object DataStoreFiles {
     const val USER_PREFERENCES = "user_preferences"
 }
 
-/** The preferences DataStore. Tests replace it with one on a file of their own. */
+/** The preferences DataStore, in the file [AppDirectories] names. Tests replace it with one on a file of their own. */
 val dataStoreModule = module {
     single<DataStore<Preferences>> {
-        val context = get<Context>()
+        val directories = get<AppDirectories>()
         PreferenceDataStoreFactory.create(
             scope = CoroutineScope(SupervisorJob() + dispatcher(MnemoDispatchers.IO)),
-            produceFile = { context.preferencesDataStoreFile(DataStoreFiles.USER_PREFERENCES) },
+            produceFile = { directories.dataStoreFile(DataStoreFiles.USER_PREFERENCES) },
         )
     }
     factoryOf(::UserPreferencesDataSource)

@@ -1,7 +1,5 @@
 package com.yahyafati.mnemo.feature.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +29,9 @@ import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
+import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
+import com.yahyafati.mnemo.core.ui.files.rememberFileSaver
+import com.yahyafati.mnemo.core.ui.files.rememberFolderPicker
 import java.net.URLDecoder
 import java.time.Instant
 import java.time.ZoneId
@@ -51,19 +52,11 @@ internal class DataCallbacks(
 /** Settings › Data: backups, restore and full exports (ROADMAP Phase 2). */
 @Composable
 internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: DataCallbacks) {
-    val backupPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ZIP_MIME)) { uri ->
-        uri?.let { callbacks.onBackUp(it.toString()) }
-    }
-    val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { callbacks.onReadBackup(it.toString()) }
-    }
-    val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { callbacks.onAutoBackup(true, it.toString()) }
-    }
+    val backupPicker = rememberFileSaver(ZIP_MIME) { callbacks.onBackUp(it) }
+    val restorePicker = rememberFilePicker(listOf(ZIP_MIME, "application/octet-stream")) { callbacks.onReadBackup(it) }
+    val folderPicker = rememberFolderPicker { callbacks.onAutoBackup(true, it) }
     var exportFormat by rememberSaveable { mutableStateOf(ExportFormat.Apkg) }
-    val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
-        uri?.let { callbacks.onExport(it.toString(), exportFormat) }
-    }
+    val exportPicker = rememberFileSaver("*/*") { callbacks.onExport(it, exportFormat) }
 
     Section(stringResource(R.string.feature_settings_data), MnemoIcons.Data) {
         ActionRow(
@@ -77,7 +70,7 @@ internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: 
             icon = MnemoIcons.Restore,
             title = stringResource(R.string.feature_settings_restore),
             summary = stringResource(R.string.feature_settings_restore_summary),
-            onClick = { restorePicker.launch(arrayOf(ZIP_MIME, "application/octet-stream")) },
+            onClick = { restorePicker.launch() },
         )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -100,7 +93,7 @@ internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: 
                 onCheckedChange = { on ->
                     when {
                         !on -> callbacks.onAutoBackup(false, backup.folderUri)
-                        backup.folderUri == null -> folderPicker.launch(null)
+                        backup.folderUri == null -> folderPicker.launch()
                         else -> callbacks.onAutoBackup(true, backup.folderUri)
                     }
                 },
@@ -109,7 +102,7 @@ internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: 
         if (backup.folderUri != null) {
             MnemoButton(
                 text = stringResource(R.string.feature_settings_change_folder),
-                onClick = { folderPicker.launch(null) },
+                onClick = { folderPicker.launch() },
                 style = MnemoButtonStyle.Text,
                 leadingIcon = MnemoIcons.Folder,
             )

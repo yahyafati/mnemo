@@ -103,6 +103,14 @@ jobs:
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
 
+  # Shared code may not import Android APIs (docs/desktop/ROADMAP.md, D3).
+  android-imports:
+    name: Android imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/desktop/check-android-imports.py
+
   # F-Droid reads its texts, changelog and graphics from the repo (docs/release/fdroid.md).
   fastlane:
     name: F-Droid metadata

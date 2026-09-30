@@ -41,7 +41,7 @@ class SmartExtractViewModel(
     private val regenerateCard: RegenerateCardUseCase,
     private val acceptCards: AcceptGeneratedCardsUseCase,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(SmartExtractUiState())
+    private val _uiState = MutableStateFlow(SmartExtractUiState(dictationAvailable = sources.isDictationAvailable()))
     val uiState: StateFlow<SmartExtractUiState> = _uiState.asStateFlow()
 
     /** The source being generated from, kept so Retry can resume it. */

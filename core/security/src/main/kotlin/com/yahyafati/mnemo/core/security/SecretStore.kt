@@ -1,6 +1,6 @@
 package com.yahyafati.mnemo.core.security
 
-import android.content.Context
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -36,9 +36,9 @@ interface SecretStore {
 }
 
 /**
- * One encrypted file per secret in `noBackupFilesDir/secrets`, named by the SHA-256 of the id.
- * That directory is outside the database, the preferences and the media folder, so no Mnemo
- * backup or export can contain it, and Android Auto Backup never copies `noBackupFilesDir`.
+ * One encrypted file per secret in [AppDirectories.secrets], named by the SHA-256 of the id. That
+ * directory is outside the database, the preferences and the media folder, so no Mnemo backup or
+ * export can contain it (on Android it is in `noBackupFilesDir`, which Auto Backup never copies).
  */
 class FileSecretStore internal constructor(
     private val directory: () -> File,
@@ -46,10 +46,10 @@ class FileSecretStore internal constructor(
     private val ioDispatcher: CoroutineDispatcher,
 ) : SecretStore {
     constructor(
-        context: Context,
+        directories: AppDirectories,
         cipher: SecretCipher,
         ioDispatcher: CoroutineDispatcher,
-    ) : this({ File(context.noBackupFilesDir, DIRECTORY) }, cipher, ioDispatcher)
+    ) : this({ directories.secrets }, cipher, ioDispatcher)
 
     override suspend fun put(id: String, secret: String) = withContext(ioDispatcher) {
         val dir = directory().apply { mkdirs() }
@@ -89,8 +89,4 @@ class FileSecretStore internal constructor(
 
     private fun name(id: String): String =
         MessageDigest.getInstance("SHA-256").digest(id.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
-
-    private companion object {
-        const val DIRECTORY = "secrets"
-    }
 }

@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    api(projects.core.common)
     implementation(projects.core.model)
     implementation(libs.koin.core)
     implementation(libs.kotlinx.serialization.json)

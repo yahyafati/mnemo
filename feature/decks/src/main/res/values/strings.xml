@@ -64,6 +64,18 @@
     </plurals>
     <string name="feature_decks_last_review">Last rev: %s</string>
     <string name="feature_decks_just_now">just now</string>
+    <plurals name="feature_decks_minutes_ago">
+        <item quantity="one">%d min. ago</item>
+        <item quantity="other">%d min. ago</item>
+    </plurals>
+    <plurals name="feature_decks_hours_ago">
+        <item quantity="one">%d hr. ago</item>
+        <item quantity="other">%d hr. ago</item>
+    </plurals>
+    <plurals name="feature_decks_days_ago">
+        <item quantity="one">%d day ago</item>
+        <item quantity="other">%d days ago</item>
+    </plurals>
     <string name="feature_decks_review">Review</string>
     <string name="feature_decks_add_cards">Add cards</string>
     <plurals name="feature_decks_subdecks">

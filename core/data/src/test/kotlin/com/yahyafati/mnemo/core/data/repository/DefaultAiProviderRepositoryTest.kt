@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
 import com.yahyafati.mnemo.core.common.result.MnemoResult
+import com.yahyafati.mnemo.core.data.android.AndroidAppDirectories
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -39,7 +40,7 @@ class DefaultAiProviderRepositoryTest {
     private val db = MnemoDatabase.build(context, name = null)
     private val clock = TestClock(Instant.parse("2026-09-01T10:00:00Z"))
     private val cipher = SoftwareSecretCipher()
-    private val secrets = FileSecretStore(context, cipher, Dispatchers.Unconfined)
+    private val secrets = FileSecretStore(AndroidAppDirectories(context), cipher, Dispatchers.Unconfined)
     private val server = MockWebServer()
     private val repository = DefaultAiProviderRepository(
         db.aiProviderDao(), secrets, ConnectionProbe(OpenAiCompatibleClient(OkHttpClient())),

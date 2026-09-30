@@ -1,6 +1,5 @@
 package com.yahyafati.mnemo.feature.settings
 
-import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
@@ -169,7 +169,7 @@ internal fun SettingsScreen(
                 ) {
                     SchedulingSection(settings, callbacks) { FsrsParametersSetting(settings.fsrsWeights, optimizerState, optimizerCallbacks) }
                     StudySection(settings, callbacks.onAutoPlayAudio)
-                    ReminderSection(settings.reminder, callbacks.onReminder)
+                    if (LocalPlatformCapabilities.current.reminders) ReminderSection(settings.reminder, callbacks.onReminder)
                     AppearanceSection(settings, callbacks)
                     AiSection(aiSummary, onOpenAiProviders)
                     DataSection(settings.backup, dataState, dataCallbacks)
@@ -240,7 +240,7 @@ private fun AppearanceSection(settings: UserSettings, callbacks: SettingsCallbac
             onSelect = callbacks.onDarkThemeConfig,
         )
 
-        val dynamicAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val dynamicAvailable = LocalPlatformCapabilities.current.dynamicColor
         SwitchRow(
             title = stringResource(R.string.feature_settings_dynamic_color),
             summary = stringResource(

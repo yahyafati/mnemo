@@ -7,6 +7,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
+import com.yahyafati.mnemo.core.ingest.android.PdfBoxAndroidTextExtractor
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import mockwebserver3.MockResponse
@@ -26,7 +27,7 @@ import kotlin.test.assertTrue
 @RunWith(AndroidJUnit4::class)
 class ExtractorsTest {
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-    private val pdf = PdfTextExtractor(context)
+    private val pdf = PdfBoxAndroidTextExtractor(context)
     private val web = WebPageExtractor(OkHttpClient(), pdf)
     private val server = MockWebServer()
 

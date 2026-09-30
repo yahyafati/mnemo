@@ -2,6 +2,7 @@ package com.yahyafati.mnemo
 
 import android.app.Application
 import androidx.work.Configuration
+import com.yahyafati.mnemo.core.data.android.AndroidAppDirectories
 import com.yahyafati.mnemo.core.data.backup.PendingRestore
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
@@ -26,7 +27,7 @@ class MnemoApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         // A restore staged in Settings replaces the collection before Koin creates the database
         // and preferences, which happens on first use, after startKoin.
-        PendingRestore.applyIfPresent(this)
+        PendingRestore.applyIfPresent(AndroidAppDirectories(this))
         super.onCreate()
         startKoin {
             androidContext(this@MnemoApplication)

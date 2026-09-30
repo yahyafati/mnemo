@@ -264,4 +264,12 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.DictationPermissionDenied)
         assertIs<DictationState.Failed>(vm.state.dictation)
     }
+
+    @Test
+    fun dictationIsOnlyOfferedWhereTheDeviceCanRecognizeSpeech() = runTest {
+        assertEquals(true, viewModel().state.dictationAvailable)
+
+        sources.dictationAvailable = false
+        assertEquals(false, viewModel().state.dictationAvailable)
+    }
 }

@@ -10,25 +10,36 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.common.intent.AppIntents
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
+import com.yahyafati.mnemo.core.designsystem.platform.android.androidPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.ui.adaptive.LocalWindowLayout
 import com.yahyafati.mnemo.core.ui.adaptive.currentWindowLayout
+import com.yahyafati.mnemo.core.ui.card.LocalMediaImageLoader
+import com.yahyafati.mnemo.core.ui.card.android.AndroidMediaImageLoader
 import com.yahyafati.mnemo.core.ui.card.audio.LocalAutoPlayAudio
 import com.yahyafati.mnemo.core.ui.card.audio.LocalCardAudio
-import com.yahyafati.mnemo.core.ui.card.audio.rememberCardAudio
+import com.yahyafati.mnemo.core.ui.card.audio.android.rememberAndroidCardAudio
+import com.yahyafati.mnemo.core.ui.card.web.LocalMathRenderer
+import com.yahyafati.mnemo.core.ui.card.web.android.KatexMathRenderer
+import com.yahyafati.mnemo.core.ui.platform.LocalAppVersion
 import com.yahyafati.mnemo.ui.onboarding.OnboardingScreen
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.ui.card.LocalCardFontScale
 import com.yahyafati.mnemo.ui.MnemoApp
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModel()
+    private val directories: AppDirectories by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The splash (Theme.Mnemo.Starting) stays until the settings are in, so the first frame
@@ -56,23 +67,32 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            MnemoTheme(darkTheme = darkTheme, dynamicColor = settings.useDynamicColor) {
-                CompositionLocalProvider(
-                    LocalCardFontScale provides settings.cardFontSize.scale,
-                    LocalCardAudio provides rememberCardAudio(),
-                    LocalAutoPlayAudio provides settings.autoPlayAudio,
-                    LocalWindowLayout provides currentWindowLayout(),
-                ) {
-                    if (ready.showOnboarding) {
-                        OnboardingScreen(
-                            reminderTime = settings.reminder.time,
-                            onCreateDeck = viewModel::finishOnboarding,
-                            onImport = viewModel::importFromOnboarding,
-                            onSkip = { reminder -> viewModel.finishOnboarding(deckName = null, reminder = reminder) },
-                        )
-                    } else {
-                        val destination by viewModel.destination.collectAsStateWithLifecycle()
-                        MnemoApp(destination = destination, onDestinationHandled = viewModel::destinationHandled)
+            // What this platform gives the shared UI: what it can do, and the renderers and players
+            // that only the platform has (KaTeX in a WebView, BitmapFactory, MediaPlayer and TTS).
+            CompositionLocalProvider(
+                LocalPlatformCapabilities provides remember { androidPlatformCapabilities() },
+                LocalAppVersion provides remember { appVersion() },
+                LocalMathRenderer provides KatexMathRenderer,
+                LocalMediaImageLoader provides remember { AndroidMediaImageLoader(directories.media) },
+            ) {
+                MnemoTheme(darkTheme = darkTheme, dynamicColor = settings.useDynamicColor) {
+                    CompositionLocalProvider(
+                        LocalCardFontScale provides settings.cardFontSize.scale,
+                        LocalCardAudio provides rememberAndroidCardAudio(),
+                        LocalAutoPlayAudio provides settings.autoPlayAudio,
+                        LocalWindowLayout provides currentWindowLayout(),
+                    ) {
+                        if (ready.showOnboarding) {
+                            OnboardingScreen(
+                                reminderTime = settings.reminder.time,
+                                onCreateDeck = viewModel::finishOnboarding,
+                                onImport = viewModel::importFromOnboarding,
+                                onSkip = { reminder -> viewModel.finishOnboarding(deckName = null, reminder = reminder) },
+                            )
+                        } else {
+                            val destination by viewModel.destination.collectAsStateWithLifecycle()
+                            MnemoApp(destination = destination, onDestinationHandled = viewModel::destinationHandled)
+                        }
                     }
                 }
             }
@@ -83,6 +103,9 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         handleIntent(intent)
     }
+
+    private fun appVersion(): String =
+        runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
 
     /** The reminder notification and the widget open the Study tab. */
     private fun handleIntent(intent: Intent?) {

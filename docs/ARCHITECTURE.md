@@ -95,7 +95,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:security` | Android lib | Android Keystore-backed encryption for API keys (`SecretCipher`) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
-| `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin) |
+| `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin), and the platform seams of §4.3 (`AppDirectories`, `DocumentAccess`) |
 | `:core:testing` | Android lib | Fakes (repositories, clock), test dispatchers |
 
 \* `:core:domain` could be JVM-only, but it depends on `:core:data`, which is an Android library until D4. Keep it free of Android APIs either way.
@@ -340,6 +340,26 @@ feature/study/
 
 `com.yahyafati.mnemo.<layer>.<module>`, e.g. `com.yahyafati.mnemo.core.database`, `com.yahyafati.mnemo.feature.create`. Android namespaces match.
 
+### 4.3 Platform seams
+
+The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android, so shared code never calls an Android API. Each one sits behind an interface, and its Android implementation lives in a package named `android`, next to the interface's module (`.../android/AndroidXxx.kt`). When a module becomes multiplatform (D4–D6), `android` directories become `androidMain` and the desktop implementations go beside them in `desktopMain`. `scripts/desktop/check-android-imports.py` (CI) fails on an Android import anywhere else, apart from a short, shrinking list of files that have not moved yet.
+
+| Seam | Interface (module) | Android implementation | Desktop |
+|---|---|---|---|
+| Where files live | `AppDirectories` (`:core:common`) | `AndroidAppDirectories` (`:core:data`) | plain paths (D4) |
+| The user's picked files | `DocumentAccess` (`:core:common`) | `AndroidDocumentAccess`: content URIs, document trees | plain paths (D4) |
+| Long transfers | `ImportJob`, `ExportJob`, `BackupJob` (`:core:data/job`): plain suspend functions with a progress callback | `ImportWorker`, `ExportWorker`, `BackupWorker` only adapt them to WorkManager (input, foreground notification, retry) | application-scope coroutines (D4) |
+| PDF text | `PdfTextExtractor` (`:core:ingest`) | `PdfBoxAndroidTextExtractor` | Apache PdfBox (D4) |
+| Dictation | `SpeechTranscriber` (`:core:ingest`), with `isAvailable()` | `AndroidSpeechTranscriber` | none at first |
+| What the platform offers | `PlatformCapabilities` + `LocalPlatformCapabilities` (`:core:designsystem`): dynamic color, reminders, widget, dictation, text-to-speech, run-time permissions | `androidPlatformCapabilities()` | most are off |
+| File dialogs | `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver`, `rememberFolderPicker` (`:core:ui/files`) | Storage Access Framework contracts | AWT file dialog (D5) |
+| Run-time permissions | `rememberPermissionRequest(AppPermission)` (`:core:ui/permission`) | `ActivityResultContracts.RequestPermission` | always granted |
+| Math on cards | `MathRenderer` + `LocalMathRenderer` (`:core:ui/card/web`); `MathText` calls it | `KatexMathRenderer` (KaTeX in a WebView) | JLaTeXMath (D5); raw TeX is the fallback |
+| Card images | `MediaImageLoader` + `LocalMediaImageLoader` (`:core:ui/card`) | `AndroidMediaImageLoader` (`BitmapFactory`, LRU cache) | Skia (D5) |
+| Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | javax.sound (D5) |
+
+Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The app shell (`MainActivity`) provides the Android values; unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
+
 ## 5. Key flows
 
 ### 5.1 Study session
@@ -390,9 +410,9 @@ Nothing touches the database before step 8 (except the token-usage log). If the 
 
 ### 5.4 Import / backup
 
-- `.apkg` import runs in `ImportWorker` (foreground notification for large decks). It copies the picked file locally, opens it with `:core:anki` (`ApkgReader`), stores media first into `filesDir/media/<hash>`, then maps notes in batches of 500 (`AnkiImportMapper`) and writes each batch with its cards and review logs in one transaction (`AnkiImporter`). Duplicates are skipped by guid. See ADR 0003.
-- Export (`ExportWorker`): `.apkg` through `AnkiExporter` + `AnkiPackageWriter`, or the whole collection as JSON (`JsonExporter`), streamed page by page to a SAF document.
-- Backup (`BackupWorker`, manual or daily): a zip with a manifest, a checkpointed database copy (`DatabaseSnapshot`), preferences and media. Restore stages the zip and restarts; `MnemoApplication` applies it (`PendingRestore`) before the database opens. See ADR 0004.
+- `.apkg` import is `ImportJob` (run by `ImportWorker` on Android, with a foreground notification for large decks). It copies the picked file locally, opens it with `:core:anki` (`ApkgReader`), stores media first into `filesDir/media/<hash>`, then maps notes in batches of 500 (`AnkiImportMapper`) and writes each batch with its cards and review logs in one transaction (`AnkiImporter`). Duplicates are skipped by guid. See ADR 0003.
+- Export (`ExportJob`): `.apkg` through `AnkiExporter` + `AnkiPackageWriter`, or the whole collection as JSON (`JsonExporter`), streamed page by page to a SAF document.
+- Backup (`BackupJob`, manual or daily): a zip with a manifest, a checkpointed database copy (`DatabaseSnapshot`), preferences and media. Restore stages the zip and restarts; `MnemoApplication` applies it (`PendingRestore`) before the database opens. See ADR 0004.
 - The UI observes all of these through `DataTransferRepository` as `TransferState`s mapped from WorkManager.
 
 ## 6. Data layer details

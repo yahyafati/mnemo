@@ -12,7 +12,13 @@ import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
 import com.yahyafati.mnemo.core.common.di.dispatcher
 import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
+import com.yahyafati.mnemo.core.common.platform.DocumentAccess
+import com.yahyafati.mnemo.core.data.android.platformModule
 import com.yahyafati.mnemo.core.data.backup.BackupManager
+import com.yahyafati.mnemo.core.data.job.BackupJob
+import com.yahyafati.mnemo.core.data.job.ExportJob
+import com.yahyafati.mnemo.core.data.job.ImportJob
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.CardBrowserRepository
 import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
@@ -59,6 +65,8 @@ import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
+import com.yahyafati.mnemo.core.ingest.android.AndroidSpeechTranscriber
+import com.yahyafati.mnemo.core.ingest.android.PdfBoxAndroidTextExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
 import okhttp3.OkHttpClient
 import org.koin.androidx.workmanager.dsl.workerOf
@@ -70,14 +78,16 @@ import java.util.concurrent.TimeUnit
 /**
  * Repositories, the transfer code, and the AI and ingest clients. Bindings are per request
  * (`factory`) unless the object holds a resource that should be shared. Needs the modules of
- * `:core:common`, `:core:database`, `:core:datastore` and `:core:security`.
+ * `:core:common`, `:core:database`, `:core:datastore` and `:core:security`, and [platformModule].
  */
 val dataModule = module {
     factory { OfflineDeckRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.Default)) } bind DeckRepository::class
     factoryOf(::OfflineCardRepository) bind CardRepository::class
     factoryOf(::OfflineReviewRepository) bind ReviewRepository::class
     factoryOf(::DefaultUserSettingsRepository) bind UserSettingsRepository::class
-    factory { FileMediaRepository(get<Context>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) } bind MediaRepository::class
+    factory {
+        FileMediaRepository(get<AppDirectories>().media, get(), get(), get(), dispatcher(MnemoDispatchers.IO), get<DocumentAccess>())
+    } bind MediaRepository::class
     factoryOf(::OfflineCardBrowserRepository) bind CardBrowserRepository::class
     factoryOf(::WorkManagerDataTransferRepository) bind DataTransferRepository::class
     factory {
@@ -91,7 +101,7 @@ val dataModule = module {
     } bind CoAuthorRepository::class
     factory { DefaultStudyAssistRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO)) } bind StudyAssistRepository::class
     factory {
-        DefaultSourceRepository(get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+        DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind SourceRepository::class
     factoryOf(::OfflineStatsRepository) bind StatsRepository::class
     // Also injected as itself: ReminderWorker reschedules through it.
@@ -100,7 +110,10 @@ val dataModule = module {
 
     factoryOf(::ProviderConfigs)
     factory { FsrsOptimization(get(), get(), get(), dispatcher(MnemoDispatchers.Default)) }
-    factory { BackupManager(get<Context>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
+    factory { BackupManager(get<AppDirectories>(), get<DocumentAccess>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
+    factoryOf(::ImportJob)
+    factoryOf(::ExportJob)
+    factoryOf(::BackupJob)
     factoryOf(::AnkiImporter)
     factoryOf(::AnkiExporter)
     factoryOf(::JsonExporter)
@@ -131,10 +144,10 @@ val dataModule = module {
     factory { StudyAssistClient(get()) }
     factory { CoAuthorClient(get()) }
 
-    single { PdfTextExtractor(get<Context>()) }
+    single<PdfTextExtractor> { PdfBoxAndroidTextExtractor(get<Context>()) }
     // Shares the AI client's connection pool; it follows redirects on its own copy of the client.
     factory { WebPageExtractor(get(), get()) }
-    factory { SpeechTranscriber(get<Context>()) }
+    factory<SpeechTranscriber> { AndroidSpeechTranscriber(get<Context>()) }
 }
 
 /** The WorkManager workers: created by Koin's `KoinWorkerFactory`, which `MnemoApplication` installs. */
@@ -152,4 +165,4 @@ val workModule = module {
  * `:core:data` sees the first three, so the app starts them through this list. Needs
  * `commonModule` and an `androidContext`.
  */
-val dataLayerModules = listOf(databaseModule, dataStoreModule, securityModule, dataModule, workModule)
+val dataLayerModules = listOf(platformModule, databaseModule, dataStoreModule, securityModule, dataModule, workModule)

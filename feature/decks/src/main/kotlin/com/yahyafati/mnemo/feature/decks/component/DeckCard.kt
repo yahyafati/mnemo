@@ -1,6 +1,5 @@
 package com.yahyafati.mnemo.feature.decks.component
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +39,7 @@ import com.yahyafati.mnemo.feature.decks.DeckItem
 import com.yahyafati.mnemo.feature.decks.R
 import java.text.NumberFormat
 import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 /** Callbacks shared by a deck card and its subdeck rows. */
@@ -367,14 +367,13 @@ private fun Tag(text: String, color: Color = MaterialTheme.colorScheme.onSurface
 }
 
 @Composable
-private fun relativeTime(time: Instant, now: Instant): String =
-    if (now.toEpochMilli() - time.toEpochMilli() < DateUtils.MINUTE_IN_MILLIS) {
-        stringResource(R.string.feature_decks_just_now)
-    } else {
-        DateUtils.getRelativeTimeSpanString(
-            time.toEpochMilli(),
-            now.toEpochMilli(),
-            DateUtils.MINUTE_IN_MILLIS,
-            DateUtils.FORMAT_ABBREV_RELATIVE,
-        ).toString()
+private fun relativeTime(time: Instant, now: Instant): String {
+    val zone = remember { ZoneId.systemDefault() }
+    return when (val age = RelativeAge.of(time, now, zone)) {
+        RelativeAge.JustNow -> stringResource(R.string.feature_decks_just_now)
+        is RelativeAge.MinutesAgo -> pluralStringResource(R.plurals.feature_decks_minutes_ago, age.minutes, age.minutes)
+        is RelativeAge.HoursAgo -> pluralStringResource(R.plurals.feature_decks_hours_ago, age.hours, age.hours)
+        is RelativeAge.DaysAgo -> pluralStringResource(R.plurals.feature_decks_days_ago, age.days, age.days)
+        is RelativeAge.Earlier -> RelativeAge.formatDate(age.date, now.atZone(zone).toLocalDate())
     }
+}

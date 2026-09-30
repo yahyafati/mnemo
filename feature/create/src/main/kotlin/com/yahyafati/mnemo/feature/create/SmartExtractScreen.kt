@@ -1,9 +1,5 @@
 package com.yahyafati.mnemo.feature.create
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +42,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -60,6 +55,7 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.GeneratedCardProblem
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -81,8 +77,11 @@ import com.yahyafati.mnemo.core.ui.ai.AiSetupPrompt
 import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
+import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
+import com.yahyafati.mnemo.core.ui.permission.AppPermission
 import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.core.ui.permission.rememberPermissionRequest
 import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
@@ -227,7 +226,7 @@ private fun Workshop(
                 }
             }
 
-            SourcePicker(uiState.sourceKind) { onAction(SmartExtractAction.SelectSource(it)) }
+            SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
             SourceTextField(uiState, onAction)
 
@@ -261,9 +260,11 @@ private fun Workshop(
 }
 
 @Composable
-private fun SourcePicker(selected: SourceKind, onSelect: (SourceKind) -> Unit) {
+private fun SourcePicker(selected: SourceKind, dictationAvailable: Boolean, onSelect: (SourceKind) -> Unit) {
+    // Dictation needs the platform to have it (a capability) and a recognizer to be there right now.
+    val dictation = dictationAvailable && LocalPlatformCapabilities.current.dictation
     FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
-        SourceKind.entries.forEach { kind ->
+        SourceKind.entries.filter { dictation || it != SourceKind.Dictation }.forEach { kind ->
             MnemoChip(
                 label = stringResource(
                     when (kind) {
@@ -288,12 +289,10 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
         when (uiState.sourceKind) {
             SourceKind.Paste -> Unit
             SourceKind.Pdf -> {
-                val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-                    uri?.let { onAction(SmartExtractAction.PdfPicked(it.toString())) }
-                }
+                val picker = rememberFilePicker(listOf("application/pdf")) { onAction(SmartExtractAction.PdfPicked(it)) }
                 MnemoButton(
                     text = stringResource(R.string.feature_create_pdf_pick),
-                    onClick = { picker.launch(arrayOf("application/pdf")) },
+                    onClick = { picker.launch() },
                     style = MnemoButtonStyle.Secondary,
                     leadingIcon = MnemoIcons.Pdf,
                     enabled = !uiState.reading,
@@ -339,8 +338,7 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
 
 @Composable
 private fun DictationControls(uiState: SmartExtractUiState, onAction: (SmartExtractAction) -> Unit) {
-    val context = LocalContext.current
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    val microphone = rememberPermissionRequest(AppPermission.Microphone) { granted ->
         onAction(if (granted) SmartExtractAction.StartDictation else SmartExtractAction.DictationPermissionDenied)
     }
     var explainMicrophone by rememberSaveable { mutableStateOf(false) }
@@ -350,8 +348,7 @@ private fun DictationControls(uiState: SmartExtractUiState, onAction: (SmartExtr
         onClick = {
             when {
                 listening != null -> onAction(SmartExtractAction.StopDictation)
-                context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED ->
-                    onAction(SmartExtractAction.StartDictation)
+                microphone.isGranted -> onAction(SmartExtractAction.StartDictation)
                 else -> explainMicrophone = true
             }
         },
@@ -365,7 +362,7 @@ private fun DictationControls(uiState: SmartExtractUiState, onAction: (SmartExtr
             message = stringResource(R.string.feature_create_mic_message),
             onContinue = {
                 explainMicrophone = false
-                permission.launch(Manifest.permission.RECORD_AUDIO)
+                microphone.launch()
             },
             onNotNow = { explainMicrophone = false },
         )

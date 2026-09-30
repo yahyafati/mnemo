@@ -1,7 +1,5 @@
 package com.yahyafati.mnemo.feature.create
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +61,7 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.ui.card.CardFace
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
+import com.yahyafati.mnemo.core.ui.files.rememberMediaPicker
 import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 
@@ -330,12 +329,8 @@ private fun HintEditor(uiState: NoteEditorUiState, onAction: (NoteEditorAction) 
 /** Attach an image or a sound to the field focused last. Files are copied into the app. */
 @Composable
 private fun AttachRow(uiState: NoteEditorUiState, onAction: (NoteEditorAction) -> Unit) {
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onAction(NoteEditorAction.Attach(it.toString(), AttachmentKind.Image)) }
-    }
-    val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { onAction(NoteEditorAction.Attach(it.toString(), AttachmentKind.Audio)) }
-    }
+    val pickImage = rememberMediaPicker("image/*") { onAction(NoteEditorAction.Attach(it, AttachmentKind.Image)) }
+    val pickAudio = rememberMediaPicker("audio/*") { onAction(NoteEditorAction.Attach(it, AttachmentKind.Audio)) }
     val target = stringResource(
         when (uiState.target) {
             EditorField.Front -> when (uiState.kind) {
@@ -354,14 +349,14 @@ private fun AttachRow(uiState: NoteEditorUiState, onAction: (NoteEditorAction) -
     ) {
         MnemoButton(
             text = stringResource(R.string.feature_create_attach_image),
-            onClick = { pickImage.launch("image/*") },
+            onClick = { pickImage.launch() },
             style = MnemoButtonStyle.Secondary,
             leadingIcon = MnemoIcons.Image,
             enabled = !uiState.attaching,
         )
         MnemoButton(
             text = stringResource(R.string.feature_create_attach_audio),
-            onClick = { pickAudio.launch("audio/*") },
+            onClick = { pickAudio.launch() },
             style = MnemoButtonStyle.Secondary,
             leadingIcon = MnemoIcons.AudioFile,
             enabled = !uiState.attaching,

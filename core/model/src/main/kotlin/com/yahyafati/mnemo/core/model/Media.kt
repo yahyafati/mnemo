@@ -60,4 +60,21 @@ object MediaRef {
         "webm" -> "video/webm"
         else -> "application/octet-stream"
     }
+
+    /** A file extension for [mimeType], for the same few types as [mimeTypeFor]; null for any other. */
+    fun extensionFor(mimeType: String): String? = when (mimeType.substringBefore(';').trim().lowercase()) {
+        "image/png" -> "png"
+        "image/jpeg" -> "jpg"
+        "image/gif" -> "gif"
+        "image/webp" -> "webp"
+        "image/svg+xml" -> "svg"
+        "image/bmp" -> "bmp"
+        "audio/mpeg", "audio/mp3" -> "mp3"
+        "audio/ogg" -> "ogg"
+        "audio/wav", "audio/x-wav" -> "wav"
+        "audio/mp4", "audio/m4a", "audio/x-m4a" -> "m4a"
+        "video/mp4" -> "mp4"
+        "video/webm" -> "webm"
+        else -> null
+    }
 }

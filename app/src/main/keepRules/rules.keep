@@ -2,6 +2,6 @@
 # See https://d.android.com/r/tools/r8/keep-rules
 
 # The math renderer's WebView calls this from JavaScript (MnemoCard.onHeight).
--keepclassmembers class com.yahyafati.mnemo.core.ui.card.web.HeightBridge {
+-keepclassmembers class com.yahyafati.mnemo.core.ui.card.web.android.HeightBridge {
     @android.webkit.JavascriptInterface <methods>;
 }

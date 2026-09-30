@@ -31,6 +31,8 @@ data class SmartExtractUiState(
     val sourceProblem: SourceProblem? = null,
     /** The PDF or page was longer than Mnemo reads. */
     val truncated: Boolean = false,
+    /** The device has a speech recognizer; without one the Dictation source isn't offered. */
+    val dictationAvailable: Boolean = true,
     val dictation: DictationState = DictationState.Off,
     val options: ExtractOptions = ExtractOptions(),
     val generation: GenerationState = GenerationState.Idle,

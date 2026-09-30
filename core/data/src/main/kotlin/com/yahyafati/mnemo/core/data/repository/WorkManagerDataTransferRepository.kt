@@ -1,8 +1,6 @@
 package com.yahyafati.mnemo.core.data.repository
 
 import android.content.Context
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -11,11 +9,12 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.yahyafati.mnemo.core.common.platform.DocumentAccess
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.backup.BackupFormatException
 import com.yahyafati.mnemo.core.data.backup.BackupManager
-import com.yahyafati.mnemo.core.data.backup.PendingRestore
+import com.yahyafati.mnemo.core.data.android.restartAndroidApp
 import com.yahyafati.mnemo.core.data.work.BackupWorker
 import com.yahyafati.mnemo.core.data.work.ExportWorker
 import com.yahyafati.mnemo.core.data.work.ImportWorker
@@ -34,6 +33,7 @@ import java.util.zip.ZipException
 
 internal class WorkManagerDataTransferRepository(
     private val context: Context,
+    private val documents: DocumentAccess,
     private val workManager: WorkManager,
     private val backups: BackupManager,
     private val settingsRepository: UserSettingsRepository,
@@ -65,30 +65,24 @@ internal class WorkManagerDataTransferRepository(
     override suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) {
         val previous = settingsRepository.settings.first().backup.folderUri
         if (folderUri != null && folderUri != previous) {
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            runCatching { context.contentResolver.takePersistableUriPermission(folderUri.toUri(), flags) }
-            previous?.let { old ->
-                runCatching { context.contentResolver.releasePersistableUriPermission(old.toUri(), flags) }
-            }
+            documents.keepAccess(folderUri)
+            previous?.let(documents::releaseAccess)
         }
         settingsRepository.setAutoBackup(enabled, folderUri)
         scheduleAutoBackup(enabled && folderUri != null)
     }
 
     override suspend fun stageRestore(uri: String): MnemoResult<Instant> = try {
-        val input = context.contentResolver.openInputStream(uri.toUri()) ?: throw IOException("Can't open $uri")
-        MnemoResult.Success(input.use { backups.stage(it) }.createdAt)
+        MnemoResult.Success(documents.openInput(uri).use { backups.stage(it) }.createdAt)
     } catch (e: BackupFormatException) {
         MnemoResult.Failure(MnemoError.Parse(e.message.orEmpty(), e))
     } catch (e: ZipException) {
         MnemoResult.Failure(MnemoError.Parse("Not a zip file", e))
     } catch (e: IOException) {
         MnemoResult.Failure(MnemoError.Storage(e))
-    } catch (e: SecurityException) {
-        MnemoResult.Failure(MnemoError.Storage(e))
     }
 
-    override fun restartToRestore() = PendingRestore.restartApp(context)
+    override fun restartToRestore() = restartAndroidApp(context)
 
     override suspend fun scheduleMaintenance() {
         workManager.enqueueUniquePeriodicWork(

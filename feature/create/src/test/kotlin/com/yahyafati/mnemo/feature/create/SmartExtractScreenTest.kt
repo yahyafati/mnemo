@@ -1,6 +1,9 @@
 package com.yahyafati.mnemo.feature.create
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -15,6 +18,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
+import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
@@ -113,5 +118,27 @@ class SmartExtractScreenTest {
         assertTrue(cards.notes.value.values.all { it.source == NoteSource.Ai })
         composeRule.onNodeWithText("Accept all (2)").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Clear source text").assertExists()
+    }
+
+    @Test
+    fun dictationIsOfferedOnlyWhereThePlatformAndTheDeviceHaveIt() {
+        var capabilities by mutableStateOf(PlatformCapabilities())
+        var state by mutableStateOf(viewModel.uiState.value)
+        composeRule.setContent {
+            CompositionLocalProvider(LocalPlatformCapabilities provides capabilities) {
+                MnemoTheme { SmartExtractScreen(state, {}, onSetUpAi = {}) }
+            }
+        }
+        composeRule.onNodeWithText("Dictation").assertExists()
+
+        // The platform has no dictation (the desktop app at first).
+        capabilities = PlatformCapabilities(dictation = false)
+        composeRule.onNodeWithText("Dictation").assertDoesNotExist()
+        composeRule.onNodeWithText("PDF").assertExists()
+
+        // The platform has it, but this device has no speech recognizer.
+        capabilities = PlatformCapabilities()
+        state = state.copy(dictationAvailable = false)
+        composeRule.onNodeWithText("Dictation").assertDoesNotExist()
     }
 }

@@ -1,9 +1,6 @@
 package com.yahyafati.mnemo.core.data.repository
 
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.core.net.toUri
+import com.yahyafati.mnemo.core.common.platform.DocumentAccess
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -14,7 +11,7 @@ import com.yahyafati.mnemo.core.model.SourceResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import java.io.FileNotFoundException
+import java.io.IOException
 
 /** Smart Extract's sources (`:core:ingest`): PDFs, links and dictation become plain text on the device. */
 interface SourceRepository {
@@ -27,7 +24,7 @@ interface SourceRepository {
 }
 
 internal class DefaultSourceRepository(
-    private val context: Context,
+    private val documents: DocumentAccess,
     private val pdf: PdfTextExtractor,
     private val web: WebPageExtractor,
     private val speech: SpeechTranscriber,
@@ -36,29 +33,19 @@ internal class DefaultSourceRepository(
     override suspend fun read(source: SourceInput): SourceResult = withContext(ioDispatcher) {
         when (source) {
             is SourceInput.Link -> web.extract(source.url)
-            is SourceInput.Pdf -> readPdf(source.uri.toUri())
+            is SourceInput.Pdf -> readPdf(source.uri)
         }
     }
 
-    private fun readPdf(uri: Uri): SourceResult {
-        val resolver = context.contentResolver
-        return try {
-            var name: String? = null
-            var size: Long? = null
-            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    name = cursor.getString(0)
-                    size = if (cursor.isNull(1)) null else cursor.getLong(1)
-                }
-            }
-            if ((size ?: 0) > PdfTextExtractor.MAX_FILE_BYTES) return SourceResult.Failure(SourceProblem.TooLarge)
-            val input = resolver.openInputStream(uri) ?: return SourceResult.Failure(SourceProblem.FileUnavailable)
-            input.use { pdf.extract(it, name?.removeSuffix(".pdf")?.removeSuffix(".PDF")) }
-        } catch (e: FileNotFoundException) {
-            SourceResult.Failure(SourceProblem.FileUnavailable)
-        } catch (e: SecurityException) {
-            SourceResult.Failure(SourceProblem.FileUnavailable)
+    private fun readPdf(uri: String): SourceResult {
+        val info = documents.info(uri)
+        if ((info.size ?: 0) > PdfTextExtractor.MAX_FILE_BYTES) return SourceResult.Failure(SourceProblem.TooLarge)
+        val input = try {
+            documents.openInput(uri)
+        } catch (e: IOException) {
+            return SourceResult.Failure(SourceProblem.FileUnavailable)
         }
+        return input.use { pdf.extract(it, info.name?.removeSuffix(".pdf")?.removeSuffix(".PDF")) }
     }
 
     override fun isDictationAvailable(): Boolean = speech.isAvailable()
