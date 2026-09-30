@@ -575,13 +575,21 @@ Silicon only (or an Intel runner), and push a `v*` tag (or run the workflow by h
 
 **Goal:** the release build passes a runbook on real machines.
 
-- [ ] `docs/desktop/qa.md`: a runbook and results log in the style of `docs/release/qa.md`. Per
-      OS: fresh install and onboarding; import a large real Anki collection (10,000+ cards) and
-      time it; study 100 cards smoothly; math, image and audio cards; a hosted and a local AI
-      provider; back up and restore; move a collection Android → desktop → Android; network off
-      (everything but AI works); display scaling at 100/150/200 %; dark mode; upgrade install; a
-      second instance.
-- [ ] Fix every P0/P1 bug, then publish the release (no longer a draft) and update the README.
+- [x] [`qa.md`](qa.md): a runbook and results log in the style of `docs/release/qa.md`. Per OS: install, file
+      association, update over the previous version and uninstall with the real installer; fresh install and
+      onboarding; import a large Anki collection (10,000+ cards) and time it; study 100 cards smoothly; math, image
+      and audio cards; a hosted and a local AI provider, and the keychain and key-file storage; back up and
+      restore; move a collection Android → desktop → Android; the keyboard-only session, menus, drag and drop,
+      window placement, second instance; network off (everything but AI works, and the app opens no connection of
+      its own); display scaling at 100/150/200 %; dark mode; a Windows user name with a space and an accent. Two
+      helpers: `scripts/qa/desktop-checks.py` (`info`, `verify-sums`, `startup`, `import-time`, `counts`, `mock-ai`)
+      and `scripts/qa/make-large-apkg.py` (a 12,000-card package written by real Anki, for machines with no big
+      collection). A dry run of the automated parts on macOS arm64 is at the end of the file: the app image
+      starts, and the generated 12,000-card package imports in about 4 s with the counts the generator printed.
+- [ ] **(owner)** Run the runbook on Linux, Windows and macOS and fill in the results log. The first GitHub run of
+      `ci.yml`'s desktop job and of `desktop-release.yml` comes first (D1, D4 and D8 leave them open).
+- [ ] Fix every P0/P1 bug, then publish the release (no longer a draft) and update the README (it still says
+      "in progress"). "Release day" in `qa.md` has the steps.
 
 **Exit:** the runbook passes on Linux, Windows and macOS, and desktop v1.0 is public.
 
