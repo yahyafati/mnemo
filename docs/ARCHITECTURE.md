@@ -306,7 +306,8 @@ mnemo/
         ├── 0006-ai-card-creation.md
         ├── 0007-analytics-and-fsrs-optimizer.md
         ├── 0008-v1-polish.md
-        └── 0009-license-and-distribution.md
+        ├── 0009-license-and-distribution.md
+        └── 0010-desktop-with-compose-multiplatform.md
 ```
 
 ### 4.1 Feature module layout

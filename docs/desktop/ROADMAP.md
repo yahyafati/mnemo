@@ -117,8 +117,9 @@ in parallel. The critical path is D4 (Room) and D6 (features).
 **Goal:** settle the open technical choices and prove the build assumptions before any
 production code moves.
 
-- [ ] `docs/adr/0010-desktop-with-compose-multiplatform.md`, deciding each row below. The
-      recommendation is the starting point, not a decision.
+- [x] [ADR 0010](../adr/0010-desktop-with-compose-multiplatform.md) decides each row below and
+      records the versions. The table keeps the original recommendations; where the spike changed
+      one, the ADR's "Findings" say so (Material3 is pinned to 1.9.0, the keychain is untested).
 
 | Decision | Options | Recommendation |
 |---|---|---|
@@ -134,25 +135,28 @@ production code moves.
 | Version numbers | Shared with Android; separate | Shared: `mnemo.versionName` in `gradle.properties` is the desktop package version too. macOS needs a major version ≥ 1, which holds. |
 | macOS architectures | Apple Silicon only; plus Intel | Apple Silicon first. Add Intel if CI can still build it cheaply. **(owner: confirm.)** |
 
-- [ ] **Spike** (throwaway branch, not merged). Prove each point, and record the result and the
-      versions in ADR 0010:
-  - [ ] A module using AGP 9's KMP library plugin with `jvm("desktop")` builds, and its shared
+- [x] **Spike** (throwaway branch `spike/desktop-d0`, not merged). Results and versions are in
+      ADR 0010:
+  - [x] A module using AGP 9's KMP library plugin with `jvm("desktop")` builds, and its shared
         source set can use `java.time` and depend on the pure-JVM `:core:model`. (Kotlin treats a
         source set shared only by JVM and Android targets as JVM code. If AGP 9's plugin gets in
         the way, the fallback is moving `:core:model` from `java.time` to `kotlinx-datetime`,
         which costs several days: add it to D4.)
-  - [ ] Robolectric host tests and Roborazzi still run in that module's Android target, with
+  - [x] Robolectric host tests and Roborazzi still run in that module's Android target, with
         Android resources enabled.
-  - [ ] A Compose Multiplatform release that works with Kotlin 2.3.21, and the JetBrains
+  - [x] A Compose Multiplatform release that works with Kotlin 2.3.21, and the JetBrains
         artifacts for lifecycle/ViewModel, navigation-compose, material3, material3-adaptive and
         material icons. Note anything that lags the Compose BOM (2026.09.00).
-  - [ ] Room with `BundledSQLiteDriver` on desktop opens a copy of a real v4 Mnemo database made
+  - [x] Room with `BundledSQLiteDriver` on desktop opens a copy of a real v4 Mnemo database made
         by the Android app.
-  - [ ] The natives of `sqlite-bundled`, `zstd-kmp-jvm` and Skia load on Linux x64, Windows x64
-        and macOS arm64 (a CI matrix run).
+  - [~] The natives of `sqlite-bundled`, `zstd-kmp-jvm` and Skia load on Linux x64, Windows x64
+        and macOS arm64 (a CI matrix run). Proved on macOS arm64 and, in a container, Linux x64.
+        Windows x64 is only checked statically: the CI matrix run moves to D1.
 
 **Exit:** ADR 0010 is accepted with the spike's results, and the version list is ready for
-`gradle/libs.versions.toml`.
+`gradle/libs.versions.toml`. Done, with the open checks listed in the ADR's "Not yet proven"
+(Windows and macOS Intel natives, keychain, audio playback, Koin navigation arguments).
+**Owner still to confirm:** the `release/1.0` branch (D1) and macOS Apple Silicon only (D8).
 
 ## D1 — Build and desktop shell
 
@@ -165,11 +169,16 @@ behavior.
       `mnemo.kmp.compose` (Compose Multiplatform plugin, compiler, `compose_stability.conf`,
       resources), `mnemo.kmp.feature` (the KMP twin of `mnemo.android.feature`) and
       `mnemo.desktop.application`. The Android plugins stay until the last module has moved (D6).
-- [ ] Versions from D0 in `gradle/libs.versions.toml`. Repositories stay in `settings.gradle.kts`.
+- [ ] Versions from ADR 0010 in `gradle/libs.versions.toml` (use the catalog coordinates, not the
+      deprecated `compose.runtime` accessors). Repositories stay in `settings.gradle.kts`.
 - [ ] `:desktop` module: `main()` opens a window that uses `:core:model` and `:core:scheduler`
       (for example, a sample card with its FSRS next intervals). This proves JVM-module reuse.
 - [ ] Commands in `CLAUDE.md`: `./gradlew :desktop:run`, `:desktop:test`,
-      `:desktop:createDistributable`.
+      `:desktop:createDistributable`. A KMP module has no `testDebugUnitTest` (ADR 0010), so the
+      Android exit check also runs `testAndroidHostTest` and `desktopTest`, and screenshots use
+      `verifyRoborazziAndroidHostTest` / `verifyRoborazziDesktop` next to `verifyRoborazziDebug`.
+- [ ] Close the D0 gap: a CI matrix (Ubuntu, Windows, macOS) that runs the SQLite, zstd and Skia
+      checks from the spike on each OS, Windows x64 first.
 - [ ] CI: a `desktop` job on Ubuntu runs `:desktop:test` and `:desktop:createDistributable`. The
       OS matrix comes in D8.
 - [ ] F-Droid keeps building: run the recipe's `prebuild` and `:app:assembleRelease` on the new
@@ -194,8 +203,10 @@ largest Android-only diff, so it gets a step of its own.
 - [ ] Tests: `HiltTestRunner`, `TestStorageModules`, `TestCipherModule`, `TestDataStoreModule`
       and the `WorkModule` replacement become DI overrides with the same behavior (in-memory
       database, per-test DataStore file, software cipher, test WorkManager).
-- [ ] A graph test resolves every definition (Koin `verify()`), so a missing binding fails a unit
-      test instead of crashing at runtime.
+- [ ] A graph test resolves every definition with `checkModules` and fake platform modules
+      (in-memory database, software cipher, test WorkManager), plus `verify()`, so a missing
+      binding fails a unit test instead of crashing at runtime. `verify()` alone is not enough: it
+      passed a graph with a missing binding inside a lambda (ADR 0010, finding 5).
 - [ ] Remove Hilt from `build-logic` (`mnemo.hilt`) and the version catalog. KSP stays for Room.
 
 **Exit:** no `dagger` or `hilt` import left; the Android exit check and all tests are green; a
@@ -292,8 +303,9 @@ Android exit check is green.
 - [ ] `:core:designsystem` to Compose Multiplatform. The fonts (Newsreader, Hanken Grotesk,
       JetBrains Mono) move to `composeResources/font`. `Font(Res.font…)` is composable, so the
       typography is built inside `MnemoTheme`. Dynamic color stays Android-only.
-- [ ] `MnemoIcons`: use the JetBrains material-icons artifact, or, if it lags (D0), vendor the
-      icons Mnemo uses as `ImageVector`s. `MnemoIcons` is already the only entry point.
+- [ ] `MnemoIcons`: use the JetBrains material-icons artifact 1.7.3. All 80 icons compile against
+      it on both targets (D0), so nothing is vendored. `MnemoIcons` is already the only entry
+      point.
 - [ ] Strings: the 705 strings move to each module's `composeResources/values/strings.xml`
       (plurals and format arguments included), and `stringResource(R.string.x)` becomes
       `stringResource(Res.string.x)`. Android `R.string` stays only where Android reads text
