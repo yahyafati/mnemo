@@ -1,17 +1,12 @@
 package com.yahyafati.mnemo.core.security
 
 import android.content.Context
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /** What [SecretStore.get] found. */
 sealed interface StoredSecret {
@@ -45,17 +40,15 @@ interface SecretStore {
  * That directory is outside the database, the preferences and the media folder, so no Mnemo
  * backup or export can contain it, and Android Auto Backup never copies `noBackupFilesDir`.
  */
-@Singleton
 class FileSecretStore internal constructor(
     private val directory: () -> File,
     private val cipher: SecretCipher,
     private val ioDispatcher: CoroutineDispatcher,
 ) : SecretStore {
-    @Inject
     constructor(
-        @ApplicationContext context: Context,
+        context: Context,
         cipher: SecretCipher,
-        @Dispatcher(MnemoDispatchers.IO) ioDispatcher: CoroutineDispatcher,
+        ioDispatcher: CoroutineDispatcher,
     ) : this({ File(context.noBackupFilesDir, DIRECTORY) }, cipher, ioDispatcher)
 
     override suspend fun put(id: String, secret: String) = withContext(ioDispatcher) {

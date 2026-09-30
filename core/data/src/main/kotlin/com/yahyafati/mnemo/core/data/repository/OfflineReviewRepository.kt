@@ -14,9 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.LocalDate
-import javax.inject.Inject
 
-internal class OfflineReviewRepository @Inject constructor(
+internal class OfflineReviewRepository(
     private val cardDao: CardDao,
     private val reviewLogDao: ReviewLogDao,
     private val transaction: TransactionRunner,

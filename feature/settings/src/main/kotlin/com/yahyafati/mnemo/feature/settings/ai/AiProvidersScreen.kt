@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
@@ -52,6 +51,7 @@ import com.yahyafati.mnemo.feature.settings.R
 import com.yahyafati.mnemo.feature.settings.Section
 import java.text.NumberFormat
 import java.time.Instant
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun AiProvidersRoute(
@@ -59,7 +59,7 @@ internal fun AiProvidersRoute(
     onAddProvider: () -> Unit,
     onEditProvider: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AiProvidersViewModel = hiltViewModel(),
+    viewModel: AiProvidersViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     AiProvidersScreen(uiState, viewModel::onAction, onBack, onAddProvider, onEditProvider, modifier)

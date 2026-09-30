@@ -22,10 +22,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-internal class OfflineCardBrowserRepository @Inject constructor(
+internal class OfflineCardBrowserRepository(
     private val cardDao: CardDao,
     private val noteDao: NoteDao,
     private val deckDao: DeckDao,

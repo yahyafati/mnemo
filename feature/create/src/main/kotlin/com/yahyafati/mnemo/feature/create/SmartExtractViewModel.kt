@@ -20,7 +20,6 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceResult
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,15 +27,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Smart Extract (ARCHITECTURE §5.2): source → text → streamed cards in a review queue → accepted
  * notes. Nothing is saved until a card is accepted; cards that arrived before a failure stay in
  * the queue, and Retry resumes at the part that failed.
  */
-@HiltViewModel
-class SmartExtractViewModel @Inject constructor(
+class SmartExtractViewModel(
     private val aiProviders: AiProviderRepository,
     private val deckRepository: DeckRepository,
     private val sources: SourceRepository,

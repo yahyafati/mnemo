@@ -1,7 +1,5 @@
 package com.yahyafati.mnemo.core.data.scheduling
 
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
@@ -14,18 +12,17 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
 /**
  * One optimizer run (ADR 0007): reads every card's review history, fits the FSRS weights, and
  * applies them only if they predict that history better than the weights in use.
  */
-internal class FsrsOptimization @Inject constructor(
+internal class FsrsOptimization(
     private val reviewLogDao: ReviewLogDao,
     private val settingsRepository: UserSettingsRepository,
     private val clock: Clock,
-    @param:Dispatcher(MnemoDispatchers.Default) private val dispatcher: CoroutineDispatcher,
+    private val dispatcher: CoroutineDispatcher,
 ) {
     /** Runs the optimizer; [onProgress] gets 0–1. Cancelling the caller stops it between steps. */
     suspend fun run(onProgress: (Float) -> Unit = {}): FsrsOptimizationOutcome {

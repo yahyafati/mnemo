@@ -155,8 +155,8 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
   it was left for D4, on CI machines and on the owner's machines. The key-file fallback is the
   safety net.
 - **Audio playback.** Only decoding was tested.
-- **Koin with navigation arguments** through `koinViewModel()`, and `workerOf`. Only the plain
-  ViewModel with a handle was run; D2 covers the rest on Android first.
+- ~~**Koin with navigation arguments** through `koinViewModel()`, and `workerOf`.~~ Closed in D2 on
+  Android (see "Findings from D2"). On desktop, navigation arguments still need a check in D6.
 - **`DatabaseSnapshot` on the driver API** (backup: WAL checkpoint plus a copy inside a write
   transaction), and restore-at-start. D4.
 - **Apache PDFBox 3 on desktop** (D4). It declares BouncyCastle as a dependency; exclude it as ADR
@@ -181,6 +181,39 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
   `runComposeUiTest` is deprecated in favor of `androidx.compose.ui.test.v2`.
 - **The build-logic source-set accessors are missing.** `commonMain` and friends are generated
   accessors of build scripts; plugins use `sourceSets.getByName("commonMain").dependencies`.
+
+## Findings from D2
+
+Hilt is replaced by Koin 4.2.2 on Android (`CLAUDE.md`, "Dependency injection"). Checked with the
+Android exit check (395 unit tests, the Roborazzi baselines unchanged, lint) and a graph test.
+
+- **Scopes carry over exactly.** Hilt's unscoped `@Inject` classes are Koin `factory`, its
+  `@Singleton` ones `single`. Repositories kept their per-injection instances, so nothing that
+  looked stateless became shared.
+- **Qualifiers cost a lambda.** `factoryOf(::X)` can't pass a qualifier, so the eight classes that
+  took `@Dispatcher(...)` are `factory { X(get(), dispatcher(MnemoDispatchers.IO)) }`
+  (`dispatcher` is a `Scope` extension in `:core:common`). The rest use `factoryOf`, `singleOf` and
+  `bind`. The `@Dispatcher` annotation and every `javax.inject` annotation are removed.
+- **`verify()` needs help, `checkModules` needs the right key.**
+  - `verify()` reads a class's primary constructor, so `FileMediaRepository` and `FileSecretStore`
+    (built through a secondary constructor that takes a `Context`) need an `injections` entry.
+    Verifying the modules one by one reports cross-module bindings as missing, so the test
+    verifies one module that `includes(mnemoModules)`.
+  - `checkModules` finds a worker's definition under `TypeQualifier(workerClass)`, not the
+    plain class, so its `WorkerParameters` must be given with that qualifier. A real
+    `WorkerParameters` comes from WorkManager's `TestListenableWorkerBuilder`.
+  - Both were checked by deleting a binding that is only used inside a lambda: each test fails.
+- **Robolectric makes an application per test, Koin is global.** `MnemoApplication.onCreate` would
+  throw `KoinApplicationAlreadyStartedException` from the second test on, so app tests run on
+  `TestMnemoApplication` (`robolectric.properties` sets it as the default), which stops and starts
+  Koin with `mnemoModules + testStorageModule`. Later modules override earlier ones, which replaces
+  Hilt's `@TestInstallIn`.
+- **Navigation arguments reach the `SavedStateHandle`** through `koinViewModel()` inside the
+  Navigation Compose back-stack entry (the Browse test gets "Edit note", derived from `noteId`).
+  This closes the "Koin with navigation arguments" item under "Not yet proven"; `workerOf` is
+  covered by the graph test. Executing a worker under Koin's factory on a device is not.
+- **Layering held.** `:app` still doesn't see Room or DataStore: `:core:data` exposes
+  `dataLayerModules`. Each Gradle module owns the module for its own (often `internal`) classes.
 
 ## Alternatives
 

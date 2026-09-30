@@ -19,7 +19,6 @@ import com.yahyafati.mnemo.core.model.MediaRef
 import kotlinx.coroutines.flow.first
 import java.io.File
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * Imports an Anki package into the collection (ARCHITECTURE §5.4). Media goes first (notes refer
@@ -29,7 +28,7 @@ import javax.inject.Inject
  * Notes already in the collection (same Anki guid, or the same id for a package Mnemo exported)
  * are skipped. Decks are matched by full name, as Anki does, and created when missing.
  */
-class AnkiImporter @Inject internal constructor(
+class AnkiImporter internal constructor(
     private val driver: SQLiteDriver,
     private val deckRepository: DeckRepository,
     private val mediaRepository: MediaRepository,

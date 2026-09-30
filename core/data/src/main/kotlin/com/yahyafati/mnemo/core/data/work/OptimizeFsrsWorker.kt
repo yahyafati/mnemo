@@ -1,7 +1,6 @@
 package com.yahyafati.mnemo.core.data.work
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
@@ -9,15 +8,12 @@ import androidx.work.workDataOf
 import com.yahyafati.mnemo.core.data.scheduling.FsrsOptimization
 import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
 import com.yahyafati.mnemo.core.model.TransferError
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 
 /** Fits FSRS weights to the review log (Settings › Scheduling › Optimize; ADR 0007). */
-@HiltWorker
-internal class OptimizeFsrsWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class OptimizeFsrsWorker(
+    context: Context,
+    params: WorkerParameters,
     private val optimization: FsrsOptimization,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = try {

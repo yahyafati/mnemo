@@ -73,10 +73,6 @@ gradlePlugin {
             id = libs.plugins.mnemo.desktop.application.get().pluginId
             implementationClass = "DesktopApplicationConventionPlugin"
         }
-        register("hilt") {
-            id = libs.plugins.mnemo.hilt.get().pluginId
-            implementationClass = "HiltConventionPlugin"
-        }
         register("jvmLibrary") {
             id = libs.plugins.mnemo.jvm.library.get().pluginId
             implementationClass = "JvmLibraryConventionPlugin"

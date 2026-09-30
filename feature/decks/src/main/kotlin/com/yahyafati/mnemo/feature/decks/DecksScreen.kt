@@ -44,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
@@ -66,6 +65,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun DecksScreen(
@@ -74,7 +74,7 @@ internal fun DecksScreen(
     onAddCards: (deckId: String) -> Unit,
     onBrowse: (deckId: String?) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: DecksViewModel = hiltViewModel(),
+    viewModel: DecksViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

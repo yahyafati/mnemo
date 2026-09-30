@@ -5,15 +5,12 @@ import android.content.Context
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.entity.MediaEntity
 import com.yahyafati.mnemo.core.model.Media
 import com.yahyafati.mnemo.core.model.MediaRef
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -22,7 +19,6 @@ import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
-import javax.inject.Inject
 
 internal class FileMediaRepository(
     override val directory: File,
@@ -33,13 +29,12 @@ internal class FileMediaRepository(
     /** Opens picked files for [importUri]; null in tests that only store streams. */
     private val contentResolver: ContentResolver? = null,
 ) : MediaRepository {
-    @Inject
     constructor(
-        @ApplicationContext context: Context,
+        context: Context,
         mediaDao: MediaDao,
         noteDao: NoteDao,
         clock: Clock,
-        @Dispatcher(MnemoDispatchers.IO) ioDispatcher: CoroutineDispatcher,
+        ioDispatcher: CoroutineDispatcher,
     ) : this(File(context.filesDir, MediaRef.DIRECTORY), mediaDao, noteDao, clock, ioDispatcher, context.contentResolver)
 
     override suspend fun importUri(uri: String): Media? = withContext(ioDispatcher) {

@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
  * Multiplatform + serialization + the core modules every feature uses. Features depend on `core`
  * only, never on each other (ARCHITECTURE §3).
  *
- * Koin replaces Hilt (D2); ViewModels, navigation and lifecycle come from the JetBrains artifacts.
+ * Koin is the DI library (D2); ViewModels, navigation and lifecycle come from the JetBrains artifacts.
  * Apply it only once `:core:designsystem`, `:core:domain` and `:core:ui` are KMP modules (D4, D5):
  * their dependencies sit in `commonMain`, so they must have a desktop variant.
  */

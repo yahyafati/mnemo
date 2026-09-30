@@ -11,17 +11,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.model.AiTask
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import com.yahyafati.mnemo.di.TestMnemoApplication
 import kotlinx.coroutines.runBlocking
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import javax.inject.Inject
+import org.koin.core.component.inject
+import org.koin.test.KoinTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
@@ -29,21 +27,13 @@ import org.junit.Assert.assertTrue
  * With no provider, the AI entry point shows a setup prompt instead of failing (ROADMAP Phase 3),
  * and it leads through adding one.
  */
-@HiltAndroidTest
-@Config(application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 @RunWith(RobolectricTestRunner::class)
-class AiProvidersFlowTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+class AiProvidersFlowTest : KoinTest {
+    @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
-    @Inject
-    lateinit var providers: AiProviderRepository
-
-    @Before
-    fun setUp() = hiltRule.inject()
+    private val providers: AiProviderRepository by inject()
 
     private fun awaitText(text: String) = composeRule.waitUntil(TIMEOUT_MS) {
         composeRule.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()

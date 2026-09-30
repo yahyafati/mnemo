@@ -17,7 +17,6 @@ import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
-import javax.inject.Inject
 
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState
@@ -53,8 +51,7 @@ sealed interface RestoreStep {
     data class Failed(val error: TransferError) : RestoreStep
 }
 
-@HiltViewModel
-class SettingsViewModel @Inject constructor(
+class SettingsViewModel(
     private val settingsRepository: UserSettingsRepository,
     private val transferRepository: DataTransferRepository,
     aiProviderRepository: AiProviderRepository,

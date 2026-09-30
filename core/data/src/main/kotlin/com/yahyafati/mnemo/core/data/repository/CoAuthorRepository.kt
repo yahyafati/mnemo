@@ -11,8 +11,6 @@ import com.yahyafati.mnemo.core.ai.prompt.CoAuthorContext
 import com.yahyafati.mnemo.core.ai.prompt.CoAuthorSuggestPrompt
 import com.yahyafati.mnemo.core.ai.prompt.DeckCardLine
 import com.yahyafati.mnemo.core.ai.prompt.StudyAssistPrompt
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.mapper.toAiFailure
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -33,7 +31,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * AI Co-Author (PROJECT_OVERVIEW §4.3): chat about a deck, suggest the cards it's missing, and
@@ -53,13 +50,13 @@ interface CoAuthorRepository {
     suspend fun improve(route: AiRoute, card: StudyCard): RewriteOutcome
 }
 
-internal class DefaultCoAuthorRepository @Inject constructor(
+internal class DefaultCoAuthorRepository(
     private val coAuthorClient: CoAuthorClient,
     private val cardClient: CardGenerationClient,
     private val assistClient: StudyAssistClient,
     private val configs: ProviderConfigs,
     private val providers: AiProviderRepository,
-    @param:Dispatcher(MnemoDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) : CoAuthorRepository {
     override fun chat(route: AiRoute, deck: CoAuthorDeck, history: List<ChatTurn>): Flow<AssistUpdate> = flow {
         val config = configs.forProvider(route.provider)

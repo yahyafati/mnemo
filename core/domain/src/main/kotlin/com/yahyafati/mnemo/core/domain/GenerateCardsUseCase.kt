@@ -10,7 +10,6 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import javax.inject.Inject
 
 /** A Smart Extract run: a source split into [parts], generated from [fromPart] on. */
 data class ExtractRequest(
@@ -51,7 +50,7 @@ enum class SkipReason { Invalid, Duplicate }
  * Only the source text and the fronts of queued cards are sent; the deck's own notes never leave
  * the device (they are compared locally).
  */
-class GenerateCardsUseCase @Inject constructor(
+class GenerateCardsUseCase(
     private val generation: CardGenerationRepository,
     private val cardRepository: CardRepository,
 ) {
@@ -117,7 +116,7 @@ sealed interface RegenerateResult {
  * "Regenerate" on one queued card: one new card from [source], the part of the source the card
  * came from. The queue keeps each card's part, since the text box may have changed since.
  */
-class RegenerateCardUseCase @Inject constructor(
+class RegenerateCardUseCase(
     private val generation: CardGenerationRepository,
     private val cardRepository: CardRepository,
 ) {

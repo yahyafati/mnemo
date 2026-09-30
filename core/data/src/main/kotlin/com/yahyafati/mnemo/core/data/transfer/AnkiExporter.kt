@@ -19,13 +19,12 @@ import kotlinx.coroutines.flow.first
 import java.io.File
 import java.io.OutputStream
 import java.time.Instant
-import javax.inject.Inject
 
 /**
  * Exports decks as an Anki package (`.apkg`, legacy schema so every Anki can import it), with
  * scheduling, review history and the media the exported notes use (ADR 0003).
  */
-class AnkiExporter @Inject internal constructor(
+class AnkiExporter internal constructor(
     private val driver: SQLiteDriver,
     private val deckDao: DeckDao,
     private val noteDao: NoteDao,

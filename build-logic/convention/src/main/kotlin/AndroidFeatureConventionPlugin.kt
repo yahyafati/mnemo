@@ -6,7 +6,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies
 
 /**
- * `mnemo.android.feature`: library + Compose + Hilt + serialization, plus the core modules every
+ * `mnemo.android.feature`: library + Compose + Koin + serialization, plus the core modules every
  * feature uses (design system, shared UI, and the domain layer with its repositories). Features depend on `core` only, never on each other (ARCHITECTURE §3).
  */
 class AndroidFeatureConventionPlugin : Plugin<Project> {
@@ -14,7 +14,6 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply(libs.pluginId("mnemo-android-library"))
             pluginManager.apply(libs.pluginId("mnemo-android-compose"))
-            pluginManager.apply(libs.pluginId("mnemo-hilt"))
             pluginManager.apply(libs.pluginId("kotlin-serialization"))
             // Screenshot tests of each screen: baselines in src/test/screenshots, checked by
             // verifyRoborazziDebug, re-recorded by recordRoborazziDebug after an intended change.
@@ -26,10 +25,12 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("implementation", project(":core:ui"))
 
                 add("implementation", libs.library("androidx-navigation-compose"))
-                add("implementation", libs.library("androidx-hilt-lifecycle-viewmodel-compose"))
                 add("implementation", libs.library("androidx-lifecycle-runtime-compose"))
                 add("implementation", libs.library("androidx-lifecycle-viewmodel-compose"))
                 add("implementation", libs.library("kotlinx-serialization-json"))
+                add("implementation", libs.library("koin-core"))
+                add("implementation", libs.library("koin-compose"))
+                add("implementation", libs.library("koin-compose-viewmodel"))
 
                 add("testImplementation", project(":core:testing"))
                 add("testImplementation", libs.library("kotlinx-coroutines-test"))

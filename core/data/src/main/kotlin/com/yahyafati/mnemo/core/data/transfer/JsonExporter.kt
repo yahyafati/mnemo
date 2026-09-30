@@ -13,14 +13,13 @@ import com.yahyafati.mnemo.core.model.ReviewLog
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.OutputStream
-import javax.inject.Inject
 
 /**
  * The whole collection as one JSON document: a readable, tool-friendly export of everything
  * (decks, notes with their cards and review history, media metadata). Media bytes stay out; the
  * Anki package and the backup carry those. Streamed note by note, so size doesn't matter.
  */
-class JsonExporter @Inject internal constructor(
+class JsonExporter internal constructor(
     private val deckDao: DeckDao,
     private val noteDao: NoteDao,
     private val cardDao: CardDao,

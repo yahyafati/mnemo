@@ -8,7 +8,6 @@ import com.yahyafati.mnemo.core.data.repository.ReviewRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 /** A ready-to-run session plus the scheduler configured with the user's settings. */
 data class StudyQueue(
@@ -24,7 +23,7 @@ data class StudyQueue(
  * (the Daily Mix). New and review cards are capped by what is left of today's limits; learning
  * cards are never capped.
  */
-class BuildStudyQueueUseCase @Inject constructor(
+class BuildStudyQueueUseCase(
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
     private val reviewRepository: ReviewRepository,

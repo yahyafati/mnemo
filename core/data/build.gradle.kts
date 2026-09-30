@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.mnemo.android.library)
-    alias(libs.plugins.mnemo.hilt)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -23,11 +22,12 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.documentfile)
-    implementation(libs.androidx.hilt.work)
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.workmanager)
     implementation(libs.androidx.sqlite.framework)
     implementation(libs.androidx.work.runtime)
     implementation(libs.kotlinx.serialization.json)
-    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(projects.core.testing)
     testImplementation(libs.androidx.junit)

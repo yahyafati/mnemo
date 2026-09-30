@@ -22,7 +22,6 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.feature.create.DeckOption
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +30,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * AI Co-Author (PROJECT_OVERVIEW §4.3): a chat scoped to one deck (and its subdecks) that answers
@@ -41,8 +39,7 @@ import javax.inject.Inject
  *
  * `deckId` in the [SavedStateHandle] preselects a deck.
  */
-@HiltViewModel
-class CoAuthorViewModel @Inject constructor(
+class CoAuthorViewModel(
     savedStateHandle: SavedStateHandle,
     private val aiProviders: AiProviderRepository,
     private val deckRepository: DeckRepository,

@@ -9,12 +9,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.mikepenz.aboutlibraries.Libs
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import com.yahyafati.mnemo.di.TestMnemoApplication
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,18 +22,11 @@ import org.robolectric.annotation.Config
  * R2: the open-source licenses screen, from Settings › About, and the generated list behind it.
  * The GPL and the notices of what Mnemo bundles have to ship with the app.
  */
-@HiltAndroidTest
-@Config(application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 @RunWith(RobolectricTestRunner::class)
 class LicensesFlowTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
-
-    @Before
-    fun setUp() = hiltRule.inject()
 
     private fun awaitText(text: String) = composeRule.waitUntil(TIMEOUT_MS) {
         composeRule.onAllNodes(hasText(text, substring = true)).fetchSemanticsNodes().isNotEmpty()

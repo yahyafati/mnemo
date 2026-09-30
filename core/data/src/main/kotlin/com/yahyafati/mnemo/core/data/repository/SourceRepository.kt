@@ -4,8 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.core.net.toUri
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -13,12 +11,10 @@ import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.FileNotFoundException
-import javax.inject.Inject
 
 /** Smart Extract's sources (`:core:ingest`): PDFs, links and dictation become plain text on the device. */
 interface SourceRepository {
@@ -30,12 +26,12 @@ interface SourceRepository {
     fun dictate(languageTag: String? = null): Flow<DictationEvent>
 }
 
-internal class DefaultSourceRepository @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+internal class DefaultSourceRepository(
+    private val context: Context,
     private val pdf: PdfTextExtractor,
     private val web: WebPageExtractor,
     private val speech: SpeechTranscriber,
-    @param:Dispatcher(MnemoDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) : SourceRepository {
     override suspend fun read(source: SourceInput): SourceResult = withContext(ioDispatcher) {
         when (source) {

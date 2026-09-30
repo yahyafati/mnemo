@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.Duration
 import java.time.LocalDate
-import javax.inject.Inject
 
 /**
  * Everything on the Analytics screen (ROADMAP Phase 5, ADR 0007): true retention, review volume,
@@ -30,7 +29,7 @@ import javax.inject.Inject
  * recall, the due forecast and the hardest cards. The database aggregates; this combines the
  * aggregates with the user's FSRS model.
  */
-class ComputeRetentionStatsUseCase @Inject constructor(
+class ComputeRetentionStatsUseCase(
     private val statsRepository: StatsRepository,
     private val reviewRepository: ReviewRepository,
     private val deckRepository: DeckRepository,

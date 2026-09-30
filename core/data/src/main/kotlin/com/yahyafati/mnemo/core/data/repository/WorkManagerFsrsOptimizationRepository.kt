@@ -8,9 +8,8 @@ import com.yahyafati.mnemo.core.data.work.workState
 import com.yahyafati.mnemo.core.model.FsrsOptimizationOutcome
 import com.yahyafati.mnemo.core.model.TransferState
 import kotlinx.coroutines.flow.Flow
-import javax.inject.Inject
 
-internal class WorkManagerFsrsOptimizationRepository @Inject constructor(
+internal class WorkManagerFsrsOptimizationRepository(
     private val workManager: WorkManager,
 ) : FsrsOptimizationRepository {
     override val state: Flow<TransferState<FsrsOptimizationOutcome>> =

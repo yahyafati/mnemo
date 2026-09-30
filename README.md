@@ -76,7 +76,7 @@ Never commit a keystore or its passwords.
 
 ## Project layout
 
-Mnemo is a multi-module Kotlin project (Jetpack Compose, Room, Hilt, WorkManager) following the
+Mnemo is a multi-module Kotlin project (Jetpack Compose, Room, Koin, WorkManager) following the
 official Android UI → Domain → Data layering.
 
 | Path | What it holds |

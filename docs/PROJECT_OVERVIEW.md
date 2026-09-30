@@ -156,7 +156,7 @@ The app is currently a single `:app` module. It will be split into modules by la
 | Language / UI | Kotlin, Jetpack Compose, Material 3 (dynamic color), edge-to-edge |
 | Architecture | Unidirectional data flow: Compose screens → ViewModel (`StateFlow` UI state) → repositories → data sources |
 | Navigation | Navigation Compose with a bottom bar: **Decks · Study · Create · Analytics** (as in the mockups) |
-| DI | Hilt (via KSP) |
+| DI | Koin |
 | Persistence | Room (via KSP), DataStore for preferences |
 | Networking | OkHttp + Retrofit (or Ktor) with kotlinx.serialization; SSE streaming for chat completions |
 | Secrets | Android Keystore-backed encryption for API keys |

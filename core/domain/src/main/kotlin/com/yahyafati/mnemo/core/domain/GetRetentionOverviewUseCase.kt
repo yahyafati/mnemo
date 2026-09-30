@@ -7,10 +7,9 @@ import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
 
 /** The Decks screen's retention tiles and per-deck retention health (ROADMAP Phase 5). */
-class GetRetentionOverviewUseCase @Inject constructor(
+class GetRetentionOverviewUseCase(
     private val statsRepository: StatsRepository,
     private val settingsRepository: UserSettingsRepository,
     private val clock: Clock,

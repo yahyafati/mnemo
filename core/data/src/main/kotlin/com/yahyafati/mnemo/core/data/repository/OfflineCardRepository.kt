@@ -19,9 +19,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
-import javax.inject.Inject
 
-internal class OfflineCardRepository @Inject constructor(
+internal class OfflineCardRepository(
     private val noteDao: NoteDao,
     private val cardDao: CardDao,
     private val deckDao: DeckDao,

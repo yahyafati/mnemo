@@ -8,37 +8,26 @@ import androidx.compose.ui.test.performClick
 import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.model.NoteKind
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import com.yahyafati.mnemo.di.TestMnemoApplication
 import kotlinx.coroutines.runBlocking
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import javax.inject.Inject
+import org.koin.core.component.inject
+import org.koin.test.KoinTest
 
 /** The card browser is reachable from the library, lists cards, and opens them in the editor. */
-@HiltAndroidTest
-@Config(application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 @RunWith(RobolectricTestRunner::class)
-class BrowseFlowTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+class BrowseFlowTest : KoinTest {
+    @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
-    @Inject
-    lateinit var deckRepository: DeckRepository
+    private val deckRepository: DeckRepository by inject()
 
-    @Inject
-    lateinit var cardRepository: CardRepository
-
-    @Before
-    fun setUp() = hiltRule.inject()
+    private val cardRepository: CardRepository by inject()
 
     private fun awaitText(text: String) = composeRule.waitUntil(TIMEOUT_MS) {
         composeRule.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()

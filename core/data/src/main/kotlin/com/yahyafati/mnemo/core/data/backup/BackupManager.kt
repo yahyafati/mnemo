@@ -4,13 +4,10 @@ import android.content.Context
 import androidx.core.net.toUri
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.documentfile.provider.DocumentFile
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.data.repository.MediaRepository
 import com.yahyafati.mnemo.core.database.DatabaseSnapshot
-import com.yahyafati.mnemo.core.datastore.di.DataStoreModule
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.yahyafati.mnemo.core.datastore.di.DataStoreFiles
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -24,7 +21,6 @@ import java.time.format.DateTimeFormatter
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
-import javax.inject.Inject
 
 /** A backup that was read and is ready to restore. */
 data class BackupInfo(val createdAt: Instant, val schemaVersion: Int)
@@ -37,12 +33,12 @@ class BackupFormatException(message: String) : Exception(message)
  * preferences file and every media file. Restoring stages the files and applies them at the next
  * start ([PendingRestore]), before Room or DataStore have opened anything.
  */
-class BackupManager @Inject internal constructor(
-    @param:ApplicationContext private val context: Context,
+class BackupManager internal constructor(
+    private val context: Context,
     private val snapshot: DatabaseSnapshot,
     private val mediaRepository: MediaRepository,
     private val clock: Clock,
-    @param:Dispatcher(MnemoDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -142,7 +138,7 @@ class BackupManager @Inject internal constructor(
         }
     }
 
-    private fun preferencesFile(): File = context.preferencesDataStoreFile(DataStoreModule.USER_PREFERENCES_FILE)
+    private fun preferencesFile(): File = context.preferencesDataStoreFile(DataStoreFiles.USER_PREFERENCES)
 
     private inline fun ZipOutputStream.entry(name: String, write: (OutputStream) -> Unit) {
         putNextEntry(ZipEntry(name))

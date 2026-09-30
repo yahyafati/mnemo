@@ -4,13 +4,12 @@ import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.model.DuplicateGroup
 import com.yahyafati.mnemo.core.model.Note
-import javax.inject.Inject
 
 /**
  * AI Co-Author's "Find duplicates", done on the device: nothing is sent anywhere. Looks at [deckId]
  * and its subdecks.
  */
-class FindDuplicateNotesUseCase @Inject constructor(
+class FindDuplicateNotesUseCase(
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
 ) {

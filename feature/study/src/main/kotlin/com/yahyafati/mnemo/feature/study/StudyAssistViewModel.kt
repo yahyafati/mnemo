@@ -14,14 +14,12 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class StudyAssistUiState(
     /** Route for "Explain this" and "Give me an example"; null hides them. */
@@ -83,8 +81,7 @@ sealed interface AssistAction {
  * Answers stream into a sheet; a rewrite is only a proposal until applied, and applying keeps the
  * card's schedule (cloze numbers must not change).
  */
-@HiltViewModel
-class StudyAssistViewModel @Inject constructor(
+class StudyAssistViewModel(
     private val aiProviders: AiProviderRepository,
     private val assistRepository: StudyAssistRepository,
     private val cardRepository: CardRepository,

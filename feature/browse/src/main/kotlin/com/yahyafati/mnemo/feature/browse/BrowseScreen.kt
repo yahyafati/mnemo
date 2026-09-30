@@ -48,7 +48,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
@@ -66,12 +65,13 @@ import com.yahyafati.mnemo.core.ui.format.formatInterval
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Duration
 import java.time.Instant
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun BrowseRoute(
     onBack: () -> Unit,
     onEditNote: (noteId: String) -> Unit,
-    viewModel: BrowseViewModel = hiltViewModel(),
+    viewModel: BrowseViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cards = viewModel.cards.collectAsLazyPagingItems()

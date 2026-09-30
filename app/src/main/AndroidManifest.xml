@@ -40,7 +40,7 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
-        <!-- WorkManager is configured by MnemoApplication (Hilt workers), not by its initializer. -->
+        <!-- WorkManager is configured by MnemoApplication (Koin workers), not by its initializer. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"

@@ -15,9 +15,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import java.time.Instant
 import java.time.LocalDate
-import javax.inject.Inject
 
-internal class OfflineStatsRepository @Inject constructor(
+internal class OfflineStatsRepository(
     private val statsDao: StatsDao,
     private val cardRepository: CardRepository,
     private val clock: Clock,

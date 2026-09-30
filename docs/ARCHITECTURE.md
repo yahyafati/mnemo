@@ -75,7 +75,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 
 | Module | Type | Responsibility |
 |---|---|---|
-| `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Hilt entry point, WorkManager setup |
+| `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Koin start-up (`di/AppModules.kt`), WorkManager setup |
 | `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). Opens a window on the shared JVM modules; the other modules join it as they become KMP modules (desktop ROADMAP D2–D6) |
 | `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
@@ -91,14 +91,14 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:datastore` | Android lib | Proto/Preferences DataStore for user settings |
 | `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe, prompt templates, JSON schema, tolerant incremental card parser (ADR 0006) |
 | `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
-| `:core:ingest` | Android lib | Source extraction: PDF → text (PdfBox-Android), URL → readable text (jsoup), speech → text (on-device `SpeechRecognizer`), chunking. No Hilt: `:core:data` builds its classes |
+| `:core:ingest` | Android lib | Source extraction: PDF → text (PdfBox-Android), URL → readable text (jsoup), speech → text (on-device `SpeechRecognizer`), chunking. No DI library: `:core:data` builds its classes |
 | `:core:security` | Android lib | Android Keystore-backed encryption for API keys (`SecretCipher`) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
-| `:core:common` | JVM lib | `Result`/error types, dispatcher qualifiers, time/clock abstraction |
-| `:core:testing` | Android lib | Fakes (repositories, clock), test dispatchers, Hilt test runner |
+| `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin) |
+| `:core:testing` | Android lib | Fakes (repositories, clock), test dispatchers |
 
-\* `:core:domain` could be JVM-only, except that Hilt/`javax.inject` annotations are simplest from an Android library. Keep it free of Android APIs either way.
+\* `:core:domain` could be JVM-only, but it depends on `:core:data`, which is an Android library until D4. Keep it free of Android APIs either way.
 
 **Dependency rules** (enforced in review, and later with a Gradle check):
 
@@ -127,9 +127,8 @@ mnemo/
 │           ├── AndroidApplicationConventionPlugin.kt   # mnemo.android.application
 │           ├── AndroidLibraryConventionPlugin.kt       # mnemo.android.library
 │           ├── AndroidComposeConventionPlugin.kt       # mnemo.android.compose
-│           ├── AndroidFeatureConventionPlugin.kt       # mnemo.android.feature (lib+compose+hilt+core deps)
+│           ├── AndroidFeatureConventionPlugin.kt       # mnemo.android.feature (lib+compose+koin+core deps)
 │           ├── AndroidRoomConventionPlugin.kt          # mnemo.android.room (KSP + schema dir)
-│           ├── HiltConventionPlugin.kt                 # mnemo.hilt
 │           ├── JvmLibraryConventionPlugin.kt           # mnemo.jvm.library
 │           ├── KmpLibraryConventionPlugin.kt           # mnemo.kmp.library (Android + desktop targets)
 │           ├── KmpComposeConventionPlugin.kt           # mnemo.kmp.compose (Compose Multiplatform)
@@ -147,7 +146,7 @@ mnemo/
 │       │   ├── keepRules/*.keep                         # R8 rules (merged by AGP)
 │       │   ├── res/                                     # launcher icons, strings, themes.xml (splash)
 │       │   └── java/com/yahyafati/mnemo/
-│       │       ├── MnemoApplication.kt                  # @HiltAndroidApp, WorkManager config
+│       │       ├── MnemoApplication.kt                  # starts Koin, WorkManager config
 │       │       ├── MainActivity.kt                      # enableEdgeToEdge, setContent { MnemoApp() }
 │       │       ├── MainViewModel.kt                     # theme prefs, onboarding state, deep links
 │       │       ├── widget/TodayWidget.kt                # home-screen widget (RemoteViews) + updater
@@ -249,7 +248,7 @@ mnemo/
 │   │   ├── mapper/                                      # Entity/DTO ↔ model
 │   │   ├── scheduling/FsrsOptimization.kt               # review log → optimizer → apply if better
 │   │   ├── work/ TransferWorkers.kt ReminderWorker.kt OptimizeFsrsWorker.kt
-│   │   └── di/DataModule.kt                             # @Binds interface → impl
+│   │   └── di/DataModule.kt                             # repositories, AI/ingest clients, workers (Koin)
 │   │
 │   ├── domain/src/main/kotlin/com/yahyafati/mnemo/core/domain/
 │   │   ├── BuildStudyQueueUseCase.kt
@@ -282,8 +281,7 @@ mnemo/
 │   │
 │   └── testing/src/main/kotlin/com/yahyafati/mnemo/core/testing/
 │       ├── repository/Fake*Repository.kt
-│       ├── MainDispatcherRule.kt  TestClock.kt
-│       └── HiltTestRunner.kt
+│       └── MainDispatcherRule.kt  TestClock.kt
 │
 ├── feature/
 │   ├── decks/      (structure below)
@@ -325,7 +323,7 @@ feature/study/
 └── src/
     ├── main/kotlin/com/yahyafati/mnemo/feature/study/
     │   ├── navigation/StudyNavigation.kt   # NavGraphBuilder.studyScreen(), NavController.navigateToStudy()
-    │   ├── StudyRoute.kt                   # stateful: hiltViewModel(), collectAsStateWithLifecycle()
+    │   ├── StudyRoute.kt                   # stateful: koinViewModel(), collectAsStateWithLifecycle()
     │   ├── StudyScreen.kt                  # stateless: (uiState, onAction) → UI, with @Previews
     │   ├── StudyViewModel.kt
     │   ├── StudyUiState.kt                 # sealed: Loading | Reviewing | Finished | Empty
@@ -431,7 +429,7 @@ Theme decisions:
 |---|---|
 | UI | Jetpack Compose (BOM), Material 3, `material3-adaptive` for tablets |
 | Navigation | Navigation Compose with type-safe `@Serializable` routes |
-| DI | Hilt (KSP), `hilt-navigation-compose`, `hilt-work` |
+| DI | Koin (`koin-android`, `koin-compose-viewmodel`, `koin-androidx-workmanager`); each module exposes a `xxxModule` (ADR 0010) |
 | Async | Kotlin Coroutines + Flow |
 | Database | Room (KSP) |
 | Preferences | DataStore |

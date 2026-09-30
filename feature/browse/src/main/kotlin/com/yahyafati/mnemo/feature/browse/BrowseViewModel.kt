@@ -11,7 +11,6 @@ import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.model.CardQuery
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.model.markdown.Markdown
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
@@ -26,15 +25,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * The card browser. [SavedStateHandle] key `deckId` (from `BrowseRoute`) starts it filtered to a
  * deck. Bulk actions apply to the selection.
  */
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-@HiltViewModel
-class BrowseViewModel @Inject constructor(
+class BrowseViewModel(
     savedStateHandle: SavedStateHandle,
     private val browser: CardBrowserRepository,
     deckRepository: DeckRepository,

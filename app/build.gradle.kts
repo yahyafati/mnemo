@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.mnemo.android.application)
     alias(libs.plugins.mnemo.android.compose)
-    alias(libs.plugins.mnemo.hilt)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.aboutlibraries)
 }
@@ -22,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.yahyafati.mnemo"
-        testInstrumentationRunner = "com.yahyafati.mnemo.core.testing.HiltTestRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -57,7 +56,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.hilt.work)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.workmanager)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
     implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.aboutlibraries.core)
@@ -69,6 +71,7 @@ dependencies {
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.junit)
+    testImplementation(libs.koin.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)

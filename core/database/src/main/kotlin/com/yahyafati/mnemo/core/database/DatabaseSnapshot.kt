@@ -2,9 +2,7 @@ package com.yahyafati.mnemo.core.database
 
 import android.content.Context
 import androidx.room.withTransaction
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import javax.inject.Inject
 
 /**
  * Consistent copies of the open database, for backups (ARCHITECTURE §5.4), without closing Room.
@@ -13,8 +11,8 @@ import javax.inject.Inject
  * concurrent write left behind) is copied while holding a write transaction, so no commit can
  * land halfway through the copy. SQLite replays a copied WAL when the file is opened again.
  */
-class DatabaseSnapshot @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+class DatabaseSnapshot(
+    private val context: Context,
     private val database: MnemoDatabase,
 ) {
     /** The schema version, recorded in backups so a restore can refuse a newer one. */

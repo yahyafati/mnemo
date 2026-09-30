@@ -8,7 +8,6 @@ import com.yahyafati.mnemo.core.data.repository.AiProviderDraft
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.ApiKeyChange
 import com.yahyafati.mnemo.core.model.AiProviderPresets
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +15,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
-import javax.inject.Inject
 
-@HiltViewModel
-class ProviderEditorViewModel @Inject constructor(
+class ProviderEditorViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val repository: AiProviderRepository,
 ) : ViewModel() {

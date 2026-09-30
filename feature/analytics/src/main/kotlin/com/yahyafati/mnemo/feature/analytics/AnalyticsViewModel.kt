@@ -7,7 +7,6 @@ import com.yahyafati.mnemo.core.common.time.StudyDay
 import com.yahyafati.mnemo.core.domain.ComputeRetentionStatsUseCase
 import com.yahyafati.mnemo.core.model.RetentionStats
 import com.yahyafati.mnemo.core.model.markdown.Markdown
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -17,10 +16,8 @@ import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.WeekFields
 import java.util.Locale
-import javax.inject.Inject
 
-@HiltViewModel
-class AnalyticsViewModel @Inject constructor(
+class AnalyticsViewModel(
     computeRetentionStats: ComputeRetentionStatsUseCase,
     private val clock: Clock,
 ) : ViewModel() {

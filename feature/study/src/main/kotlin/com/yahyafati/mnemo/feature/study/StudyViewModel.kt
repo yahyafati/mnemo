@@ -15,7 +15,6 @@ import com.yahyafati.mnemo.core.model.Rating
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.model.TypedAnswer
 import com.yahyafati.mnemo.core.ui.card.CardResponse
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +24,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Duration
 import java.time.Instant
-import javax.inject.Inject
 
 /**
  * Runs a study session (ARCHITECTURE §5.1). The queue lives in memory; answering moves to the
@@ -35,8 +33,7 @@ import javax.inject.Inject
  * `deckId` in the [SavedStateHandle] picks one deck (and its subdecks); without it, this is the
  * Daily Mix across all decks.
  */
-@HiltViewModel
-class StudyViewModel @Inject constructor(
+class StudyViewModel(
     savedStateHandle: SavedStateHandle,
     private val buildStudyQueue: BuildStudyQueueUseCase,
     private val answerCard: AnswerCardUseCase,

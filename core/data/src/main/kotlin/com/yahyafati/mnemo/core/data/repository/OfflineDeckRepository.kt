@@ -1,7 +1,5 @@
 package com.yahyafati.mnemo.core.data.repository
 
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.common.time.StudyDay
 import com.yahyafati.mnemo.core.data.mapper.toEntity
@@ -21,15 +19,14 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
-import javax.inject.Inject
 
-internal class OfflineDeckRepository @Inject constructor(
+internal class OfflineDeckRepository(
     private val deckDao: DeckDao,
     private val noteDao: NoteDao,
     private val cardDao: CardDao,
     private val transaction: TransactionRunner,
     private val clock: Clock,
-    @Dispatcher(MnemoDispatchers.Default) private val defaultDispatcher: CoroutineDispatcher,
+    private val defaultDispatcher: CoroutineDispatcher,
 ) : DeckRepository {
     override fun observeDecks(): Flow<List<Deck>> =
         deckDao.observeDecks().map { decks -> decks.map { it.toModel() } }

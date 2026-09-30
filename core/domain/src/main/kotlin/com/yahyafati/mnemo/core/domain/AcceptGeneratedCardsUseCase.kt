@@ -4,7 +4,6 @@ import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.NewNote
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteSource
-import javax.inject.Inject
 
 /** What was saved: the queue ids of the accepted cards, and how many study cards they made. */
 data class AcceptResult(val acceptedIds: List<String>, val cardCount: Int)
@@ -13,7 +12,7 @@ data class AcceptResult(val acceptedIds: List<String>, val cardCount: Int)
  * Saves reviewed cards (ARCHITECTURE §5.2, step 7): one note each, `source = AI`, all in one
  * transaction. Cards the user edited into something invalid are left in the queue.
  */
-class AcceptGeneratedCardsUseCase @Inject constructor(
+class AcceptGeneratedCardsUseCase(
     private val cardRepository: CardRepository,
 ) {
     suspend operator fun invoke(deckId: String, cards: List<GeneratedCard>): AcceptResult {

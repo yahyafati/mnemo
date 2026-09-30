@@ -9,9 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.yahyafati.mnemo.core.data.repository.ReviewRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import com.yahyafati.mnemo.di.TestMnemoApplication
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -20,32 +18,26 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import javax.inject.Inject
+import org.koin.core.component.inject
+import org.koin.test.KoinTest
 import org.junit.Assert.assertEquals
 
 /**
  * The new-user path end to end (ROADMAP Phase 6) on a real (in-memory) database: onboarding
  * creates the first deck, a card is added, studied and rated, and Analytics counts the review.
  */
-@HiltAndroidTest
-@Config(application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 @RunWith(RobolectricTestRunner::class)
-class FirstSessionTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+class FirstSessionTest : KoinTest {
+    @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
-    @Inject
-    lateinit var settingsRepository: UserSettingsRepository
+    private val settingsRepository: UserSettingsRepository by inject()
 
-    @Inject
-    lateinit var reviewRepository: ReviewRepository
+    private val reviewRepository: ReviewRepository by inject()
 
     @Before
     fun setUp() {
-        hiltRule.inject()
         // The test storage starts past onboarding; this test is the first run.
         runBlocking { settingsRepository.setOnboardingCompleted(false) }
     }

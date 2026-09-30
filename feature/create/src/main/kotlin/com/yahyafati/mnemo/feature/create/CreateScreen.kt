@@ -21,13 +21,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorScreen
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 /** Which side of the Create tab is showing. */
 internal enum class CreateMode { SmartExtract, CoAuthor, Manual }
@@ -40,9 +40,9 @@ internal enum class CreateMode { SmartExtract, CoAuthor, Manual }
 internal fun CreateScreen(
     onSetUpAi: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: NoteEditorViewModel = hiltViewModel(),
-    smartExtractViewModel: SmartExtractViewModel = hiltViewModel(),
-    coAuthorViewModel: CoAuthorViewModel = hiltViewModel(),
+    viewModel: NoteEditorViewModel = koinViewModel(),
+    smartExtractViewModel: SmartExtractViewModel = koinViewModel(),
+    coAuthorViewModel: CoAuthorViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val smartExtract by smartExtractViewModel.uiState.collectAsStateWithLifecycle()
@@ -100,7 +100,7 @@ internal fun CreateScreen(
 internal fun NoteEditorFullScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: NoteEditorViewModel = hiltViewModel(),
+    viewModel: NoteEditorViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(uiState.closeRequested) {

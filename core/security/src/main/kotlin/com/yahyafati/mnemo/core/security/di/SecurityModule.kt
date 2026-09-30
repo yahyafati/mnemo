@@ -1,25 +1,16 @@
 package com.yahyafati.mnemo.core.security.di
 
+import android.content.Context
+import com.yahyafati.mnemo.core.common.di.dispatcher
+import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.security.KeystoreSecretCipher
 import com.yahyafati.mnemo.core.security.SecretCipher
 import com.yahyafati.mnemo.core.security.SecretStore
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
+import org.koin.dsl.module
 
-/** Replaced in app tests: Robolectric has no Android Keystore. */
-@Module
-@InstallIn(SingletonComponent::class)
-interface CipherModule {
-    @Binds
-    fun bindsSecretCipher(cipher: KeystoreSecretCipher): SecretCipher
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-internal interface SecretStoreModule {
-    @Binds
-    fun bindsSecretStore(store: FileSecretStore): SecretStore
+/** Encrypted secrets. Tests replace [SecretCipher]: Robolectric has no Android Keystore. */
+val securityModule = module {
+    single<SecretCipher> { KeystoreSecretCipher() }
+    single<SecretStore> { FileSecretStore(get<Context>(), get(), dispatcher(MnemoDispatchers.IO)) }
 }

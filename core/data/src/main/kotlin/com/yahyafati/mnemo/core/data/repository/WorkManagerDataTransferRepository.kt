@@ -25,17 +25,15 @@ import com.yahyafati.mnemo.core.data.work.workState
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TransferState
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipException
-import javax.inject.Inject
 
-internal class WorkManagerDataTransferRepository @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+internal class WorkManagerDataTransferRepository(
+    private val context: Context,
     private val workManager: WorkManager,
     private val backups: BackupManager,
     private val settingsRepository: UserSettingsRepository,

@@ -11,13 +11,11 @@ import com.yahyafati.mnemo.core.data.repository.MediaRepository
 import com.yahyafati.mnemo.core.model.Cloze
 import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.model.NoteType
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * The manual card editor, for the Create tab and for the full-screen editor.
@@ -25,8 +23,7 @@ import javax.inject.Inject
  * [SavedStateHandle] keys (from `NoteEditorRoute`): `noteId` edits that note; `deckId` preselects
  * a deck for new notes. With neither, the first deck is preselected.
  */
-@HiltViewModel
-class NoteEditorViewModel @Inject constructor(
+class NoteEditorViewModel(
     savedStateHandle: SavedStateHandle,
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,

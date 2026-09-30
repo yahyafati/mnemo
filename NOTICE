@@ -61,11 +61,12 @@ Libraries (linked, not modified)
 
 Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
   - AndroidX (Core, Activity, Lifecycle, Navigation, Room, SQLite, DataStore, WorkManager, Paging,
-    WebKit, DocumentFile, Hilt extensions) and Jetpack Compose (Foundation, UI, Material 3,
+    WebKit, DocumentFile) and Jetpack Compose (Foundation, UI, Material 3,
     Material 3 Adaptive, Material Icons Extended). Copyright The Android Open Source Project.
   - Kotlin and kotlinx.coroutines / kotlinx.serialization. Copyright JetBrains s.r.o. and
     contributors.
-  - Dagger and Hilt. Copyright The Dagger Authors. javax.inject.
+  - Koin (io.insert-koin), the dependency injection library. Copyright Kotzilla and the Koin
+    contributors.
   - OkHttp (with okhttp-sse) and Okio. Copyright Square, Inc.
   - AboutLibraries (com.mikepenz), which builds the Open-source licenses screen. Copyright Mike
     Penz. Its Gradle plugin runs at build time only.

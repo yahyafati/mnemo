@@ -7,9 +7,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yahyafati.mnemo.MainActivity
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
+import com.yahyafati.mnemo.di.TestMnemoApplication
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,14 +15,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /** Every tab and Settings is reachable from the app shell. */
-@HiltAndroidTest
-@Config(application = HiltTestApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")
 @RunWith(RobolectricTestRunner::class)
 class MnemoAppNavigationTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     private fun awaitText(text: String) = composeRule.waitUntil(TIMEOUT_MS) {

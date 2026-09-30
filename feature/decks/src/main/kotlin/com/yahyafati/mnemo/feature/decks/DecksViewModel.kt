@@ -15,7 +15,6 @@ import com.yahyafati.mnemo.core.model.RecallTotal
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,10 +24,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import javax.inject.Inject
 
-@HiltViewModel
-class DecksViewModel @Inject constructor(
+class DecksViewModel(
     private val deckRepository: DeckRepository,
     private val transferRepository: DataTransferRepository,
     getTodaySummary: GetTodaySummaryUseCase,

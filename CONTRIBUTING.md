@@ -94,7 +94,7 @@ The full list is in [CLAUDE.md](CLAUDE.md) and the architecture doc. The ones th
 - Shared Gradle configuration goes in the convention plugins in `build-logic/`, so module build
   files stay a few lines. Don't set `namespace` in library modules.
 - Don't add the `org.jetbrains.kotlin.android` plugin (AGP 9 has built-in Kotlin). Upgrade Kotlin,
-  KSP and Hilt together.
+  and KSP together.
 
 **Database**
 - A schema change needs a version bump, a migration in `migration/Migrations.kt` whose SQL matches

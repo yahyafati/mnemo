@@ -7,7 +7,6 @@ import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.UserSettings
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 sealed interface MainUiState {
     data object Loading : MainUiState
@@ -35,8 +33,7 @@ sealed interface AppDestination {
 }
 
 /** App-wide state: appearance (theme, dynamic color, card text size), onboarding, and where to open. */
-@HiltViewModel
-class MainViewModel @Inject constructor(
+class MainViewModel(
     private val settingsRepository: UserSettingsRepository,
     private val deckRepository: DeckRepository,
     private val reminderRepository: ReminderRepository,

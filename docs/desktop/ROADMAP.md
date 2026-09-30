@@ -214,21 +214,36 @@ GitHub run of the `desktop` job.
 **Goal:** the DI library chosen in D0, on Android only, with no behavior change. This is the
 largest Android-only diff, so it gets a step of its own.
 
-- [ ] DI modules mirror today's Hilt modules one for one: dispatchers, clock, database,
-      DataStore, security (`SecretCipher`, `SecretStore`), ingest, data, work.
-- [ ] Every `@HiltViewModel` becomes a DI ViewModel definition, and `hiltViewModel()` its
-      equivalent. `SavedStateHandle` keeps working (navigation arguments).
-- [ ] `@HiltWorker` workers get their dependencies through the DI library's WorkManager factory.
-      `MnemoApplication` stays the WorkManager `Configuration.Provider`.
-- [ ] `MainActivity`, `MnemoApplication` and the widget's entry point drop Hilt.
-- [ ] Tests: `HiltTestRunner`, `TestStorageModules`, `TestCipherModule`, `TestDataStoreModule`
-      and the `WorkModule` replacement become DI overrides with the same behavior (in-memory
-      database, per-test DataStore file, software cipher, test WorkManager).
-- [ ] A graph test resolves every definition with `checkModules` and fake platform modules
-      (in-memory database, software cipher, test WorkManager), plus `verify()`, so a missing
-      binding fails a unit test instead of crashing at runtime. `verify()` alone is not enough: it
-      passed a graph with a missing binding inside a lambda (ADR 0010, finding 5).
-- [ ] Remove Hilt from `build-logic` (`mnemo.hilt`) and the version catalog. KSP stays for Room.
+- [x] DI modules mirror today's Hilt modules one for one: dispatchers, clock, database,
+      DataStore, security (`SecretCipher`, `SecretStore`), ingest, data, work. Each Gradle module
+      exposes a public `xxxModule`; `:core:data` adds `dataLayerModules` (so `:app` needn't see
+      Room or DataStore) and `:app` lists everything in `mnemoModules`. Unscoped Hilt bindings are
+      `factory`, `@Singleton` ones are `single`. There is also a `domainModule` for the use cases
+      and one module per feature.
+- [x] Every `@HiltViewModel` becomes a `viewModelOf` definition, and `hiltViewModel()` is
+      `koinViewModel()`. `SavedStateHandle` keeps working (navigation arguments): the Browse test
+      opens the editor for a note and gets "Edit note", which only happens if `noteId` arrives.
+- [x] `@HiltWorker` workers are `workerOf` definitions (`workModule`), created by
+      `KoinWorkerFactory`. `MnemoApplication` stays the WorkManager `Configuration.Provider`.
+- [x] `MainActivity`, `MnemoApplication` and the widget drop Hilt. `MnemoApplication` calls
+      `startKoin` after `PendingRestore.applyIfPresent`, the widget provider is a `KoinComponent`.
+      The `javax.inject`, `@Inject`, `@Singleton` and `@Dispatcher` annotations are gone from
+      every class.
+- [x] Tests: `HiltTestRunner` is deleted (instrumented tests use `AndroidJUnitRunner`).
+      `TestStorageModules` is now `testStorageModule` (in-memory database, per-test DataStore
+      file, software cipher, test WorkManager) and `TestMnemoApplication` starts the real graph
+      with it on top. It is set as the Robolectric application in `robolectric.properties`.
+- [x] `DependencyGraphTest` resolves every definition with `checkModules` (test overrides
+      included) and runs `verify()`, so a missing binding fails a unit test instead of crashing at
+      runtime. Checked by removing a binding: both fail. `verify()` alone is not enough (ADR
+      0010, finding 5; see the D2 findings for what each needs).
+- [x] Hilt is gone from `build-logic` (`mnemo.hilt`), the root build and the version catalog. KSP
+      stays for Room.
+- [~] Release (R8) smoke test, on the Pixel 8 API 35 emulator over an existing collection: the
+      R8 build installs as an update, the Decks, Study and Settings screens load with the old
+      data, and `MediaCleanupWorker` and `ReminderWorker` run to `SUCCESS` through
+      `KoinWorkerFactory`. **Still to do by hand (owner):** import an `.apkg`, an AI "Test
+      connection", the widget on a launcher, a backup and a real reminder, on a device.
 
 **Exit:** no `dagger` or `hilt` import left; the Android exit check and all tests are green; a
 manual smoke test (study, import, AI test connection, widget, reminder) behaves as before.

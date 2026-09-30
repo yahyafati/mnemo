@@ -3,7 +3,6 @@ package com.yahyafati.mnemo.core.data.work
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
@@ -20,8 +19,6 @@ import com.yahyafati.mnemo.core.data.transfer.JsonExporter
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TransferError
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.io.File
@@ -72,10 +69,9 @@ private fun Throwable.toTransferError(): TransferError = when (this) {
     else -> TransferError.Unknown
 }
 
-@HiltWorker
-internal class ImportWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class ImportWorker(
+    context: Context,
+    params: WorkerParameters,
     private val importer: AnkiImporter,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
@@ -118,10 +114,9 @@ internal class ImportWorker @AssistedInject constructor(
     }
 }
 
-@HiltWorker
-internal class ExportWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class ExportWorker(
+    context: Context,
+    params: WorkerParameters,
     private val ankiExporter: AnkiExporter,
     private val jsonExporter: JsonExporter,
 ) : CoroutineWorker(context, params) {
@@ -158,10 +153,9 @@ internal class ExportWorker @AssistedInject constructor(
 }
 
 /** A manual backup to [WorkKeys.URI], or, without a URI, an automatic one into the backup folder. */
-@HiltWorker
-internal class BackupWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class BackupWorker(
+    context: Context,
+    params: WorkerParameters,
     private val backups: BackupManager,
     private val settingsRepository: UserSettingsRepository,
     private val clock: Clock,
@@ -202,10 +196,9 @@ internal class BackupWorker @AssistedInject constructor(
 }
 
 /** Deletes media no note uses any more (ARCHITECTURE §6). */
-@HiltWorker
-internal class MediaCleanupWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class MediaCleanupWorker(
+    context: Context,
+    params: WorkerParameters,
     private val mediaRepository: MediaRepository,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = try {

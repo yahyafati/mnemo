@@ -4,8 +4,6 @@ import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
 import com.yahyafati.mnemo.core.ai.generate.TextEvent
 import com.yahyafati.mnemo.core.ai.prompt.AssistRequest
 import com.yahyafati.mnemo.core.ai.prompt.StudyAssistPrompt
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.mapper.toAiFailure
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -20,7 +18,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 /** Study-time AI (PROJECT_OVERVIEW §4): explanations, examples and rewrites of the current card. */
 interface StudyAssistRepository {
@@ -31,11 +28,11 @@ interface StudyAssistRepository {
     suspend fun rewrite(route: AiRoute, card: StudyCard): RewriteOutcome
 }
 
-internal class DefaultStudyAssistRepository @Inject constructor(
+internal class DefaultStudyAssistRepository(
     private val client: StudyAssistClient,
     private val configs: ProviderConfigs,
     private val providers: AiProviderRepository,
-    @param:Dispatcher(MnemoDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) : StudyAssistRepository {
     override fun explain(route: AiRoute, assist: StudyAssist, card: StudyCard): Flow<AssistUpdate> = flow {
         require(assist != StudyAssist.Rewrite) { "Use rewrite()" }

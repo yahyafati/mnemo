@@ -9,13 +9,11 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class AiProvidersUiState(
     val loading: Boolean = true,
@@ -39,8 +37,7 @@ sealed interface AiProvidersAction {
     data class SetRoute(val task: AiTask, val providerId: String?, val modelId: String? = null) : AiProvidersAction
 }
 
-@HiltViewModel
-class AiProvidersViewModel @Inject constructor(
+class AiProvidersViewModel(
     private val repository: AiProviderRepository,
 ) : ViewModel() {
     val uiState: StateFlow<AiProvidersUiState> = combine(

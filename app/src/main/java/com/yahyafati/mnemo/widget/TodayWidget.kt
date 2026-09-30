@@ -14,20 +14,15 @@ import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.common.time.StudyDay
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.model.TodaySummary
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import java.time.Duration
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * The home-screen widget: today's queue (to review, new, minutes) and a Study button that opens
@@ -36,25 +31,20 @@ import javax.inject.Singleton
  * The system refreshes it every 30 minutes (and so across the 4 a.m. day rollover);
  * [TodayWidgetUpdater] refreshes it whenever the counts change while the app is running.
  */
-class TodayWidgetProvider : AppWidgetProvider() {
+class TodayWidgetProvider : AppWidgetProvider(), KoinComponent {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val pending = goAsync()
-        val entryPoint = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+        // Koin is started in Application.onCreate, before the system delivers any broadcast.
+        val getTodaySummary = get<GetTodaySummaryUseCase>()
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
-                val summary = entryPoint.getTodaySummary()().first()
+                val summary = getTodaySummary().first()
                 appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, TodayWidget.views(context, summary)) }
             } finally {
                 pending.finish()
             }
         }
     }
-}
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-internal interface WidgetEntryPoint {
-    fun getTodaySummary(): GetTodaySummaryUseCase
 }
 
 internal object TodayWidget {
@@ -98,9 +88,8 @@ internal object TodayWidget {
  * Does nothing when no widget is placed. The counts' "today" is fixed when their query starts, so
  * the collection restarts at each study-day boundary.
  */
-@Singleton
-class TodayWidgetUpdater @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+class TodayWidgetUpdater(
+    private val context: Context,
     private val getTodaySummary: GetTodaySummaryUseCase,
     private val clock: Clock,
 ) {

@@ -46,7 +46,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
@@ -64,12 +63,13 @@ import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.feature.settings.Hint
 import com.yahyafati.mnemo.feature.settings.R
 import com.yahyafati.mnemo.feature.settings.Section
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun ProviderEditorRoute(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ProviderEditorViewModel = hiltViewModel(),
+    viewModel: ProviderEditorViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(uiState.closeRequested) {

@@ -34,7 +34,7 @@ internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
     // Robolectric reaches into JDK internals; on recent JDKs (the Gradle toolchain is 25) that
     // needs explicit access, or the sandbox fails to start.
     tasks.withType<Test>().configureEach {
-        // Hilt's KSP output counts as test sources even in modules with no tests yet.
+        // Modules with no tests yet (Gradle 9 fails a test task that finds none).
         failOnNoDiscoveredTests.set(false)
         jvmArgs(TEST_JVM_ARGS)
     }

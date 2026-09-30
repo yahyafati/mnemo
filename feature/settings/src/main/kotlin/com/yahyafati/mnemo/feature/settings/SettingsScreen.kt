@@ -46,7 +46,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -58,6 +57,7 @@ import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlin.math.roundToInt
+import org.koin.compose.viewmodel.koinViewModel
 
 /** Callbacks for every setting, so the stateless screen stays previewable. */
 internal class SettingsCallbacks(
@@ -79,7 +79,7 @@ internal fun SettingsScreen(
     onOpenAiProviders: () -> Unit,
     onOpenLicenses: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = hiltViewModel(),
+    viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val dataState by viewModel.dataState.collectAsStateWithLifecycle()

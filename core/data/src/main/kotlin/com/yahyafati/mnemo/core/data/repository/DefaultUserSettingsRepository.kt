@@ -9,9 +9,8 @@ import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
 import java.time.Instant
-import javax.inject.Inject
 
-internal class DefaultUserSettingsRepository @Inject constructor(
+internal class DefaultUserSettingsRepository(
     private val dataSource: UserPreferencesDataSource,
 ) : UserSettingsRepository {
     override val settings: Flow<UserSettings> = dataSource.settings

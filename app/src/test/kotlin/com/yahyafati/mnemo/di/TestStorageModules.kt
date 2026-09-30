@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.di
 
+import android.app.Application
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -8,71 +9,60 @@ import androidx.work.Configuration
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
-import com.yahyafati.mnemo.core.data.di.WorkModule
 import com.yahyafati.mnemo.core.database.MnemoDatabase
-import com.yahyafati.mnemo.core.database.di.DatabaseModule
 import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
-import com.yahyafati.mnemo.core.datastore.di.DataStoreModule
 import com.yahyafati.mnemo.core.security.SecretCipher
-import com.yahyafati.mnemo.core.security.di.CipherModule
 import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import dagger.hilt.testing.TestInstallIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import java.io.File
 import java.util.UUID
-import javax.inject.Singleton
-
-/** Every test gets a fresh in-memory database. */
-@Module
-@TestInstallIn(components = [SingletonComponent::class], replaces = [DatabaseModule::class])
-object TestDatabaseModule {
-    @Provides
-    @Singleton
-    fun providesDatabase(@ApplicationContext context: Context): MnemoDatabase = MnemoDatabase.build(context, name = null)
-}
 
 /**
- * Every test gets its own preferences file: DataStore allows one instance per file per process.
- * Onboarding starts out finished, so tests open on the Decks tab; the onboarding test resets it.
+ * What app tests replace in the production graph ([mnemoModules]); later modules win.
+ *
+ * - Every test gets a fresh in-memory database.
+ * - Every test gets its own preferences file: DataStore allows one instance per file per process.
+ *   Onboarding starts out finished, so tests open on the Decks tab; the onboarding test resets it.
+ * - A synchronous test WorkManager: the real one needs `MnemoApplication`'s configuration.
+ * - Robolectric has no Android Keystore: keys are encrypted with an in-memory AES key instead.
  */
-@Module
-@TestInstallIn(components = [SingletonComponent::class], replaces = [DataStoreModule::class])
-object TestDataStoreModule {
-    @Provides
-    @Singleton
-    fun providesUserPreferencesDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+val testStorageModule = module {
+    single { MnemoDatabase.build(get<Context>(), name = null) }
+    single<DataStore<Preferences>> {
         PreferenceDataStoreFactory.create(scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)) {
-            File(context.cacheDir, "test-${UUID.randomUUID()}.preferences_pb")
+            File(get<Context>().cacheDir, "test-${UUID.randomUUID()}.preferences_pb")
         }.also { store -> runBlocking { UserPreferencesDataSource(store).setOnboardingCompleted(true) } }
-}
-
-/** A synchronous test WorkManager: HiltTestApplication doesn't configure the real one. */
-@Module
-@TestInstallIn(components = [SingletonComponent::class], replaces = [WorkModule::class])
-object TestWorkModule {
-    @Provides
-    @Singleton
-    fun providesWorkManager(@ApplicationContext context: Context): WorkManager {
+    }
+    single<WorkManager> {
+        val context = get<Context>()
         WorkManagerTestInitHelper.initializeTestWorkManager(
             context,
             Configuration.Builder().setExecutor(SynchronousExecutor()).build(),
         )
-        return WorkManager.getInstance(context)
+        WorkManager.getInstance(context)
     }
+    single<SecretCipher> { SoftwareSecretCipher() }
 }
 
-/** Robolectric has no Android Keystore: keys are encrypted with an in-memory AES key instead. */
-@Module
-@TestInstallIn(components = [SingletonComponent::class], replaces = [CipherModule::class])
-object TestCipherModule {
-    @Provides
-    @Singleton
-    fun providesSecretCipher(): SecretCipher = SoftwareSecretCipher()
+/**
+ * The application for app tests (`@Config(application = TestMnemoApplication::class)`): the real
+ * graph with [testStorageModule] on top, and none of `MnemoApplication`'s background work.
+ * Robolectric makes a new application per test, so the previous test's graph is stopped first.
+ */
+class TestMnemoApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        stopKoin()
+        startKoin {
+            androidContext(this@TestMnemoApplication)
+            modules(mnemoModules + testStorageModule)
+        }
+    }
 }

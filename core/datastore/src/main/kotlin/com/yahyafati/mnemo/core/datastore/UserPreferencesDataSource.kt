@@ -20,13 +20,12 @@ import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
-import javax.inject.Inject
 
 /**
  * User settings in Preferences DataStore. A missing key means "default", so defaults can change in
  * code without a migration. Unknown enum names (from a newer app version) also fall back.
  */
-class UserPreferencesDataSource @Inject constructor(
+class UserPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
 ) {
     val settings: Flow<UserSettings> = dataStore.data.map { prefs ->

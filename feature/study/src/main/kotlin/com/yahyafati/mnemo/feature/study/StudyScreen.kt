@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
@@ -54,6 +53,7 @@ import com.yahyafati.mnemo.feature.study.component.SessionSummaryView
 import com.yahyafati.mnemo.feature.study.component.SwipeableCard
 import java.time.Duration
 import java.time.Instant
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun StudyScreen(
@@ -61,8 +61,8 @@ internal fun StudyScreen(
     onDone: () -> Unit,
     doneLabel: String,
     modifier: Modifier = Modifier,
-    viewModel: StudyViewModel = hiltViewModel(),
-    assistViewModel: StudyAssistViewModel = hiltViewModel(),
+    viewModel: StudyViewModel = koinViewModel(),
+    assistViewModel: StudyAssistViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val assist by assistViewModel.uiState.collectAsStateWithLifecycle()

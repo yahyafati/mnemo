@@ -11,7 +11,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.yahyafati.mnemo.core.common.intent.AppIntents
@@ -21,8 +20,6 @@ import com.yahyafati.mnemo.core.data.R
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.data.repository.WorkManagerReminderRepository
 import com.yahyafati.mnemo.core.database.dao.DeckDao
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 
 /**
@@ -30,10 +27,9 @@ import kotlinx.coroutines.flow.first
  * nothing to study, then schedules tomorrow's. Counts come from the database directly: this runs
  * without the UI, and nothing leaves the device.
  */
-@HiltWorker
-internal class ReminderWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
+internal class ReminderWorker(
+    context: Context,
+    params: WorkerParameters,
     private val deckDao: DeckDao,
     private val settingsRepository: UserSettingsRepository,
     private val reminders: WorkManagerReminderRepository,

@@ -3,8 +3,6 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.ai.generate.CardEvent
 import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.prompt.CardGenerationPrompt
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.data.mapper.toAiFailure
 import com.yahyafati.mnemo.core.ingest.TextChunker
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -17,13 +15,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import java.util.UUID
-import javax.inject.Inject
 
-internal class DefaultCardGenerationRepository @Inject constructor(
+internal class DefaultCardGenerationRepository(
     private val client: CardGenerationClient,
     private val configs: ProviderConfigs,
     private val providers: AiProviderRepository,
-    @param:Dispatcher(MnemoDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
+    private val ioDispatcher: CoroutineDispatcher,
 ) : CardGenerationRepository {
     override fun split(text: String): List<String> = TextChunker.chunk(text)
 

@@ -3,8 +3,6 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.ai.client.ProviderConfig
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
 import com.yahyafati.mnemo.core.ai.probe.ModelHeuristics
-import com.yahyafati.mnemo.core.common.dispatchers.Dispatcher
-import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.common.time.Clock
@@ -41,15 +39,14 @@ import java.security.GeneralSecurityException
 import java.security.ProviderException
 import java.time.Duration
 import java.util.UUID
-import javax.inject.Inject
 
-internal class DefaultAiProviderRepository @Inject constructor(
+internal class DefaultAiProviderRepository(
     private val dao: AiProviderDao,
     private val secrets: SecretStore,
     private val probe: ConnectionProbe,
     private val transaction: TransactionRunner,
     private val clock: Clock,
-    @param:Dispatcher(MnemoDispatchers.Default) private val defaultDispatcher: CoroutineDispatcher,
+    private val defaultDispatcher: CoroutineDispatcher,
 ) : AiProviderRepository {
     override fun observeProviders(): Flow<List<AiProvider>> =
         dao.observeProviders().map { rows -> rows.map { it.toModel(hasApiKey = secrets.contains(it.id)) } }

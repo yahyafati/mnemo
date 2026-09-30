@@ -42,7 +42,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -70,12 +69,13 @@ import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun AnalyticsScreen(
     onEditNote: (noteId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AnalyticsViewModel = hiltViewModel(),
+    viewModel: AnalyticsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     AnalyticsScreen(uiState = uiState, onEditNote = onEditNote, modifier = modifier)

@@ -5,7 +5,7 @@ import android.content.Intent
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.yahyafati.mnemo.core.database.DatabaseSnapshot
 import com.yahyafati.mnemo.core.database.MnemoDatabase
-import com.yahyafati.mnemo.core.datastore.di.DataStoreModule
+import com.yahyafati.mnemo.core.datastore.di.DataStoreFiles
 import com.yahyafati.mnemo.core.model.MediaRef
 import java.io.File
 
@@ -37,7 +37,7 @@ object PendingRestore {
         val databaseDir = checkNotNull(context.getDatabasePath(MnemoDatabase.NAME).parentFile).apply { mkdirs() }
         staged.forEach { it.copyTo(File(databaseDir, it.name), overwrite = true) }
 
-        val prefs = context.preferencesDataStoreFile(DataStoreModule.USER_PREFERENCES_FILE)
+        val prefs = context.preferencesDataStoreFile(DataStoreFiles.USER_PREFERENCES)
         File(dir, BackupManager.PREFERENCES).listFiles().orEmpty().firstOrNull()?.let { file ->
             prefs.parentFile?.mkdirs()
             file.copyTo(prefs, overwrite = true)

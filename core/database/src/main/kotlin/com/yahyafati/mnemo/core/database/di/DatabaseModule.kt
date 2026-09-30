@@ -1,53 +1,27 @@
 package com.yahyafati.mnemo.core.database.di
 
-import android.content.Context
+import com.yahyafati.mnemo.core.database.DatabaseSnapshot
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.database.TransactionRunner
-import dagger.Binds
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import org.koin.core.module.dsl.factoryOf
+import org.koin.dsl.bind
+import org.koin.dsl.module
 
-@Module
-@InstallIn(SingletonComponent::class)
-object DatabaseModule {
-    @Provides
-    @Singleton
-    fun providesDatabase(@ApplicationContext context: Context): MnemoDatabase = MnemoDatabase.build(context)
-}
+/**
+ * Room, its DAOs and the transaction runner. Needs a `Context` (Koin's `androidContext`).
+ * Tests replace [MnemoDatabase] with an in-memory one.
+ */
+val databaseModule = module {
+    single { MnemoDatabase.build(get()) }
+    factory { get<MnemoDatabase>().deckDao() }
+    factory { get<MnemoDatabase>().noteDao() }
+    factory { get<MnemoDatabase>().cardDao() }
+    factory { get<MnemoDatabase>().reviewLogDao() }
+    factory { get<MnemoDatabase>().mediaDao() }
+    factory { get<MnemoDatabase>().aiProviderDao() }
+    factory { get<MnemoDatabase>().statsDao() }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object DaoModule {
-    @Provides
-    fun providesDeckDao(database: MnemoDatabase) = database.deckDao()
-
-    @Provides
-    fun providesNoteDao(database: MnemoDatabase) = database.noteDao()
-
-    @Provides
-    fun providesCardDao(database: MnemoDatabase) = database.cardDao()
-
-    @Provides
-    fun providesReviewLogDao(database: MnemoDatabase) = database.reviewLogDao()
-
-    @Provides
-    fun providesMediaDao(database: MnemoDatabase) = database.mediaDao()
-
-    @Provides
-    fun providesAiProviderDao(database: MnemoDatabase) = database.aiProviderDao()
-
-    @Provides
-    fun providesStatsDao(database: MnemoDatabase) = database.statsDao()
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-internal interface TransactionModule {
-    @Binds
-    fun bindsTransactionRunner(runner: RoomTransactionRunner): TransactionRunner
+    factoryOf(::RoomTransactionRunner) bind TransactionRunner::class
+    factoryOf(::DatabaseSnapshot)
 }

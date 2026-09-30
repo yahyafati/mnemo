@@ -13,11 +13,10 @@ import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
-import javax.inject.Inject
 import kotlin.math.ceil
 
 /** Today's due / new / learning counts across all decks, after daily limits, plus streak and time estimate. */
-class GetTodaySummaryUseCase @Inject constructor(
+class GetTodaySummaryUseCase(
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
     private val reviewRepository: ReviewRepository,
