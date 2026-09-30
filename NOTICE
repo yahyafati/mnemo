@@ -45,7 +45,7 @@ Bundled files
 
 KaTeX 0.18.9, https://katex.org
   License: MIT. Copyright (c) 2013-2020 Khan Academy and other contributors.
-  Renders math in cards (core/ui/src/main/assets/katex, with its own LICENSE.txt).
+  Renders math in cards (core/ui/src/androidMain/assets/katex, with its own LICENSE.txt). Android only..
 
 Newsreader, https://github.com/productiontype/Newsreader
   License: SIL Open Font License 1.1. Copyright 2020 The Newsreader Project Authors.
@@ -53,8 +53,8 @@ Hanken Grotesk, https://github.com/marcologous/hanken-grotesk
   License: SIL Open Font License 1.1. Copyright 2021 The Hanken Grotesk Project Authors.
 JetBrains Mono, https://github.com/JetBrains/JetBrainsMono
   License: SIL Open Font License 1.1. Copyright 2020 The JetBrains Mono Project Authors.
-  The fonts are in core/designsystem/src/main/res/font, and the license texts are in
-  core/designsystem/src/main/assets/licenses.
+  The fonts are in core/designsystem/src/commonMain/composeResources/font, and the license texts
+  are in core/designsystem/src/commonMain/composeResources/files/licenses.
 
 Libraries (linked, not modified)
 --------------------------------
@@ -95,6 +95,18 @@ BSD licenses
   - java-keyring (BSD-3-Clause), which reaches the OS keychain (Windows Credential Manager,
     macOS Keychain, Secret Service) that keeps the key behind the encrypted API keys.
   - jkeychain (pt.davidafsilva.apple, BSD-2-Clause), which java-keyring uses on macOS.
+
+GNU General Public License 2.0 or later, with the classpath (linking) exception
+  - JLaTeXMath (org.scilab.forge:jlatexmath 1.0.7), which draws the math on cards. Copyright
+    Calixte Denizet and the JLaTeXMath contributors. Its Greek and Cyrillic font packages are
+    included.
+
+GNU Lesser General Public License 2.1, https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+  (a GPL-3.0-or-later program may use LGPL-2.1 libraries: section 3 of the LGPL lets the
+  combination be distributed under the GPL)
+  - MP3SPI and VorbisSPI (JavaZoom), the javax.sound decoders for mp3 and ogg sounds, repackaged
+    with JLayer (JavaZoom), JOrbis (JCraft) and Tritonus-share (Florian Bomers and the Tritonus
+    project) as com.googlecode.soundlibs, https://github.com/pdudits/soundlibs.
 
 MIT License
   - secret-service (de.swiesend), which java-keyring uses for the Secret Service on Linux.

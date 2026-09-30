@@ -155,7 +155,7 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
   stores, reads and deletes a throwaway entry). Windows Credential Manager and the Linux Secret
   Service are not proved yet: the test skips itself where `works()` is false, so CI passes without
   a keychain. The key-file fallback is the safety net.
-- **Audio playback.** Only decoding was tested.
+- **Audio playback.** Only decoding is tested (D5).
 - ~~**Koin with navigation arguments** through `koinViewModel()`, and `workerOf`.~~ Closed in D2 on
   Android (see "Findings from D2"). On desktop, navigation arguments still need a check in D6.
 - ~~**`DatabaseSnapshot` on the driver API**, and restore-at-start.~~ Closed in D4 (see "Findings
@@ -267,6 +267,71 @@ and R8 release builds over a real collection on an API 35 emulator (see below).
 11. **Cross-device backups.** A backup made by the Android build and one made by the desktop build
     (`resources/backups`, from `SampleCollection`) have the same entries and restore on both
     targets.
+
+## Findings from D5
+
+`:core:designsystem` and `:core:ui` are KMP modules (Android and `desktop`), with their fonts, logo and
+strings in Compose resources. Checked with the Android exit check (`assembleDebug testDebugUnitTest
+testAndroidHostTest desktopTest lint`, the JVM module tests, `verifyRoborazziDebug`,
+`verifyRoborazziAndroidHostTest`, `verifyRoborazziDesktop`), `assembleRelease` (R8) with the 16 KB check,
+and a debug install on an API 35 emulator (home screen with all three fonts, strings, icons, logo).
+
+1. **Compose resources reach Android only with Android resources enabled.** Without
+   `androidResources { enable = true }` on the module's Android target the plugin packages no assets, and
+   every Robolectric test fails with "Missing resource … Android context is not initialized".
+   `mnemo.kmp.compose` turns it on. With it, the assets are under
+   `assets/composeResources/<package of Res>/…` in the AAR, so the Android *library* features and `:app`
+   (which do not apply the Compose plugin) get the fonts, strings and logo, in their Robolectric tests too.
+   Each module sets `compose.resources { packageOfResClass = … }` so the package is not derived from
+   the Gradle group.
+2. **Fonts load correctly on both platforms, and `JetBrainsMono` and friends are gone.** `Font(Res.font…)`
+   is composable, so the families are built in `MnemoTheme` (`rememberMnemoFonts`) and read through
+   `MnemoTheme.fonts` (`MnemoFonts`; `MnemoFonts.System` outside the theme). Variable-font weights were
+   passed through `FontVariation`. The Robolectric baselines came out identical apart from the logo (finding 3),
+   and the emulator showed the bundled fonts. Loading is asynchronous in principle, so a first frame
+   may use a fallback font for a moment; the screenshot tests never caught one, and a preload is not built. Skia draws the same fonts a
+   little heavier than Android's renderer; the desktop baselines are their own files.
+3. **The logo is the one visible Android change.** `mnemo_logo.xml` is now a Compose drawable, parsed by
+   Compose's vector reader instead of Android's: 3–4 antialiased pixels on the tile's edge differ.
+   Re-recorded, with no other change: `onboarding_light/dark` (`:app`), `settings_light`
+   (`:feature:settings`), and the component catalog (moved to `src/androidHostTest/screenshots`).
+4. **The KaTeX page read the fonts from Android `res/font`**, which no longer exists. `CardHtml.FONTS`
+   points at the same files as Compose text uses, in the assets (`/assets/composeResources/…/font`), and
+   the `/res/` path handler was dropped. Checked that the APK contains those paths; the WebView itself was
+   not driven on a device.
+5. **Strings.** `%s` became `%1$s` and `\'` became `'` (Compose resources are not aapt strings). Only
+   `:core:ui`'s 54 strings moved; each feature's strings move when the feature converts (D6), because a
+   module needs the Compose plugin to have `Res`. No feature reads `core.ui.R`, so nothing else changed.
+6. **Icons: no vendoring.** `org.jetbrains.compose.material:material-icons-extended` 1.7.3 works for all
+   80 icons on both targets, as D0 found.
+7. **`@Preview` from `androidx.compose.ui.tooling.preview` compiles in `commonMain`**
+   (`cmp-ui-tooling-preview`); no source changes.
+8. **Math on the desktop is laid out by `MarkdownText`, not a separate engine.** `MathPainter` turns TeX
+   into a bitmap; inline formulas become inline-text placeholders aligned to the baseline (the
+   picture hangs below the placeholder by its depth), display formulas get their own centered, scrollable
+   line, and a formula the painter cannot draw (null) shows its source in code style. Clozes,
+   links and sounds work around formulas because the Markdown pipeline is the same. JLaTeXMath 1.0.7
+   throws on `\cancel`, `\htmlClass`, `\color{c}{x}` (rewritten to `\textcolor{c}{x}`) and
+   unknown commands; it tolerates an unclosed brace (`\frac{1` draws). The formulas' cache holds 128 pictures.
+   Fractions in running text use TeX's text style, so they are small, as KaTeX's are.
+9. **Audio.** `javax.sound` with mp3spi and vorbisspi decodes wav, mp3 and ogg through content sniffing
+   (media files have no extension). aac in an m4a container has no decoder and is reported
+   (`DesktopCardAudio.AudioProblem.UnsupportedFormat`) instead of playing; the shell shows the message
+   in D6. A machine with no output line reports `NoOutput`. Only decoding is tested (there is no sound
+   card in CI); playback was not heard. ffmpeg's experimental Vorbis encoder makes streams that JOrbis
+   decodes to zero bytes when they are short or 22 kHz: the test sound is one second of 44.1 kHz stereo.
+10. **Licenses.** soundlibs' parent POM declares LGPL 2.1 for mp3spi, vorbisspi, JLayer, JOrbis and
+    Tritonus-share; the LGPL lets a GPL program distribute the combination (section 3). Listed in `NOTICE`.
+    They are Gradle dependencies, so the desktop AboutLibraries list (D6) picks them up.
+11. **Desktop screenshots.** `recordRoborazziDesktop` / `verifyRoborazziDesktop` work with
+    `runDesktopComposeUiTest(width, height)` and `onRoot().captureRoboImage(path)` (from
+    `io.github.takahirom.roborazzi`; the Android one is `com.github.takahirom.roborazzi`). Baselines are
+    recorded on macOS arm64. Plain `desktopTest` does not compare, so CI on other systems is not affected;
+    the `screenshots` CI job (non-blocking) now runs the desktop and Android host verifications too.
+    The card screenshots include the speaker emoji, whose glyph depends on the OS.
+12. **File dialogs** are AWT `FileDialog` (native on macOS and Windows, GTK on Linux) on the IO dispatcher;
+    a folder uses the same dialog with `apple.awt.fileDialogForDirectories` on macOS and Swing's
+    `JFileChooser` elsewhere. Only the extension mapping is tested: the dialogs need a person.
 
 ## Alternatives
 

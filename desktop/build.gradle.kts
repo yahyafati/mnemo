@@ -4,7 +4,8 @@ plugins {
 
 // The desktop launcher (docs/desktop/ROADMAP.md, ADR 0010). It starts the data layer (D4): the
 // collection's directory and its single-instance lock, a staged restore, and the Koin graph. The
-// window still shows the sample cards of D1 until the shared UI arrives (D5–D6).
+// window shows sample cards with the shared theme and card rendering (D5) until the app shell
+// arrives (D6).
 compose.desktop {
     application {
         mainClass = "com.yahyafati.mnemo.desktop.MainKt"
@@ -14,9 +15,11 @@ compose.desktop {
 dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
+    implementation(projects.core.designsystem)
     implementation(projects.core.domain)
     implementation(projects.core.model)
     implementation(projects.core.scheduler)
+    implementation(projects.core.ui)
     implementation(libs.koin.core)
 
     implementation(libs.cmp.runtime)

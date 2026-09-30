@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import java.awt.GraphicsEnvironment
 import java.time.Instant
 import javax.swing.JOptionPane
@@ -23,9 +24,9 @@ fun main() {
         Window(
             onCloseRequest = ::exitApplication,
             title = "Mnemo",
-            state = rememberWindowState(size = DpSize(760.dp, 520.dp)),
+            state = rememberWindowState(size = DpSize(820.dp, 760.dp)),
         ) {
-            SampleCardScreen(cards)
+            SampleCardScreen(cards, mediaDirectory = session.koin.get<AppDirectories>().media)
         }
     }
     session.close()

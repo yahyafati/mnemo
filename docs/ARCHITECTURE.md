@@ -78,15 +78,15 @@ From D4 on, `:core:domain`, `:core:data`, `:core:database`, `:core:datastore`, `
 | Module | Type | Responsibility |
 |---|---|---|
 | `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Koin start-up (`di/AppModules.kt`), WorkManager setup |
-| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); the window still shows the sample cards until the shared UI arrives (D5–D6) |
+| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); the window shows sample cards with the shared theme and card rendering (D5) until the app shell arrives (D6) |
 | `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
 | `:feature:create` | Android lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
 | `:feature:browse` | Android lib | Card browser: search, filter, bulk edit/suspend/move |
 | `:feature:analytics` | Android lib | KPIs, forgetting curve, heatmap, forecast, leeches |
 | `:feature:settings` | Android lib | AI providers, scheduling options, study audio, reminders, appearance, backup/import/export, about and privacy policy |
-| `:core:designsystem` | Android lib | `MnemoTheme`, color/type/shape/spacing tokens, fonts, generic components (buttons, chips, stat tile, rating bar) |
-| `:core:ui` | Android lib | Shared composables that know the domain models: `DeckCard`, `CardFace` renderer (Markdown/LaTeX/cloze), charts |
+| `:core:designsystem` | KMP lib | `MnemoTheme`, color/type/shape/spacing tokens, fonts, generic components (buttons, chips, stat tile, rating bar) |
+| `:core:ui` | KMP lib | Shared composables that know the domain models: `DeckCard`, `CardFace` renderer (Markdown/LaTeX/cloze), charts |
 | `:core:domain` | KMP lib | Use cases. No Android APIs |
 | `:core:data` | KMP lib | Repository interfaces and implementations, the transfer jobs. `androidMain`: WorkManager workers and notifications, `AndroidAppDirectories`, `AndroidDocumentAccess`. `desktopMain`: `DesktopAppDirectories`, `DesktopDocumentAccess`, the coroutine job queue, `SingleInstanceLock` |
 | `:core:database` | KMP lib | Room database, entities, DAOs, migrations (on Room's driver API, so one code base migrates both targets), schema JSON. Android builds it on the framework SQLite driver, the desktop on the bundled one |
@@ -262,19 +262,20 @@ mnemo/
 │   │   ├── GetRetentionOverviewUseCase.kt               # Decks: retained, mastered, retention health
 │   │   └── FindDuplicateNotesUseCase.kt                 # Co-Author duplicates, on device
 │   │
-│   ├── designsystem/src/main/
-│   │   ├── res/font/                                    # Newsreader, Hanken Grotesk, JetBrains Mono
-│   │   └── kotlin/com/yahyafati/mnemo/core/designsystem/
+│   ├── designsystem/src/
+│   │   ├── commonMain/composeResources/                 # font/ (Newsreader, Hanken Grotesk, JetBrains Mono), drawable/mnemo_logo.xml, files/licenses
+│   │   ├── androidMain/ desktopMain/                    # dynamic color, PlatformCapabilities for each platform
+│   │   └── commonMain/kotlin/com/yahyafati/mnemo/core/designsystem/
 │   │       ├── theme/ Theme.kt Color.kt Type.kt Shape.kt Spacing.kt
 │   │       ├── icon/MnemoIcons.kt                       # Material Symbols mapping
 │   │       └── component/ MnemoButton.kt MnemoChip.kt StatTile.kt
 │   │                      RatingBar.kt ProgressHeader.kt StreakBadge.kt
 │   │                      MnemoTopBar.kt MnemoNavigationBar.kt MnemoNavigationRail.kt EmptyState.kt
 │   │
-│   ├── ui/src/main/kotlin/com/yahyafati/mnemo/core/ui/
+│   ├── ui/src/commonMain/kotlin/com/yahyafati/mnemo/core/ui/  # strings in commonMain/composeResources/values
 │   │   ├── navigation/Routes.kt                         # @Serializable route types used across features
-│   │   ├── card/ CardFace.kt CardInteractions.kt MarkdownText.kt MathText.kt
-│   │   │         audio/CardAudio.kt                     # MediaPlayer + TextToSpeech fallback
+│   │   ├── card/ CardFace.kt CardInteractions.kt MarkdownText.kt MathText.kt MathPainter.kt
+│   │   │         audio/CardAudio.kt                     # the interface; MediaPlayer + TextToSpeech in androidMain, javax.sound in desktopMain
 │   │   ├── adaptive/WindowLayout.kt                     # material3-adaptive: wide, short, tabletop
 │   │   ├── deck/DeckCard.kt
 │   │   └── chart/ ForgettingCurveChart.kt ReviewHeatmap.kt ForecastBars.kt StackedBar.kt
@@ -352,16 +353,16 @@ The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code wi
 | PDF text | `PdfTextExtractor` (`:core:ingest`) | `PdfBoxAndroidTextExtractor` | `PdfBoxTextExtractor` (Apache PDFBox 3) |
 | Dictation | `SpeechTranscriber` (`:core:ingest`), with `isAvailable()` | `AndroidSpeechTranscriber` | `NoSpeechTranscriber` (not available) |
 | What the platform offers | `PlatformCapabilities` + `LocalPlatformCapabilities` (`:core:designsystem`): dynamic color, reminders, widget, dictation, text-to-speech, run-time permissions | `androidPlatformCapabilities()` | most are off |
-| File dialogs | `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver`, `rememberFolderPicker` (`:core:ui/files`) | Storage Access Framework contracts | AWT file dialog (D5) |
-| Run-time permissions | `rememberPermissionRequest(AppPermission)` (`:core:ui/permission`) | `ActivityResultContracts.RequestPermission` | always granted |
+| File dialogs | `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver`, `rememberFolderPicker` (`:core:ui/files`) | Storage Access Framework contracts | AWT `FileDialog` (Swing `JFileChooser` for a folder off macOS) |
+| Run-time permissions | `rememberPermissionRequest(AppPermission)` (`:core:ui/permission`) | `ActivityResultContracts.RequestPermission` | always granted (`runtimePermissions` is off) |
 | API key encryption | `SecretCipher` (`:core:security`) | `KeystoreSecretCipher` (AES-GCM, key in the Keystore) | `DesktopSecretCipher`: AES-GCM, key in the OS keychain, or in `secrets.key` (owner-only) if there is none |
 | Room's database | `MnemoDatabase` (`:core:database`) | `MnemoDatabase.build(context)` on `AndroidSQLiteDriver` | `MnemoDatabase.build(file)` on `BundledSQLiteDriver` |
 | Restarting for a restore | `DataTransferRepository.restartToRestore()` | `restartAndroidApp` | `AppRestarter` (`ProcessAppRestarter`); the new process waits for the lock |
-| Math on cards | `MathRenderer` + `LocalMathRenderer` (`:core:ui/card/web`); `MathText` calls it | `KatexMathRenderer` (KaTeX in a WebView) | JLaTeXMath (D5); raw TeX is the fallback |
-| Card images | `MediaImageLoader` + `LocalMediaImageLoader` (`:core:ui/card`) | `AndroidMediaImageLoader` (`BitmapFactory`, LRU cache) | Skia (D5) |
-| Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | javax.sound (D5) |
+| Math on cards | `MathRenderer` + `LocalMathRenderer` (`:core:ui/card/web`); `MathText` calls it | `KatexMathRenderer` (KaTeX in a WebView) | `JLaTeXMathRenderer`: `MarkdownText` lays out the text and `JLaTeXMathPainter` draws each formula to a bitmap; TeX it cannot parse shows as source |
+| Card images | `MediaImageLoader` + `LocalMediaImageLoader` (`:core:ui/card`) | `AndroidMediaImageLoader` (`BitmapFactory`, LRU cache) | `DesktopMediaImageLoader` (Skia, LRU cache, 2048 px cap) |
+| Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | `DesktopCardAudio` (`javax.sound`, mp3spi, vorbisspi; no text-to-speech) |
 
-Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The app shell (`MainActivity`) provides the Android values; unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
+Shared UI reads what it needs from these instead of the operating system: `LocalPlatformCapabilities` for "does this platform have reminders?", `LocalAppVersion` for the version name, `LocalUriHandler` for opening links, `rememberIs24HourFormat()` for the clock format. The app shell provides the platform's values (`MainActivity` on Android; `ProvideDesktopPlatform` in `:core:ui/desktopMain` on the desktop: capabilities, window layout, image loader, math renderer, audio); unprovided (previews, tests) the capabilities are all on and the renderers and loaders do nothing or fall back (raw TeX, alt text).
 
 ## 5. Key flows
 

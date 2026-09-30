@@ -401,28 +401,45 @@ the widget and a reminder (the same checks as D2, now over the driver API).
 
 **Goal:** Mnemo's look, text and card rendering on desktop, with Android's screenshots unchanged.
 
-- [ ] `:core:designsystem` to Compose Multiplatform. The fonts (Newsreader, Hanken Grotesk,
-      JetBrains Mono) move to `composeResources/font`. `Font(Res.font…)` is composable, so the
-      typography is built inside `MnemoTheme`. Dynamic color stays Android-only.
-- [ ] `MnemoIcons`: use the JetBrains material-icons artifact 1.7.3. All 80 icons compile against
-      it on both targets (D0), so nothing is vendored. `MnemoIcons` is already the only entry
-      point.
-- [ ] Strings: the 705 strings move to each module's `composeResources/values/strings.xml`
-      (plurals and format arguments included), and `stringResource(R.string.x)` becomes
-      `stringResource(Res.string.x)`. Android `R.string` stays only where Android reads text
-      outside Compose (notifications, widget, reminder, app name).
-- [ ] `:core:ui`: routes and navigation on the multiplatform navigation-compose;
-      `LocalWindowLayout` from multiplatform material3-adaptive; `AiSetupPrompt`,
-      `AiDisclosureDialog`, `ReportAiButton` and `PermissionRationaleDialog` in shared code.
-- [ ] Card rendering on desktop: the Markdown renderer is already Compose and shared; images
-      decode through Skia with an LRU cache; math through the D0 renderer, with raw TeX as the
-      fallback; audio through the D0 player. TTS buttons are hidden (capability flag).
-- [ ] Screenshots: the Android Roborazzi baselines stay unchanged, or change only with an
-      explained diff. Add a desktop baseline of the component catalog (Roborazzi's desktop
-      support) and of a card with math, an image and audio.
+- [x] `:core:designsystem` to Compose Multiplatform (`mnemo.kmp.library` + `mnemo.kmp.compose`). The
+      fonts (Newsreader, Hanken Grotesk, JetBrains Mono) and their license texts are in
+      `composeResources`. `Font(Res.font…)` is composable, so the families are built inside
+      `MnemoTheme` and read through `MnemoTheme.fonts` (the public `JetBrainsMono` … vals are gone).
+      Dynamic color stays Android-only (`expect platformDynamicColorScheme`); the desktop has
+      `desktopPlatformCapabilities()` (everything off).
+- [x] `MnemoIcons`: the JetBrains material-icons artifact 1.7.3, nothing vendored.
+- [~] Strings: `:core:ui`'s 54 strings are in `composeResources/values/strings.xml`, with
+      `stringResource(Res.string.x)`. **The features' strings (the rest of the 705) move with their
+      module in D6**, because a module needs the Compose plugin, hence to be KMP, to have `Res`. Android
+      `R.string` stays where Android reads text outside Compose.
+- [x] `:core:ui`: KMP module. Routes were plain `@Serializable` types and the adaptive layout uses
+      multiplatform `material3-adaptive`, so they moved as they were; the picker, permission and clock-format
+      functions became `expect`/`actual` (`FilePickers`, `rememberPermissionRequest`,
+      `rememberIs24HourFormat`); `AiSetupPrompt`, `AiDisclosureDialog`, `ReportAiButton` and
+      `PermissionRationaleDialog` are in `commonMain`. The navigation host itself is D6 (nothing in
+      `:core:ui` uses `navigation-compose`).
+- [x] Card rendering on desktop: images through Skia with an LRU cache
+      (`DesktopMediaImageLoader`); math through JLaTeXMath (`JLaTeXMathPainter`), laid out by
+      `MarkdownText` (inline in the line, display on its own), raw TeX as the fallback; sound through
+      `javax.sound` (`DesktopCardAudio`: wav, mp3, ogg; other formats are reported, not played). TTS is
+      hidden by the capability flag. `ProvideDesktopPlatform` wires them up for the window and the tests.
+- [x] Desktop file dialogs (AWT `FileDialog`, Swing folder chooser off macOS), `rememberIs24HourFormat`
+      from the locale, permissions always granted.
+- [x] Screenshots: the Android baselines are unchanged except the logo's antialiased edge (3 baselines
+      re-recorded, see ADR 0010 "Findings from D5"); the catalog baseline moved to
+      `src/androidHostTest/screenshots`. New desktop baselines: the component catalog (light, dark) in
+      `:core:designsystem` and cards with math, an image and a sound link, in `:core:ui`
+      (`src/desktopTest/screenshots`).
+- [x] `:desktop` shows the sample cards with `MnemoTheme` and `CardFace` (a math card included).
+- [ ] Not done, left for D6/D7: the desktop message when a sound has an unsupported format
+      (`DesktopCardAudio` reports it through a callback), a check of the KaTeX WebView on a device, the
+      desktop baselines on Windows/Linux (recorded on macOS arm64 only), hearing the audio.
 
 **Exit:** the component catalog and sample cards render on desktop; `verifyRoborazziDebug` passes
-on Android.
+on Android. Met on macOS arm64: `assembleDebug testDebugUnitTest testAndroidHostTest desktopTest lint`,
+the JVM module tests, `:desktop:test`, `verifyRoborazziDebug`, `verifyRoborazziAndroidHostTest` and
+`verifyRoborazziDesktop`; `assembleRelease` with the 16 KB check; a debug install on an emulator.
+**Findings:** see ADR 0010, "Findings from D5".
 
 ## D6 — Features and app shell
 

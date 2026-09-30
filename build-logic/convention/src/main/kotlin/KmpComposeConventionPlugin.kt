@@ -1,8 +1,10 @@
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import com.yahyafati.mnemo.buildlogic.libs
 import com.yahyafati.mnemo.buildlogic.library
 import com.yahyafati.mnemo.buildlogic.pluginId
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
@@ -31,6 +33,13 @@ class KmpComposeConventionPlugin : Plugin<Project> {
             extensions.configure<ComposeCompilerGradlePluginExtension> {
                 stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose_stability.conf"))
             }
+
+            // Compose resources (fonts, strings, drawables) ship to Android as assets, which the
+            // Android target only packages with Android resources enabled.
+            (extensions.getByType<KotlinMultiplatformExtension>() as ExtensionAware).extensions
+                .configure<KotlinMultiplatformAndroidLibraryTarget> {
+                    androidResources { enable = true }
+                }
 
             val composeDependencies = extensions.getByType<ComposeExtension>().dependencies
 

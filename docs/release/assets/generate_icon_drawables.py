@@ -135,6 +135,6 @@ write("app/src/main/res/drawable/ic_splash.xml",
 # The full logo tile (Settings > About, onboarding), exactly the SVG on a 100 x 100 viewport.
 tile = (f'    <path\n        android:fillColor="{DARK}"\n        android:pathData="M24,0L76,0A24,24 0,0 1,100,24L100,76A24,24 0,0 1,76,100L24,100A24,24 0,0 1,0,76L0,24A24,24 0,0 1,24,0Z" />\n'
         + color_layers(1.0, 0, 0))
-write("core/designsystem/src/main/res/drawable/mnemo_logo.xml",
+write("core/designsystem/src/commonMain/composeResources/drawable/mnemo_logo.xml",
       vector("logo", 100, 100, tile, "The Mnemo logo tile, from the logo SVG."))
 print("scale", s, tx, ty, "bounds", bounds())

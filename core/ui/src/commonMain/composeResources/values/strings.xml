@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_ui_card_prompt">Prompt</string>
+    <string name="core_ui_card_answer">Answer</string>
+    <string name="core_ui_image_unavailable">Image unavailable</string>
+    <string name="core_ui_play_sound">Play</string>
+    <string name="core_ui_card_hint">Hint</string>
+    <string name="core_ui_card_show_hint">Show hint</string>
+    <string name="core_ui_card_type_answer">Type your answer</string>
+    <string name="core_ui_card_check">Check</string>
+    <string name="core_ui_card_you_typed">You typed</string>
+    <string name="core_ui_card_typed_correct">Correct</string>
+    <string name="core_ui_card_typed_wrong">Not quite</string>
+    <string name="core_ui_card_typed_nothing">(nothing typed)</string>
+    <string name="core_ui_card_choice_correct">%1$s, correct answer</string>
+    <string name="core_ui_card_choice_wrong">%1$s, your answer, wrong</string>
+    <string name="core_ui_card_choices">Options</string>
+
+    <string name="core_ui_deck_new_title">New deck</string>
+    <string name="core_ui_deck_edit_title">Edit deck</string>
+    <string name="core_ui_deck_name">Name</string>
+    <string name="core_ui_deck_name_hint">Use Parent::Child to nest decks</string>
+    <string name="core_ui_deck_category">Category (optional)</string>
+    <string name="core_ui_deck_category_hint">e.g. Language, Exam Prep</string>
+    <string name="core_ui_deck_description">Description (optional)</string>
+    <string name="core_ui_deck_create">Create</string>
+    <string name="core_ui_deck_save">Save</string>
+    <string name="core_ui_cancel">Cancel</string>
+    <string name="core_ui_ok">OK</string>
+    <string name="core_ui_deck_exam_add">Add exam date (optional)</string>
+    <string name="core_ui_deck_exam_on">Exam on %1$s</string>
+    <string name="core_ui_deck_exam_clear">Remove exam date</string>
+
+    <string name="core_ui_ai_setup_title">Connect an AI provider</string>
+    <string name="core_ui_ai_setup_message">AI features use a provider you choose: OpenAI, OpenRouter, Groq, or a model on your own computer with Ollama or LM Studio. Everything else in Mnemo works without one.</string>
+    <string name="core_ui_ai_setup_action">Set up a provider</string>
+    <string name="core_ui_ai_disclosure_title">Send to %1$s?</string>
+    <string name="core_ui_ai_disclosure_sent">Mnemo will send %1$s directly to:</string>
+    <string name="core_ui_ai_disclosure_policy">Nothing goes through Mnemo's servers (there are none). The provider's own privacy policy applies to what it receives. You'll only see this once per provider.</string>
+    <string name="core_ui_ai_disclosure_accept">Continue</string>
+    <string name="core_ui_ai_disclosure_cancel">Cancel</string>
+    <string name="core_ui_permission_continue">Continue</string>
+    <string name="core_ui_permission_not_now">Not now</string>
+    <string name="core_ui_ai_report">Report</string>
+    <string name="core_ui_ai_report_title">Report this AI output?</string>
+    <string name="core_ui_ai_report_explain">If this answer is wrong, offensive or unsafe, you can tell us. This opens a draft issue on GitHub in your browser, with the text below and the name of the AI model. Nothing is sent until you submit the draft there.</string>
+    <string name="core_ui_ai_report_public">GitHub issues are public. You can edit or delete anything in the draft before you submit it. Your source text and the rest of your deck are not included.</string>
+    <string name="core_ui_ai_report_open">Open draft</string>
+
+    <string name="core_ui_ai_problem_unauthorized">the key was rejected</string>
+    <string name="core_ui_ai_problem_not_found">not found. Check the base URL and model</string>
+    <string name="core_ui_ai_problem_rate_limited">rate limit or quota reached</string>
+    <string name="core_ui_ai_problem_bad_request">the server rejected the request</string>
+    <string name="core_ui_ai_problem_server">the server had an error</string>
+    <string name="core_ui_ai_problem_unreachable">can't reach the server</string>
+    <string name="core_ui_ai_problem_insecure">plain HTTP isn't allowed for this address</string>
+    <string name="core_ui_ai_problem_key_unavailable">the saved key can't be read on this device (e.g. after restoring a backup). Enter it again</string>
+    <string name="core_ui_ai_problem_invalid">the answer isn't OpenAI-compatible</string>
+    <string name="core_ui_ai_problem_unknown">something went wrong</string>
+</resources>

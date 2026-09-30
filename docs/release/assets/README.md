@@ -26,7 +26,7 @@ check). Palette: tile `#1C1A17`, cream card `#F4F1EA`, indigo card `#4F46E5`.
 - `app/src/main/res/drawable/ic_splash.xml`: the logo on a dark disc. The Android 12 splash mask
   shows a 192 dp circle of a 288 dp icon, so the disc fills it exactly. `Theme.Mnemo.Starting`
   puts it on the window background (light and dark).
-- `core/designsystem/src/main/res/drawable/mnemo_logo.xml`: the whole tile, for `MnemoLogo`
+- `core/designsystem/src/commonMain/composeResources/drawable/mnemo_logo.xml`: the whole tile, for `MnemoLogo`
   (onboarding, Settings › About).
 
 minSdk is 29, so adaptive icons cover every launcher and there are no `mipmap-*dpi` fallbacks.
@@ -40,7 +40,7 @@ The SVG text uses the bundled fonts. Point fontconfig at them (`/tmp/fonts.conf`
 
 ```xml
 <?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig><dir>/path/to/mnemo/core/designsystem/src/main/res/font</dir><cachedir>/tmp/fontcache</cachedir></fontconfig>
+<fontconfig><dir>/path/to/mnemo/core/designsystem/src/commonMain/composeResources/font</dir><cachedir>/tmp/fontcache</cachedir></fontconfig>
 ```
 
 Then, from `docs/release/assets`:

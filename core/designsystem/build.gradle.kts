@@ -1,24 +1,35 @@
 plugins {
-    alias(libs.plugins.mnemo.android.library)
-    alias(libs.plugins.mnemo.android.compose)
+    alias(libs.plugins.mnemo.kmp.library)
+    alias(libs.plugins.mnemo.kmp.compose)
     alias(libs.plugins.roborazzi)
 }
 
 roborazzi {
-    // Committed baseline: record with `recordRoborazziDebug`, check with `verifyRoborazziDebug`.
-    outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
+    // Committed baselines: record with `recordRoborazziAndroidHostTest` / `recordRoborazziDesktop`,
+    // check with `verifyRoborazziAndroidHostTest` / `verifyRoborazziDesktop`. The tests name their
+    // own files (`src/androidHostTest/screenshots`, `src/desktopTest/screenshots`).
+    outputDir.set(layout.projectDirectory.dir("src/androidHostTest/screenshots"))
 }
 
-dependencies {
-    api(libs.androidx.compose.foundation)
-    api(libs.androidx.compose.material3)
-    api(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material.icons.extended)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.cmp.foundation)
+            api(libs.cmp.material3)
+            api(libs.cmp.ui)
+            implementation(libs.cmp.material.icons.extended)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.roborazzi)
+            implementation(libs.roborazzi.compose)
+            implementation(libs.roborazzi.junit.rule)
+        }
+        getByName("desktopTest").dependencies {
+            implementation(libs.roborazzi.compose.desktop)
+        }
+    }
+}
 
-    testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
-    testImplementation(libs.roborazzi.junit.rule)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+compose.resources {
+    packageOfResClass = "com.yahyafati.mnemo.core.designsystem.resources"
 }
