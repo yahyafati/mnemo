@@ -76,6 +76,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | Module | Type | Responsibility |
 |---|---|---|
 | `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Hilt entry point, WorkManager setup |
+| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). Opens a window on the shared JVM modules; the other modules join it as they become KMP modules (desktop ROADMAP D2–D6) |
 | `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
 | `:feature:create` | Android lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
@@ -130,6 +131,10 @@ mnemo/
 │           ├── AndroidRoomConventionPlugin.kt          # mnemo.android.room (KSP + schema dir)
 │           ├── HiltConventionPlugin.kt                 # mnemo.hilt
 │           ├── JvmLibraryConventionPlugin.kt           # mnemo.jvm.library
+│           ├── KmpLibraryConventionPlugin.kt           # mnemo.kmp.library (Android + desktop targets)
+│           ├── KmpComposeConventionPlugin.kt           # mnemo.kmp.compose (Compose Multiplatform)
+│           ├── KmpFeatureConventionPlugin.kt           # mnemo.kmp.feature (KMP twin of mnemo.android.feature)
+│           ├── DesktopApplicationConventionPlugin.kt   # mnemo.desktop.application (:desktop)
 │           └── com/yahyafati/mnemo/buildlogic/
 │               ├── KotlinAndroid.kt                    # compileSdk 37, minSdk 29, Java 11
 │               └── ProjectExtensions.kt                # `libs` accessor

@@ -40,6 +40,14 @@ pdfboxAndroid = "2.0.27.0"
 composeAdaptive = "1.3.0"
 # Release engineering (R2): open-source licenses screen, generated at build time
 aboutLibraries = "15.2.0"
+# Desktop (ADR 0010). Material3 stays on 1.9.0: every newer Compose Multiplatform Material3 is an
+# alpha, and on Android it would resolve to an alpha androidx artifact.
+composeMultiplatform = "1.12.1"
+composeMultiplatformMaterial3 = "1.9.0"
+composeMultiplatformAdaptive = "1.3.0-rc01"
+composeMultiplatformIcons = "1.7.3"
+composeMultiplatformNavigation = "2.10.0-beta01"
+koin = "4.2.2"
 
 [libraries]
 # AndroidX
@@ -95,6 +103,30 @@ androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref 
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidxHilt" }
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }
 
+# Compose Multiplatform (desktop, and the shared modules once they move; ADR 0010). Use these
+# coordinates, not the deprecated `compose.runtime` accessors of the Gradle plugin.
+cmp-runtime = { group = "org.jetbrains.compose.runtime", name = "runtime", version.ref = "composeMultiplatform" }
+cmp-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "composeMultiplatform" }
+cmp-ui = { group = "org.jetbrains.compose.ui", name = "ui", version.ref = "composeMultiplatform" }
+cmp-ui-tooling-preview = { group = "org.jetbrains.compose.ui", name = "ui-tooling-preview", version.ref = "composeMultiplatform" }
+cmp-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "composeMultiplatform" }
+cmp-resources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "composeMultiplatform" }
+cmp-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMultiplatformMaterial3" }
+cmp-material3-adaptive = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive", version.ref = "composeMultiplatformAdaptive" }
+cmp-material-icons-extended = { group = "org.jetbrains.compose.material", name = "material-icons-extended", version.ref = "composeMultiplatformIcons" }
+jetbrains-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+jetbrains-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref = "composeMultiplatformNavigation" }
+# Desktop's coroutine dispatcher (Dispatchers.Main on the AWT event thread).
+kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
+
+# Dependency injection for the shared code (D2 replaces Hilt with it)
+koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
+koin-compose = { group = "io.insert-koin", name = "koin-compose", version.ref = "koin" }
+koin-compose-viewmodel = { group = "io.insert-koin", name = "koin-compose-viewmodel", version.ref = "koin" }
+koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-androidx-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager", version.ref = "koin" }
+koin-test = { group = "io.insert-koin", name = "koin-test", version.ref = "koin" }
+
 # Kotlin
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
@@ -130,6 +162,7 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+roborazzi-compose-desktop = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose-desktop", version.ref = "roborazzi" }
 roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 
 # Plugin artifacts used by build-logic
@@ -138,11 +171,15 @@ kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-pl
 compose-gradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", version.ref = "room" }
+compose-multiplatform-gradlePlugin = { group = "org.jetbrains.compose", name = "compose-gradle-plugin", version.ref = "composeMultiplatform" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
@@ -159,3 +196,7 @@ mnemo-android-feature = { id = "mnemo.android.feature" }
 mnemo-android-room = { id = "mnemo.android.room" }
 mnemo-hilt = { id = "mnemo.hilt" }
 mnemo-jvm-library = { id = "mnemo.jvm.library" }
+mnemo-kmp-library = { id = "mnemo.kmp.library" }
+mnemo-kmp-compose = { id = "mnemo.kmp.compose" }
+mnemo-kmp-feature = { id = "mnemo.kmp.feature" }
+mnemo-desktop-application = { id = "mnemo.desktop.application" }

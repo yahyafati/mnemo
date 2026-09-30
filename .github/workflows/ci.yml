@@ -36,6 +36,47 @@ jobs:
             **/build/reports/tests/
             **/build/reports/lint-results-*.html
 
+  # Desktop (docs/desktop/ROADMAP.md, ADR 0010). The tests load the native libraries the desktop
+  # app depends on (bundled SQLite, zstd, Skia), so this job runs on all three OSes; `:core:anki`
+  # reads real Anki packages through zstd and SQLite too. The installers are built per OS in D8;
+  # for now Linux builds the app image and checks the desktop classpath for proprietary SDKs.
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skia's system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libxrender1 libxtst6 libxi6 libfontconfig1 libfreetype6
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21 # runs Gradle and jlink/jpackage (needs jmods); tests use the JDK 25 toolchain
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Desktop tests and native libraries
+        run: ./gradlew :desktop:test :core:anki:test
+      - name: App image (Linux)
+        if: runner.os == 'Linux'
+        run: ./gradlew :desktop:createDistributable
+      - name: FOSS-only dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: ./gradlew -q :desktop:dependencies --configuration runtimeClasspath | python3 scripts/fdroid/check-foss-deps.py
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-reports-${{ runner.os }}
+          path: |
+            **/build/reports/tests/
+            **/build/compose/logs/
+
   # Unsigned: the upload key never leaves the owner's machine (docs/release/signing.md). This is
   # the same build F-Droid makes, and the 16 KB page-size check runs on its output.
   release-bundle:

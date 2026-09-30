@@ -23,6 +23,7 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
+    compileOnly(libs.compose.multiplatform.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
     compileOnly(libs.room.gradlePlugin)
 }
@@ -55,6 +56,22 @@ gradlePlugin {
         register("androidRoom") {
             id = libs.plugins.mnemo.android.room.get().pluginId
             implementationClass = "AndroidRoomConventionPlugin"
+        }
+        register("kmpLibrary") {
+            id = libs.plugins.mnemo.kmp.library.get().pluginId
+            implementationClass = "KmpLibraryConventionPlugin"
+        }
+        register("kmpCompose") {
+            id = libs.plugins.mnemo.kmp.compose.get().pluginId
+            implementationClass = "KmpComposeConventionPlugin"
+        }
+        register("kmpFeature") {
+            id = libs.plugins.mnemo.kmp.feature.get().pluginId
+            implementationClass = "KmpFeatureConventionPlugin"
+        }
+        register("desktopApplication") {
+            id = libs.plugins.mnemo.desktop.application.get().pluginId
+            implementationClass = "DesktopApplicationConventionPlugin"
         }
         register("hilt") {
             id = libs.plugins.mnemo.hilt.get().pluginId

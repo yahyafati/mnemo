@@ -57,6 +57,10 @@ Every pull request must pass CI:
 ./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
 ```
 
+Desktop changes (`desktop/`) are checked with `./gradlew :desktop:test`; CI runs it on Linux, Windows
+and macOS. `./gradlew :desktop:run` opens the window (see
+[docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md)).
+
 Run a single test with, for example,
 `./gradlew :app:testDebugUnitTest --tests "com.yahyafati.mnemo.ui.MnemoAppNavigationTest"`.
 

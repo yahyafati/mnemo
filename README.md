@@ -62,6 +62,9 @@ The JDK 25 toolchain that the unit tests use is downloaded by Gradle on first bu
 ./gradlew assembleRelease                        # R8-minified; unsigned without a keystore
 ```
 
+The desktop app (in progress, see [docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md)) runs with
+`./gradlew :desktop:run`.
+
 The JVM-only modules use `test` instead of `testDebugUnitTest`:
 
 ```bash
@@ -79,6 +82,7 @@ official Android UI → Domain → Data layering.
 | Path | What it holds |
 |---|---|
 | `app/` | The application shell, navigation, widget and onboarding |
+| `desktop/` | The desktop launcher (Windows, macOS, Linux), in progress |
 | `feature/` | One module per feature: `analytics`, `browse`, `create`, `decks`, `settings`, `study` |
 | `core/` | Shared modules: `ai`, `anki`, `common`, `data`, `database`, `datastore`, `designsystem`, `domain`, `ingest`, `model`, `scheduler`, `security`, `testing`, `ui` |
 | `build-logic/` | Convention plugins that hold all shared Gradle configuration |

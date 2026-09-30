@@ -163,30 +163,51 @@ production code moves.
 **Goal:** a desktop window that builds in CI, using real Mnemo code, without touching Android
 behavior.
 
-- [ ] Cut `release/1.0` from `main` (working rule 2). **(owner: confirm.)**
-- [ ] Convention plugins in `build-logic`: `mnemo.kmp.library` (Android KMP library + `desktop`
+- [~] Cut `release/1.0` from `main` (working rule 2). The branch exists locally at `ac09b4d`, the
+      last commit before any D1 change; it is not pushed. **(owner: confirm, push it, and point the
+      F-Droid recipe's tags at it.)**
+- [x] Convention plugins in `build-logic`: `mnemo.kmp.library` (Android KMP library + `desktop`
       JVM target, toolchains, the Robolectric flags from the Android convention),
       `mnemo.kmp.compose` (Compose Multiplatform plugin, compiler, `compose_stability.conf`,
       resources), `mnemo.kmp.feature` (the KMP twin of `mnemo.android.feature`) and
       `mnemo.desktop.application`. The Android plugins stay until the last module has moved (D6).
-- [ ] Versions from ADR 0010 in `gradle/libs.versions.toml` (use the catalog coordinates, not the
+      No production module applies the `kmp` plugins yet, so they were proved on a throwaway
+      module (deleted): commonMain Compose code, a Robolectric Compose test on the Android target,
+      a `runComposeUiTest` test on desktop, and the Roborazzi and lint tasks exist.
+      `mnemo.kmp.feature` was only checked to configure, because its `:core:*` dependencies have no
+      desktop variant until D4/D5. `mnemo.desktop.application` runs `jlink`/`jpackage` on a JDK 21
+      toolchain (the daemon's JDK 25 has no `jmods`).
+- [x] Versions from ADR 0010 in `gradle/libs.versions.toml` (use the catalog coordinates, not the
       deprecated `compose.runtime` accessors). Repositories stay in `settings.gradle.kts`.
-- [ ] `:desktop` module: `main()` opens a window that uses `:core:model` and `:core:scheduler`
+- [x] `:desktop` module: `main()` opens a window that uses `:core:model` and `:core:scheduler`
       (for example, a sample card with its FSRS next intervals). This proves JVM-module reuse.
-- [ ] Commands in `CLAUDE.md`: `./gradlew :desktop:run`, `:desktop:test`,
+      Checked on macOS arm64: the packaged app image starts and stays running, and the screen
+      rendered offscreen shows the two sample cards with their intervals.
+- [x] Commands in `CLAUDE.md`: `./gradlew :desktop:run`, `:desktop:test`,
       `:desktop:createDistributable`. A KMP module has no `testDebugUnitTest` (ADR 0010), so the
       Android exit check also runs `testAndroidHostTest` and `desktopTest`, and screenshots use
       `verifyRoborazziAndroidHostTest` / `verifyRoborazziDesktop` next to `verifyRoborazziDebug`.
-- [ ] Close the D0 gap: a CI matrix (Ubuntu, Windows, macOS) that runs the SQLite, zstd and Skia
-      checks from the spike on each OS, Windows x64 first.
-- [ ] CI: a `desktop` job on Ubuntu runs `:desktop:test` and `:desktop:createDistributable`. The
-      OS matrix comes in D8.
-- [ ] F-Droid keeps building: run the recipe's `prebuild` and `:app:assembleRelease` on the new
+      CI does not run those names yet: Gradle fails a task name no module has, so they join the
+      command when the first module converts.
+- [~] Close the D0 gap: a CI matrix (Ubuntu, Windows, macOS) that runs the SQLite, zstd and Skia
+      checks from the spike on each OS, Windows x64 first. `NativeLibrariesTest` in `:desktop`
+      holds the checks, and the `desktop` job in `ci.yml` runs it with `:core:anki:test` on all
+      three. It passes on macOS arm64; **the first run on GitHub (Windows and Linux) is still to
+      come**, so this stays open until it is green.
+- [~] CI: a `desktop` job on Ubuntu runs `:desktop:test` and `:desktop:createDistributable`. The
+      installer matrix comes in D8. Written (the same `desktop` job; the app image and the FOSS
+      check run on Linux only), not yet run on GitHub.
+- [~] F-Droid keeps building: run the recipe's `prebuild` and `:app:assembleRelease` on the new
       tree, and check the scanner is fine with the desktop module and the Compose Multiplatform
-      plugin. `check-foss-deps.py` also reads `:desktop:runtimeClasspath`.
+      plugin. `check-foss-deps.py` also reads `:desktop:runtimeClasspath`. Done on a copy of the
+      tree with the recipe's `rm` and `sed` applied and JDK 21: `:app:assembleRelease` succeeds and
+      the desktop classpath (99 libraries) passes `check-foss-deps.py`, also in CI. `fdroid scanner`
+      itself was not run (it needs fdroidserver): run it before the release tag.
 
 **Exit:** `./gradlew :desktop:run` opens the window; the Android exit check and the F-Droid build
-are unchanged.
+are unchanged. Met locally: `assembleDebug testDebugUnitTest lint`, the JVM module tests,
+`:desktop:test` and `verifyRoborazziDebug` pass. Open: the owner's `release/1.0` push and the first
+GitHub run of the `desktop` job.
 
 ## D2 — Replace Hilt
 

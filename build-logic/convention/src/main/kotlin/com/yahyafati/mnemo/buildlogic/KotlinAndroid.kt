@@ -15,8 +15,8 @@ internal const val COMPILE_SDK = 37
 internal const val TARGET_SDK = 37
 internal const val MIN_SDK = 29
 
-private val JAVA_VERSION = JavaVersion.VERSION_11
-private val JVM_TARGET = JvmTarget.JVM_11
+internal val JAVA_VERSION = JavaVersion.VERSION_11
+internal val JVM_TARGET = JvmTarget.JVM_11
 
 /** Shared Android + Kotlin options for application and library modules (AGP 9 built-in Kotlin). */
 internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
@@ -36,12 +36,7 @@ internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
     tasks.withType<Test>().configureEach {
         // Hilt's KSP output counts as test sources even in modules with no tests yet.
         failOnNoDiscoveredTests.set(false)
-        jvmArgs(
-            "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
-            "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
-            "--add-opens=java.base/java.io=ALL-UNNAMED",
-            "--enable-native-access=ALL-UNNAMED",
-        )
+        jvmArgs(TEST_JVM_ARGS)
     }
 }
 
@@ -59,6 +54,17 @@ internal fun Project.configureKotlinJvm() {
         jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
 }
+
+/**
+ * The JVM flags tests need on recent JDKs (the Gradle toolchain is 25): Robolectric reaches into JDK
+ * internals, and native libraries (zstd, bundled SQLite, Skia) need explicit access.
+ */
+internal val TEST_JVM_ARGS = listOf(
+    "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+    "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+    "--add-opens=java.base/java.io=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED",
+)
 
 /** `core.designsystem` → `com.yahyafati.mnemo.core.designsystem`, matching ARCHITECTURE §4.2. */
 internal val Project.mnemoNamespace: String

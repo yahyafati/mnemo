@@ -11,4 +11,8 @@ plugins {
     alias(libs.plugins.room) apply false
     alias(libs.plugins.roborazzi) apply false
     alias(libs.plugins.aboutlibraries) apply false
+    // Desktop (ADR 0010): Kotlin Multiplatform, AGP's KMP library plugin and Compose Multiplatform.
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.android.kotlin.multiplatform.library) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
 }

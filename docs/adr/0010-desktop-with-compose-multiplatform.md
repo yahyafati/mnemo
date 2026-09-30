@@ -144,8 +144,10 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
 
 ## Not yet proven
 
-- **Windows x64 natives at run time.** Only checked statically (above). A CI run on
-  `windows-latest` is a D1 task.
+- **Windows x64 natives at run time.** Only checked statically (above). D1 added
+  `NativeLibrariesTest` (bundled SQLite, zstd, Skia) and a `desktop` CI job that runs it on
+  `windows-latest`, `ubuntu-latest` and `macos-latest`; it has passed on macOS arm64 only, so this
+  stays open until that job is green on GitHub.
 - **A real Linux x64 machine and macOS Intel**, and the Linux packages a user needs installed
   (the four packages added to the container were not tested one by one, and the tests opened no
   window). The D1 CI matrix covers Linux; the install guide (D8) lists what is needed.
@@ -159,10 +161,26 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
   transaction), and restore-at-start. D4.
 - **Apache PDFBox 3 on desktop** (D4). It declares BouncyCastle as a dependency; exclude it as ADR
   0006 does for PdfBox-Android, and confirm the text extractor tests still pass.
-- **A running window and installers.** The spike used tests, not `application { }`. D1 and D8.
+- **A running window and installers.** D1 opened a window (`:desktop:run` and the packaged app
+  image start on macOS arm64). Installers (`.dmg`, `.msi`, `.deb`) are D8.
 - **R8 keep rules for the new libraries.** `:app:assembleRelease` succeeds with the KMP module
   in `:app`, but nothing in `:app` calls it, so R8 shrinks it away and Koin's and Room KMP's rules
   are not exercised. D2 and D4 run `assembleRelease` and a release smoke test after each move.
+
+## Findings from D1
+
+- **`jlink` needs a JDK with `jmods`.** The Gradle daemon runs on the JDK 25 that
+  `gradle-daemon-jvm.properties` names, and the copy foojay downloads has no `jmods`, so Compose's
+  `createRuntimeImage` fails with "This JDK does not contain packaged modules". The desktop
+  convention plugin points the packaging tasks at a JDK 21 toolchain, set lazily after the JetBrains
+  plugin creates its tasks (a `configureEach` alone lost to the plugin's own value). CI uses
+  `setup-java` Temurin 21. `includeAllModules` lists the Gradle JVM's modules, which JDK 21 lacks
+  (`jdk.graal.compiler.management`), so the runtime's modules are listed by name; D8 trims them.
+- **Desktop tests need Skia's native runtime explicitly.** A library module's test classpath has no
+  `skiko-awt-runtime-<os>`, so `mnemo.kmp.compose` adds `compose.desktop.currentOs` to `desktopTest`.
+  `runComposeUiTest` is deprecated in favor of `androidx.compose.ui.test.v2`.
+- **The build-logic source-set accessors are missing.** `commonMain` and friends are generated
+  accessors of build scripts; plugins use `sourceSets.getByName("commonMain").dependencies`.
 
 ## Alternatives
 
