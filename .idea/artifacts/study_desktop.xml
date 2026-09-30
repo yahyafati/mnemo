@@ -1,6 +1,8 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="study-desktop">
     <output-path>$PROJECT_DIR$/feature/study/build/libs</output-path>
-    <root id="archive" name="study-desktop.jar" />
+    <root id="archive" name="study-desktop.jar">
+      <element id="module-output" name="mnemo.feature.study.desktopMain" />
+    </root>
   </artifact>
 </component>

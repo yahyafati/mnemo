@@ -1,6 +1,8 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="analytics-desktop">
     <output-path>$PROJECT_DIR$/feature/analytics/build/libs</output-path>
-    <root id="archive" name="analytics-desktop.jar" />
+    <root id="archive" name="analytics-desktop.jar">
+      <element id="module-output" name="mnemo.feature.analytics.desktopMain" />
+    </root>
   </artifact>
 </component>

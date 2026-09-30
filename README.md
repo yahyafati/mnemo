@@ -62,8 +62,14 @@ The JDK 25 toolchain that the unit tests use is downloaded by Gradle on first bu
 ./gradlew assembleRelease                        # R8-minified; unsigned without a keystore
 ```
 
-The desktop app (in progress, see [docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md)) runs with
-`./gradlew :desktop:run`.
+The desktop app (Windows, macOS, Linux; in progress, see [docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md))
+runs with `./gradlew :desktop:run`. Its installers come from GitHub Releases, and
+[docs/desktop/install.md](docs/desktop/install.md) covers installing, updating, uninstalling and where the data
+lives. To build one yourself, on the system it is for (JDK 21 to run Gradle):
+
+```bash
+./gradlew :desktop:packageDmg    # macOS; :desktop:packageMsi on Windows, :desktop:packageDeb / :desktop:packageRpm on Linux
+```
 
 The JVM-only modules use `test` instead of `testDebugUnitTest`:
 

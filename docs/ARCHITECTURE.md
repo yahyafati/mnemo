@@ -80,7 +80,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | Module | Type | Responsibility |
 |---|---|---|
 | `:app` | Android app | The Android launcher: `MainActivity` (splash, edge-to-edge, the platform's providers around `MnemoRoot`), `MnemoApplication`, Koin start-up (`di/AppModules.kt`), WorkManager setup, the home-screen widget, the licenses JSON as a raw resource |
-| `:desktop` | JVM app | The desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); `DesktopApp` puts `MnemoRoot` in a window with `ProvideDesktopPlatform`; `Main.kt` adds the window's size and place, menu bar and macOS application menu (D7). Builds the licenses JSON from its own classpath (`desktop/config` adds what only it bundles) |
+| `:desktop` | JVM app | The desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); `DesktopApp` puts `MnemoRoot` in a window with `ProvideDesktopPlatform`; `Main.kt` adds the window's size and place, menu bar and macOS application menu (D7), and the files the system opens with the app (D8: `OpenRequests` hands them from a second launch to the running one). `nativeDistributions` (installers, file associations, the trimmed runtime) is in `mnemo.desktop.application`. Builds the licenses JSON from its own classpath (`desktop/config` adds what only it bundles) |
 | `:shell` | KMP lib | The app shell both launchers share (D6): `MnemoRoot` (theme, onboarding or the app), `MnemoApp` (top bar, bottom bar or rail), `MnemoNavHost` (composes each feature's graph), `TopLevelDestination`, onboarding, `MainViewModel` (appearance, first run, where to open), `shellModule`. The one module that depends on every feature |
 | `:feature:decks` | KMP lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | KMP lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
@@ -161,9 +161,9 @@ mnemo/
 │
 ├── desktop/
 │   ├── config/                                          # licenses only the desktop bundles (the Java runtime)
-│   ├── icons/                                           # PNG, ICO and ICNS for the installers (generate_desktop_icons.py)
+│   ├── icons/                                           # PNG, ICO and ICNS for the installers and Anki package files (generate_desktop_icons.py)
 │   └── src/main/kotlin/com/yahyafati/mnemo/desktop/     # Main.kt, DesktopApp.kt, Startup.kt (openCollection), DesktopModules.kt,
-│                                                        # DesktopMenu.kt, WindowPlacement.kt, DesktopIntegration.kt
+│                                                        # DesktopMenu.kt, WindowPlacement.kt, DesktopIntegration.kt, OpenRequests.kt
 │
 ├── core/
 │   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/

@@ -534,22 +534,42 @@ each OS. Met by the automated tests above on macOS arm64; open on Windows and Li
 
 **Goal:** installers for all three OSes on GitHub Releases, built by CI from a tag.
 
-- [ ] Compose Desktop `nativeDistributions`: Linux `.deb` and `.rpm` plus a portable `.tar.gz`;
-      Windows `.msi` (per-user install, Start menu entry, an `upgradeUuid` fixed forever); macOS
-      `.dmg` (architectures per D0). `packageVersion` comes from `mnemo.versionName`.
-- [ ] A trimmed JRE (`modules(…)`: at least TLS/crypto for AI providers). No minification for
-      desktop v1: the runtime dominates the size and ProGuard adds keep-rule risk. Revisit later.
-- [ ] File associations: `.apkg` and `.colpkg` open in Mnemo.
-- [ ] `.github/workflows/desktop-release.yml`: on a `v*` tag, a matrix (Ubuntu, Windows, macOS)
-      builds the packages and attaches them with SHA-256 checksums to a draft GitHub Release.
-- [ ] **Unsigned installers:** the release notes explain the first-run warnings: Windows
-      SmartScreen ("More info → Run anyway") and macOS Gatekeeper (right-click → Open, or System
-      Settings › Privacy & Security › Open Anyway). Signing is Later.
-- [ ] `docs/desktop/install.md`: download, first run, where data lives, uninstalling, and moving
-      a collection between phone and desktop. A README section links it.
+- [~] Compose Desktop `nativeDistributions`: Linux `.deb` and `.rpm` plus a portable `.tar.gz`
+      (`:desktop:packagePortable`, the app image; jpackage has no format for it); Windows `.msi` (per-user,
+      Start menu entry and shortcut, a fixed `upgradeUuid`, installed under `%LOCALAPPDATA%\Programs\Mnemo`
+      so it doesn't share a folder with the collection); macOS `.dmg` (Apple Silicon, bundle id
+      `com.yahyafati.mnemo.desktop`, ad-hoc signed by jpackage). `packageVersion` is `mnemo.versionName`.
+      All in `mnemo.desktop.application`. The `.dmg` is built and mounted here; **the `.msi`, `.deb` and `.rpm`
+      are configured but only a CI run on their systems proves them.** The GPL is shipped as `LICENSE` and
+      `NOTICE` in the app's resources, not as a `licenseFile`, because installers make people accept that
+      (ADR 0010, finding 2 of D8).
+- [x] A trimmed JRE: 19 modules (the suggestion of `:desktop:suggestRuntimeModules`, plus TLS curves,
+      charsets, locale data and the management, naming and SQL APIs libraries probe for), with the reasons
+      in the plugin. No minification for desktop v1; the app image is 232 MB and the `.dmg` 150 MB
+      (runtime 113 MB, jars 119 MB). `scripts/desktop/smoke-test-app.py` starts the packaged image and
+      takes a file from a second launch; CI runs it on each OS.
+- [~] File associations: `.apkg` and `.colpkg` open in Mnemo. macOS: in the app's `Info.plist` and the
+      open-file handler from D7. Windows and Linux start the program with the path, and a second launch
+      hands it to the running app through `<data>/open-requests/` (`OpenRequests`) and exits. Checked with the
+      packaged macOS app launched twice (3 decks, 9 cards imported), unit-tested on every system; the
+      registration by the `.msi` and `.deb` is not seen yet.
+- [~] `.github/workflows/desktop-release.yml`: on a `v*` tag (the tag must equal `mnemo.versionName`) a
+      matrix (Ubuntu, Windows, macOS) builds the packages, smoke-tests the app image and attaches the
+      installers with `SHA256SUMS.txt` to a draft GitHub Release; run by hand it keeps them as workflow
+      artifacts instead. Written, **not run on GitHub yet.**
+- [x] **Unsigned installers:** `docs/desktop/release-notes.md` (the notes of a release the workflow
+      creates) and `install.md` explain the first-run warnings: Windows SmartScreen ("More info → Run
+      anyway") and macOS Gatekeeper (right-click → Open up to macOS 14; on macOS 15 and newer System
+      Settings › Privacy & Security › Open Anyway, since 15 took the right-click route away). Signing is Later.
+- [x] `docs/desktop/install.md`: which file, checksums, first run, Linux libraries, where data lives, updating,
+      uninstalling, sound formats, and moving a collection between phone and desktop. The README links it.
 
 **Exit:** a tagged build produces installers for all three OSes; each installs, launches,
-upgrades over the previous version with the data kept, and uninstalls cleanly.
+upgrades over the previous version with the data kept, and uninstalls cleanly. **Met as far as macOS arm64
+reaches** (app image and `.dmg` built, mounted, started, given a file). **Open:** the first run of the workflow on
+GitHub, and install, upgrade and uninstall on each system, which is D9's runbook. **Owner:** confirm Apple
+Silicon only (or an Intel runner), and push a `v*` tag (or run the workflow by hand first) to see the draft.
+**Findings:** see ADR 0010, "Findings from D8".
 
 ## D9 — QA and desktop v1.0
 

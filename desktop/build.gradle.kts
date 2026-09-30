@@ -14,6 +14,24 @@ compose.desktop {
     }
 }
 
+// The portable Linux build: the app image (the launcher and its Java runtime, no installer) as a
+// .tar.gz that unpacks into `Mnemo/`. The JetBrains plugin has no format for it; only Linux needs one,
+// because the other systems' installers already are a single file to download (desktop ROADMAP D8).
+tasks.register<Tar>("packagePortable") {
+    group = "compose desktop"
+    description = "Packs the Linux app image as Mnemo-<version>-linux-<arch>.tar.gz."
+    val architecture = System.getProperty("os.arch").let { if (it == "amd64") "x64" else it }
+    archiveBaseName = "Mnemo"
+    archiveVersion = providers.gradleProperty("mnemo.versionName")
+    archiveClassifier = "linux-$architecture"
+    compression = Compression.GZIP
+    destinationDirectory = layout.buildDirectory.dir("compose/binaries/main/portable")
+    dependsOn("createDistributable")
+    from(layout.buildDirectory.dir("compose/binaries/main/app")) { include("Mnemo/**") }
+    // A tar made on another system would hold nothing: fail loudly instead of writing an empty file.
+    doFirst { check(System.getProperty("os.name").startsWith("Linux")) { "packagePortable is for Linux; build it on Linux" } }
+}
+
 // The open-source licenses screen (Settings > About) reads the JSON this plugin writes from the
 // desktop runtime classpath. It is the list of `:app` (the bundled fonts and py-fsrs, the license
 // texts: `app/config`) without KaTeX, which only the Android app bundles, plus what only the

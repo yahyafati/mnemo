@@ -163,7 +163,7 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
 - ~~**Apache PDFBox 3 on desktop.**~~ Closed in D4: BouncyCastle is excluded and the extractor tests
   pass on both targets.
 - **A running window and installers.** D1 opened a window (`:desktop:run` and the packaged app
-  image start on macOS arm64). Installers (`.dmg`, `.msi`, `.deb`) are D8.
+  image start on macOS arm64). Installers (`.dmg`, `.msi`, `.deb`) are D8 ("Findings from D8").
 - **R8 keep rules for the new libraries.** `:app:assembleRelease` succeeds with the KMP module
   in `:app`, but nothing in `:app` calls it, so R8 shrinks it away and Koin's and Room KMP's rules
   are not exercised. D2 and D4 run `assembleRelease` and a release smoke test after each move.
@@ -176,7 +176,7 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
   convention plugin points the packaging tasks at a JDK 21 toolchain, set lazily after the JetBrains
   plugin creates its tasks (a `configureEach` alone lost to the plugin's own value). CI uses
   `setup-java` Temurin 21. `includeAllModules` lists the Gradle JVM's modules, which JDK 21 lacks
-  (`jdk.graal.compiler.management`), so the runtime's modules are listed by name; D8 trims them.
+  (`jdk.graal.compiler.management`), so the runtime's modules are listed by name; D8 trimmed them ("Findings from D8").
 - **Desktop tests need Skia's native runtime explicitly.** A library module's test classpath has no
   `skiko-awt-runtime-<os>`, so `mnemo.kmp.compose` adds `compose.desktop.currentOs` to `desktopTest`.
   `runComposeUiTest` is deprecated in favor of `androidx.compose.ui.test.v2`.
@@ -436,6 +436,54 @@ The desktop's window, keyboard, menus, mouse and drops. Everything shared lives 
    Windows and Linux, dragging from a real file manager, the macOS application menu, the Dock icon and the
    hand cursor, and a screenshot baseline for the desktop shell (the layouts are checked by tests, not by
    pictures; the Android baselines did not change).
+
+## Findings from D8
+
+Built and checked on macOS arm64 (`createDistributable`, `packageDmg`, the packaged app started and given a
+file); the Windows and Linux installers and the workflow are written from the tools' documentation and
+have not run yet.
+
+1. **jpackage builds only its own system's formats.** The JetBrains plugin creates `packageDmg`,
+   `packageMsi`, `packageDeb` and `packageRpm` on every system, and the wrong ones fail, so the release
+   workflow runs a matrix: each OS builds its own. The Linux `.tar.gz` is not a jpackage format: the
+   `packagePortable` task in `:desktop` tars the app image.
+2. **`licenseFile` makes an installer ask people to accept the GPL.** The DMG shows a licence agreement
+   when it is opened and the MSI a page with an "I accept" box, and the GPL is not something to accept in
+   order to run a program. `LICENSE` and `NOTICE` are copied into the app's `resources/` folder instead
+   (`appResourcesRootDir`; the plugin's own `prepareAppResources` task does the copying).
+3. **An icon for the file associations can't have the app icon's file name.** jpackage copies every icon
+   into the app by name, and two `mnemo.icns` are a `FileAlreadyExistsException`. `mnemo-package.*` are
+   copies of the app icon for now, written by `generate_desktop_icons.py`.
+4. **The Windows install folder and the collection would be the same folder.** A per-user MSI installs to
+   `%LOCALAPPDATA%\<name>` by default, which is where D0 put the data. `installationPath = "Programs\\Mnemo"`
+   moves the program to `%LOCALAPPDATA%\Programs\Mnemo`. **Not proved on Windows.**
+5. **The runtime's modules.** `suggestRuntimeModules` (jdeps) finds `java.instrument`, `java.net.http`,
+   `jdk.security.auth` and `jdk.unsupported` beyond the defaults, but it reads bytecode, so it misses what is
+   loaded by name or service. Kept or added on purpose: `jdk.crypto.ec` (TLS curves for AI providers and
+   links), `jdk.charsets` (jsoup reading a page in Shift_JIS or GBK), `jdk.localedata` (dates, numbers and
+   the 24-hour check in the user's locale), and `java.management`, `java.naming`, `java.sql`, which
+   libraries probe for. The resulting runtime is 19 modules and 113 MB (87 MB of it `modules`), inside a
+   232 MB app image and a 150 MB `.dmg`; the jars are 119 MB, 36 MB of them `material-icons-extended`.
+   `jlink`'s compression is not reachable from the plugin's DSL. Shrinking (ProGuard, fewer icons, compression)
+   is left for later; the smoke test is what catches a missing module.
+6. **Opening files.** macOS sends an opened file to `Desktop.setOpenFileHandler` (D7). Windows and Linux
+   start the program with the path as an argument, and the collection admits one process, so the second
+   launch writes the paths to `<data>/open-requests/` and exits 0, and the running app polls that folder
+   twice a second, opens them and comes to the front. Verified with the packaged macOS app started twice
+   (3 decks and 9 cards imported); unit-tested on every system (`OpenRequestsTest`).
+7. **Unsigned installers.** jpackage ad-hoc signs the macOS app (`codesign -dv` shows `adhoc,runtime`), so
+   an Apple Silicon Mac will open it after the user allows it once. macOS 15 removed the right-click
+   **Open** shortcut for unsigned apps; the way through is System Settings › Privacy & Security › **Open
+   Anyway** (or `xattr -dr com.apple.quarantine`). `docs/desktop/install.md` and the release notes say so.
+8. **A smoke test on the packaged image** (`scripts/desktop/smoke-test-app.py`): the app starts on a scratch
+   data directory, creates its database, is still running five seconds later with no class or library
+   error on its output, and takes a file from a second launch. The release workflow runs it on each
+   system before naming the installers (Linux under `xvfb-run`; every runner with `SKIKO_RENDER_API=SOFTWARE_COMPAT`,
+   as there is no GPU). It only exercises start-up, so the runbook (D9) still covers the rest.
+9. **Still open:** the first workflow run (WiX on the Windows runner, `rpm` and `fakeroot` on Ubuntu, the
+   smoke test under Xvfb), the `.msi`, `.deb` and `.rpm` themselves (file names, `/opt/mnemo`, file
+   associations registering, the menu entries), install, upgrade over an older version and uninstall on
+   each system, Intel Macs (an Intel runner and an arch suffix), and the size.
 
 ## Alternatives
 

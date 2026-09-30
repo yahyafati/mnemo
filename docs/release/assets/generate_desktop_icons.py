@@ -1,5 +1,5 @@
 """Generates the desktop app's icons from logo.svg: the window icon (a PNG on the classpath) and the
-installers' icons (PNG for Linux, ICO for Windows, ICNS for macOS).
+installers' icons (PNG for Linux, ICO for Windows, ICNS for macOS), and the icons of Anki package files.
 
 Needs `rsvg-convert` (librsvg) on the PATH (`brew install librsvg`), nothing else. Run from anywhere; it
 writes into `desktop/`. The Android icons are `generate_icon_drawables.py`.
@@ -63,4 +63,8 @@ write(f"{INSTALLER_ICONS}/mnemo.icns", icns([
     (code, render(size, MAC_MARGIN))
     for code, size in (("icp4", 16), ("icp5", 32), ("icp6", 64), ("ic07", 128), ("ic08", 256), ("ic09", 512), ("ic10", 1024))
 ]))
+# The icons of `.apkg` and `.colpkg` files. The installers copy every icon into the app by its file name, so
+# these can't share the app's; for now the same picture, until there is a document icon of its own.
+for extension in ("png", "ico", "icns"):
+    shutil.copyfile(f"{REPO}/{INSTALLER_ICONS}/mnemo.{extension}", f"{REPO}/{INSTALLER_ICONS}/mnemo-package.{extension}")
 print("wrote", WINDOW_ICON, "and", INSTALLER_ICONS)
