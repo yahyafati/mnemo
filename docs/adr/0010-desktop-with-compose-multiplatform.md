@@ -18,11 +18,11 @@ a test ran; "recommended" means it was decided without a test yet.
 | Dependency injection | **Koin** 4.2.2 | Proved (graph, ViewModel with `SavedStateHandle`); see the `verify()` caveat |
 | Math on desktop | **JLaTeXMath** 1.0.7, raw TeX as the fallback | Proved (21 of 26 sample formulas) |
 | Audio on desktop | `javax.sound` with `mp3spi` and `vorbisspi` | Decoding proved for wav, mp3, ogg; playback and the other formats are not |
-| API keys on desktop | OS keychain through `java-keyring` 1.0.4 (holds the AES key `SecretStore` already uses), key file fallback | Recommended, not tested on any OS |
+| API keys on desktop | OS keychain through `java-keyring` 1.0.4 (holds the AES key `SecretStore` already uses), key file fallback | Built in D4; keychain proved on macOS arm64 only |
 | File pickers | Own `expect`/`actual` API in `:core:ui/files` | Recommended |
 | Background jobs | Coroutines in an application scope behind the existing repository interfaces | Recommended |
 | SQLite | Android keeps the framework driver (`AndroidSQLiteDriver`); desktop uses `BundledSQLiteDriver` | Proved on both (SQLite 3.50.1 on desktop) |
-| Data directory | Linux `$XDG_DATA_HOME/mnemo`, Windows `%LOCALAPPDATA%\Mnemo`, macOS `~/Library/Application Support/Mnemo`; secrets in a sibling directory backups never read | Recommended |
+| Data directory | Linux `$XDG_DATA_HOME/mnemo`, Windows `%LOCALAPPDATA%\Mnemo`, macOS `~/Library/Application Support/Mnemo` (`MNEMO_DATA_DIR` overrides); secrets in a `secrets` directory backups never read | Built in D4 (finding 9) |
 | Version numbers | Shared: `mnemo.versionName` is the desktop package version too | Recommended |
 | macOS architectures | Apple Silicon first. All three native libraries the app needs (SQLite, zstd, Skia) also ship Intel builds, so adding Intel is a CI runner question, not a code one. | **Owner to confirm** |
 
@@ -151,16 +151,17 @@ Results are from macOS 26 (Apple Silicon), JDK 21 / 25, Gradle 9.6.0, on the ver
 - **A real Linux x64 machine and macOS Intel**, and the Linux packages a user needs installed
   (the four packages added to the container were not tested one by one, and the tests opened no
   window). The D1 CI matrix covers Linux; the install guide (D8) lists what is needed.
-- **OS keychain** through `java-keyring` on any OS. A test writes to the user's real keychain, so
-  it was left for D4, on CI machines and on the owner's machines. The key-file fallback is the
-  safety net.
+- **OS keychain** through `java-keyring`: proved on macOS arm64 in D4 (`DesktopSecretCipherTest`
+  stores, reads and deletes a throwaway entry). Windows Credential Manager and the Linux Secret
+  Service are not proved yet: the test skips itself where `works()` is false, so CI passes without
+  a keychain. The key-file fallback is the safety net.
 - **Audio playback.** Only decoding was tested.
 - ~~**Koin with navigation arguments** through `koinViewModel()`, and `workerOf`.~~ Closed in D2 on
   Android (see "Findings from D2"). On desktop, navigation arguments still need a check in D6.
-- **`DatabaseSnapshot` on the driver API** (backup: WAL checkpoint plus a copy inside a write
-  transaction), and restore-at-start. D4.
-- **Apache PDFBox 3 on desktop** (D4). It declares BouncyCastle as a dependency; exclude it as ADR
-  0006 does for PdfBox-Android, and confirm the text extractor tests still pass.
+- ~~**`DatabaseSnapshot` on the driver API**, and restore-at-start.~~ Closed in D4 (see "Findings
+  from D4").
+- ~~**Apache PDFBox 3 on desktop.**~~ Closed in D4: BouncyCastle is excluded and the extractor tests
+  pass on both targets.
 - **A running window and installers.** D1 opened a window (`:desktop:run` and the packaged app
   image start on macOS arm64). Installers (`.dmg`, `.msi`, `.deb`) are D8.
 - **R8 keep rules for the new libraries.** `:app:assembleRelease` succeeds with the KMP module
@@ -215,6 +216,58 @@ Android exit check (395 unit tests, the Roborazzi baselines unchanged, lint) and
 - **Layering held.** `:app` still doesn't see Room or DataStore: `:core:data` exposes
   `dataLayerModules`. Each Gradle module owns the module for its own (often `internal`) classes.
 
+## Findings from D4
+
+The data layer is multiplatform (`:core:database`, `:core:datastore`, `:core:security`,
+`:core:ingest`, `:core:data`, `:core:domain`, `:core:testing`). Checked with the Android exit check,
+`desktopTest` in every module and `:desktop:test` on macOS arm64, and by installing the new debug
+and R8 release builds over a real collection on an API 35 emulator (see below).
+
+1. **Android now uses Room's driver API too.** Migrations, the seed callback, raw queries and
+   transactions moved to `SQLiteConnection`, `RoomRawQuery` and `useWriterConnection { immediateTransaction }`
+   in a first step on the still-Android module, then the module moved. Android builds the database
+   with `AndroidSQLiteDriver` (framework SQLite, same file, same WAL), the desktop with
+   `BundledSQLiteDriver`. The exported schema did not change (`4.json` and its hash are identical).
+   On a real 7-deck, 301-card, 1,503-review collection made by the old build, the new debug and
+   release (R8) builds opened it unchanged and saved a new review.
+2. **Room's `.lck` file.** With the driver API Room keeps a zero-byte `mnemo.db.lck` next to the
+   database (it serializes migrations across processes). Harmless; backups don't copy it.
+3. **`AndroidSQLiteDriver` can't run `EXPLAIN`.** Its statements only step queries it recognizes
+   as SELECT or PRAGMA. The one test that reads a query plan uses the framework's open helper on
+   Android and the driver on desktop (`queryPlan` in `PlatformTest`).
+4. **A closed database cancels instead of failing.** With the driver API, using a `RoomDatabase`
+   after `close()` throws a `CancellationException`, which code that rethrows cancellation (the
+   backup job) treats as cancellation, not failure. The test that wanted a failure now makes the
+   output stream fail.
+5. **`DatabaseSnapshot`** reads `PRAGMA user_version` and `PRAGMA database_list` through the driver
+   (so it needs neither `openHelper` nor the file name), checkpoints the WAL, and copies the files
+   inside an immediate transaction. `version` became `suspend fun version()`.
+6. **Schema assets for host tests.** AGP's KMP plugin has no `androidTest` assets, so the
+   `mnemo.kmp.room` convention adds `schemas/` to the host tests' assets through
+   `KotlinMultiplatformAndroidComponentsExtension.onVariants { hostTests … sources.assets }`;
+   `MigrationTestHelper` then runs on Android (Robolectric) and, with a schema path, on desktop.
+   `MigrationTest` is one shared test for both targets, plus `FixtureDatabasesTest` with real
+   databases of versions 1–4 (`core/database/src/commonTest/resources/fixtures`).
+7. **Shared tests are JVM tests.** `commonTest` of a module with only Android and JVM targets is
+   JVM code: `org.junit.*`, `java.io.File` and JUnit rules work in it. The Robolectric runner is
+   chosen by an `expect abstract class PlatformRunner` (`:core:testing`); `PlatformTest` adds a
+   temporary folder. Cross-module test helpers (`inMemoryDatabase()`, `fileDatabase()`,
+   `testSqliteDriver()`, `TestAppDirectories`) sit in `:core:testing`. `:core:database` and
+   `:core:ingest` can't use it (it depends on them), so they carry their own small `PlatformTest`.
+8. **Koin lifecycle.** The database single and DataStore's scope are closed with `onClose`, because
+   a desktop restart and the tests reopen the same files in one process (DataStore allows one
+   instance per file). `org.koin.dsl.onClose` is the import.
+9. **Secrets layout on desktop.** The ADR's "sibling directory" is `<data>/secrets`, not a
+   directory outside the data directory: a backup reads only the database, the preferences and the
+   media folder by name, so nothing ever touches it. The key file, if used, is `<data>/secrets.key`
+   beside it, because `SecretStore.retainOnly` deletes every file in `secrets` it doesn't know.
+10. **Restart.** A restore needs a new process. `ProcessAppRestarter` starts the same command
+    (`ProcessHandle.info()`) with `MNEMO_RESTARTED=1`, and the new process waits up to ten seconds
+    for the old one to release the collection lock.
+11. **Cross-device backups.** A backup made by the Android build and one made by the desktop build
+    (`resources/backups`, from `SampleCollection`) have the same entries and restore on both
+    targets.
+
 ## Alternatives
 
 - **Separate desktop project (copy the domain and data code):** rejected in the roadmap; the
@@ -240,8 +293,9 @@ Android exit check (395 unit tests, the Roborazzi baselines unchanged, lint) and
   (the last two only where modules exist), and CLAUDE.md says so.
 - D2 uses `checkModules`, not `verify()` alone, for the graph test (finding 5).
 - D4 ports the migrations and `DatabaseSnapshot` as in finding 2, keeps the exported schema
-  identical (a test compares `identityHash` with the committed 4.json), and keeps fixture databases
-  made by the Android app for every schema version.
+  identical (Room's schema export writes the same `4.json`; `MigrationTest` validates every
+  version against the committed JSON), and keeps fixture databases made by the Android app for
+  every schema version. Done.
 - Desktop-only bundled libraries (JLaTeXMath, the audio SPIs, java-keyring and their transitive
   dependencies, Skiko, the JRE) are added to `NOTICE` and `app/config` when they are first bundled,
   and `scripts/fdroid/check-foss-deps.py` reads `:desktop:runtimeClasspath`.

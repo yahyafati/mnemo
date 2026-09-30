@@ -1,11 +1,20 @@
 plugins {
-    alias(libs.plugins.mnemo.android.library)
+    alias(libs.plugins.mnemo.kmp.library)
 }
 
-// Android Keystore encryption for API keys (ARCHITECTURE §10). Only `:core:data` uses it.
-dependencies {
-    implementation(projects.core.common)
-    implementation(libs.koin.core)
-
-    testImplementation(libs.kotlinx.coroutines.test)
+// API keys, encrypted at rest (ARCHITECTURE §10). Android Keystore on the phone, the OS keychain
+// (or a key file where there is none) on the desktop. Only `:core:data` uses it.
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(projects.core.common)
+            implementation(libs.koin.core)
+        }
+        desktopMain.dependencies {
+            implementation(libs.java.keyring)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }

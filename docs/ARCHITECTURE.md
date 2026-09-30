@@ -73,10 +73,12 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
       :core:model   :core:scheduler   :core:common      (pure JVM)
 ```
 
+From D4 on, `:core:domain`, `:core:data`, `:core:database`, `:core:datastore`, `:core:ingest`, `:core:security` and `:core:testing` are Kotlin Multiplatform modules with two targets, Android and `desktop` (JVM): shared code in `commonMain`, the platform's in `androidMain` and `desktopMain` (ADR 0010). The pure JVM modules are used from `commonMain` as they are.
+
 | Module | Type | Responsibility |
 |---|---|---|
 | `:app` | Android app | `MainActivity`, `MnemoApplication`, root `NavHost`, bottom bar, Koin start-up (`di/AppModules.kt`), WorkManager setup |
-| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). Opens a window on the shared JVM modules; the other modules join it as they become KMP modules (desktop ROADMAP D2–D6) |
+| `:desktop` | JVM app | Desktop launcher (Windows, macOS, Linux; Compose Multiplatform, ADR 0010). `openCollection` takes the single-instance lock, applies a staged restore and starts Koin on the data layer (D4); the window still shows the sample cards until the shared UI arrives (D5–D6) |
 | `:feature:decks` | Android lib | Home/Decks screen, deck create/edit, deck detail |
 | `:feature:study` | Android lib | Study session: card flip, swipe gestures, rating bar, undo, session summary |
 | `:feature:create` | Android lib | Manual editor (all five card types, hints, image/audio attachments), AI Smart Extract, generated-card review queue, AI Co-Author (`coauthor/`) |
@@ -85,20 +87,18 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:feature:settings` | Android lib | AI providers, scheduling options, study audio, reminders, appearance, backup/import/export, about and privacy policy |
 | `:core:designsystem` | Android lib | `MnemoTheme`, color/type/shape/spacing tokens, fonts, generic components (buttons, chips, stat tile, rating bar) |
 | `:core:ui` | Android lib | Shared composables that know the domain models: `DeckCard`, `CardFace` renderer (Markdown/LaTeX/cloze), charts |
-| `:core:domain` | Android lib* | Use cases |
-| `:core:data` | Android lib | Repository interfaces and implementations, background workers |
-| `:core:database` | Android lib | Room database, entities, DAOs, migrations, schema JSON |
-| `:core:datastore` | Android lib | Proto/Preferences DataStore for user settings |
+| `:core:domain` | KMP lib | Use cases. No Android APIs |
+| `:core:data` | KMP lib | Repository interfaces and implementations, the transfer jobs. `androidMain`: WorkManager workers and notifications, `AndroidAppDirectories`, `AndroidDocumentAccess`. `desktopMain`: `DesktopAppDirectories`, `DesktopDocumentAccess`, the coroutine job queue, `SingleInstanceLock` |
+| `:core:database` | KMP lib | Room database, entities, DAOs, migrations (on Room's driver API, so one code base migrates both targets), schema JSON. Android builds it on the framework SQLite driver, the desktop on the bundled one |
+| `:core:datastore` | KMP lib | Preferences DataStore for user settings |
 | `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe, prompt templates, JSON schema, tolerant incremental card parser (ADR 0006) |
 | `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
-| `:core:ingest` | Android lib | Source extraction: PDF → text (PdfBox-Android), URL → readable text (jsoup), speech → text (on-device `SpeechRecognizer`), chunking. No DI library: `:core:data` builds its classes |
-| `:core:security` | Android lib | Android Keystore-backed encryption for API keys (`SecretCipher`) and their store outside the database (`SecretStore`, ADR 0005) |
+| `:core:ingest` | KMP lib | Source extraction: PDF → text (PdfBox-Android, Apache PDFBox on the desktop), URL → readable text (jsoup), speech → text (on-device `SpeechRecognizer`, Android only), chunking. No DI library: `:core:data` builds its classes |
+| `:core:security` | KMP lib | Encryption for API keys (`SecretCipher`: Android Keystore, or on the desktop the OS keychain with a key-file fallback) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
 | `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin), and the platform seams of §4.3 (`AppDirectories`, `DocumentAccess`) |
-| `:core:testing` | Android lib | Fakes (repositories, clock), test dispatchers |
-
-\* `:core:domain` could be JVM-only, but it depends on `:core:data`, which is an Android library until D4. Keep it free of Android APIs either way.
+| `:core:testing` | KMP lib | Fakes (repositories, clock), test dispatchers, `PlatformTest` (Robolectric on Android, plain JUnit on desktop), `inMemoryDatabase()`, `TestAppDirectories` |
 
 **Dependency rules** (enforced in review, and later with a Gradle check):
 
@@ -342,18 +342,21 @@ feature/study/
 
 ### 4.3 Platform seams
 
-The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android, so shared code never calls an Android API. Each one sits behind an interface, and its Android implementation lives in a package named `android`, next to the interface's module (`.../android/AndroidXxx.kt`). When a module becomes multiplatform (D4–D6), `android` directories become `androidMain` and the desktop implementations go beside them in `desktopMain`. `scripts/desktop/check-android-imports.py` (CI) fails on an Android import anywhere else, apart from a short, shrinking list of files that have not moved yet.
+The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android, so shared code never calls an Android API. Each one sits behind an interface, and its Android implementation lives in a package named `android`, next to the interface's module (`.../android/AndroidXxx.kt`). In a multiplatform module (D4 on) the Android implementations are in `androidMain` and the desktop ones beside them in `desktopMain` (`.../desktop/DesktopXxx.kt`); where a Koin module needs the platform's part it calls an `expect` function (`createDatabase()`, `createSecretCipher()`) or an `expect val` (`dataLayerModules`). `scripts/desktop/check-android-imports.py` (CI) fails on an Android import anywhere else, apart from a short, shrinking list of files that have not moved yet.
 
 | Seam | Interface (module) | Android implementation | Desktop |
 |---|---|---|---|
-| Where files live | `AppDirectories` (`:core:common`) | `AndroidAppDirectories` (`:core:data`) | plain paths (D4) |
-| The user's picked files | `DocumentAccess` (`:core:common`) | `AndroidDocumentAccess`: content URIs, document trees | plain paths (D4) |
-| Long transfers | `ImportJob`, `ExportJob`, `BackupJob` (`:core:data/job`): plain suspend functions with a progress callback | `ImportWorker`, `ExportWorker`, `BackupWorker` only adapt them to WorkManager (input, foreground notification, retry) | application-scope coroutines (D4) |
-| PDF text | `PdfTextExtractor` (`:core:ingest`) | `PdfBoxAndroidTextExtractor` | Apache PdfBox (D4) |
-| Dictation | `SpeechTranscriber` (`:core:ingest`), with `isAvailable()` | `AndroidSpeechTranscriber` | none at first |
+| Where files live | `AppDirectories` (`:core:common`) | `AndroidAppDirectories` (`:core:data`) | `DesktopAppDirectories`: `~/Library/Application Support/Mnemo`, `%LOCALAPPDATA%\Mnemo`, `$XDG_DATA_HOME/mnemo` (`MNEMO_DATA_DIR` overrides) |
+| The user's picked files | `DocumentAccess` (`:core:common`) | `AndroidDocumentAccess`: content URIs, document trees | `DesktopDocumentAccess`: paths and `file:` URIs |
+| Long transfers | `ImportJob`, `ExportJob`, `BackupJob` (`:core:data/job`): plain suspend functions with a progress callback | `ImportWorker`, `ExportWorker`, `BackupWorker` only adapt them to WorkManager (input, foreground notification, retry) | `TransferQueue`s in an application scope (`DesktopDataTransferRepository`, `DesktopFsrsOptimizationRepository`); media cleanup and the automatic backup are checked at start and then hourly |
+| PDF text | `PdfTextExtractor` (`:core:ingest`) | `PdfBoxAndroidTextExtractor` | `PdfBoxTextExtractor` (Apache PDFBox 3) |
+| Dictation | `SpeechTranscriber` (`:core:ingest`), with `isAvailable()` | `AndroidSpeechTranscriber` | `NoSpeechTranscriber` (not available) |
 | What the platform offers | `PlatformCapabilities` + `LocalPlatformCapabilities` (`:core:designsystem`): dynamic color, reminders, widget, dictation, text-to-speech, run-time permissions | `androidPlatformCapabilities()` | most are off |
 | File dialogs | `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver`, `rememberFolderPicker` (`:core:ui/files`) | Storage Access Framework contracts | AWT file dialog (D5) |
 | Run-time permissions | `rememberPermissionRequest(AppPermission)` (`:core:ui/permission`) | `ActivityResultContracts.RequestPermission` | always granted |
+| API key encryption | `SecretCipher` (`:core:security`) | `KeystoreSecretCipher` (AES-GCM, key in the Keystore) | `DesktopSecretCipher`: AES-GCM, key in the OS keychain, or in `secrets.key` (owner-only) if there is none |
+| Room's database | `MnemoDatabase` (`:core:database`) | `MnemoDatabase.build(context)` on `AndroidSQLiteDriver` | `MnemoDatabase.build(file)` on `BundledSQLiteDriver` |
+| Restarting for a restore | `DataTransferRepository.restartToRestore()` | `restartAndroidApp` | `AppRestarter` (`ProcessAppRestarter`); the new process waits for the lock |
 | Math on cards | `MathRenderer` + `LocalMathRenderer` (`:core:ui/card/web`); `MathText` calls it | `KatexMathRenderer` (KaTeX in a WebView) | JLaTeXMath (D5); raw TeX is the fallback |
 | Card images | `MediaImageLoader` + `LocalMediaImageLoader` (`:core:ui/card`) | `AndroidMediaImageLoader` (`BitmapFactory`, LRU cache) | Skia (D5) |
 | Card sound | `CardAudio` + `LocalCardAudio` | `AndroidCardAudio` (`MediaPlayer`, `TextToSpeech`) | javax.sound (D5) |
@@ -417,7 +420,7 @@ Nothing touches the database before step 8 (except the token-usage log). If the 
 
 ## 6. Data layer details
 
-- **Room** with KSP. Schemas are exported to `core/database/schemas/` and committed. Every schema change gets a migration and a `MigrationTestHelper` test. Destructive migration is never allowed.
+- **Room** with KSP, on its multiplatform driver API (`SQLiteConnection`, `RoomRawQuery`, `useWriterConnection { immediateTransaction { … } }`): the same entities, DAOs and migrations build the Android database (framework SQLite driver) and the desktop one (bundled SQLite driver, same file format). Schemas are exported to `core/database/schemas/` and committed. Every schema change gets a migration, a `MigrationTest` case (it runs on both targets) and a fixture database of the new version in `core/database/src/commonTest/resources/fixtures`. Destructive migration is never allowed.
 - **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Nothing is needed for sync today, but this keeps it possible later.
 - **Indices** on `Card(due, state, deckId)`, `ReviewLog(cardId, reviewedAt)`, and `Note(deckId)` keep the queue and stats queries fast.
 - **Stats** are computed with SQL aggregates in `StatsDao`, not by loading rows into memory. Retrievability, which needs `pow`, comes from per-deck buckets of `elapsed days / stability` (ADR 0007).
@@ -467,9 +470,9 @@ Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.je
 
 | Level | Target | Where |
 |---|---|---|
-| Unit (JVM) | FSRS math, AI output parser, prompt building, `.apkg` mapping, use cases | `core/*/src/test` |
+| Unit (JVM) | FSRS math, AI output parser, prompt building, `.apkg` mapping, use cases | `core/*/src/test`; in multiplatform modules `src/commonTest`, which runs on both targets (`testAndroidHostTest`, `desktopTest`) |
 | ViewModel | State transitions using `:core:testing` fakes and Turbine | `feature/*/src/test` |
-| Integration | DAOs and migrations on an in-memory Room database; AI client against MockWebServer | `core/database/src/androidTest`, `core/ai/src/test` |
+| Integration | DAOs, migrations and repositories on Room (in memory, or a file); the transfer, backup and restore flows against real Anki packages and fixture backups made by each platform; AI client against MockWebServer; the desktop collection flow (`DesktopCollectionTest`) | `core/database`, `core/data` `src/commonTest`, `desktop/src/test`, `core/ai/src/test` |
 | UI | Stateless `*Screen` composables; screenshot tests compared with the design | `feature/*/src/androidTest`, Roborazzi |
 | End-to-end | Onboarding → create deck → study → stats | `app/src/androidTest` |
 
@@ -478,7 +481,7 @@ Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.je
 - API keys: encrypted with a non-exportable Android Keystore AES key and decrypted only in memory for each request. `ProviderConfig.toString()` redacts them, and error messages have them removed.
 - Network: HTTPS required, except user-marked local providers whose host is a local address (LAN IPs, `localhost`, `.local`). A network security config can't express address ranges, so the rule is enforced in code before every request (`AiEndpoint`); `network_security_config.xml` pins HTTPS for the hosted presets and trusts only system CAs. Redirects are never followed (ADR 0005).
 - No analytics or crash-reporting SDKs. Logs never include card content or keys.
-- Encrypted keys live in `noBackupFilesDir`, which Android never backs up; the Keystore key does not survive a restore anyway.
+- Encrypted keys live in `noBackupFilesDir`, which Android never backs up; the Keystore key does not survive a restore anyway. On the desktop they are in a `secrets` directory that no backup or export reads, and the AES key is in the OS keychain (Windows Credential Manager, macOS Keychain, Secret Service), or, where there is none, in an owner-only `secrets.key` file: Settings says which (D6).
 
 ## 11. Migration from the current template
 

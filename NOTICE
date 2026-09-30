@@ -79,5 +79,30 @@ Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
 MIT License, https://opensource.org/licenses/MIT
   - jsoup. Copyright (c) Jonathan Hedley and contributors.
 
+Libraries linked only into the desktop app (Windows, macOS, Linux)
+-------------------------------------------------------------------
+
+Apache License 2.0
+  - Compose Multiplatform and Skiko (JetBrains s.r.o. and contributors), which draw the desktop UI.
+  - androidx.sqlite:sqlite-bundled (The Android Open Source Project), which bundles SQLite. SQLite
+    itself is in the public domain, https://sqlite.org/copyright.html.
+  - Apache PDFBox (with FontBox, PDFBox-IO and Commons Logging), which reads the text of PDFs on
+    the desktop. Copyright The Apache Software Foundation. BouncyCastle is excluded on purpose.
+  - JNA (Java Native Access), used under its Apache-2.0 option (it is also available under the
+    LGPL-2.1-or-later).
+
+BSD licenses
+  - java-keyring (BSD-3-Clause), which reaches the OS keychain (Windows Credential Manager,
+    macOS Keychain, Secret Service) that keeps the key behind the encrypted API keys.
+  - jkeychain (pt.davidafsilva.apple, BSD-2-Clause), which java-keyring uses on macOS.
+
+MIT License
+  - secret-service (de.swiesend), which java-keyring uses for the Secret Service on Linux.
+  - SLF4J API. Copyright (c) QOS.ch.
+
+LGPL-2.1-or-later or AFL-2.1 (at the user's choice, as its authors state)
+  - dbus-java (com.github.hypfvieh), which secret-service uses to talk to D-Bus. It is linked as
+    an unmodified library.
+
 Libraries used only to build and test Mnemo (JUnit, Robolectric, Roborazzi, Turbine,
 MockWebServer, Espresso) are not part of the app.

@@ -339,46 +339,63 @@ folder), which the seams touch. **(owner: worth a smoke test before the next rel
 **Goal:** the whole data and domain layer runs on desktop, against the same database format.
 
 - **Room (the riskiest change, because it touches users' data)**
-  - [ ] First, on Android only: migrations take a `SQLiteConnection` (`execSQL` through the
-        driver API), the seed callback uses `onCreate(connection)`, browse queries become
-        `RoomRawQuery` instead of `SupportSQLiteQuery`, `TransactionRunner` and
-        `DatabaseSnapshot` use `useWriterConnection { immediateTransaction { … } }` instead of
-        `withTransaction` and `openHelper`, and the database gets `@ConstructedBy`. Android keeps
-        the framework driver (D0). `MigrationTest` passes for every version (1 → 4).
-  - [ ] Then add the desktop target: `BundledSQLiteDriver`, database file in the D0 data
-        directory, and a desktop migration test against `core/database/schemas/`.
-  - [ ] Fixture databases for every schema version, made by the Android app, migrate on both
-        targets.
+  - [x] First, on Android only: migrations take a `SQLiteConnection` (`execSQL` through the
+        driver API), the seed callback uses `onCreate(connection)`, browse queries are
+        `RoomRawQuery`, `TransactionRunner` uses `useWriterConnection { immediateTransaction { … } }`,
+        `DatabaseSnapshot` reads the version and the file through PRAGMAs, and the database got
+        `@ConstructedBy` when the module moved. Android runs on `AndroidSQLiteDriver` (D0).
+        `MigrationTest` passes for every version (1 → 4), and the exported `4.json` did not change.
+  - [x] Then the desktop target: `BundledSQLiteDriver`, `MnemoDatabase.build(file)`, the database
+        in the D0 data directory, and the same `MigrationTest` against `core/database/schemas/`
+        on desktop (`MigrationTestBase` has an Android and a desktop actual).
+  - [x] Fixture databases for versions 1–4 (`core/database/src/commonTest/resources/fixtures`,
+        made by the Android build, with data) migrate on both targets (`FixtureDatabasesTest`).
+  - [x] On a device: the new debug and R8 release builds were installed over a collection made
+        by the previous build (7 decks, 301 cards, 1,503 reviews, an AI provider) on an API 35
+        emulator: it opened unchanged, a card could be answered and the review was saved.
 - **Modules, in dependency order**
-  - [ ] `:core:common`: drop the Hilt modules (D2); nothing else.
-  - [ ] `:core:datastore`: `PreferenceDataStoreFactory` with a path from `AppDirectories`.
-  - [ ] `:core:database`, as above.
-  - [ ] `:core:security`: desktop `SecretCipher` with the key in the OS keychain, or the key-file
-        fallback (D0). `SecretStore` keeps its file format.
-  - [ ] `:core:ingest`: desktop PDF text through Apache PdfBox; link fetching (OkHttp + jsoup) is
-        shared; dictation is Android-only.
-  - [ ] `:core:domain`: build change only.
-  - [ ] `:core:data`: desktop job runner (application-scope coroutines, progress as `StateFlow`)
-        behind `DataTransferRepository` and `FsrsOptimizationRepository`; auto-backup runs at
-        start when due; `ReminderRepository` is a no-op on desktop. `restartToRestore()` relaunches
-        the desktop app.
-  - [ ] `:core:testing`: fakes move to shared code; the Robolectric runner stays Android-only.
+  - [x] `:core:common`: stays a JVM module (used from `commonMain` as is); its Hilt modules went
+        in D2.
+  - [x] `:core:datastore`: KMP; `PreferenceDataStoreFactory` with a path from `AppDirectories`.
+  - [x] `:core:database`, as above.
+  - [x] `:core:security`: `DesktopSecretCipher` with the AES key in the OS keychain
+        (`KeyringKeyStorage`, java-keyring) or an owner-only key file (`KeyFileStorage`);
+        `SecretStore` and the ciphertext format are unchanged.
+  - [x] `:core:ingest`: Apache PDFBox 3 on desktop (`PdfBoxTextExtractor`); link fetching
+        (OkHttp + jsoup) is shared; dictation is Android-only (`NoSpeechTranscriber`).
+  - [x] `:core:domain`: a build change only.
+  - [x] `:core:data`: `TransferQueue`s in an application scope behind `DataTransferRepository`
+        and `FsrsOptimizationRepository`; the automatic backup and the media cleanup are checked
+        at start and hourly; `ReminderRepository` keeps the setting and schedules nothing;
+        `restartToRestore()` relaunches the desktop app (`ProcessAppRestarter`). The Android
+        workers are in `androidMain`.
+  - [x] `:core:testing`: fakes in `commonMain`; `PlatformTest` (Robolectric on Android only).
 - **Desktop app behavior**
-  - [ ] `PendingRestore.applyIfPresent` runs in `main()` before the DI graph opens the database or
-        DataStore, as it does on Android.
-  - [ ] Single instance: a lock file in the data directory. A second launch says Mnemo is already
-        open instead of opening the database twice.
+  - [x] `PendingRestore.applyIfPresent` runs in `openCollection` (called from `main()`) before the
+        DI graph opens the database or DataStore, as it does on Android.
+  - [x] Single instance: an OS file lock in the data directory (`SingleInstanceLock`). A second
+        launch says Mnemo is already open instead of opening the database twice; a restart waits
+        for the old process. Tested with a real second process.
 - **Tests**
-  - [ ] Unit tests that don't need Robolectric move to shared test source sets, so they run on
-        both targets.
-  - [ ] `DesktopCollectionTest`: an empty data directory → import a real Anki package from
-        `core/anki/src/test/resources` → study cards through the use cases → back up → restore →
-        export `.colpkg`.
-  - [ ] Cross-device fixtures: a backup made by the Android build restores on desktop, and one
-        made on desktop restores under Robolectric.
+  - [x] Unit tests that don't need Robolectric moved to shared source sets and run on both targets
+        (`commonTest`): database, datastore, security, ingest, data, domain.
+  - [x] `DesktopCollectionTest` (`:desktop`): an empty data directory → import a real Anki package
+        → study and undo through the use cases → back up → stage a restore, restart, restored →
+        export → a second collection imports the export. A second test covers the automatic
+        backup and the start-up maintenance. `DesktopGraphTest` resolves every definition of the
+        desktop graph.
+  - [x] Cross-device fixtures: a backup made by the Android build restores on desktop, and one
+        made on desktop restores under Robolectric (`CrossDeviceBackupTest`).
 
-**Exit:** `:desktop:test` runs the data-layer suite; `MigrationTest` passes on both targets; the
-Android exit check is green.
+**Exit:** `:desktop:test` and `desktopTest` run the data-layer suite; `MigrationTest` passes on
+both targets; the Android exit check is green. Met on macOS arm64:
+`assembleDebug testDebugUnitTest testAndroidHostTest desktopTest lint verifyRoborazziDebug`, the
+JVM module tests and `:desktop:test`. Open: the first run of the desktop CI job on Windows and
+Linux (native libraries, the keychain test skipping itself), the keychain on Windows and Linux,
+and by hand on a phone: import an `.apkg`, a backup into a real folder, an AI "Test connection",
+the widget and a reminder (the same checks as D2, now over the driver API).
+
+**Findings:** see ADR 0010, "Findings from D4".
 
 ## D5 — Design system and shared UI
 

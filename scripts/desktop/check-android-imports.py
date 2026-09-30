@@ -7,11 +7,12 @@
 The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android. That
 code may not import Android APIs: each Android API sits behind an interface (`AppDirectories`,
 `DocumentAccess`, `PlatformCapabilities`, `MathRenderer`, ...) whose Android implementation lives
-in a directory named `android`, which becomes the `androidMain` source set when a module turns
-into a Kotlin Multiplatform module (D4-D6).
+in a directory named `android`. A module that has turned into a Kotlin Multiplatform module (D4
+onwards) keeps its Android code in the `androidMain` source set; `commonMain` and `desktopMain`
+are scanned like `src/main` of an Android module.
 
 A file may import them when it is
-  * under a directory named `android` (the convention for new Android implementations), or
+  * under a directory named `android` or `androidMain` (the Android implementations), or
   * listed in PENDING below: Android code that has not moved yet, with the step that moves it.
     The list only shrinks. A listed file that no longer imports an Android API fails the check, so
     finish the move by deleting its entry.
@@ -38,28 +39,20 @@ FORBIDDEN = [
 # nature, but only its entry points are exempt (see PENDING).
 SCAN = ["core", "feature", "app", "desktop"]
 
+# Source sets that may never import Android: everything but the Android-only ones.
+SOURCE_SETS = ["main", "commonMain", "desktopMain", "androidMain"]
+
+# Directory names whose files are Android-only by definition.
+ANDROID_DIRECTORIES = {"android", "androidMain"}
+
 # path (relative to the repository root) -> why it is Android-only for now.
 PENDING = {
     # The Android application: entry points, widget, manifest-registered components.
     "app/src/main/java/com/yahyafati/mnemo/MainActivity.kt": "Android launcher (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/MnemoApplication.kt": "Android launcher (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/widget/TodayWidget.kt": "home-screen widget: Android only (stays in :app)",
-    # Room and the framework SQLite classes: D4 moves them to Room's multiplatform driver API.
-    "core/database/src/main/kotlin/com/yahyafati/mnemo/core/database/MnemoDatabase.kt": "D4: Room on the framework driver",
     # The licenses list reads AboutLibraries' JSON from an Android raw resource: D6 passes it in as text.
     "feature/settings/src/main/kotlin/com/yahyafati/mnemo/feature/settings/LicensesScreen.kt": "D6: raw resource id",
-    # Keystore: D4 adds the desktop SecretCipher.
-    "core/security/src/main/kotlin/com/yahyafati/mnemo/core/security/SecretCipher.kt": "D4: Android Keystore cipher",
-    # WorkManager and notifications: the Android job runner. D4 adds the desktop one behind the same repositories.
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/di/DataModule.kt": "D4: Koin bindings of the Android implementations",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/repository/WorkManagerDataTransferRepository.kt": "D4: WorkManager runner",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/repository/WorkManagerFsrsOptimizationRepository.kt": "D4: WorkManager runner",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/repository/WorkManagerReminderRepository.kt": "D4: WorkManager runner",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/work/OptimizeFsrsWorker.kt": "D4: WorkManager runner",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/work/ReminderWorker.kt": "D4: WorkManager runner and notification",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/work/TransferNotifications.kt": "D4: WorkManager runner and notification",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/work/TransferWorkers.kt": "D4: WorkManager runner",
-    "core/data/src/main/kotlin/com/yahyafati/mnemo/core/data/work/WorkStates.kt": "D4: WorkManager runner",
 }
 
 
@@ -77,9 +70,10 @@ def is_forbidden(name: str) -> bool:
 
 def sources():
     for module in SCAN:
-        for path in sorted((ROOT / module).rglob("src/main/**/*")):
-            if path.suffix in (".kt", ".java") and path.is_file():
-                yield path
+        for source_set in SOURCE_SETS:
+            for path in sorted((ROOT / module).rglob(f"src/{source_set}/**/*")):
+                if path.suffix in (".kt", ".java") and path.is_file():
+                    yield path
 
 
 def main() -> int:
@@ -97,7 +91,7 @@ def main() -> int:
 
     failures = []
     for rel, hits in offenders.items():
-        if "android" in Path(rel).parts[:-1] or rel in PENDING:
+        if ANDROID_DIRECTORIES & set(Path(rel).parts[:-1]) or rel in PENDING:
             continue
         for number, name in hits:
             failures.append(f"{rel}:{number}: imports {name}")
@@ -115,7 +109,7 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         print(
             "Put the API behind an interface and its implementation in a directory named `android`\n"
-            "(see the docstring of this script and docs/desktop/ROADMAP.md, D3).",
+            "or in `androidMain` (see the docstring of this script and docs/desktop/ROADMAP.md, D3).",
             file=sys.stderr,
         )
         return 1

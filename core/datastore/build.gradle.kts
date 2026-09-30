@@ -1,12 +1,17 @@
 plugins {
-    alias(libs.plugins.mnemo.android.library)
+    alias(libs.plugins.mnemo.kmp.library)
 }
 
-dependencies {
-    api(libs.androidx.datastore.preferences)
-    implementation(projects.core.common)
-    implementation(projects.core.model)
-    implementation(libs.koin.core)
-
-    testImplementation(libs.kotlinx.coroutines.test)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.androidx.datastore.preferences)
+            implementation(projects.core.common)
+            implementation(projects.core.model)
+            implementation(libs.koin.core)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+        }
+    }
 }

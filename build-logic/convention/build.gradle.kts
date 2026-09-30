@@ -61,6 +61,10 @@ gradlePlugin {
             id = libs.plugins.mnemo.kmp.library.get().pluginId
             implementationClass = "KmpLibraryConventionPlugin"
         }
+        register("kmpRoom") {
+            id = libs.plugins.mnemo.kmp.room.get().pluginId
+            implementationClass = "KmpRoomConventionPlugin"
+        }
         register("kmpCompose") {
             id = libs.plugins.mnemo.kmp.compose.get().pluginId
             implementationClass = "KmpComposeConventionPlugin"

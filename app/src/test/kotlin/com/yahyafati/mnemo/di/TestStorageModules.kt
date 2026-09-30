@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.yahyafati.mnemo.core.database.MnemoDatabase
+import com.yahyafati.mnemo.core.database.android.build
 import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
 import com.yahyafati.mnemo.core.security.SecretCipher
 import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher

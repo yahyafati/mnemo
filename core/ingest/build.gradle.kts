@@ -1,28 +1,35 @@
 plugins {
-    alias(libs.plugins.mnemo.android.library)
-}
-
-android {
-    // PdfBox-Android reads its fonts and glyph lists from assets, which Robolectric only sees with this.
-    testOptions.unitTests.isIncludeAndroidResources = true
+    alias(libs.plugins.mnemo.kmp.library)
 }
 
 // Smart Extract sources (ARCHITECTURE §5.2, step 1): PDF, web page and speech → plain text, and
 // chunking. Only `:core:data` uses it.
-dependencies {
-    api(projects.core.common)
-    api(projects.core.model)
-    api(libs.okhttp)
-    implementation(libs.jsoup)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.pdfbox.android) {
-        // Only PdfBox's certificate (public-key) encryption uses BouncyCastle, and its bcpkix ships a
-        // trust-all X509TrustManager that store scanners flag. Such PDFs fail as "encrypted" instead.
-        exclude(group = "org.bouncycastle")
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.core.common)
+            api(projects.core.model)
+            api(libs.okhttp)
+            implementation(libs.jsoup)
+        }
+        androidMain.dependencies {
+            implementation(libs.kotlinx.coroutines.android)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.okhttp.mockwebserver)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.androidx.junit)
+            implementation(libs.robolectric)
+        }
     }
+}
 
-    testImplementation(libs.androidx.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.robolectric)
+dependencies {
+    // Only PDF encryption with a certificate (public key) uses BouncyCastle, and its bcpkix ships a
+    // trust-all X509TrustManager that store scanners flag. Such PDFs fail as "encrypted" instead
+    // (ADR 0006). Excluded on the dependency, so the exclusion reaches the apps.
+    "androidMainImplementation"(libs.pdfbox.android) { exclude(group = "org.bouncycastle") }
+    "desktopMainImplementation"(libs.apache.pdfbox) { exclude(group = "org.bouncycastle") }
 }

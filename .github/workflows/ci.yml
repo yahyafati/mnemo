@@ -23,8 +23,10 @@ jobs:
           distribution: temurin
           java-version: 21 # runs Gradle; the JDK 25 test toolchain is downloaded by the foojay resolver
       - uses: gradle/actions/setup-gradle@v4
+      # The Kotlin Multiplatform modules (D4 on) have no testDebugUnitTest: their Android tests are
+      # testAndroidHostTest (their desktop tests run in the desktop job below).
       - name: Phase exit check
-        run: ./gradlew assembleDebug testDebugUnitTest lint
+        run: ./gradlew assembleDebug testDebugUnitTest testAndroidHostTest lint
       - name: JVM module tests
         run: ./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
       - name: Upload reports on failure
@@ -37,9 +39,12 @@ jobs:
             **/build/reports/lint-results-*.html
 
   # Desktop (docs/desktop/ROADMAP.md, ADR 0010). The tests load the native libraries the desktop
-  # app depends on (bundled SQLite, zstd, Skia), so this job runs on all three OSes; `:core:anki`
-  # reads real Anki packages through zstd and SQLite too. The installers are built per OS in D8;
-  # for now Linux builds the app image and checks the desktop classpath for proprietary SDKs.
+  # app depends on (bundled SQLite, zstd, Skia) and run the shared data layer on the desktop
+  # target (`desktopTest` in every Kotlin Multiplatform module, `:desktop:test` for the whole
+  # collection flow), so this job runs on all three OSes; `:core:anki` reads real Anki packages
+  # through zstd and SQLite too. The OS keychain test skips itself on runners that have none. The
+  # installers are built per OS in D8; for now Linux builds the app image and checks the desktop
+  # classpath for proprietary SDKs.
   desktop:
     name: Desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -61,7 +66,7 @@ jobs:
           java-version: 21 # runs Gradle and jlink/jpackage (needs jmods); tests use the JDK 25 toolchain
       - uses: gradle/actions/setup-gradle@v4
       - name: Desktop tests and native libraries
-        run: ./gradlew :desktop:test :core:anki:test
+        run: ./gradlew desktopTest :desktop:test :core:anki:test
       - name: App image (Linux)
         if: runner.os == 'Linux'
         run: ./gradlew :desktop:createDistributable

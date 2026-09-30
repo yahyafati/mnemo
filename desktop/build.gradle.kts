@@ -2,9 +2,9 @@ plugins {
     alias(libs.plugins.mnemo.desktop.application)
 }
 
-// The desktop launcher (docs/desktop/ROADMAP.md, ADR 0010). In D1 it only shows the shared JVM
-// modules (:core:model, :core:scheduler) in a window; the rest of the app joins as the modules
-// become Kotlin Multiplatform (D2–D6).
+// The desktop launcher (docs/desktop/ROADMAP.md, ADR 0010). It starts the data layer (D4): the
+// collection's directory and its single-instance lock, a staged restore, and the Koin graph. The
+// window still shows the sample cards of D1 until the shared UI arrives (D5–D6).
 compose.desktop {
     application {
         mainClass = "com.yahyafati.mnemo.desktop.MainKt"
@@ -12,8 +12,12 @@ compose.desktop {
 }
 
 dependencies {
+    implementation(projects.core.common)
+    implementation(projects.core.data)
+    implementation(projects.core.domain)
     implementation(projects.core.model)
     implementation(projects.core.scheduler)
+    implementation(libs.koin.core)
 
     implementation(libs.cmp.runtime)
     implementation(libs.cmp.foundation)
@@ -22,8 +26,12 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
 
+    testImplementation(projects.core.database)
+    testImplementation(projects.core.security)
+    testImplementation(projects.core.testing)
     testImplementation(libs.cmp.ui.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.koin.test)
     // The native libraries the desktop app needs, loaded on every OS by NativeLibrariesTest (D0's
     // open check): SQLite for Room, zstd for Anki packages, Skia for drawing.
     testImplementation(libs.androidx.sqlite)
