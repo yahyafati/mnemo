@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in Mnemo does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for telling us. Mnemo has no crash reporting, so this is how problems reach the developer.
+
+        **Issues are public.** Do not paste your cards, a backup, a screenshot of private notes, or any API key.
+        For a security problem use the [security policy](https://github.com/yahyafati/mnemo/security/policy) instead.
+  - type: input
+    id: version
+    attributes:
+      label: Mnemo version
+      description: Settings › About shows it, for example 1.0.0.
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Android
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: system-version
+    attributes:
+      label: System version and device
+      description: For example "Android 15, Pixel 8", "Windows 11", "macOS 15 on an M2".
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+    validations:
+      required: false
+  - type: input
+    id: ai
+    attributes:
+      label: AI provider and model (only for an AI problem)
+      description: For example "OpenRouter, openai/gpt-4o-mini" or "local Ollama, llama3". Never the API key.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you send
+      options:
+        - label: This issue contains no API key, no backup file and none of my private cards.
+          required: true

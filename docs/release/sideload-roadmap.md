@@ -41,7 +41,7 @@ are Actions secrets (S1).
 | **S3** | Prove it | The workflows run green, the QA runbooks pass on real devices | 2–4 days |
 | **S4** | The download page | OS-aware download buttons, install notes, checksums, links | done in the repo; goes live with Pages (S0) |
 | **S5** | Updates | Obtainium works, About says where to get a new version | done in the repo; Obtainium not tried on a phone yet |
-| **S6** | Share it | First release published, a place to report problems | ½ day |
+| **S6** | Share it | First release published, a place to report problems | reporting side done in the repo; publishing and sharing are the owner's |
 | **S7** | Later | Signing for Windows and macOS, Intel Mac, F-Droid or Play | as wanted |
 
 ```
@@ -273,17 +273,25 @@ releases to update between.
 **Goal:** the first release goes out and problems come back to you.
 
 - [ ] Publish the S3 draft. Write the notes for people: what Mnemo is, what to do about the warning,
-      what is missing (no sync, Apple Silicon only).
-- [ ] Issue templates (`.github/ISSUE_TEMPLATE/`: bug, idea) so reports include the version, the system,
+      what is missing (no sync, Apple Silicon only). **(owner)** The notes are written
+      ([`release-notes.md`](release-notes.md): warnings, "Good to know"); publishing needs the S3 passes first.
+- [x] Issue templates (`.github/ISSUE_TEMPLATE/`: bug, idea) so reports include the version, the system,
       and for AI problems the provider and model, never a key. The in-app Report button already opens
       a prefilled issue. Issues are public: the templates should say not to paste cards or keys.
-- [ ] A `SECURITY.md` (how to report a vulnerability privately: GitHub's private vulnerability
-      reporting, or the contact address), since the repo is public.
-- [ ] A contact address on the site (the same one the policy has).
+      Done as issue forms (`bug.yml`, `idea.yml`, `config.yml`): version, system, steps, an optional AI
+      provider/model field, and a required "no key, backup or private cards" checkbox. Blank issues stay on
+      because the Report button opens a blank issue with the title and body in the link; a form ignores
+      `body`. **(owner)** Once the templates are on `main`, tap Report on an AI output (or open an
+      `issues/new?title=x&body=y` link) and confirm the form still arrives prefilled.
+- [x] A `SECURITY.md` (how to report a vulnerability privately: GitHub's private vulnerability
+      reporting, or the contact address), since the repo is public. Written; **(owner)** turn on
+      Settings › Code security › Private vulnerability reporting, or the link in it 404s.
+- [x] A contact address on the site (the same one the policy has). Already in the page's "Something went wrong?" section.
 - [ ] Share the link with a few people first. Ask what confused them on the page and in the first
       five minutes, and fix that before sharing it widely.
-- [ ] There is no telemetry, so you hear about crashes only if people report them: say on the page
-      how to (GitHub issue or email), and what to include (the version is in About).
+- [x] There is no telemetry, so you hear about crashes only if people report them: say on the page
+      how to (GitHub issue or email), and what to include (the version is in About). Already on the page;
+      the bug form now asks for the same things.
 
 **Exit:** the page is public, the first release is published, and three real people have installed it
 from the page alone.
@@ -316,7 +324,8 @@ from the page alone.
 ## Open items
 
 - **(owner)** Pages source set to GitHub Actions (S0), the keystore and its Actions secrets (S1),
-  and S3's real-machine passes.
+  S3's real-machine passes, and S6's last steps: private vulnerability reporting on, the Report-link check,
+  publishing the draft and showing the page to a few people.
 - Neither `ci.yml`, `release.yml` nor `pages.yml` has run on GitHub yet (S0, S3).
 - `release.yml` (S2) has the Android job and one checksum file, but has never run: it needs the Actions
   secrets and variable from S1 before a tag can build.
