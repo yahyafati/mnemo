@@ -7,15 +7,17 @@ By contributing you agree that your work is released under the project's license
 
 ## Reporting bugs and suggesting features
 
-Open an issue at <https://github.com/yahyafati/mnemo/issues>. Search first to avoid duplicates.
+Open an issue at <https://github.com/yahyafati/mnemo/issues/new/choose> (a bug report or an idea form).
+Search first to avoid duplicates.
 
-For a bug, include the app version, Android version and device, the steps to reproduce, and what
-you expected to happen. Attach a screenshot if it is a visual problem.
+For a bug, include the app version (Settings › About), your system (Android, Windows, macOS or Linux) and
+its version, the steps to reproduce, and what you expected to happen. For an AI problem add the provider
+and model, never the key. Attach a screenshot if it is a visual problem and shows none of your cards.
 
 **Never paste an API key, a keystore or its passwords** into an issue, a log or a pull request.
 
 For a security problem, or anything that involves your private data, don't open a public issue.
-Use the contact address in the [privacy policy](docs/release/privacy-policy.md).
+Follow [SECURITY.md](SECURITY.md).
 
 For a larger feature, open an issue to discuss it before writing code, so you don't spend time on
 something that doesn't fit the [roadmap](docs/ROADMAP.md).
