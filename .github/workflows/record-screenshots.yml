@@ -1,0 +1,95 @@
+name: Record screenshots
+
+# Re-records the Roborazzi baselines on a CI runner and commits the changed PNGs to the branch, for
+# when a visual change is intended and Gradle can't run on your machine (CLAUDE.md "Commands").
+# Look at the diff of the commit before merging: it is a record of what the screens look like now.
+#
+# Two ways to start it, never on the default branch or from a fork:
+#  - Label a pull request `record-screenshots` (works before this file is on main). Android baselines.
+#    The workflow removes the label when it is done, so the same label can be applied again.
+#  - Actions › Record screenshots › Run workflow, on the branch. Needs this file on the default branch.
+#    `target` = android (Ubuntu, Robolectric) or desktop (macOS arm64: the desktop baselines are
+#    recorded there, and Skia's output differs on other systems).
+#
+# A push made with GITHUB_TOKEN does not start other workflows, so CI does not re-run on the new
+# commit by itself: push any change to the branch (or re-run CI from a later commit) to get it green.
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which baselines
+        type: choice
+        options: [android, desktop]
+        default: android
+      module:
+        description: "Only this Gradle module, e.g. :feature:settings (empty: every module)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: record-screenshots-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: Record and commit
+    # The label trigger only for branches of this repository: a fork's code must not get a write token.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'record-screenshots' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ${{ inputs.target == 'desktop' && 'macos-latest' || 'ubuntu-latest' }}
+    env:
+      BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      TARGET: ${{ inputs.target || 'android' }}
+      MODULE: ${{ inputs.module }}
+    steps:
+      - name: Check where this runs
+        run: |
+          if [ "$BRANCH" = "$DEFAULT_BRANCH" ] || [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "::error::Run this on a feature branch, not on $DEFAULT_BRANCH or a tag."; exit 1
+          fi
+          if ! printf '%s' "$MODULE" | grep -Eq '^(:[A-Za-z0-9_-]+)*$'; then
+            echo "::error::module must look like :feature:settings (or be empty)."; exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21 # runs Gradle; the JDK 25 test toolchain is downloaded by the foojay resolver
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Record
+        run: |
+          if [ "$TARGET" = "desktop" ]; then task=recordRoborazziDesktop; else task=recordRoborazziAndroidHostTest; fi
+          if [ -n "$MODULE" ]; then task="${MODULE}:${task}"; fi
+          ./gradlew "$task"
+      - name: Commit the changed baselines
+        run: |
+          # Only screenshot files: a test run must not sneak other changes into the commit.
+          git add -A -- ':(glob)**/src/*/screenshots/**'
+          if git diff --cached --quiet; then
+            echo "The baselines already match: nothing to commit."; exit 0
+          fi
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Re-record $TARGET screenshot baselines${MODULE:+ ($MODULE)}" \
+            -m "Recorded by the Record screenshots workflow (run $GITHUB_RUN_ID). Check the images by eye."
+          git push origin "HEAD:refs/heads/$BRANCH"
+      - name: Take the label off
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/record-screenshots"

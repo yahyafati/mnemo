@@ -27,6 +27,7 @@ Use the Gradle wrapper from the repo root:
 # design system on Android in <module>/src/androidHostTest/screenshots
 ./gradlew verifyRoborazziAndroidHostTest
 ./gradlew recordRoborazziAndroidHostTest   # after an intended visual change; compare with docs/design/ by eye
+# or without a local build: label the PR `record-screenshots` (Android) / run "Record screenshots" (`.github/workflows/record-screenshots.yml`, desktop on macOS); it commits the PNGs to the branch
 
 ./gradlew assembleRelease        # R8-minified; keep rules in app/src/main/keepRules
 ```
