@@ -3,7 +3,7 @@
 {{changelog}}
 
 Mnemo is free, keeps everything on your device and has no account. **Android** (`.apk`), **Windows**
-(`.msi`), **macOS on Apple Silicon** (`.dmg`) and **Linux** (`.deb`, `.rpm`, portable `.tar.gz`) are
+(`.msi`), **macOS** (`.dmg`, one for Apple Silicon and one for Intel) and **Linux** (`.deb`, `.rpm`, portable `.tar.gz`) are
 below. Check a download against `SHA256SUMS.txt`.
 
 **Source:** the source of this release is the repository at its tag, which GitHub also attaches as
@@ -36,6 +36,6 @@ Install, update, uninstall and where your data lives:
 
 - Your collection is in your user's data folder, not the install folder: updating and uninstalling keep it.
 - No sync yet. Move a collection with Back up and Restore, or one deck with `.apkg` export and import.
-- Intel Macs are not built yet.
+- On a Mac, Apple menu › About This Mac says which `.dmg` to take: `arm64` for "Chip: Apple M…", `x64` for "Processor: Intel".
 - Each file is there twice: with the version in its name (what `SHA256SUMS.txt` and bug reports use) and
   without (`Mnemo-android.apk`, ...), the one the download page links to.

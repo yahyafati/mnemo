@@ -41,6 +41,18 @@
       small.textContent = note;
       pick.appendChild(small);
     }
+    // A browser says "Intel" on every Mac, so the Apple Silicon button gets the Intel build as its alternative.
+    var other = rows[system + "-intel"];
+    if (other) {
+      var alt = document.createElement("p");
+      alt.className = "small";
+      alt.appendChild(document.createTextNode("Not sure which Mac you have? Choose Apple menu \u203a About This Mac: \u201cChip\u201d says Apple M1 or later, \u201cProcessor\u201d says Intel. "));
+      var altLink = document.createElement("a");
+      altLink.href = other.querySelector("a").href;
+      altLink.textContent = "Download for " + other.getAttribute("data-label");
+      alt.appendChild(altLink);
+      pick.appendChild(alt);
+    }
     var more = document.createElement("p");
     more.className = "small";
     more.innerHTML = 'Not your system? <a href="#all-files">Every file is below</a>, and <a href="#install">what to click when your system warns you</a>.';

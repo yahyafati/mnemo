@@ -1,9 +1,9 @@
 name: Release
 
 # One tag, one draft GitHub Release (sideload roadmap S2): the signed Android APK and the desktop
-# installers (docs/desktop/ROADMAP.md, D8), each also under a name without the version (what the
-# download page links), and one SHA256SUMS.txt over all of it. Nothing is published until the owner
-# reads the draft and presses Publish. Run by hand (Actions > Release > Run workflow) it only builds and
+# installers (docs/desktop/ROADMAP.md, D8; macOS for Apple Silicon and Intel), each also under a name
+# without the version (what the download page links), and one SHA256SUMS.txt over all of it. Nothing is
+# published until the owner reads the draft and presses Publish. Run by hand (Actions > Release > Run workflow) it only builds and
 # keeps the files as workflow artifacts: that is the way to try a change to the packaging. It only runs
 # for `main` and for `v*` tags: a run started from any other branch skips every job.
 #
@@ -119,10 +119,14 @@ jobs:
           - name: Windows
             os: windows-latest
             tasks: :desktop:packageMsi
-          # Apple Silicon only (desktop ROADMAP D0). An Intel build needs an Intel runner: add a
-          # `macos-15-intel` entry with the same task and an arch suffix in the staging step below.
+          # jpackage cannot cross-build, so each Mac architecture has its own runner (sideload roadmap S7).
           - name: macOS
-            os: macos-latest
+            os: macos-latest # Apple Silicon
+            arch: arm64
+            tasks: :desktop:packageDmg
+          - name: macOS-Intel
+            os: macos-15-intel
+            arch: x64
             tasks: :desktop:packageDmg
     defaults:
       run:
@@ -175,6 +179,8 @@ jobs:
           if [ "$RUNNER_OS" = "Linux" ]; then xvfb-run -a $smoke; else $smoke; fi
 
       - name: Name the files
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
           out=desktop/build/compose/binaries/main
@@ -185,7 +191,7 @@ jobs:
             Windows)
               cp "$out/msi/Mnemo-$version.msi" "dist/Mnemo-$version-windows-x64.msi" ;;
             macOS)
-              cp "$out/dmg/Mnemo-$version.dmg" "dist/Mnemo-$version-macos-arm64.dmg" ;;
+              cp "$out/dmg/Mnemo-$version.dmg" "dist/Mnemo-$version-macos-$ARCH.dmg" ;;
           esac
           ls -l dist
 

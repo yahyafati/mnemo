@@ -11,13 +11,14 @@ format, and it keeps everything on your computer. This page covers the installer
 | System | File | Notes |
 |---|---|---|
 | Windows 10 or 11, 64-bit | `Mnemo-<version>-windows-x64.msi` | Installs for your user only; no administrator prompt |
-| macOS 12 or newer, Apple Silicon (M1 and later) | `Mnemo-<version>-macos-arm64.dmg` | There is no build for Intel Macs yet |
+| macOS 12 or newer, Apple Silicon (M1 and later) | `Mnemo-<version>-macos-arm64.dmg` | Apple menu › About This Mac says "Chip" |
+| macOS 12 or newer, Intel | `Mnemo-<version>-macos-x64.dmg` | About This Mac says "Processor: Intel" |
 | Debian, Ubuntu, Mint and relatives, x86-64 | `mnemo_<version>-1_amd64.deb` | |
 | Fedora, openSUSE and relatives, x86-64 | `mnemo-<version>-1.x86_64.rpm` | |
 | Any other Linux, x86-64 | `Mnemo-<version>-linux-x64.tar.gz` | Portable: unpack it anywhere |
 
 Each file is on the release twice: with the version in its name, and without it (`Mnemo-windows-x64.msi`,
-`Mnemo-macos-arm64.dmg`, `Mnemo-linux-x64.tar.gz`, `mnemo-amd64.deb`, `mnemo-x86_64.rpm`), which is the link
+`Mnemo-macos-arm64.dmg`, `Mnemo-macos-x64.dmg`, `Mnemo-linux-x64.tar.gz`, `mnemo-amd64.deb`, `mnemo-x86_64.rpm`), which is the link
 that always gives the newest release.
 
 Every release has a `SHA256SUMS.txt`. To check a download, compare its hash with the line for that

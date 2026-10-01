@@ -10,8 +10,7 @@ backup, airplane mode) are worded the same on purpose.
 The parts a machine can do are in `scripts/qa/desktop-checks.py` (run it with `--help`). The rest needs a
 person at the keyboard looking at the window and listening to the audio.
 
-**Not bugs** (known gaps, listed in the release notes): unsigned installers and their first-run warning, no Intel
-Mac build, no sync, no text to speech, dictation, reminder or widget, sound only in `wav`, `mp3` and `ogg`, and
+**Not bugs** (known gaps, listed in the release notes): unsigned installers and their first-run warning, no sync, no text to speech, dictation, reminder or widget, sound only in `wav`, `mp3` and `ogg`, and
 math that JLaTeXMath cannot draw showing as raw TeX.
 
 ## 0. Set up
@@ -21,7 +20,7 @@ math that JLaTeXMath cannot draw showing as raw TeX.
 | Role | What | Used for |
 |---|---|---|
 | Windows | Windows 11 x64, and Windows 10 if you have it. One machine with a **user name that has a space or a non-ASCII letter** (for example `José Núñez`) | `.msi`, SmartScreen, per-user install, non-ASCII paths (§8), scaling 100/150/200 % on a *real display* |
-| macOS | Apple Silicon. Run the Gatekeeper step on macOS 15 or newer, and on 14 or older if you have one | `.dmg`, Gatekeeper, application menu, Dock, Retina |
+| macOS | Apple Silicon, and an Intel Mac if you have one (the Intel `.dmg` is built on an Intel runner and only ever started there by CI). Run the Gatekeeper step on macOS 15 or newer, and on 14 or older if you have one | `.dmg`, Gatekeeper, application menu, Dock, Retina |
 | Linux (Debian family) | Ubuntu LTS, GNOME, **Wayland** session; and once on an **X11** session | `.deb`, the libraries list in `install.md`, both display servers |
 | Linux (Fedora family) | Fedora, KDE or GNOME | `.rpm` |
 | Linux without a keychain | Any desktop where no Secret Service answers (a bare window manager, or `gnome-keyring` stopped) | The key-file fallback (§3) |
@@ -309,7 +308,7 @@ Turn Wi-Fi and Ethernet off (or block the app in the firewall). Then a **cold** 
 
 ## 9. Release hygiene
 
-- [ ] The draft release has: the `.msi`, the `.dmg`, the `.deb`, the `.rpm`, the `.tar.gz`, the APK, `SHA256SUMS.txt`, a copy of each under a name without the version, and notes (from
+- [ ] The draft release has: the `.msi`, both `.dmg`s (Apple Silicon and Intel), the `.deb`, the `.rpm`, the `.tar.gz`, the APK, `SHA256SUMS.txt`, a copy of each under a name without the version, and notes (from
       `docs/release/release-notes.md`) that match the **known issues found in this pass**: update the file, don't edit only the draft.
 - [ ] The `LICENSE` and `NOTICE` files are in each app's `resources` folder, and every library the app ships is either
       in `NOTICE` or in Settings › About › Open-source licenses.
