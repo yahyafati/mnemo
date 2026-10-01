@@ -36,7 +36,7 @@ are Actions secrets (S1).
 | Step | Theme | Outcome | Rough effort |
 |---|---|---|---|
 | **S0** | Public repo | Repo public, Issues and Pages on, the app's links right, a contact in the privacy policy | done except two settings |
-| **S1** | Android signing | Keystore, signed APK that installs over itself | ½ day |
+| **S1** | Android signing | Keystore, signed APK that installs over itself | done in the repo; five owner steps left |
 | **S2** | One release, every file | One tag builds the APK and the installers and drafts one release with checksums and stable names | 1–2 days |
 | **S3** | Prove it | The workflows run green, the QA runbooks pass on real devices | 2–4 days |
 | **S4** | The download page | OS-aware download buttons, install notes, checksums, links | 1 day |
@@ -89,24 +89,38 @@ shows the links work. The critical path is S3: it needs real machines (Windows, 
 
 **Goal:** an APK that real phones accept now and still accept after every later update.
 
-- [ ] Create the keystore **(owner)**: [signing.md](signing.md). Keep it outside the repo and back it
-      up in two places. **Android will not update an app signed with a different key**, so losing it
-      means everyone uninstalls and loses their data (they can use backup first, but most won't).
-      The repo is public now: a keystore or password committed by mistake is public forever, and the
-      only remedy is a new key. `*.jks` and `*.keystore` are ignored; keep it that way.
-- [ ] Use this keystore as the future Play upload/app-signing key as well, so a later Play release
-      can take over from sideloaded installs. (F-Droid signs with its own key; its users can't
-      update from a sideloaded APK, which is fine.)
-- [ ] `./gradlew assembleRelease` with `MNEMO_KEYSTORE_*` set; verify with `apksigner verify`. Install
-      it on a real phone, then install a second build with a higher `versionCode` over it and
-      check the data is still there (`scripts/qa/device-checks.sh` has the install-over step).
-- [ ] Decide on ABIs: the universal APK is simplest. If its size bothers you, an arm64-only APK is
-      what almost every current phone needs, but keep the universal one for emulators and old devices.
-- [ ] Put the keystore and its passwords in the repo's **Actions secrets** (`MNEMO_KEYSTORE_FILE`
-      as base64, `MNEMO_KEYSTORE_PASSWORD`, `MNEMO_KEY_ALIAS`, `MNEMO_KEY_PASSWORD`) so S2 can sign in CI.
-      **(owner)** Secrets are not passed to workflows triggered by pull requests from forks, which is
-      what you want: the release workflows run only on tags and by hand, never on `pull_request`.
-      Restrict who can push tags (Settings › Rules › tag ruleset for `v*`) so only you can start one.
+- [x] Create the keystore **(owner)**: [signing.md](signing.md). It exists at `~/keys/mnemo-upload.jks`
+      and `local.properties` points at it (checked 2026-10-01: `assembleRelease` signs with it).
+      Keep it outside the repo and back it up in two places. **Android will not update an app signed
+      with a different key**, so losing it means everyone uninstalls and loses their data (they can use
+      backup first, but most won't). The repo is public now: a keystore or password committed by mistake
+      is public forever, and the only remedy is a new key. `*.jks` and `*.keystore` are ignored; keep it so.
+- [ ] **(owner)** Confirm the two backups exist and open (`keytool -list -keystore <copy>`), and write
+      down the certificate's SHA-256 fingerprint (signing.md): CI pins it as `MNEMO_CERT_SHA256`.
+- [ ] **(owner)** Use this keystore as the future Play app-signing key as well, so a later Play release
+      can take over from sideloaded installs. Play only lets you pick "use the same key" at the first
+      upload, so this is a decision to make now, not later. (F-Droid signs with its own key; its users
+      can't update from a sideloaded APK, which is fine.)
+- [x] `scripts/check-apk-signature.py` (new): wraps `apksigner verify` and fails for an unsigned APK, the
+      debug key, a missing v2+ signature, a signer other than `--cert-sha256`, or, given two APKs, two
+      different signers. Tried 2026-10-01 on the real release build (signed, signer reported), an
+      unsigned one (rejected), and a build signed with a throwaway key (rejected against the real
+      fingerprint; `versionCode` 1 and 2 built with `-Pmnemo.versionCode=2` report the same signer).
+      S2's Android job runs it.
+- [ ] **(owner)** The install-over test on a real phone ([signing.md](signing.md) "Install-over test"):
+      install a build, make a deck, install one with a higher `versionCode` over it, and check the data
+      is still there (`scripts/qa/device-checks.sh install` does `adb install -r`). No device was
+      attached when this step was written, so it is not run yet.
+- [x] ABIs: **universal APK** (arm64-v8a, armeabi-v7a, x86, x86_64; 11.7 MB on 2026-10-01, 6 native
+      libraries, all 16 KB aligned). One file is what the page and Obtainium want; an arm64-only split
+      would save little and make people choose. Revisit only past about 50 MB.
+- [ ] **(owner)** Put the keystore and its passwords in the repo's **Actions secrets**
+      (`MNEMO_KEYSTORE_BASE64` as base64, `MNEMO_KEYSTORE_PASSWORD`, `MNEMO_KEY_ALIAS`,
+      `MNEMO_KEY_PASSWORD`) and the fingerprint as the **variable** `MNEMO_CERT_SHA256`, so S2 can sign
+      in CI (table in signing.md). Secrets are not passed to workflows triggered by pull requests from
+      forks, which is what you want: the release workflows run only on tags and by hand, never on
+      `pull_request`. Restrict who can push tags (Settings › Rules › tag ruleset for `v*`) so only you
+      can start one.
 
 **Exit:** a signed APK installs, runs, and updates over an older one.
 
@@ -127,11 +141,12 @@ and stable file names.
       between two workflows both creating the release or overwriting the checksum file, and the
       "the Android release may already have made this release" branch in the script can go.
       Its `permissions: contents: write` and `GITHUB_TOKEN` are enough; no extra token.
-- [ ] **The Android job:** check out, decode the keystore from the secret into the runner's temp dir,
-      run `assembleRelease`, run `scripts/check-16kb-alignment.py` and `apksigner verify`, and upload
+- [ ] **The Android job:** check out, decode the keystore from the `MNEMO_KEYSTORE_BASE64` secret into the runner's temp dir,
+      run `assembleRelease`, run `scripts/check-16kb-alignment.py` and
+      `scripts/check-apk-signature.py --cert-sha256 $MNEMO_CERT_SHA256`, and upload
       `Mnemo-<version>-android.apk`. It must fail, not publish, when the secrets are missing: an
       unsigned APK is useless to users (`ReleaseConfig.kt` falls back to an unsigned build, so check
-      `apksigner verify` really reports a signer). Delete the decoded keystore at the end
+      the signature check really reports the signer). Delete the decoded keystore at the end
       (`if: always()`), and never `echo` a secret.
 - [ ] **Source.** GitHub puts `Source code (tar.gz)` of the tag on every release, and since the repo is
       public that is the corresponding source: no extra archive is needed. Check once that it builds
