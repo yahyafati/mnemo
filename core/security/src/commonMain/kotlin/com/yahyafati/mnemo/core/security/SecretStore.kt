@@ -59,7 +59,7 @@ class FileSecretStore internal constructor(
 
     override val protection: KeyProtection get() = cipher.protection
 
-    override suspend fun put(id: String, secret: String) = withContext(ioDispatcher) {
+    override suspend fun put(id: String, secret: String): Unit = withContext(ioDispatcher) {
         val dir = directory().apply { mkdirs() }
         val sealed = cipher.encrypt(secret.toByteArray(Charsets.UTF_8), id.toByteArray(Charsets.UTF_8))
         val temp = File(dir, name(id) + ".tmp")
