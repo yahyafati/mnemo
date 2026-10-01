@@ -39,6 +39,7 @@ class LicensesFlowTest {
         awaitText("About")
         composeRule.onNodeWithText("Source code").performScrollTo()
         composeRule.onNodeWithText("GPL-3.0-or-later. Mnemo is free software.").assertExists()
+        composeRule.onNodeWithText("Latest release").performScrollTo().assertExists()
 
         composeRule.onNodeWithText("Open-source licenses").performScrollTo().performClick()
         awaitText("Mnemo is licensed under GPL-3.0-or-later")
