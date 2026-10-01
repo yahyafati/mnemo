@@ -25,6 +25,7 @@ tasks.register<Tar>("packagePortable") {
     archiveVersion = providers.gradleProperty("mnemo.versionName")
     archiveClassifier = "linux-$architecture"
     compression = Compression.GZIP
+    archiveExtension = "tar.gz" // Gradle's default for GZIP is "tgz"; the release workflow and the page expect .tar.gz
     destinationDirectory = layout.buildDirectory.dir("compose/binaries/main/portable")
     dependsOn("createDistributable")
     from(layout.buildDirectory.dir("compose/binaries/main/app")) { include("Mnemo/**") }
