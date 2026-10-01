@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://yahyafati.github.io/mnemo/"><b>Download</b></a> for Android, Windows, macOS and Linux
+</p>
+
+<p align="center">
   <img src="docs/release/assets/screenshots/phone/01-home-light.png" alt="Decks" width="180">
   <img src="docs/release/assets/screenshots/phone/03-study-cloze-light.png" alt="Study session" width="180">
   <img src="docs/release/assets/screenshots/phone/06-smart-extract-light.png" alt="Smart Extract" width="180">

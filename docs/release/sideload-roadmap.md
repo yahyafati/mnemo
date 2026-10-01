@@ -39,7 +39,7 @@ are Actions secrets (S1).
 | **S1** | Android signing | Keystore, signed APK that installs over itself | done in the repo; five owner steps left |
 | **S2** | One release, every file | One tag builds the APK and the installers and drafts one release with checksums and stable names | done in the repo; not run on GitHub yet (S3) |
 | **S3** | Prove it | The workflows run green, the QA runbooks pass on real devices | 2–4 days |
-| **S4** | The download page | OS-aware download buttons, install notes, checksums, links | 1 day |
+| **S4** | The download page | OS-aware download buttons, install notes, checksums, links | done in the repo; goes live with Pages (S0) |
 | **S5** | Updates | Obtainium works, About says where to get a new version | ½ day |
 | **S6** | Share it | First release published, a place to report problems | ½ day |
 | **S7** | Later | Signing for Windows and macOS, Intel Mac, F-Droid or Play | as wanted |
@@ -211,27 +211,35 @@ archive builds.
 deploys them to this repo's Pages with `deploy-pages` (no token, no second repo, no `gh-pages` branch).
 Extend the page:
 
-- [ ] **Workflow triggers.** `pages.yml` runs on changes to the policy, `scripts/pages/**` and itself.
+- [x] **Workflow triggers.** `pages.yml` runs on changes to the policy, `scripts/pages/**` and itself.
       Add the install docs it reads, so editing them redeploys, and `published` releases
       (`on: release: types: [published]`) so the page's "current version" line can be baked in too,
       if you choose to build it in at deploy time instead of reading the API in the browser.
-- [ ] **Download section**: a big button for the visitor's system (a few lines of JS on
+- [x] **Download section**: a big button for the visitor's system (a few lines of JS on
       `navigator.userAgent`, with the full list of files below it for everyone else), each linking to
       `https://github.com/yahyafati/mnemo/releases/latest/download/<stable name>`. No JS fallback:
       show every system.
-- [ ] Show the **current version** and the date: read it from the GitHub API at page load, falling back
+- [x] Show the **current version** and the date: read it from the GitHub API at page load, falling back
       to nothing if the request fails (the page must work with scripts off).
-- [ ] **Install notes per system**, copied from [`docs/desktop/install.md`](../desktop/install.md) and
+- [x] **Install notes per system**, copied from [`docs/desktop/install.md`](../desktop/install.md) and
       the Android steps: why there is a warning, exactly what to click, how to check the checksum.
-- [ ] **Trust block**: free, no account, no ads or tracking, everything stays on your device, AI keys are
+- [x] **Trust block**: free, no account, no ads or tracking, everything stays on your device, AI keys are
       yours, GPL-3.0-or-later with the source one click away (the repo, at the release's tag), privacy
       policy link, and the SHA-256 explanation.
-- [ ] Update `build.py`'s nav and links (it already points at this repo: `REPO`) so "Source" and
+- [x] Update `build.py`'s nav and links (it already points at this repo: `REPO`) so "Source" and
       "Report a problem" are right, and add the Releases link.
-- [ ] Optional: a screenshot or two from `docs/release/assets`, and the logo.
-- [ ] Link the page from the repo README and the About screen's text if you want people to find it.
+- [x] Optional: a screenshot or two from `docs/release/assets`, and the logo.
+- [x] Link the page from the repo README. (The About screen is left alone: it gets its releases row in S5.)
+
+How it was built: the page is `scripts/pages/index.html` + `download.js`, and `build.py` makes the file
+table from the stable names in `prepare-release.py` (it fails when the two disagree). The version line is
+read by the visitor's browser, so a release needs no redeploy and the `published` trigger was left out. A
+404 from the releases API shows "No release has been published yet" instead of dead links. Tried with
+Playwright on seven user agents (Android, Windows, macOS, three Linux flavours, iPhone), with scripts off,
+with the API failing, and at phone width.
 
 **Exit:** the page, opened on a phone and on a laptop, leads to a working download in two taps.
+Still to check once Pages is on and a release is published: the two taps, on a real phone and laptop.
 
 ## S5 — Updates
 
@@ -295,8 +303,8 @@ from the page alone.
 - `assembleRelease` with signing from the environment, the 16 KB check and R8 (R2).
 - `release.yml`: the signed APK, the Windows, macOS and Linux installers, a smoke test, one checksum file,
   stable-name copies and a draft release in this repo (S2).
-- `pages.yml` and `scripts/pages/build.py`: the privacy policy and a one-page site, deployed with
-  `deploy-pages` to this repo's Pages (S4 extends the page).
+- `pages.yml` and `scripts/pages/build.py`: the download page (S4) and the privacy policy, deployed with
+  `deploy-pages` to this repo's Pages.
 - `docs/desktop/install.md`, `docs/desktop/qa.md`, [qa.md](qa.md), [signing.md](signing.md).
 - The repo is public with Issues on; `ProjectLinks` points at it.
 
@@ -307,7 +315,7 @@ from the page alone.
 - Neither `ci.yml`, `release.yml` nor `pages.yml` has run on GitHub yet (S0, S3).
 - `release.yml` (S2) has the Android job and one checksum file, but has never run: it needs the Actions
   secrets and variable from S1 before a tag can build.
-- The site has no download links (S4).
+- The download page is built (S4) but nothing is published until Pages is switched on (S0) and the first release is (S6): until then its links 404, and the page says "No release has been published yet" once the browser sees that.
 - ADR 0009, `distribution.md` and release R0 say "public source repo" for the Play and F-Droid route;
   that is now true, so R0's "publish the source repo" item can be ticked. If this plan is the one you
   follow, add a line to ADR 0009 that releases go out directly first.
