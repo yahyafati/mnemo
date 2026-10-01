@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
 
@@ -62,9 +64,12 @@ class FileSecretStore internal constructor(
         val sealed = cipher.encrypt(secret.toByteArray(Charsets.UTF_8), id.toByteArray(Charsets.UTF_8))
         val temp = File(dir, name(id) + ".tmp")
         temp.writeBytes(sealed)
-        if (!temp.renameTo(File(dir, name(id)))) {
+        try {
+            // `File.renameTo` won't replace an existing file on Windows, so saving a key twice failed there.
+            Files.move(temp.toPath(), File(dir, name(id)).toPath(), StandardCopyOption.REPLACE_EXISTING)
+        } catch (e: IOException) {
             temp.delete()
-            throw IOException("Can't save the secret")
+            throw IOException("Can't save the secret", e)
         }
     }
 
