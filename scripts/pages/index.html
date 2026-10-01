@@ -49,15 +49,15 @@ over the old one and keeps your decks.</p>
 <strong>Run anyway</strong>.</li>
 </ol>
 
-<h3 id="macos">macOS 12 or newer, Apple Silicon</h3>
+<h3 id="macos">macOS 12 or newer</h3>
 <ol>
-<li>Open <code>Mnemo-macos-arm64.dmg</code> and drag Mnemo to Applications.</li>
+<li>Open <code>Mnemo-macos-arm64.dmg</code> (Apple Silicon: M1 and later) or <code>Mnemo-macos-x64.dmg</code>
+(Intel) and drag Mnemo to Applications. Apple menu › About This Mac says which chip you have.</li>
 <li>Open Mnemo. macOS says it cannot check the app for malware.
 On macOS 14 and older, right-click Mnemo, choose <strong>Open</strong>, then <strong>Open</strong> again.
 On macOS 15 and newer, open <strong>System Settings › Privacy &amp; Security</strong>, scroll down to the
 message about Mnemo and choose <strong>Open Anyway</strong>.</li>
 </ol>
-<p>There is no build for Intel Macs yet.</p>
 
 <h3 id="linux">Linux (x86-64)</h3>
 <pre><code>sudo apt install ./mnemo-amd64.deb       # Debian, Ubuntu, Mint
@@ -76,7 +76,7 @@ in a repository. You need a desktop with X11 or Wayland.</p>
 file's exact bytes. If the hash of your download is the one in that line, you have the file the release
 built, with no corruption on the way. Compare it:</p>
 <pre><code>sha256sum Mnemo-android.apk              # Linux
-shasum -a 256 Mnemo-macos-arm64.dmg      # macOS
+shasum -a 256 Mnemo-macos-arm64.dmg      # macOS (Mnemo-macos-x64.dmg on an Intel Mac)
 Get-FileHash Mnemo-windows-x64.msi       # Windows PowerShell</code></pre>
 <p>On Linux, <code>sha256sum -c --ignore-missing SHA256SUMS.txt</code> checks every file you downloaded at once.
 Releases also carry a build attestation, so <code>gh attestation verify &lt;file&gt; --repo yahyafati/mnemo</code>

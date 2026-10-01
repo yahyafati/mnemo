@@ -483,7 +483,7 @@ have not run yet.
 9. **Still open:** the first workflow run (WiX on the Windows runner, `rpm` and `fakeroot` on Ubuntu, the
    smoke test under Xvfb), the `.msi`, `.deb` and `.rpm` themselves (file names, `/opt/mnemo`, file
    associations registering, the menu entries), install, upgrade over an older version and uninstall on
-   each system, Intel Macs (an Intel runner and an arch suffix), and the size.
+   each system, the Intel Mac build (added in sideload roadmap S7: a `macos-15-intel` matrix entry and the `-macos-x64` name; not yet run), and the size.
 
 ## Alternatives
 

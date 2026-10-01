@@ -302,7 +302,7 @@ from the page alone.
 |---|---|---|
 | Windows code signing | Removes the SmartScreen warning. SignPath.io is free for open-source projects and now qualifies, since the repo is public; Azure Trusted Signing is cheap. | Application and CI setup |
 | macOS notarization | The only way to remove Gatekeeper's warning | Apple Developer account, $99/yr |
-| Intel Mac build | Needs an Intel runner (`macos-15-intel`) in `release.yml`; see its comment | One more CI job and a name |
+| Intel Mac build | **Done in the repo:** a `macos-15-intel` entry in `release.yml`, `Mnemo-macos-x64.dmg` in `prepare-release.py` and on the page. Not run on GitHub yet (S3) | One more CI job and a name |
 | Self-hosted F-Droid repo | Real updates for Android users | Hosting and a signing routine |
 | Google Play | The privacy policy is S4's page and the source is public | See [ROADMAP.md](ROADMAP.md) R4–R6 |
 | F-Droid | Builds from the public source repo, which it now is | See [fdroid.md](fdroid.md) |
@@ -314,7 +314,7 @@ from the page alone.
 
 - GPL license, notices and the open-source licenses screen (R0, R2).
 - `assembleRelease` with signing from the environment, the 16 KB check and R8 (R2).
-- `release.yml`: the signed APK, the Windows, macOS and Linux installers, a smoke test, one checksum file,
+- `release.yml`: the signed APK, the Windows, macOS (Apple Silicon and Intel) and Linux installers, a smoke test, one checksum file,
   stable-name copies and a draft release in this repo (S2).
 - `pages.yml` and `scripts/pages/build.py`: the download page (S4) and the privacy policy, deployed with
   `deploy-pages` to this repo's Pages.

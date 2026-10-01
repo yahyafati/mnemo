@@ -29,7 +29,8 @@ CHANGELOGS = ROOT / "fastlane/metadata/android/en-US/changelogs"
 FILES = [
     ("Android APK", lambda n: n.endswith("-android.apk"), "Mnemo-android.apk"),
     ("Windows installer", lambda n: n.endswith("-windows-x64.msi"), "Mnemo-windows-x64.msi"),
-    ("macOS disk image", lambda n: n.endswith("-macos-arm64.dmg"), "Mnemo-macos-arm64.dmg"),
+    ("macOS disk image (Apple Silicon)", lambda n: n.endswith("-macos-arm64.dmg"), "Mnemo-macos-arm64.dmg"),
+    ("macOS disk image (Intel)", lambda n: n.endswith("-macos-x64.dmg"), "Mnemo-macos-x64.dmg"),
     ("Linux portable archive", lambda n: n.endswith("-linux-x64.tar.gz"), "Mnemo-linux-x64.tar.gz"),
     ("Debian package", lambda n: n.endswith("_amd64.deb"), "mnemo-amd64.deb"),
     ("RPM package", lambda n: n.endswith(".x86_64.rpm"), "mnemo-x86_64.rpm"),
