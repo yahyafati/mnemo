@@ -9,6 +9,9 @@ object ProjectLinks {
     const val SOURCE = "https://github.com/yahyafati/mnemo"
     const val ISSUES = "$SOURCE/issues"
 
+    /** Where a new version is published (sideload roadmap S5). Opened in the browser: the app itself never asks GitHub. */
+    const val RELEASES = "$SOURCE/releases"
+
     /** The privacy policy as rendered on GitHub. R4 (docs/release/play-console.md §2) replaces it with the Pages URL once that loads. */
     const val PRIVACY_POLICY = "$SOURCE/blob/main/docs/release/privacy-policy.md"
 

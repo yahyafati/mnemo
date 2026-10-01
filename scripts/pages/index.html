@@ -21,7 +21,7 @@
 {{downloads}}
 <p class="small">The links always give the newest release. <a href="{{releases}}">Older releases</a> and the
 <a href="{{repo}}/releases/latest/download/SHA256SUMS.txt">checksums</a> (<code>SHA256SUMS.txt</code>) are on GitHub.
-Mnemo does not update itself: <a href="#updates">see Updates</a>.</p>
+Mnemo does not update itself: <a href="#updates">see Updates</a>, including how to get them automatically on Android.</p>
 </section>
 
 <section id="install">
@@ -85,8 +85,19 @@ shows which workflow built the file.</p>
 
 <section id="updates">
 <h2>Updates</h2>
-<p><strong>Android:</strong> Mnemo does not update itself. Download the new APK and open it: it installs over
-the old one and keeps your decks and settings.</p>
+<p>Mnemo never checks for updates itself, so it makes no network request to find out whether there is a new
+version. Settings › About › Latest release opens the <a href="{{releases}}">releases page</a> in your browser.</p>
+<p><strong>Android, automatically:</strong> <a href="https://github.com/ImranR98/Obtainium">Obtainium</a> is a free
+app that watches a GitHub releases page and installs new versions for you.</p>
+<ol>
+<li>Install Obtainium, then <a href="obtainium://add/{{repo}}">add Mnemo to Obtainium</a> (or paste
+<code>{{repo}}</code> into its <strong>Add App</strong> box).</li>
+<li>Each release has two copies of the APK, one with the version in its name and <code>Mnemo-android.apk</code>.
+If Obtainium asks which one, choose <code>Mnemo-android.apk</code>, or set its <strong>Filter APKs by regular
+expression</strong> to <code>^Mnemo-android\.apk$</code>.</li>
+</ol>
+<p><strong>Android, by hand:</strong> download the new APK and open it. It installs over the old one and keeps
+your decks and settings.</p>
 <p><strong>Desktop:</strong> install the new version over the old one. Your collection is outside the install
 folder, so it stays.</p>
 <p>Before any update you can make a backup in Settings › Data.</p>

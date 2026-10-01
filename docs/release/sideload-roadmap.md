@@ -40,7 +40,7 @@ are Actions secrets (S1).
 | **S2** | One release, every file | One tag builds the APK and the installers and drafts one release with checksums and stable names | done in the repo; not run on GitHub yet (S3) |
 | **S3** | Prove it | The workflows run green, the QA runbooks pass on real devices | 2–4 days |
 | **S4** | The download page | OS-aware download buttons, install notes, checksums, links | done in the repo; goes live with Pages (S0) |
-| **S5** | Updates | Obtainium works, About says where to get a new version | ½ day |
+| **S5** | Updates | Obtainium works, About says where to get a new version | done in the repo; Obtainium not tried on a phone yet |
 | **S6** | Share it | First release published, a place to report problems | ½ day |
 | **S7** | Later | Signing for Windows and macOS, Intel Mac, F-Droid or Play | as wanted |
 
@@ -247,21 +247,26 @@ Still to check once Pages is on and a release is published: the two taps, on a r
 
 Sideloaded Android apps don't update themselves, and the desktop installers don't either.
 
-- [ ] **Obtainium** (a free app that watches a GitHub Releases page and installs updates): add a
-      "Get updates automatically" note and a one-tap link on the page, pointing at this repo. Obtainium
-      reads the repo's published releases and picks the APK, so name it clearly (it is the only `.apk`).
-      This is zero work for you.
-- [ ] **About screen**: a "Latest release" row that opens the releases page in the browser
-      (`ProjectLinks`, `:core:model`: add `RELEASES = "$SOURCE/releases"`). It makes **no network
-      call** from the app, so the privacy policy stays true ("nothing is sent by Mnemo"). An automatic
-      in-app update check would need a request to GitHub, a privacy-policy change and a setting, so it
-      is deliberately not in this roadmap.
-- [ ] Desktop: the install doc already says how to update (install over the old one; the collection is
-      outside the install folder). Make the page say the same in one line.
+- [x] **Obtainium** (a free app that watches a GitHub Releases page and installs updates): the page's
+      Updates section has an "add Mnemo to Obtainium" link (`obtainium://add/<repo>`) and the steps.
+      One correction to the plan: the APK is **not** the only `.apk` in a release, because S2 attaches a
+      stable-name copy (`Mnemo-android.apk`) next to the versioned one. Obtainium may ask which to take,
+      so the page names `Mnemo-android.apk` and the regular expression `^Mnemo-android\.apk$` for its
+      APK filter. The deep link carries no filter (its JSON form was not checked against Obtainium's
+      docs from the build environment), so the filter is a manual step until it is tried on a phone.
+- [x] **About screen**: a "Latest release" row that opens the releases page in the browser
+      (`ProjectLinks.RELEASES`, `:core:model`; `AboutSection`, `:feature:settings`). It makes **no
+      network call** from the app, so the privacy policy stays true ("nothing is sent by Mnemo"). An
+      automatic in-app update check would need a request to GitHub, a privacy-policy change and a
+      setting, so it is deliberately not in this roadmap. `LicensesFlowTest` checks the row exists.
+- [x] Desktop: the install doc already says how to update (install over the old one; the collection is
+      outside the install folder). The page's Updates section says the same in one line.
 - [ ] Optional, later: a self-hosted F-Droid repo (`fdroid server`, static files on Pages or a bucket)
       gives Android users real in-client updates. Worth it only if people actually ask.
 
 **Exit:** Obtainium installs a new tag on a phone, and the About screen leads to the releases.
+Still to check once a release is published (S3/S6): the Obtainium link and filter on a real phone, with two
+releases to update between.
 
 ## S6 — Share it
 

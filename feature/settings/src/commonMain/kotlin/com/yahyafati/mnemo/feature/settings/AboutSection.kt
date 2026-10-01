@@ -53,13 +53,16 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_p
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_summary
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_telemetry
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_telemetry_title
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_releases
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_releases_summary
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_source
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_version
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Settings › About: the version, the license and where the source is (the GPL asks for that),
- * the open-source licenses list, and the privacy policy, readable offline.
+ * Settings › About: the version, the license, where the source is (the GPL asks for that), the
+ * releases page (a link, no network call from the app), the open-source licenses list, and the
+ * privacy policy, readable offline.
  */
 @Composable
 internal fun AboutSection(onOpenLicenses: () -> Unit) {
@@ -92,6 +95,12 @@ internal fun AboutSection(onOpenLicenses: () -> Unit) {
             summary = ProjectLinks.SOURCE.removePrefix("https://"),
             icon = MnemoIcons.OpenInNew,
             onClick = { openLink(ProjectLinks.SOURCE) },
+        )
+        AboutLink(
+            title = stringResource(Res.string.feature_settings_releases),
+            summary = stringResource(Res.string.feature_settings_releases_summary),
+            icon = MnemoIcons.OpenInNew,
+            onClick = { openLink(ProjectLinks.RELEASES) },
         )
         AboutLink(
             title = stringResource(Res.string.feature_settings_licenses),

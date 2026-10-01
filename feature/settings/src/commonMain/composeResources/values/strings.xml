@@ -215,6 +215,8 @@
     <string name="feature_settings_license">License</string>
     <string name="feature_settings_license_summary">%1$s. Mnemo is free software.</string>
     <string name="feature_settings_source">Source code</string>
+    <string name="feature_settings_releases">Latest release</string>
+    <string name="feature_settings_releases_summary">Opens the releases page in your browser. Mnemo never checks for updates itself.</string>
     <string name="feature_settings_licenses">Open-source licenses</string>
     <string name="feature_settings_licenses_summary">Libraries, fonts and code Mnemo is built on</string>
     <string name="feature_settings_licenses_mnemo">Mnemo is licensed under %1$s</string>
