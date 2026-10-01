@@ -1,15 +1,20 @@
 name: Pages
 
-# Publishes the privacy policy (and a one-page site) at https://yahyafati.github.io/mnemo/ for the
-# Play listing (release ROADMAP R4). Needs Settings › Pages › Source = "GitHub Actions" once.
-# The build fails while the policy has no contact address, so an unfinished policy never goes live.
+# Publishes the download page and the privacy policy at https://yahyafati.github.io/mnemo/
+# (sideload roadmap S4, release ROADMAP R4). Needs Settings › Pages › Source = "GitHub Actions" once.
+# The build fails while the policy has no contact address, so an unfinished policy never goes live,
+# and when the page's download table disagrees with the file names release.yml produces.
+# The current version is read by the page in the visitor's browser, so a new release needs no redeploy.
 
 on:
   push:
     branches: [main]
     paths:
       - docs/release/privacy-policy.md
+      - docs/desktop/install.md          # the page's install notes are written from it
+      - docs/release/assets/**           # icon and screenshots
       - scripts/pages/**
+      - scripts/release/prepare-release.py   # the stable file names the page links to
       - .github/workflows/pages.yml
   workflow_dispatch:
 

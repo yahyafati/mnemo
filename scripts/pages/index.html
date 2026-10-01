@@ -1,0 +1,124 @@
+<div class="hero">
+<img class="icon" src="icon.png" alt="">
+<div>
+<h1>Mnemo</h1>
+<p class="tagline">Spaced-repetition flashcards that keep everything on your device. Free, no account, with optional AI.</p>
+</div>
+</div>
+
+<p>Mnemo is a modern take on Anki: FSRS-6 scheduling, cloze, type-in and multiple-choice cards, Anki
+<code>.apkg</code> import and export, and card creation from your notes, PDFs and links through an AI provider
+<em>you</em> choose. It runs on Android, Windows, macOS and Linux.</p>
+
+<section id="download">
+<h2>Download</h2>
+<div id="pick" hidden></div>
+<p id="release-status" class="status" data-api="{{api}}" data-fallback="{{repo}}/releases/latest"><a href="{{repo}}/releases/latest">Latest release and notes</a></p>
+<p id="no-release" class="notice" hidden>No release has been published yet. Come back soon, or
+<a href="{{repo}}">build it from the source</a>.</p>
+
+<h3 id="all-files">All files</h3>
+{{downloads}}
+<p class="small">The links always give the newest release. <a href="{{releases}}">Older releases</a> and the
+<a href="{{repo}}/releases/latest/download/SHA256SUMS.txt">checksums</a> (<code>SHA256SUMS.txt</code>) are on GitHub.
+Mnemo does not update itself: <a href="#updates">see Updates</a>.</p>
+</section>
+
+<section id="install">
+<h2>Installing, and the warnings you will see</h2>
+<p>Mnemo is not in an app store, and the Windows and macOS installers are not signed (that costs money
+a free app does not have yet). So your system warns you the first time. Nothing is wrong with the file:
+the warning only says that the system has not heard of it. The first section below says how to check
+that the file is the one that was published.</p>
+
+<h3 id="android">Android (10 or newer)</h3>
+<ol>
+<li>Download <code>Mnemo-android.apk</code> on your phone.</li>
+<li>Open it. Android asks you to allow installs from your browser or file manager: allow it for this one
+app (you can turn it off again afterwards).</li>
+<li>Play Protect may say it has not seen the app before. Choose <strong>More details</strong>, then
+<strong>Install anyway</strong>.</li>
+</ol>
+<p>One APK covers every phone and tablet. Each release is signed with the same key, so a new APK installs
+over the old one and keeps your decks.</p>
+
+<h3 id="windows">Windows 10 or 11 (64-bit)</h3>
+<ol>
+<li>Run <code>Mnemo-windows-x64.msi</code>. It installs for your user only, with no administrator prompt.</li>
+<li>If Windows says <strong>Windows protected your PC</strong>, choose <strong>More info</strong>, then
+<strong>Run anyway</strong>.</li>
+</ol>
+
+<h3 id="macos">macOS 12 or newer, Apple Silicon</h3>
+<ol>
+<li>Open <code>Mnemo-macos-arm64.dmg</code> and drag Mnemo to Applications.</li>
+<li>Open Mnemo. macOS says it cannot check the app for malware.
+On macOS 14 and older, right-click Mnemo, choose <strong>Open</strong>, then <strong>Open</strong> again.
+On macOS 15 and newer, open <strong>System Settings › Privacy &amp; Security</strong>, scroll down to the
+message about Mnemo and choose <strong>Open Anyway</strong>.</li>
+</ol>
+<p>There is no build for Intel Macs yet.</p>
+
+<h3 id="linux">Linux (x86-64)</h3>
+<pre><code>sudo apt install ./mnemo-amd64.deb       # Debian, Ubuntu, Mint
+sudo dnf install ./mnemo-x86_64.rpm      # Fedora, openSUSE
+tar xzf Mnemo-linux-x64.tar.gz &amp;&amp; Mnemo/bin/Mnemo   # any other: portable</code></pre>
+<p>There is no warning, except that your package manager may say the package is unsigned: these files are not
+in a repository. You need a desktop with X11 or Wayland.</p>
+
+<p class="small">More detail on the desktop (data folders, sound, file types, uninstalling) is in the
+<a href="{{repo}}/blob/main/docs/desktop/install.md">desktop install guide</a>.</p>
+</section>
+
+<section id="verify">
+<h2>Check your download</h2>
+<p>Every release has a <code>SHA256SUMS.txt</code>: one line per file with its SHA-256 hash, a fingerprint of the
+file's exact bytes. If the hash of your download is the one in that line, you have the file the release
+built, with no corruption on the way. Compare it:</p>
+<pre><code>sha256sum Mnemo-android.apk              # Linux
+shasum -a 256 Mnemo-macos-arm64.dmg      # macOS
+Get-FileHash Mnemo-windows-x64.msi       # Windows PowerShell</code></pre>
+<p>On Linux, <code>sha256sum -c --ignore-missing SHA256SUMS.txt</code> checks every file you downloaded at once.
+Releases also carry a build attestation, so <code>gh attestation verify &lt;file&gt; --repo yahyafati/mnemo</code>
+shows which workflow built the file.</p>
+</section>
+
+<section id="updates">
+<h2>Updates</h2>
+<p><strong>Android:</strong> Mnemo does not update itself. Download the new APK and open it: it installs over
+the old one and keeps your decks and settings.</p>
+<p><strong>Desktop:</strong> install the new version over the old one. Your collection is outside the install
+folder, so it stays.</p>
+<p>Before any update you can make a backup in Settings › Data.</p>
+</section>
+
+<section id="trust">
+<h2>What you can trust</h2>
+<ul>
+<li><strong>Free, and it stays free.</strong> No account, no subscription, no ads.</li>
+<li><strong>Your cards stay on your device.</strong> No server, no analytics, no crash reporting. The developer
+receives nothing about you.</li>
+<li><strong>The internet only when you ask.</strong> Mnemo goes online only for an AI provider you set up, and for
+a link you give to Smart Extract. Everything else works offline.</li>
+<li><strong>The AI keys are yours.</strong> You bring your own provider (OpenAI, OpenRouter, a local Ollama, …).
+Keys are stored encrypted on your device and are never part of a backup or an export.</li>
+<li><strong>Open source, GPL-3.0-or-later.</strong> The source of each release is the
+<a href="{{repo}}">repository</a> at that release's tag (<a href="{{releases}}">every release</a> also has a
+<em>Source code</em> download). You can build the same app yourself.</li>
+<li><strong>A <a href="privacy/">privacy policy</a></strong> that says all of this in full.</li>
+</ul>
+</section>
+
+<section id="help">
+<h2>Something went wrong?</h2>
+<p>Mnemo has no crash reporting, so you only hear about problems if you tell us. Please
+<a href="{{repo}}/issues">open an issue</a> or write to <a href="mailto:{{email}}">{{email}}</a>, and say which
+version you have (Settings › About) and what system you use. Issues are public: do not paste your cards
+or any API key.</p>
+</section>
+
+<section class="shots" aria-label="Screenshots">
+<img src="shots/home.png" alt="The deck list, with today's due cards" loading="lazy">
+<img src="shots/study.png" alt="A cloze card in a study session" loading="lazy">
+<img src="shots/analytics.png" alt="Analytics: retention and the review calendar" loading="lazy">
+</section>
