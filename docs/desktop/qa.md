@@ -31,7 +31,7 @@ You also need: a phone with the Android release build (for §4), an Anki install
 provider key and a local Ollama or LM Studio (§3), and a real Anki collection of your own with 10,000+ cards, images,
 audio and math if you have one (otherwise §2.2 builds one).
 
-**Get the build.** Before the tag exists, run *Actions › Desktop release › Run workflow* on the commit to test:
+**Get the build.** Before the tag exists, run *Actions › Release › Run workflow* on the commit to test:
 it keeps the installers as workflow artifacts. After a `v*` tag the same workflow attaches them to a **draft**
 release. Download only the file for each machine, then check it:
 
@@ -40,7 +40,7 @@ python3 scripts/qa/desktop-checks.py verify-sums <folder with the installers and
 python3 scripts/qa/desktop-checks.py info      # paste the output into the log, per machine
 ```
 
-The first GitHub run of the `desktop` job in `ci.yml` and of `desktop-release.yml` has never happened (D1, D4, D8
+The first GitHub run of the `desktop` job in `ci.yml` and of `release.yml` has never happened (D1, D4, D8
 leave it open). If either is red, fix that first: it is a P0 for this pass.
 
 **Automated exit check, first** (on any one machine, from the commit being released):
@@ -309,8 +309,8 @@ Turn Wi-Fi and Ethernet off (or block the app in the firewall). Then a **cold** 
 
 ## 9. Release hygiene
 
-- [ ] The draft release has: the `.msi`, the `.dmg`, the `.deb`, the `.rpm`, the `.tar.gz`, `SHA256SUMS.txt`, and notes (from
-      `release-notes.md`) that match the **known issues found in this pass**: update the file, don't edit only the draft.
+- [ ] The draft release has: the `.msi`, the `.dmg`, the `.deb`, the `.rpm`, the `.tar.gz`, the APK, `SHA256SUMS.txt`, a copy of each under a name without the version, and notes (from
+      `docs/release/release-notes.md`) that match the **known issues found in this pass**: update the file, don't edit only the draft.
 - [ ] The `LICENSE` and `NOTICE` files are in each app's `resources` folder, and every library the app ships is either
       in `NOTICE` or in Settings › About › Open-source licenses.
 - [ ] `docs/desktop/install.md` is true: file names, libraries, first-run steps (walk it on a clean machine), data
@@ -324,7 +324,7 @@ Turn Wi-Fi and Ethernet off (or block the app in the firewall). Then a **cold** 
       loss or corruption, a crash at launch or in the study loop, an installer that does not install, or red release CI;
       P1: a core flow broken on one OS (import, study, backup, restore, AI test connection) or a licence problem; P2:
       wrong but recoverable; P3: polish.
-- [ ] **No open P0 or P1.** P2 and P3 are listed under "Good to know" in `release-notes.md` or deferred.
+- [ ] **No open P0 or P1.** P2 and P3 are listed under "Good to know" in `docs/release/release-notes.md` or deferred.
 - [ ] Only then: publish the draft release (owner), and update the README.
 
 ## Release day (owner)
@@ -334,8 +334,8 @@ Turn Wi-Fi and Ethernet off (or block the app in the firewall). Then a **cold** 
 2. The workflow builds all installers and makes the draft. Download them from the draft, run `verify-sums` on them,
    and repeat §1 on at least one machine per OS with **those** files (the ones users get).
 3. Press Publish on the draft. Nothing in the workflow publishes by itself.
-4. The Android release may already have created the release: the workflow adds to it and leaves its notes alone, so
-   add the desktop paragraph from `release-notes.md` by hand in that case.
+4. One workflow makes the whole release (the APK too), with notes from `docs/release/release-notes.md` and the
+   version's `fastlane/.../changelogs/<versionCode>.txt`; read the notes in the draft before publishing.
 
 ---
 

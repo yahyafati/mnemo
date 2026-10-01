@@ -553,11 +553,11 @@ each OS. Met by the automated tests above on macOS arm64; open on Windows and Li
       hands it to the running app through `<data>/open-requests/` (`OpenRequests`) and exits. Checked with the
       packaged macOS app launched twice (3 decks, 9 cards imported), unit-tested on every system; the
       registration by the `.msi` and `.deb` is not seen yet.
-- [~] `.github/workflows/desktop-release.yml`: on a `v*` tag (the tag must equal `mnemo.versionName`) a
+- [~] `.github/workflows/release.yml`: on a `v*` tag (the tag must equal `mnemo.versionName`) a
       matrix (Ubuntu, Windows, macOS) builds the packages, smoke-tests the app image and attaches the
       installers with `SHA256SUMS.txt` to a draft GitHub Release; run by hand it keeps them as workflow
       artifacts instead. Written, **not run on GitHub yet.**
-- [x] **Unsigned installers:** `docs/desktop/release-notes.md` (the notes of a release the workflow
+- [x] **Unsigned installers:** `docs/release/release-notes.md` (the notes of a release the workflow
       creates) and `install.md` explain the first-run warnings: Windows SmartScreen ("More info → Run
       anyway") and macOS Gatekeeper (right-click → Open up to macOS 14; on macOS 15 and newer System
       Settings › Privacy & Security › Open Anyway, since 15 took the right-click route away). Signing is Later.
@@ -587,7 +587,7 @@ Silicon only (or an Intel runner), and push a `v*` tag (or run the workflow by h
       collection). A dry run of the automated parts on macOS arm64 is at the end of the file: the app image
       starts, and the generated 12,000-card package imports in about 4 s with the counts the generator printed.
 - [ ] **(owner)** Run the runbook on Linux, Windows and macOS and fill in the results log. The first GitHub run of
-      `ci.yml`'s desktop job and of `desktop-release.yml` comes first (D1, D4 and D8 leave them open).
+      `ci.yml`'s desktop job and of `release.yml` comes first (D1, D4 and D8 leave them open).
 - [ ] Fix every P0/P1 bug, then publish the release (no longer a draft) and update the README (it still says
       "in progress"). "Release day" in `qa.md` has the steps.
 

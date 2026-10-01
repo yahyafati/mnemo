@@ -3,7 +3,7 @@
 Mnemo runs on Windows, macOS and Linux. It is the same app as on the phone, with the same collection
 format, and it keeps everything on your computer. This page covers the installers from
 [GitHub Releases](https://github.com/yahyafati/mnemo/releases) (built by
-[`desktop-release.yml`](../../.github/workflows/desktop-release.yml), see
+[`release.yml`](../../.github/workflows/release.yml), see
 [ROADMAP.md](ROADMAP.md) D8).
 
 ## Which file to download
@@ -15,6 +15,10 @@ format, and it keeps everything on your computer. This page covers the installer
 | Debian, Ubuntu, Mint and relatives, x86-64 | `mnemo_<version>-1_amd64.deb` | |
 | Fedora, openSUSE and relatives, x86-64 | `mnemo-<version>-1.x86_64.rpm` | |
 | Any other Linux, x86-64 | `Mnemo-<version>-linux-x64.tar.gz` | Portable: unpack it anywhere |
+
+Each file is on the release twice: with the version in its name, and without it (`Mnemo-windows-x64.msi`,
+`Mnemo-macos-arm64.dmg`, `Mnemo-linux-x64.tar.gz`, `mnemo-amd64.deb`, `mnemo-x86_64.rpm`), which is the link
+that always gives the newest release.
 
 Every release has a `SHA256SUMS.txt`. To check a download, compare its hash with the line for that
 file: `sha256sum <file>` (Linux), `shasum -a 256 <file>` (macOS), `Get-FileHash <file>` (PowerShell).

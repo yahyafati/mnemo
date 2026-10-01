@@ -1,0 +1,259 @@
+name: Release
+
+# One tag, one draft GitHub Release (sideload roadmap S2): the signed Android APK and the desktop
+# installers (docs/desktop/ROADMAP.md, D8), each also under a name without the version (what the
+# download page links), and one SHA256SUMS.txt over all of it. Nothing is published until the owner
+# reads the draft and presses Publish. Run by hand (Actions > Release > Run workflow) it only builds and
+# keeps the files as workflow artifacts: that is the way to try a change to the packaging.
+#
+# The APK is signed with the owner's key from the repository's Actions secrets (docs/release/signing.md);
+# a tag build fails without them rather than ship an unsigned APK. This workflow never runs for pull
+# requests. The desktop installers are not signed (signing is "Later" in the roadmap): the release notes
+# say what Windows SmartScreen and macOS Gatekeeper will show the first time.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    env:
+      # A secret can't be tested in `if:`, so the steps below look at these.
+      KEYSTORE_BASE64: ${{ secrets.MNEMO_KEYSTORE_BASE64 }}
+      MNEMO_KEYSTORE_PASSWORD: ${{ secrets.MNEMO_KEYSTORE_PASSWORD }}
+      MNEMO_KEY_ALIAS: ${{ secrets.MNEMO_KEY_ALIAS }}
+      MNEMO_KEY_PASSWORD: ${{ secrets.MNEMO_KEY_PASSWORD }}
+      MNEMO_CERT_SHA256: ${{ vars.MNEMO_CERT_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag is the version in gradle.properties
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
+          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match mnemo.versionName=$version in gradle.properties"
+            exit 1
+          fi
+
+      - name: Signing key
+        id: key
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$MNEMO_KEYSTORE_PASSWORD" ] && [ -n "$MNEMO_KEY_ALIAS" ] && [ -n "$MNEMO_CERT_SHA256" ]; then
+            keystore="$RUNNER_TEMP/mnemo-release.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
+            echo "MNEMO_KEYSTORE_FILE=$keystore" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::The signing secrets are missing (MNEMO_KEYSTORE_BASE64, MNEMO_KEYSTORE_PASSWORD, MNEMO_KEY_ALIAS, variable MNEMO_CERT_SHA256): see docs/release/signing.md. An unsigned APK can't be installed, so this fails."
+            exit 1
+          else
+            echo "::warning::No signing secrets: building the APK unsigned to try the build. It is not kept."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21 # runs Gradle; the JDK 25 toolchain is downloaded by the foojay resolver
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the release APK
+        run: ./gradlew assembleRelease
+
+      - name: Check the APK
+        run: |
+          out=app/build/outputs/apk/release
+          python3 scripts/check-16kb-alignment.py "$out"/app-release*.apk
+          if [ "${{ steps.key.outputs.signed }}" = "true" ]; then
+            # The build falls back to an unsigned APK when it can't read the key: this is what notices.
+            python3 scripts/check-apk-signature.py --cert-sha256 "$MNEMO_CERT_SHA256" "$out/app-release.apk"
+          fi
+
+      - name: Name the file
+        if: steps.key.outputs.signed == 'true'
+        run: |
+          version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/Mnemo-$version-android.apk"
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        if: steps.key.outputs.signed == 'true'
+        with:
+          name: installers-Android
+          path: dist/*
+          if-no-files-found: error
+
+      # The mapping file reads crashes from the release build; it stays a workflow artifact, not a release file.
+      - uses: actions/upload-artifact@v4
+        if: steps.key.outputs.signed == 'true'
+        with:
+          name: android-mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+
+      - name: Remove the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mnemo-release.jks"
+
+  package:
+    name: Installers (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            tasks: :desktop:packageDeb :desktop:packageRpm :desktop:packagePortable
+          - name: Windows
+            os: windows-latest
+            tasks: :desktop:packageMsi
+          # Apple Silicon only (desktop ROADMAP D0). An Intel build needs an Intel runner: add a
+          # `macos-15-intel` entry with the same task and an arch suffix in the staging step below.
+          - name: macOS
+            os: macos-latest
+            tasks: :desktop:packageDmg
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag is the version in gradle.properties
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
+          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match mnemo.versionName=$version in gradle.properties"
+            exit 1
+          fi
+
+      - name: Packaging tools and Skia's system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg-dev binutils xvfb libgl1 libxrender1 libxtst6 libxi6 libfontconfig1 libfreetype6
+
+      - name: WiX Toolset (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # jpackage builds an MSI with WiX 3. The runner image has had it; install it if it does not.
+          if ! command -v candle.exe >/dev/null 2>&1 && [ ! -d "/c/Program Files (x86)/WiX Toolset v3.14" ]; then
+            choco install wixtoolset --no-progress -y
+          fi
+          echo "C:\Program Files (x86)\WiX Toolset v3.14\bin" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21 # runs Gradle and jlink/jpackage (needs jmods); the daemon toolchain is JDK 25
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the app image and the installers
+        run: ./gradlew :desktop:createDistributable ${{ matrix.tasks }}
+
+      # The packaged app, before anyone installs it: it starts on this system, creates its database
+      # (so the trimmed Java runtime has what the app needs) and takes a file from a second launch.
+      - name: Smoke test the app image
+        env:
+          SKIKO_RENDER_API: SOFTWARE_COMPAT # no GPU on a runner
+        run: |
+          py=python3
+          if [ "$RUNNER_OS" = "Windows" ]; then py=python; fi # the runner's Windows image has no python3 shim in every case
+          smoke="$py scripts/desktop/smoke-test-app.py desktop/build/compose/binaries/main/app --open-file core/anki/src/test/resources/modern.apkg"
+          if [ "$RUNNER_OS" = "Linux" ]; then xvfb-run -a $smoke; else $smoke; fi
+
+      - name: Name the files
+        run: |
+          version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
+          out=desktop/build/compose/binaries/main
+          mkdir -p dist
+          case "$RUNNER_OS" in
+            Linux)
+              cp "$out"/deb/*.deb "$out"/rpm/*.rpm "$out"/portable/*.tar.gz dist/ ;;
+            Windows)
+              cp "$out/msi/Mnemo-$version.msi" "dist/Mnemo-$version-windows-x64.msi" ;;
+            macOS)
+              cp "$out/dmg/Mnemo-$version.dmg" "dist/Mnemo-$version-macos-arm64.dmg" ;;
+          esac
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-logs-${{ matrix.name }}
+          path: |
+            desktop/build/compose/logs/
+            **/build/reports/problems/
+
+  # One draft release for the tag, from one job, so nothing races to create it or to write the checksums.
+  release:
+    name: Draft GitHub Release
+    needs: [android, package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the draft release
+      id-token: write # build provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The release's "Source code" files are the tag's tree (git archive), and that is the source the GPL
+      # asks for: nothing may be left out of it or fetched from elsewhere.
+      - name: The source archive is the whole tree
+        run: |
+          if [ -e .gitmodules ] || grep -qs export-ignore .gitattributes; then
+            echo "::error::A submodule or an export-ignore would leave something out of GitHub's source archive of the tag."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: dist
+          merge-multiple: true
+
+      - name: Stable names, checksums and notes
+        run: |
+          version=$(sed -n 's/^mnemo.versionName=//p' gradle.properties)
+          code=$(sed -n 's/^mnemo.versionCode=//p' gradle.properties)
+          python3 scripts/release/prepare-release.py dist --version "$version" --version-code "$code" \
+            --notes-out "$RUNNER_TEMP/notes.md"
+          ls -l dist
+
+      - name: Build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*
+
+      - name: Attach to a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            # A re-run: replace the files, and leave the notes (they may have been edited) alone.
+            if [ "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::Release $GITHUB_REF_NAME is already published; its files are not replaced. Make a new tag."
+              exit 1
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" --draft --title "Mnemo $version" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber

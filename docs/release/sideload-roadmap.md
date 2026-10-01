@@ -37,7 +37,7 @@ are Actions secrets (S1).
 |---|---|---|---|
 | **S0** | Public repo | Repo public, Issues and Pages on, the app's links right, a contact in the privacy policy | done except two settings |
 | **S1** | Android signing | Keystore, signed APK that installs over itself | done in the repo; five owner steps left |
-| **S2** | One release, every file | One tag builds the APK and the installers and drafts one release with checksums and stable names | 1–2 days |
+| **S2** | One release, every file | One tag builds the APK and the installers and drafts one release with checksums and stable names | done in the repo; not run on GitHub yet (S3) |
 | **S3** | Prove it | The workflows run green, the QA runbooks pass on real devices | 2–4 days |
 | **S4** | The download page | OS-aware download buttons, install notes, checksums, links | 1 day |
 | **S5** | Updates | Obtainium works, About says where to get a new version | ½ day |
@@ -129,44 +129,49 @@ shows the links work. The critical path is S3: it needs real machines (Windows, 
 **Goal:** pushing a tag `vX.Y.Z` gives one **draft** release with everything, named so the website
 can link to it forever.
 
-Today `desktop-release.yml` builds the desktop installers on three systems and its `release` job drafts a
-release in this repo with `SHA256SUMS.txt` (written from the desktop files only). That is already the right
-place now that the repo is public. What is missing is the Android side, one checksum file for everything,
-and stable file names.
+`.github/workflows/release.yml` (was `desktop-release.yml`) is that release now; it has not run on GitHub
+yet, which is S3. Its jobs and the script behind it:
 
-- [ ] **One `release` job for the whole tag.** Keep the desktop `package` matrix, add an Android job
+- `android` builds and checks the signed APK, `package` (Ubuntu, Windows, macOS) builds the installers,
+  and one `release` job (`needs: [android, package]`) names, checksums and drafts.
+- `scripts/release/prepare-release.py` does the file work, so it can be tried on fake files: it fails
+  naming any installer that is missing or doubled, copies each file under its stable name, writes the
+  one `SHA256SUMS.txt` and renders the notes from [`release-notes.md`](release-notes.md) and the version's
+  F-Droid changelog (so `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` must exist for
+  every release: it fails without it).
+
+- [x] **One `release` job for the whole tag.** Keep the desktop `package` matrix, add an Android job
       (same file, or `android-release.yml` that uploads a workflow artifact), and make the existing
       `release` job `needs: [package, android]`. It downloads every artifact, writes **one**
       `SHA256SUMS.txt` over all of them, and drafts the release. One job at the end means no race
       between two workflows both creating the release or overwriting the checksum file, and the
       "the Android release may already have made this release" branch in the script can go.
       Its `permissions: contents: write` and `GITHUB_TOKEN` are enough; no extra token.
-- [ ] **The Android job:** check out, decode the keystore from the `MNEMO_KEYSTORE_BASE64` secret into the runner's temp dir,
+- [x] **The Android job:** check out, decode the keystore from the `MNEMO_KEYSTORE_BASE64` secret into the runner's temp dir,
       run `assembleRelease`, run `scripts/check-16kb-alignment.py` and
       `scripts/check-apk-signature.py --cert-sha256 $MNEMO_CERT_SHA256`, and upload
       `Mnemo-<version>-android.apk`. It must fail, not publish, when the secrets are missing: an
       unsigned APK is useless to users (`ReleaseConfig.kt` falls back to an unsigned build, so check
       the signature check really reports the signer). Delete the decoded keystore at the end
       (`if: always()`), and never `echo` a secret.
-- [ ] **Source.** GitHub puts `Source code (tar.gz)` of the tag on every release, and since the repo is
-      public that is the corresponding source: no extra archive is needed. Check once that it builds
-      (download it from the draft, unpack, `./gradlew assembleDebug`): a file `.gitattributes`
-      `export-ignore`s or a missing submodule would break the promise. There is no `.gitattributes`
-      today; keep it that way.
-- [ ] **Fixed-name copies.** Installer names contain the version, so
+- [x] **Source.** GitHub puts `Source code (tar.gz)` of the tag on every release, and since the repo is
+      public that is the corresponding source: no extra archive is needed. The `release` job fails if a
+      `.gitattributes` `export-ignore` or a `.gitmodules` appears (neither exists today). Still to do, in
+      S3: download the archive from a real draft, unpack it and run `./gradlew assembleDebug`.
+- [x] **Fixed-name copies.** Installer names contain the version, so
       `releases/latest/download/<file>` would break each release. Upload a second copy of each under
       a stable name (`Mnemo-android.apk`, `Mnemo-windows-x64.msi`, `Mnemo-macos-arm64.dmg`,
       `Mnemo-linux-x64.tar.gz`, `mnemo-amd64.deb`, `mnemo-x86_64.rpm`). The page links to those.
       Keep the versioned files too: they are what the checksums name, and what bug reports mention.
       Put the stable names in `SHA256SUMS.txt` as well. `latest` skips drafts and pre-releases, so a
       draft you have not published (S6) never becomes what the page links to.
-- [ ] **Release notes:** one file for the whole release (today `docs/desktop/release-notes.md` is the
-      desktop half and links to `install.md` on `main`, which now resolves). Add the Android install
+- [x] **Release notes:** one file for the whole release (`docs/release/release-notes.md`, moved from
+      `docs/desktop/`; it links to `install.md` on `main`). It has the Android install
       steps ("allow installs from this source", the Play Protect message), the changelog for the
       version, and a line saying the source is the tag (GitHub's "Source code" files).
-- [ ] Keep the tag check (tag equals `mnemo.versionName`), and bump `mnemo.versionCode` for every
+- [x] Keep the tag check (tag equals `mnemo.versionName`), and bump `mnemo.versionCode` for every
       Android release, including re-releases of the same name.
-- [ ] Optional: tell GitHub to attach build provenance (`actions/attest-build-provenance`), which a
+- [x] Optional: tell GitHub to attach build provenance (`actions/attest-build-provenance`), which a
       public repo gets for free; the page can then say how to verify a file with `gh attestation verify`.
 
 **Exit:** a tag produces a draft with the installers, the APK, one `SHA256SUMS.txt` and the
@@ -182,7 +187,7 @@ stable-name copies.
 - [ ] Run `ci.yml` once and fix what it finds (it has not run on GitHub either). It now runs for pull
       requests from strangers too: confirm it uses no secrets (it must not, only the release
       workflows do) and that `pull_request` is the trigger, never `pull_request_target`.
-- [ ] Run `desktop-release.yml` by hand (workflow_dispatch). It only builds and keeps the files as
+- [ ] Run `release.yml` by hand (workflow_dispatch). It only builds and keeps the files as
       workflow artifacts, so it is safe to try. Fix whatever the first run on Windows, macOS and
       Linux finds (the WiX step and the smoke test are the likeliest).
 - [ ] **Desktop QA (D9)**: [`docs/desktop/qa.md`](../desktop/qa.md) on a real Windows PC, a real Mac and
@@ -276,7 +281,7 @@ from the page alone.
 |---|---|---|
 | Windows code signing | Removes the SmartScreen warning. SignPath.io is free for open-source projects and now qualifies, since the repo is public; Azure Trusted Signing is cheap. | Application and CI setup |
 | macOS notarization | The only way to remove Gatekeeper's warning | Apple Developer account, $99/yr |
-| Intel Mac build | Needs an Intel runner (`macos-15-intel`) in `desktop-release.yml`; see its comment | One more CI job and a name |
+| Intel Mac build | Needs an Intel runner (`macos-15-intel`) in `release.yml`; see its comment | One more CI job and a name |
 | Self-hosted F-Droid repo | Real updates for Android users | Hosting and a signing routine |
 | Google Play | The privacy policy is S4's page and the source is public | See [ROADMAP.md](ROADMAP.md) R4–R6 |
 | F-Droid | Builds from the public source repo, which it now is | See [fdroid.md](fdroid.md) |
@@ -288,8 +293,8 @@ from the page alone.
 
 - GPL license, notices and the open-source licenses screen (R0, R2).
 - `assembleRelease` with signing from the environment, the 16 KB check and R8 (R2).
-- `desktop-release.yml`: Windows, macOS and Linux installers, a smoke test, checksums, a draft release
-  in this repo (S2 adds Android and one combined checksum file).
+- `release.yml`: the signed APK, the Windows, macOS and Linux installers, a smoke test, one checksum file,
+  stable-name copies and a draft release in this repo (S2).
 - `pages.yml` and `scripts/pages/build.py`: the privacy policy and a one-page site, deployed with
   `deploy-pages` to this repo's Pages (S4 extends the page).
 - `docs/desktop/install.md`, `docs/desktop/qa.md`, [qa.md](qa.md), [signing.md](signing.md).
@@ -299,8 +304,9 @@ from the page alone.
 
 - **(owner)** Pages source set to GitHub Actions (S0), the keystore and its Actions secrets (S1),
   and S3's real-machine passes.
-- Neither `ci.yml`, `desktop-release.yml` nor `pages.yml` has run on GitHub yet (S0, S3).
-- There is no Android job in any release workflow, and the desktop checksums don't cover it (S2).
+- Neither `ci.yml`, `release.yml` nor `pages.yml` has run on GitHub yet (S0, S3).
+- `release.yml` (S2) has the Android job and one checksum file, but has never run: it needs the Actions
+  secrets and variable from S1 before a tag can build.
 - The site has no download links (S4).
 - ADR 0009, `distribution.md` and release R0 say "public source repo" for the Play and F-Droid route;
   that is now true, so R0's "publish the source repo" item can be ticked. If this plan is the one you
