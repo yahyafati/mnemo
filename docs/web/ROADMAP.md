@@ -83,7 +83,7 @@ Owner-only tasks are marked **(owner)**.
 | **W3** | Wikipedia | `WikipediaExtractor` through the REST API: clean article, math, sections | 2–3 days |
 | **W4** | Sections in Smart Extract | Pick which sections fill the box; a `#fragment` link preselects one | 2 days |
 | **W5** | EPUB in Markdown | `EpubReader` uses `MarkdownText`, keeping its anchor offsets | 1–2 days |
-| **W6** | Better generic extraction (optional) | Readability-style content scoring for sites without an extractor | 2–4 days |
+| **W6** | Better generic extraction | Readability-style content scoring for sites without an extractor | 2–4 days |
 | **W7** | Polish and QA | Real pages, docs, release notes | 1 day |
 
 ```
@@ -375,17 +375,40 @@ that are still stubs), `MarkdownTextTest.plainTakesTheMarksOffASourceForSizing`.
 
 **Exit:** a book's chapters keep headings, emphasis, lists and tables.
 
-## W6 — Better generic extraction (optional)
+## W6 — Better generic extraction
 
 **Goal:** sites with no extractor of their own read better, without per-site code.
 
-- [ ] Score candidate blocks Readability-style (text length, comma count, link density, class and id
+- [x] Score candidate blocks Readability-style (text length, comma count, link density, class and id
       hints such as `content`/`article` vs `comment`/`sidebar`) instead of "the longest
       `CONTENT_ROOTS` element", keeping today's rule as a tie-breaker. No new dependency: a port of the
       idea, not of a library (if a library is ever wanted, check its licence against GPL-3.0 and add
       it to `NOTICE`).
-- [ ] Headings in the generic result become sections (W4) when there are at least three.
-- [ ] Each W0 generic fixture keeps its article and loses its chrome; no fixture gets worse.
+- [x] Headings in the generic result become sections (W4) when there are at least three.
+- [x] Each W0 generic fixture keeps its article and loses its chrome; no fixture gets worse.
+
+**Done 2026-10-02.** `ContentFinder` and `MarkdownSections` (`:core:ingest`), used by `GenericExtractor`; tests in
+`ExtractorsTest` (the blog and `div-soup` fixtures now assert what is left out, two new fixtures: `div-article.html`
+and `guide-with-sections.html`) and `MarkdownSectionsTest`. Choices the step left open:
+
+- **The scoring** is Readability's idea: a block with at least 25 characters of its own prose (`p`, `pre`: all their
+  text; `div`, `li`, `td` …: the text they hold directly) adds `1 + commas + min(length / 100, 3)` to its parent and half
+  to its grandparent. A parent starts from a weight for its tag (`div` +5, `pre`/`td`/`blockquote` +3, lists and forms
+  −3, headings −5) and ±25 for a word of its `class` or `id` (`article`, `content`, `post` … against `comment`,
+  `sidebar`, `related`, `share` …; words, not substrings, so `shadow` and `header` don't match `ad`). The score is
+  multiplied by one minus the link density. The best one is taken, then widened as Readability does (a parent that
+  scores at least a third as well and better than its child, a lone child's parent).
+- **Today's rule is a head start, not only a tie-breaker:** an element of `ContentFinder.CONTENT_ROOTS` (`article`,
+  `main`, `.entry-content` …) starts 10 points ahead, and the chosen element is widened to its `article` / `main`
+  when that is at most 1.5 times as long and under a quarter links, so the headline and byline come with the text.
+  With no scorable block at all (nothing 25 characters long) the old choice (the longest content element, else `body`)
+  is used, as it is when the result is under 200 characters.
+- **No extra removal pass:** the old `NOISE` selector is unchanged but for a few more classes (`newsletter`,
+  `breadcrumb(s)`, `pagination`, `popup`). A class hint can only lower a score, never delete a subtree: a wrapper
+  called `has-sidebar` would otherwise take the page with it.
+- **Sections** come from the final Markdown (`MarkdownSections`): one per heading line outside a fenced block, plus
+  the lead when text comes first, at least three headings (the h1 counts). They are ranges of the tidied, trimmed text,
+  so they always fit it. The Smart Extract picker needs no change: it shows for any link with two or more sections.
 
 **Exit:** the generic fixtures read at least as well as before, `div` soup noticeably better.
 

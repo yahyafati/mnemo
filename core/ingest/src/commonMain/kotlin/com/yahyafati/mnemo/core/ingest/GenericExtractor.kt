@@ -5,6 +5,8 @@ import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceSection
 import com.yahyafati.mnemo.core.model.SourceText
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 /** Turns the text an extractor read into a [SourceResult]: tidied, limited to [WebPageExtractor.MAX_CHARS], or [SourceProblem.NoText]. */
 internal object PageText {
@@ -35,9 +37,10 @@ internal object PageText {
 }
 
 /**
- * Any HTML page, without site rules: the biggest of the page's content elements (`article`, `main`, …) or
- * else its body, minus menus, footers, scripts and the like, written as Markdown ([MarkdownText]). The
- * fallback for every link no [SiteExtractor] claims.
+ * Any HTML page, without site rules: the element [ContentFinder] scores best (else the biggest of the page's
+ * content elements, `article`, `main` …, else its body), minus menus, footers, scripts and the like, written as
+ * Markdown ([MarkdownText]). A page with at least [MarkdownSections.MIN_HEADINGS] headings gets them as sections.
+ * The fallback for every link no [SiteExtractor] claims.
  */
 internal object GenericExtractor {
     fun html(page: PageFetcher.Fetched.Page): SourceResult {
@@ -45,16 +48,20 @@ internal object GenericExtractor {
         val title = document.selectFirst("meta[property=og:title]")?.attr("content")?.trim()?.takeIf { it.isNotEmpty() }
             ?: document.title().trim().takeIf { it.isNotEmpty() }
         document.select(NOISE).remove()
-        val candidates = document.select(CONTENT_ROOTS).ifEmpty { listOfNotNull(document.body()) }
-        val root = candidates.maxByOrNull { it.text().length } ?: return SourceResult.Failure(SourceProblem.NoText)
-        val markdown = MarkdownText.of(root).let { if (it.length < MIN_ARTICLE_CHARS) MarkdownText.of(document.body() ?: root) else it }
-        return PageText.markdown(markdown, title)
+        val body = document.body()
+        val root = body?.let { ContentFinder.find(it) } ?: largestContentElement(document) ?: return SourceResult.Failure(SourceProblem.NoText)
+        val markdown = MarkdownText.of(root).let { if (it.length < MIN_ARTICLE_CHARS) MarkdownText.of(body ?: root) else it }
+        val text = TextCleanup.normalizeMarkdown(markdown).trim()
+        return PageText.markdown(text, title, MarkdownSections.of(text))
     }
+
+    private fun largestContentElement(document: Document): Element? =
+        document.select(ContentFinder.CONTENT_ROOTS).ifEmpty { listOfNotNull(document.body()) }.maxByOrNull { it.text().length }
 
     private const val MIN_ARTICLE_CHARS = 200
     private const val NOISE =
         "script, style, noscript, template, svg, canvas, iframe, object, embed, form, button, input, select, nav, footer, aside, " +
             "[role=navigation], [role=banner], [role=contentinfo], [role=complementary], [aria-hidden=true], [hidden], " +
-            ".cookie, .cookies, .cookie-banner, #cookie-banner, .advert, .ads, .share, .social, .sidebar, .related, .comments, #comments"
-    private const val CONTENT_ROOTS = "article, main, [role=main], #content, #main-content, .post-content, .entry-content, .article-body, #mw-content-text"
+            ".cookie, .cookies, .cookie-banner, #cookie-banner, .advert, .ads, .share, .social, .sidebar, .related, .comments, #comments, " +
+            ".newsletter, .breadcrumb, .breadcrumbs, .pagination, .popup"
 }

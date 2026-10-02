@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><title>Setting up a build | Example Guide</title></head>
+<body>
+<nav><a href="/">Home</a></nav>
+<main>
+  <h1>Setting up a build</h1>
+  <p>This guide takes a project from an empty folder to a build that runs on every change, in three short parts.</p>
+  <h2>Install the tools</h2>
+  <p>Install the compiler and the build tool, then check that both start from a terminal. If the version command prints a number, you are ready.</p>
+  <h2>Write the script</h2>
+  <p>Create a file called build.sh in the project folder, with the commands below, and make it executable.</p>
+<pre><code class="language-bash"># compile the sources
+cc -o app main.c
+
+# run the tests
+./app --test</code></pre>
+  <p>The lines that start with a hash are comments, not headings, and the script ignores them.</p>
+  <h3>Options</h3>
+  <p>Pass a flag to change the output name; the default is the name of the folder the script is in.</p>
+  <h2>Run it on every change</h2>
+  <p>Ask the build tool to watch the folder, and it runs the script again whenever a source file is saved.</p>
+</main>
+<footer>Example Guide</footer>
+</body>
+</html>

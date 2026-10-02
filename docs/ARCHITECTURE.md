@@ -236,7 +236,8 @@ mnemo/
 │   │   ├── PdfTextExtractor.kt                          # PdfBox-Android text layer, no OCR
 │   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
 │   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
-│   │   ├── GenericExtractor.kt  MarkdownText.kt         # jsoup page → Markdown
+│   │   ├── GenericExtractor.kt  ContentFinder.kt        # jsoup page → main element (scored) → Markdown
+│   │   ├── MarkdownText.kt  MarkdownSections.kt         # HTML → Markdown; headings → sections
 │   │   ├── site/WikipediaExtractor.kt  WikipediaArticle.kt  # REST API (Parsoid HTML) → article + sections
 │   │   ├── SpeechTranscriber.kt                         # on-device SpeechRecognizer
 │   │   └── TextChunker.kt                               # + TextCleanup

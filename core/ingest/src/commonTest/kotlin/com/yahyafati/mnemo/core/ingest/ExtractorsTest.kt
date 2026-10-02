@@ -134,15 +134,46 @@ class ExtractorsTest : PlatformTest() {
     }
 
     @Test
-    fun blogEntryContentAndDivSoup() {
+    fun blogEntryContentKeepsTheArticleAndLosesTheChrome() {
         server.enqueue(html(fixture("blog-entry-content.html")))
         val blog = success(web.extract(server.url("/blog").toString()))
-        assertFalse(blog.text.isBlank())
+        assertTrue("2,000" in blog.text && "## What I do now" in blog.text, blog.text)
+        assertTrue("1. Words alone have no *context*." in blog.text, blog.text)
+        for (noise in listOf("Archives", "Share on Social", "Great post", "Powered by")) assertFalse(noise in blog.text, noise)
+    }
 
+    @Test
+    fun divSoupIsReadByItsProseNotItsChrome() {
         server.enqueue(html(fixture("div-soup.html")))
         val soup = success(web.extract(server.url("/soup").toString()))
         assertEquals("Photosynthesis explained", soup.title)
-        assertTrue("Calvin cycle" in soup.text)
+        assertTrue("Calvin cycle" in soup.text && "chloroplasts" in soup.text)
+        for (noise in listOf("ScienceStuff", "Ad: buy", "Follow us", "Copyright", "Home")) assertFalse(noise in soup.text, noise)
+    }
+
+    @Test
+    fun aStoryInDivsBeatsLinkListsAndReaderNotes() {
+        server.enqueue(html(fixture("div-article.html")))
+        val text = success(web.extract(server.url("/tides").toString())).text
+        assertTrue("two high tides a day" in text && "spring tides" in text, text)
+        for (noise in listOf("Weather", "lighthouses", "Reader note", "since 1998")) assertFalse(noise in text, noise)
+    }
+
+    @Test
+    fun aPageWithSeveralHeadingsGetsSections() {
+        server.enqueue(html(fixture("guide-with-sections.html")))
+        val source = success(web.extract(server.url("/guide").toString()))
+        assertEquals(listOf("Setting up a build", "Install the tools", "Write the script", "Options", "Run it on every change"), source.sections.map { it.title })
+        assertEquals(listOf(1, 2, 2, 3, 2), source.sections.map { it.level })
+        assertEquals(source.sections.indices.toList(), source.sections.map { it.id })
+        assertTrue(source.textOf(source.sections[2]).let { it.startsWith("## Write the script") && "# compile the sources" in it && "./app --test" in it })
+        assertTrue(source.textOf(source.sections.last()).endsWith("a source file is saved."))
+    }
+
+    @Test
+    fun aPageWithFewHeadingsHasNoSections() {
+        server.enqueue(html(fixture("news-article.html")))
+        assertTrue(success(web.extract(server.url("/news").toString())).sections.isEmpty())
     }
 
     @Test

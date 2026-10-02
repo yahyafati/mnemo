@@ -50,4 +50,6 @@ Hand-written, small, and made to look like what each kind of site sends.
 | `news-article.html` | `<article>` with byline, figure caption, list, blockquote; chrome around it (header, nav, cookie banner, aside, footer) |
 | `blog-entry-content.html` | no `<article>`: the text is in `.entry-content`; sidebar, share links and comments to leave out; inline code, an ordered list |
 | `docs-page.html` | `<main id="main-content">`; a `<pre><code class="language-kotlin">` block with a blank line and indentation, nested lists (`ul` in `ul`, `ol` in `ul`), a table with a header row and a `|` in a cell, inline code containing backticks |
-| `div-soup.html` | no semantic markup at all: text in `div`s, chrome in `div`s; today it falls back to `body`, which is what W6 should do better |
+| `div-soup.html` | no semantic markup at all: text in `div`s, chrome in `div`s; read by `ContentFinder`'s scoring (W6), where the old rule fell back to `body` |
+| `div-article.html` | W6: no semantic markup, a link list and a "reader note" area (neither under a tag or class the old rule dropped) that together hold more text than a short story; the story is in `#story`, the paragraphs in `div`s |
+| `guide-with-sections.html` | W6: `<main>` with an `h1`, three `h2` and an `h3`, and a code block whose `#` lines are not headings: sections from headings |
