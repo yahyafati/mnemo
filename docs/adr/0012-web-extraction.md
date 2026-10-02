@@ -75,8 +75,8 @@ interface SiteExtractor {
 - A site's **failure** is returned as is, not retried generically, so a broken extractor is noticed rather than
   hidden. **(owner)** Say so if `NoText` from a site should fall back instead.
 - The site gets a `PageFetcher`, which applies the limits and the User-Agent; it does not build its own client.
-  The User-Agent names the app and the repository (`Mnemo/<version> (+<repo URL>)`, from `ProjectLinks`), as
-  Wikimedia's policy asks.
+  The User-Agent names the app and the repository (`Mnemo (+<repo URL>)`, from `ProjectLinks`; no version, which
+  `:core:ingest` can't see), as Wikimedia's policy asks.
 - **Which hosts a site may contact.** Only the host the user typed, or that site's own API or raw-content host
   run by the same organisation (Wikipedia's API is on the same host). No third-party readers, proxies,
   "reader mode" or scraping services: the page's text would reach a party the user never chose.

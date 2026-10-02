@@ -234,7 +234,9 @@ mnemo/
 │   │
 │   ├── ingest/src/main/kotlin/com/yahyafati/mnemo/core/ingest/
 │   │   ├── PdfTextExtractor.kt                          # PdfBox-Android text layer, no OCR
-│   │   ├── WebPageExtractor.kt                          # OkHttp + jsoup readable text, PDF links
+│   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
+│   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
+│   │   ├── GenericExtractor.kt  MarkdownText.kt         # jsoup page → Markdown
 │   │   ├── SpeechTranscriber.kt                         # on-device SpeechRecognizer
 │   │   └── TextChunker.kt                               # + TextCleanup
 │   │
@@ -401,7 +403,7 @@ The interval labels on the rating buttons ("< 1m", "12h", "2d", "5d") come from 
 
 ```
 SmartExtractViewModel
-  1. SourceRepository (:core:ingest) → plain text in the editable text box (PDF / link / dictation / paste)
+  1. SourceRepository (:core:ingest) → text in the editable text box (a link as Markdown; PDF / link / dictation / paste)
   2. AiProviderRepository effective route for AiTask.Extract → provider + model + capabilities
   3. GenerateCardsUseCase(route, ExtractRequest(parts, options, deckId))
        parts = TextChunker (≤ 1,200 words each), one request per part, in order

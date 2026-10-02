@@ -223,23 +223,35 @@ interface SiteExtractor {
 }
 ```
 
-- [ ] `PageFetcher` (internal): the fetching half of today's `WebPageExtractor` (client with
+- [x] `PageFetcher` (public, because `SiteExtractor` takes it): the fetching half of today's `WebPageExtractor` (client with
       redirects, timeout, `MAX_BYTES` check, User-Agent, `Accept`). It returns the bytes, content type
       and final URL, or a `SourceResult.Failure` (`HttpError`, `Unreachable`, `TooLarge`).
-- [ ] `GenericExtractor`: today's `html()` branch, with `MarkdownText` and the Markdown-safe cleanup
+- [x] `GenericExtractor`: today's `html()` branch, with `MarkdownText` and the Markdown-safe cleanup
       instead of `ReadableText` and `normalize`. The title logic (`og:title`, then `<title>`) is unchanged.
-- [ ] `WebPageExtractor(client, pdf, sites: List<SiteExtractor>)`: `parseUrl` → the first site whose
+- [x] `WebPageExtractor(client, pdf, sites: List<SiteExtractor>)`: `parseUrl` → the first site whose
       `handles` is true → its result, or the generic path (PDF / HTML / text, as today) when there is none
       or it returns null. A site's **failure** is returned as is, not retried generically (decide in W0
       whether `NoText` from a site should fall back; the default is no, so a broken extractor is noticed).
-- [ ] The User-Agent names the app and a contact URL from `ProjectLinks` (Wikimedia's policy asks for
+- [x] The User-Agent names the app and a contact URL from `ProjectLinks` (Wikimedia's policy asks for
       that, and it is polite everywhere), e.g. `Mnemo/<version> (+<repo URL>)`. Keep a browser-like
       prefix only if W7 shows that sites refuse the plain one.
-- [ ] `dataModule`: `factory { WebPageExtractor(get(), get(), sites = listOf(...)) }`; the list is empty
+- [x] `dataModule`: `factory { WebPageExtractor(get(), get(), sites = listOf(...)) }`; the list is empty
       until W3.
-- [ ] `ExtractorsTest` updated to Markdown expectations (headings and lists from the fixtures), plus a
+- [x] `ExtractorsTest` updated to Markdown expectations (headings and lists from the fixtures), plus a
       test that a site returning null falls through and one that a site's failure is returned.
-- [ ] `SourceRepositoryTest` still passes.
+- [x] `SourceRepositoryTest` still passes.
+
+**Done 2026-10-02.** `PageFetcher`, `SiteExtractor`, `GenericExtractor` (+ `PageText`, the shared "tidy, limit,
+`NoText`" step) and the rewired `WebPageExtractor` (`:core:ingest`), `dataModule`'s `sites = emptyList()`; tests in
+`ExtractorsTest` (the generic fixtures as Markdown, a fake site: handled, null falls through, failure returned,
+fetching through the shared fetcher, the User-Agent). Choices the step left open:
+
+- A site's `NoText` is returned, not retried generically (the default; ADR 0012 still asks the owner).
+- The User-Agent is `Mnemo (+<repo URL>)` without a version: `:core:ingest` can't see the app's version, and a
+  hard-coded one would go stale. `WebPageExtractor` takes a `userAgent` parameter if a host wants to add it. The
+  old browser-like prefix is gone; bring it back only if W7 shows sites refusing this one.
+- `text/*` files (not HTML) still go through the plain `TextCleanup.normalize`, as before.
+- `WebPageExtractor.MAX_BYTES` is now `PageFetcher.MAX_BYTES`, kept under the old name.
 
 **Exit:** links read as Markdown on both platforms; adding a site is adding one class to a list.
 

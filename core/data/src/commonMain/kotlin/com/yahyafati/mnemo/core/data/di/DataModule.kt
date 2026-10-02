@@ -117,7 +117,8 @@ val dataModule = module {
     factory { StudyAssistClient(get()) }
     factory { CoAuthorClient(get()) }
     // Shares the AI client's connection pool; it follows redirects on its own copy of the client.
-    factory { WebPageExtractor(get(), get()) }
+    // Site extractors (ADR 0012) go in `sites`, one class each; Wikipedia's is added in W3.
+    factory { WebPageExtractor(get(), get(), sites = emptyList()) }
     factory { EpubReader(cacheDir = { get<AppDirectories>().cache }) }
 }
 
