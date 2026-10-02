@@ -278,6 +278,23 @@
     <string name="feature_create_epub_chapters_title">Chapters of %1$s</string>
     <string name="feature_create_epub_cancel">Cancel</string>
 
+    <!-- Smart Extract's link sections: docs/web/ROADMAP.md, W4 -->
+    <string name="feature_create_sections_choose">Choose sections</string>
+    <plurals name="feature_create_sections_summary">
+        <item quantity="one">%1$d of %2$d section in the box · %3$d words</item>
+        <item quantity="other">%1$d of %2$d sections in the box · %3$d words</item>
+    </plurals>
+    <string name="feature_create_sections_title">Sections of %1$s</string>
+    <string name="feature_create_sections_title_untitled">Sections</string>
+    <string name="feature_create_sections_lead">Introduction</string>
+    <string name="feature_create_sections_all">Select all</string>
+    <string name="feature_create_sections_none">Select none</string>
+    <string name="feature_create_sections_done">Done</string>
+    <string name="feature_create_sections_replace_title">Replace your changes?</string>
+    <string name="feature_create_sections_replace_message">You edited the text in the box. Choosing other sections replaces it with the text of the sections you choose.</string>
+    <string name="feature_create_sections_replace_confirm">Replace</string>
+    <string name="feature_create_sections_replace_keep">Keep my text</string>
+
     <!-- A book run, several chapters in order: docs/epub/ROADMAP.md, B6 -->
     <string name="feature_create_batch_confirm_title">Generate cards for these chapters?</string>
     <plurals name="feature_create_batch_confirm_chapters">

@@ -24,6 +24,8 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceResult
+import com.yahyafati.mnemo.core.model.SourceSections
+import com.yahyafati.mnemo.core.model.SourceText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +43,10 @@ import kotlinx.coroutines.launch
  * Smart Extract (ARCHITECTURE §5.2): source → text → streamed cards in a review queue → accepted
  * notes. Nothing is saved until a card is accepted; cards that arrived before a failure stay in
  * the queue, and Retry resumes at the part that failed.
+ *
+ * A link whose page has sections (a Wikipedia article's, docs/web/ROADMAP.md, W4) fills the box with the chosen ones:
+ * all of them, or the one a `#Fragment` in the link names. Choosing others rewrites the box, after asking if the user
+ * has edited it. The page's text and sections stay here, not in the UI state.
  *
  * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
@@ -75,6 +81,16 @@ class SmartExtractViewModel(
     /** The book whose chapters can be chosen, and the name its deck has (or would have) under the book's root. */
     private var book: BookSource? = null
     private var bookName: String = ""
+
+    /** The page whose sections can be chosen, and the text the box was last given from them (to tell edits from it). */
+    private var sectionSource: SourceText? = null
+    private var sectionText: String? = null
+
+    /** The sections whose text is in the box. */
+    private var selectedSections: Set<Int> = emptySet()
+
+    /** The selection waiting for the user to agree to replace their edits. */
+    private var pendingSections: Set<Int>? = null
 
     /** The deck path of the chosen chapter, until the decks list has it (the first emission may come later). */
     private var preferredDeckPath: String? = null
@@ -146,6 +162,7 @@ class SmartExtractViewModel(
             }
             SmartExtractAction.ClearText -> {
                 endBatch()
+                clearSections()
                 _uiState.update { it.withText("").copy(title = null, truncated = false, chapterId = null, sourceProblem = null) }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
@@ -170,6 +187,22 @@ class SmartExtractViewModel(
             SmartExtractAction.CancelBatchDiscard -> {
                 pendingBatch = null
                 _uiState.update { it.copy(batchConfirmation = null) }
+            }
+            SmartExtractAction.ShowSections -> _uiState.update { if (it.sections != null) it.copy(showSections = true) else it }
+            SmartExtractAction.DismissSections -> {
+                pendingSections = null
+                _uiState.update { it.copy(showSections = false, sectionsConfirmation = false) }
+            }
+            is SmartExtractAction.ToggleSection -> _uiState.value.sections?.let { sections ->
+                chooseSections(if (action.id in sections.selected) sections.selected - action.id else sections.selected + action.id)
+            }
+            is SmartExtractAction.SelectAllSections -> _uiState.value.sections?.let { sections ->
+                chooseSections(if (action.all) sections.options.map { it.id }.toSet() else emptySet())
+            }
+            SmartExtractAction.ConfirmSectionReplace -> pendingSections?.let(::applySections)
+            SmartExtractAction.CancelSectionReplace -> {
+                pendingSections = null
+                _uiState.update { it.copy(sectionsConfirmation = false) }
             }
             SmartExtractAction.ShowChapters -> _uiState.update { if (it.book != null) it.copy(showChapters = true) else it }
             SmartExtractAction.DismissChapters -> _uiState.update { it.copy(showChapters = false) }
@@ -244,12 +277,71 @@ class SmartExtractViewModel(
         _uiState.update { it.copy(reading = true, sourceProblem = null) }
         readJob = viewModelScope.launch {
             when (val result = sources.read(source)) {
-                is SourceResult.Success -> _uiState.update {
-                    it.withText(result.source.text).copy(reading = false, title = result.source.title, truncated = result.source.truncated, chapterId = null)
+                is SourceResult.Success -> {
+                    val fragment = (source as? SourceInput.Link)?.url?.substringAfter('#', "")
+                    val text = adoptSections(result.source, fragment)
+                    _uiState.update { state ->
+                        state.withText(text ?: result.source.text)
+                            .copy(reading = false, title = result.source.title, truncated = result.source.truncated, chapterId = null)
+                            .withSections()
+                    }
                 }
                 is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
             }
         }
+    }
+
+    /**
+     * Makes [source] the page whose sections can be chosen, if it has more than one, with all of them chosen or the
+     * ones [fragment] names; returns the text they make, or null (and forgets any earlier page) for a source with
+     * nothing to choose.
+     */
+    private fun adoptSections(source: SourceText, fragment: String?): String? {
+        clearSections()
+        if (source.sections.size < 2) return null
+        val chosen = fragment?.let { SourceSections.forFragment(source.sections, it) } ?: source.sections.map { it.id }.toSet()
+        sectionSource = source
+        selectedSections = chosen
+        return SourceSections.join(source, chosen).also { sectionText = it }
+    }
+
+    private fun clearSections() {
+        sectionSource = null
+        sectionText = null
+        pendingSections = null
+        selectedSections = emptySet()
+        _uiState.update { if (it.sections != null || it.showSections || it.sectionsConfirmation) it.copy(sections = null, showSections = false, sectionsConfirmation = false) else it }
+    }
+
+    private fun SmartExtractUiState.withSections(): SmartExtractUiState {
+        val source = sectionSource ?: return this
+        return copy(
+            sections = SectionsSummary(
+                options = source.sections.map { SectionOption(it.id, it.title, it.level, SourceText.countWords(source.textOf(it))) },
+                selected = selectedSections,
+            ),
+            showSections = false,
+            sectionsConfirmation = false,
+        )
+    }
+
+    /** Changes which sections are in the box; text the user has edited is theirs, so they are asked before it goes. */
+    private fun chooseSections(ids: Set<Int>) {
+        if (_uiState.value.text != sectionText) {
+            pendingSections = ids
+            _uiState.update { it.copy(sectionsConfirmation = true) }
+        } else {
+            applySections(ids)
+        }
+    }
+
+    private fun applySections(ids: Set<Int>) {
+        val source = sectionSource ?: return
+        pendingSections = null
+        selectedSections = ids
+        val text = SourceSections.join(source, ids)
+        sectionText = text
+        _uiState.update { it.withText(text).withSections().copy(showSections = true) }
     }
 
     private fun readBook(location: String) {
@@ -270,6 +362,7 @@ class SmartExtractViewModel(
      * chapter list opens.
      */
     private suspend fun adopt(book: BookSource, name: String?, chapterId: Int?, openChapters: Boolean = chapterId == null) {
+        clearSections()
         val titled = book.withDefaultTitles()
         this.book = titled
         bookName = name ?: titled.defaultName()

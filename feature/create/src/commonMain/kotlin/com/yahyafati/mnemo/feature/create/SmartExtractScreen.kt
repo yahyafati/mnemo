@@ -22,10 +22,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -122,15 +124,15 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_next
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_progress
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_skip
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_stop
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_back_matter
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_cut_short
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_front_matter
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_accept
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_discard
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_edit
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_number
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_regenerate
-import com.yahyafati.mnemo.feature.create.resources.feature_create_book_back_matter
-import com.yahyafati.mnemo.feature.create.resources.feature_create_book_cut_short
-import com.yahyafati.mnemo.feature.create.resources.feature_create_book_front_matter
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_balanced
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_comprehensive
@@ -185,15 +187,27 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_skipped
 import com.yahyafati.mnemo.feature.create.resources.feature_create_reading
 import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_retry
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_all
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_choose
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_done
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_lead
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_none
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_replace_confirm
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_replace_keep
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_replace_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_replace_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_summary
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title_untitled
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_manage
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_setup
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_via
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
-import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_epub
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_from
@@ -345,6 +359,32 @@ internal fun SmartExtractScreen(
             selectedId = uiState.chapterId,
             onSelect = { onAction(SmartExtractAction.SelectChapter(it)) },
             onDismiss = { onAction(SmartExtractAction.DismissChapters) },
+        )
+    }
+    uiState.sections?.takeIf { uiState.showSections }?.let { sections ->
+        SectionChooserDialog(
+            title = uiState.title,
+            sections = sections,
+            onToggle = { onAction(SmartExtractAction.ToggleSection(it)) },
+            onSelectAll = { onAction(SmartExtractAction.SelectAllSections(it)) },
+            onDismiss = { onAction(SmartExtractAction.DismissSections) },
+        )
+    }
+    if (uiState.sectionsConfirmation) {
+        AlertDialog(
+            onDismissRequest = { onAction(SmartExtractAction.CancelSectionReplace) },
+            title = { Text(stringResource(Res.string.feature_create_sections_replace_title)) },
+            text = { Text(stringResource(Res.string.feature_create_sections_replace_message)) },
+            confirmButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.ConfirmSectionReplace) }) {
+                    Text(stringResource(Res.string.feature_create_sections_replace_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.CancelSectionReplace) }) {
+                    Text(stringResource(Res.string.feature_create_sections_replace_keep))
+                }
+            },
         )
     }
     if (uiState.showDeckDialog) {
@@ -566,6 +606,23 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
                     )
                 }
                 Hint(stringResource(Res.string.feature_create_link_hint))
+                uiState.sections?.let { sections ->
+                    Hint(
+                        pluralStringResource(
+                            Res.plurals.feature_create_sections_summary,
+                            sections.options.size,
+                            sections.selected.size,
+                            sections.options.size,
+                            sections.selectedWords,
+                        ),
+                    )
+                    MnemoButton(
+                        text = stringResource(Res.string.feature_create_sections_choose),
+                        onClick = { onAction(SmartExtractAction.ShowSections) },
+                        style = MnemoButtonStyle.Secondary,
+                        leadingIcon = MnemoIcons.Link,
+                    )
+                }
             }
             SourceKind.Dictation -> DictationControls(uiState, onAction)
         }
@@ -679,6 +736,68 @@ private fun ChapterOptionRow(chapter: ChapterOption, selected: Boolean, onClick:
         Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
             Text(chapter.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** The sections of the page the link was read from: tick the ones whose text goes in the box. */
+@Composable
+private fun SectionChooserDialog(
+    title: String?,
+    sections: SectionsSummary,
+    onToggle: (Int) -> Unit,
+    onSelectAll: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (title != null) stringResource(Res.string.feature_create_sections_title, title) else stringResource(Res.string.feature_create_sections_title_untitled),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        text = {
+            Column {
+                Row(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                    TextButton(onClick = { onSelectAll(true) }) { Text(stringResource(Res.string.feature_create_sections_all)) }
+                    TextButton(onClick = { onSelectAll(false) }) { Text(stringResource(Res.string.feature_create_sections_none)) }
+                }
+                SectionOptionList(sections, onToggle)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_sections_done)) } },
+    )
+}
+
+/** An article can have dozens of sections, so the list is lazy. A subsection is indented under its parent. */
+@Composable
+internal fun SectionOptionList(sections: SectionsSummary, onToggle: (Int) -> Unit, modifier: Modifier = Modifier) {
+    LazyColumn(modifier.fillMaxWidth()) {
+        items(sections.options, key = { it.id }, contentType = { "section" }) { section ->
+            SectionOptionRow(section, checked = section.id in sections.selected, onToggle = { onToggle(section.id) })
+        }
+    }
+}
+
+/** One section: the whole row toggles it, and reads as "title, words" to a screen reader. */
+@Composable
+private fun SectionOptionRow(section: SectionOption, checked: Boolean, onToggle: () -> Unit) {
+    val title = section.title ?: stringResource(Res.string.feature_create_sections_lead)
+    val words = pluralStringResource(Res.plurals.feature_create_source_words, section.words, section.words)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+            .clickCursor()
+            .padding(start = MnemoTheme.spacing.md * (section.level - 2).coerceIn(0, 4), top = MnemoTheme.spacing.sm, bottom = MnemoTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(words, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

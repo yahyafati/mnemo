@@ -77,6 +77,12 @@ class CreateScreenshotTest {
     fun epubChaptersDark() = captureRoboImage("src/androidHostTest/screenshots/create_epub_chapters_dark.png") { EpubChapters(dark = true) }
 
     @Test
+    fun linkSectionsLight() = captureRoboImage("src/androidHostTest/screenshots/create_link_sections_light.png") { LinkSections(dark = false) }
+
+    @Test
+    fun linkSectionsDark() = captureRoboImage("src/androidHostTest/screenshots/create_link_sections_dark.png") { LinkSections(dark = true) }
+
+    @Test
     fun batchRunLight() = captureRoboImage("src/androidHostTest/screenshots/create_batch_run_light.png") { BatchRun(dark = false) }
 
     @Test
@@ -134,6 +140,29 @@ class CreateScreenshotTest {
                         style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
                     )
                     ChapterOptionList(BookSummary("On the Origin of Species", "Charles Darwin", chapters, false), selectedId = 2, onSelect = {})
+                }
+            }
+        }
+    }
+
+    /** The list inside Smart Extract's section dialog, for an article: the lead, sections and a subsection. */
+    @androidx.compose.runtime.Composable
+    private fun LinkSections(dark: Boolean) {
+        val sections = SectionsSummary(
+            options = listOf(
+                SectionOption(0, null, 0, 180),
+                SectionOption(1, "Structure", 2, 640),
+                SectionOption(2, "Hemispheric specializations", 3, 310),
+                SectionOption(3, "Function", 2, 1250),
+                SectionOption(4, "Clinical significance", 2, 980),
+            ),
+            selected = setOf(0, 1, 2, 3),
+        )
+        MnemoTheme(darkTheme = dark) {
+            androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh) {
+                androidx.compose.foundation.layout.Column(Modifier.padding(24.dp)) {
+                    androidx.compose.material3.Text("Sections of Amygdala", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+                    SectionOptionList(sections, onToggle = {})
                 }
             }
         }

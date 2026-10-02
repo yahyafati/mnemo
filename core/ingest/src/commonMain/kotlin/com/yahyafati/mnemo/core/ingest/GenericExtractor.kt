@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.ingest
 
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
+import com.yahyafati.mnemo.core.model.SourceSection
 import com.yahyafati.mnemo.core.model.SourceText
 import org.jsoup.Jsoup
 
@@ -9,6 +10,19 @@ import org.jsoup.Jsoup
 internal object PageText {
     /** Markdown from [MarkdownText]: leading indentation and fenced blocks are kept. */
     fun markdown(raw: String, title: String?): SourceResult = finish(TextCleanup.normalizeMarkdown(raw), title)
+
+    /**
+     * Markdown with [sections], ranges of [raw]. They are kept only if tidying leaves [raw] as it is (the offsets
+     * would not fit otherwise), and cut where [WebPageExtractor.MAX_CHARS] cuts the text.
+     */
+    fun markdown(raw: String, title: String?, sections: List<SourceSection>): SourceResult {
+        val text = TextCleanup.normalizeMarkdown(raw)
+        val result = finish(text, title)
+        if (result !is SourceResult.Success || text != raw) return result
+        val length = result.source.text.length
+        val kept = sections.filter { it.start < length }.map { it.copy(end = minOf(it.end, length)) }
+        return SourceResult.Success(result.source.copy(sections = kept))
+    }
 
     /** Plain text (a text file): [TextCleanup.normalize]. */
     fun plain(raw: String, title: String?): SourceResult = finish(TextCleanup.normalize(raw), title)

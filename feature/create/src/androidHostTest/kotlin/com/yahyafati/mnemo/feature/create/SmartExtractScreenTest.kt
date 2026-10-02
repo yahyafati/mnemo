@@ -218,6 +218,46 @@ class SmartExtractScreenTest {
     }
 
     @Test
+    fun aLinksSectionsCanBeChosenAndTheBoxFollows() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                sourceKind = SourceKind.Link,
+                link = "https://en.wikipedia.org/wiki/Amygdala",
+                title = "Amygdala",
+                text = "Lead.\n\n## Structure\n\nNuclei.",
+                sections = SectionsSummary(
+                    listOf(SectionOption(0, null, 0, 1), SectionOption(1, "Structure", 2, 2), SectionOption(2, "Function", 2, 3)),
+                    selected = setOf(0, 1),
+                ),
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("2 of 3 sections in the box · 3 words").assertExists()
+        composeRule.onNodeWithText("Choose sections").performScrollTo().performClick()
+        assertEquals(SmartExtractAction.ShowSections, actions.last())
+
+        state = state.copy(showSections = true)
+        composeRule.onNodeWithText("Sections of Amygdala").assertExists()
+        composeRule.onNodeWithText("Introduction").assertExists()
+        composeRule.onNodeWithText("Function").performClick()
+        assertEquals(SmartExtractAction.ToggleSection(2), actions.last())
+        composeRule.onNodeWithText("Select none").performClick()
+        assertEquals(SmartExtractAction.SelectAllSections(false), actions.last())
+
+        // The user's edits are asked about before the chosen sections replace them.
+        state = state.copy(sectionsConfirmation = true)
+        composeRule.onNodeWithText("Replace your changes?").assertExists()
+        composeRule.onNodeWithText("Replace").performClick()
+        assertEquals(SmartExtractAction.ConfirmSectionReplace, actions.last())
+        composeRule.onNodeWithText("Keep my text").performClick()
+        assertEquals(SmartExtractAction.CancelSectionReplace, actions.last())
+    }
+
+    @Test
     fun dictationIsOfferedOnlyWhereThePlatformAndTheDeviceHaveIt() {
         var capabilities by mutableStateOf(PlatformCapabilities())
         var state by mutableStateOf(viewModel.uiState.value)

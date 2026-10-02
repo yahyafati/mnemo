@@ -312,17 +312,38 @@ tests in `WikipediaExtractorTest` (the four Wikipedia fixtures, on both targets)
 
 **Goal:** a long article can be sent in parts the user chooses, like a book's chapters.
 
-- [ ] Model: `SourceText.sections: List<SourceSection> = emptyList()`, with
+- [x] Model: `SourceText.sections: List<SourceSection> = emptyList()`, with
       `SourceSection(id, title, level, start, end)` as offsets into `text`. Only extractors that know
       sections fill it (Wikipedia; later possibly the generic one, from headings).
-- [ ] `SmartExtractViewModel`: when a link has sections, all are selected except the dropped kinds
+- [x] `SmartExtractViewModel`: when a link has sections, all are selected except the dropped kinds
       (already removed in W3) and the lead is included; the box holds the selected ones in order. A
       `#Fragment` in the link preselects only that section. Changing the selection rewrites the box
       (warn first if the user has edited it, like changing the chapter does).
-- [ ] UI: a "Sections" button next to the link field when sections exist, opening a checklist in the
+- [x] UI: a "Sections" button next to the link field when sections exist, opening a checklist in the
       chapter picker's style (title, word count); strings in `feature/create` `strings.xml`.
-- [ ] Tests: ViewModel tests (`commonTest`) for the selection, the fragment and the edit warning; a
+- [x] Tests: ViewModel tests (`commonTest`) for the selection, the fragment and the edit warning; a
       screenshot of the picker (`androidHostTest`).
+
+**Done 2026-10-02.** `SourceSection`, `SourceText.sections` / `textOf` and `SourceSections` (`forFragment`, `join`) in
+`:core:model`; `PageText.markdown(raw, title, sections)` and `WikipediaExtractor` (`:core:ingest`); `SectionsSummary`,
+`SectionOption`, the section actions and the picker in `:feature:create`. Tests: `SourceSectionsTest`,
+`WikipediaExtractorTest` (sections by position, the character limit), `SmartExtractSectionsTest`,
+`SmartExtractScreenTest.aLinksSectionsCanBeChosenAndTheBoxFollows`, screenshots `create_link_sections_{light,dark}.png`.
+Choices the step left open:
+
+- **Sections are identified by position** (`id` = index in text order) and title, never by Wikipedia's anchors, which only
+  hold within one revision. The picker shows only when a page has at least two sections.
+- **A `#Fragment` selects the section and the subsections under it** (the ones after it with a deeper level), not only its
+  own text: a parent's own text is often a sentence, and a link to "History" means the whole history. The match is by
+  title (underscores as spaces, percent-decoded, case ignored); a fragment that names nothing keeps every section.
+  Wikipedia's old dotted escapes (`.C3.A4`) are not decoded.
+- **The box follows the selection.** The ViewModel remembers the text it last wrote from the sections; if the box
+  differs (typing, dictation, a pasted line) a change of selection asks "Replace your changes?" first and keeps the
+  selection and the text as they were until the user agrees. The roadmap's "like changing the chapter does" was not
+  true: choosing another EPUB chapter replaces the box without asking. Left as it is.
+- Another read, Clear, or a book drops the sections; a failed read keeps the text and the sections it had.
+- Sections past `MAX_CHARS` are left out and the last one is cut where the text is, so every range fits `text`; the
+  ranges are dropped altogether if tidying would change the text (they never did on the fixtures).
 
 **Exit:** a Wikipedia article's sections can be picked; other links are unchanged.
 

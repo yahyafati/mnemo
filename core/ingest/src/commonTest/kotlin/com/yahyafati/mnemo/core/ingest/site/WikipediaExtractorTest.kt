@@ -273,6 +273,37 @@ class WikipediaExtractorTest : PlatformTest() {
     }
 
     @Test
+    fun theSourceCarriesItsSectionsByPosition() {
+        server.enqueue(page("amygdala.html"))
+        val source = read("https://en.wikipedia.org/wiki/Amygdala")
+
+        assertEquals(listOf(0, 1, 2), source.sections.map { it.id })
+        assertEquals(listOf(null, "Structure", "Hemispheric specializations"), source.sections.map { it.title })
+        assertEquals(listOf(0, 2, 3), source.sections.map { it.level })
+        assertTrue(source.textOf(source.sections[1]).startsWith("## Structure\n\nThirteen nuclei"))
+        assertEquals(source.text.length, source.sections.last().end)
+    }
+
+    @Test
+    fun sectionsPastTheCharacterLimitAreLeftOutAndTheLastIsCut() {
+        val prose = "word ".repeat(WebPageExtractor.MAX_CHARS / 8)
+        val html = "<html><head><title>Long</title></head><body>" +
+            "<section data-mw-section-id=\"0\"><p>Lead.</p></section>" +
+            "<section data-mw-section-id=\"1\"><h2>A</h2><p>$prose</p></section>" +
+            "<section data-mw-section-id=\"2\"><h2>B</h2><p>$prose</p></section>" +
+            "<section data-mw-section-id=\"3\"><h2>C</h2><p>$prose</p></section>" +
+            "<section data-mw-section-id=\"4\"><h2>D</h2><p>$prose</p></section></body></html>"
+        server.enqueue(MockResponse.Builder().addHeader("Content-Type", "text/html").body(html).build())
+        val source = read("https://en.wikipedia.org/wiki/Long")
+
+        assertTrue(source.truncated)
+        assertEquals(WebPageExtractor.MAX_CHARS, source.text.length)
+        assertTrue(source.sections.size in 2..4)
+        assertEquals(source.text.length, source.sections.last().end)
+        assertTrue(source.sections.all { it.start < it.end && it.end <= source.text.length })
+    }
+
+    @Test
     fun aSectionThatIsOnlyLinksIsDroppedWhateverItsTitle() {
         val article = WikipediaArticle.of(
             Jsoup.parse(

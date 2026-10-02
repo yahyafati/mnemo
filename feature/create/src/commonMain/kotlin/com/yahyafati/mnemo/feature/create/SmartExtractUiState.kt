@@ -34,6 +34,11 @@ data class SmartExtractUiState(
     val truncated: Boolean = false,
     /** How many requests [text] is sent in (one per part); 0 for no text. More than one is worth saying. */
     val requests: Int = 0,
+    /** The sections of the page the link was read from (W4), null when the page has none to pick from. */
+    val sections: SectionsSummary? = null,
+    val showSections: Boolean = false,
+    /** Asking the user to discard their edits to the text before the chosen sections replace it. */
+    val sectionsConfirmation: Boolean = false,
     /** The EPUB read for the Epub source, and the chapter whose text is in the box. */
     val book: BookSummary? = null,
     val chapterId: Int? = null,
@@ -74,6 +79,17 @@ data class SmartExtractUiState(
 
     val deckPath: String? get() = decks.firstOrNull { it.id == deckId }?.path
 }
+
+/**
+ * The sections of a page (a Wikipedia article's), whose chosen ones make up the text in the box. The text stays in
+ * the ViewModel; the screen needs only this.
+ */
+data class SectionsSummary(val options: List<SectionOption>, val selected: Set<Int>) {
+    val selectedWords: Int get() = options.filter { it.id in selected }.sumOf { it.words }
+}
+
+/** [title] is null for the lead, the text above the first heading; [level] is the heading's (2 for `h2`), 0 for the lead. */
+data class SectionOption(val id: Int, val title: String?, val level: Int, val words: Int)
 
 /** The book Smart Extract is reading chapters from. The text stays in the ViewModel; the screen needs only this. */
 data class BookSummary(
@@ -186,6 +202,21 @@ sealed interface SmartExtractAction {
     data object CancelBatchDiscard : SmartExtractAction
 
     data object DismissChapters : SmartExtractAction
+
+    data object ShowSections : SmartExtractAction
+
+    data object DismissSections : SmartExtractAction
+
+    /** Adds the section to the text in the box, or takes it out. Asks first when the text has been edited. */
+    data class ToggleSection(val id: Int) : SmartExtractAction
+
+    /** Every section, or none. */
+    data class SelectAllSections(val all: Boolean) : SmartExtractAction
+
+    /** The user agreed to replace their edits ([SmartExtractUiState.sectionsConfirmation]). */
+    data object ConfirmSectionReplace : SmartExtractAction
+
+    data object CancelSectionReplace : SmartExtractAction
 
     /**
      * A file dropped on the screen (desktop): a PDF is read like a picked one, a text or Markdown

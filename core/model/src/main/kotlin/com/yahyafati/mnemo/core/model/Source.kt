@@ -22,14 +22,30 @@ data class SourceText(
     val title: String? = null,
     /** Some of the source was left out (too many pages or characters). */
     val truncated: Boolean = false,
+    /**
+     * The parts of [text] a reader can pick from (a Wikipedia article's sections), in text order; empty for a
+     * source that has none. Only extractors that know the structure fill it.
+     */
+    val sections: List<SourceSection> = emptyList(),
 ) {
     val wordCount: Int get() = countWords(text)
+
+    /** What [section] says: its range of [text]. */
+    fun textOf(section: SourceSection): String = text.substring(section.start.coerceIn(0, text.length), section.end.coerceIn(0, text.length))
 
     companion object {
         /** See [WordCount.count]: Japanese and Chinese have no spaces, so their characters count too. */
         fun countWords(text: String): Int = WordCount.count(text)
     }
 }
+
+/**
+ * One part of a [SourceText] the user can pick: the range [start] until [end] of its text (the heading and what
+ * is above the first subsection). [id] is the section's position, 0-based: a section's own anchor is only stable
+ * within one revision of a page, so sections are identified by position and [title].
+ * [title] is null for the lead, whose [level] is 0; an `h2` section is 2, a subsection 3 and so on.
+ */
+data class SourceSection(val id: Int, val title: String?, val level: Int, val start: Int, val end: Int)
 
 /** Why a source couldn't be read. */
 enum class SourceProblem {

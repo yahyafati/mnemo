@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.ingest.PageFetcher
 import com.yahyafati.mnemo.core.ingest.PageText
 import com.yahyafati.mnemo.core.ingest.SiteExtractor
 import com.yahyafati.mnemo.core.model.SourceResult
+import com.yahyafati.mnemo.core.model.SourceSection
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.Jsoup
@@ -22,7 +23,8 @@ import org.jsoup.Jsoup
  *
  * It claims `/wiki/<Title>` and `/w/index.php?title=<Title>`; a title in another namespace (`Talk:`, `File:`,
  * `Special:` …), an old revision or a non-view action is left to the generic extractor. A `#fragment` is not
- * used here: the Smart Extract section picker reads it (W4). A disambiguation page returns its lists.
+ * used here: Smart Extract reads it from the link to preselect a section (W4), and gets the article's sections
+ * with the text. A disambiguation page returns its lists.
  */
 class WikipediaExtractor(
     private val baseUrl: (language: String) -> HttpUrl = { language -> "https://$language.wikipedia.org".toHttpUrl() },
@@ -44,7 +46,8 @@ class WikipediaExtractor(
         if (page.contentType?.subtype != "html") return null
         val document = Jsoup.parse(page.bytes.inputStream(), page.charset?.name(), page.url.toString())
         val article = WikipediaArticle.of(document)
-        return PageText.markdown(article.text, article.title ?: target.title.replace('_', ' '))
+        val sections = article.sections.mapIndexed { id, it -> SourceSection(id, it.title, it.level, it.start, it.end) }
+        return PageText.markdown(article.text, article.title ?: target.title.replace('_', ' '), sections)
     }
 
     private class Target(val language: String, val title: String)
