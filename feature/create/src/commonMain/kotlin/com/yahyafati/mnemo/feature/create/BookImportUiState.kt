@@ -61,6 +61,9 @@ sealed interface BookImportAction {
 
     data object Create : BookImportAction
 
+    /** After the decks are made: hand the book to Smart Extract to choose a chapter and generate its cards. */
+    data object GenerateCards : BookImportAction
+
     /** Back to asking for a file, from a problem or from the result. */
     data object Reset : BookImportAction
 }

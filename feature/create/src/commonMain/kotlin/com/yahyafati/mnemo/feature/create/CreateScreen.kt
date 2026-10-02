@@ -55,6 +55,10 @@ internal fun CreateScreen(
     val smartExtract by smartExtractViewModel.uiState.collectAsStateWithLifecycle()
     val coAuthor by coAuthorViewModel.uiState.collectAsStateWithLifecycle()
     var mode by rememberSaveable { mutableStateOf(CreateMode.Manual) }
+    // A book handed over from the book import is waiting in Smart Extract.
+    LaunchedEffect(smartExtractViewModel) {
+        smartExtractViewModel.bookAdopted.collect { mode = CreateMode.SmartExtract }
+    }
     Column(modifier.fillMaxSize()) {
         SingleChoiceSegmentedButtonRow(
             Modifier

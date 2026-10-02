@@ -13,9 +13,6 @@ import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.SourceInput
-import com.yahyafati.mnemo.feature.create.resources.Res
-import com.yahyafati.mnemo.feature.create.resources.feature_create_book_chapter_default
-import com.yahyafati.mnemo.feature.create.resources.feature_create_book_untitled
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 /**
  * Imports a book (EPUB) as one deck per chapter (docs/epub/ROADMAP.md, B4, ADR 0011): reads the file,
@@ -38,6 +34,7 @@ class BookImportViewModel(
     private val sources: SourceRepository,
     private val deckRepository: DeckRepository,
     private val createBookDecks: CreateBookDecksUseCase,
+    private val bookHandoff: BookHandoff,
 ) : ViewModel() {
     private val initialLocation: String? = savedStateHandle[LOCATION_KEY]
 
@@ -68,6 +65,10 @@ class BookImportViewModel(
             BookImportAction.SelectContent -> _uiState.update { it.copy(checked = it.contentIds()) }
             is BookImportAction.BookNameChanged -> _uiState.update { it.copy(bookName = action.name).withExisting() }
             BookImportAction.Create -> create()
+            BookImportAction.GenerateCards -> _uiState.value.let { state ->
+                // The decks exist now, so Smart Extract finds the chapter's deck by name.
+                state.book?.let { bookHandoff.offer(it, state.bookName) }
+            }
             BookImportAction.Reset -> {
                 readJob?.cancel()
                 _uiState.value = BookImportUiState()
@@ -81,11 +82,11 @@ class BookImportViewModel(
         readJob = viewModelScope.launch {
             when (val result = sources.readBook(SourceInput.Epub(location))) {
                 is BookResult.Success -> {
-                    val book = result.book.withTitles()
+                    val book = result.book.withDefaultTitles()
                     val state = BookImportUiState(
                         book = book,
                         wordCounts = book.chapters.associate { it.id to it.wordCount },
-                        bookName = book.title.ifBlank { getString(Res.string.feature_create_book_untitled) },
+                        bookName = book.defaultName(),
                     )
                     _uiState.value = state.copy(checked = state.contentIds()).withExisting()
                 }
@@ -94,17 +95,7 @@ class BookImportViewModel(
         }
     }
 
-    /** Chapters the file gave no title get "Chapter N", in the user's language, so lists and deck names agree. */
-    private suspend fun BookSource.withTitles(): BookSource = copy(
-        chapters = chapters.map { chapter ->
-            if (chapter.title.isNotBlank()) chapter else chapter.copy(title = getString(Res.string.feature_create_book_chapter_default, chapter.id + 1))
-        },
-    )
-
     private fun BookImportUiState.contentIds(): Set<Int> = chapters.filter { it.kind == ChapterKind.Content }.mapTo(mutableSetOf()) { it.id }
-
-    /** The number of decks the book's chapters are numbered for: ids are positions, so a gap still pads the same. */
-    private fun BookSource.deckCount(): Int = maxOf(chapters.size, (chapters.maxOfOrNull { it.id } ?: -1) + 1)
 
     /** Marks the chapters whose deck exists under the book's deck, by computing the names the use case would give. */
     private fun BookImportUiState.withExisting(): BookImportUiState {

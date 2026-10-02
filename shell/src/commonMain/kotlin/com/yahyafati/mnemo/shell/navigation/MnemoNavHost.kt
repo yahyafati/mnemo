@@ -68,7 +68,10 @@ fun MnemoNavHost(
         aiProviderEditorScreen(onClose = navController::popBackStack)
         studySessionScreen(onClose = navController::popBackStack, onEditNote = editNote)
         noteEditorScreen(onClose = navController::popBackStack)
-        bookImportScreen(onClose = navController::popBackStack)
+        bookImportScreen(
+            onClose = navController::popBackStack,
+            onGenerateCards = { appState.navigateToTopLevelDestination(TopLevelDestination.Create) },
+        )
         browseScreen(onBack = navController::popBackStack, onEditNote = editNote)
     }
 }

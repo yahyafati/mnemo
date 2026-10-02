@@ -28,6 +28,7 @@ class BookImportViewModelTest : PlatformTest() {
 
     private val sources = FakeSourceRepository()
     private val decks = FakeDeckRepository()
+    private val handoff = BookHandoff()
 
     private val file = "/books/origin.epub"
 
@@ -54,6 +55,7 @@ class BookImportViewModelTest : PlatformTest() {
         sources = sources,
         deckRepository = decks,
         createBookDecks = CreateBookDecksUseCase(decks),
+        bookHandoff = handoff,
     )
 
     /** Picks [file] and waits for it to be read (the localized fallbacks are read off the main thread). */
@@ -216,5 +218,21 @@ class BookImportViewModelTest : PlatformTest() {
         vm.open()
         vm.onAction(BookImportAction.Reset)
         assertEquals(BookImportUiState(), vm.uiState.value)
+    }
+
+    @Test
+    fun generatingCardsHandsTheBookAndItsDeckNameToSmartExtract() = runTest {
+        provide()
+        val vm = viewModel()
+        vm.open()
+        vm.onAction(BookImportAction.BookNameChanged("My Origin"))
+        vm.created()
+        assertNull(handoff.offer.value)
+
+        vm.onAction(BookImportAction.GenerateCards)
+        val offer = assertNotNull(handoff.offer.value)
+        assertEquals("My Origin", offer.bookName)
+        assertEquals(listOf("Contents", "Variation", "Struggle", "Index"), offer.book.chapters.map { it.title })
+        assertNull(offer.chapterId)
     }
 }

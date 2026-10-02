@@ -1,6 +1,9 @@
 package com.yahyafati.mnemo.feature.create
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.BookChapter
@@ -64,8 +67,37 @@ class CreateScreenshotTest {
     fun bookImportDark() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_dark.png") { BookImport(dark = true) }
 
     @Test
+    fun epubChaptersLight() = captureRoboImage("src/androidHostTest/screenshots/create_epub_chapters_light.png") { EpubChapters(dark = false) }
+
+    @Test
+    fun epubChaptersDark() = captureRoboImage("src/androidHostTest/screenshots/create_epub_chapters_dark.png") { EpubChapters(dark = true) }
+
+    @Test
     fun bookImportDrm() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_drm.png") {
         MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
+    }
+
+    /** The list inside Smart Extract's chapter dialog (a dialog is its own window, which the screenshot doesn't take). */
+    @androidx.compose.runtime.Composable
+    private fun EpubChapters(dark: Boolean) {
+        val chapters = listOf(
+            ChapterOption(0, "Title page", 3, ChapterKind.FrontMatter, false),
+            ChapterOption(1, "Introduction", 3100, ChapterKind.Content, false),
+            ChapterOption(2, "Variation under domestication", 5200, ChapterKind.Content, false),
+            ChapterOption(3, "Struggle for existence", 4100, ChapterKind.Content, true),
+            ChapterOption(4, "Index", 900, ChapterKind.BackMatter, false),
+        )
+        MnemoTheme(darkTheme = dark) {
+            androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh) {
+                androidx.compose.foundation.layout.Column(Modifier.padding(24.dp)) {
+                    androidx.compose.material3.Text(
+                        "Chapters of On the Origin of Species",
+                        style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+                    )
+                    ChapterOptionList(BookSummary("On the Origin of Species", "Charles Darwin", chapters, false), selectedId = 2, onSelect = {})
+                }
+            }
+        }
     }
 
     @androidx.compose.runtime.Composable

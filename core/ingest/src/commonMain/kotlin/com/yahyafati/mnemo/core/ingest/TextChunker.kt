@@ -1,17 +1,24 @@
 package com.yahyafati.mnemo.core.ingest
 
+import com.yahyafati.mnemo.core.model.WordCount
+
 /**
  * Splits long sources into parts a model can take in one request (PROJECT_OVERVIEW §5.3, step 1).
  * Parts break between paragraphs, else between sentences, else between words, and stay under
  * [maxWords]. A short tail is folded into the part before it rather than sent alone.
+ *
+ * Size is [WordCount]: Japanese and Chinese, which have no spaces, count by character, and a sentence
+ * ends at 。！？ as well as at a full stop followed by a space.
  */
 object TextChunker {
     /** About 1,600 tokens: small enough for any context window, big enough that a note is one request. */
     const val DEFAULT_MAX_WORDS = 1_200
 
     private val PARAGRAPH = Regex("""\n\s*\n""")
-    private val SENTENCE_END = Regex("""(?<=[.!?。！？])\s+""")
-    private val WHITESPACE = Regex("""\s+""")
+
+    // After . ! ? and a space (the space is the break), or after 。！？ (no space) with closing quotes kept on the sentence.
+    private val SENTENCE_END = Regex("""(?<=[.!?])\s+|(?<=[。！？][」』）)”’]{0,2})(?![」』）)”’])""")
+    private const val CJK_TERMINATORS = "。！？"
 
     fun chunk(text: String, maxWords: Int = DEFAULT_MAX_WORDS): List<String> {
         require(maxWords > 0)
@@ -31,18 +38,22 @@ object TextChunker {
         }
 
         for (paragraph in paragraphs) {
-            val words = words(paragraph)
+            val words = WordCount.count(paragraph)
             if (words <= maxWords) {
                 add(paragraph, words, "\n\n")
                 continue
             }
-            // Too long for one part: break it by sentences, and sentences by words.
-            var first = true
-            for (sentence in paragraph.split(SENTENCE_END)) {
-                val sentenceWords = sentence.split(WHITESPACE).filter { it.isNotEmpty() }
-                for (piece in sentenceWords.chunked(maxWords)) {
-                    add(piece.joinToString(" "), piece.size, if (first) "\n\n" else " ")
-                    first = false
+            // Too long for one part: break it by sentences, and sentences by words (or, in Japanese, characters).
+            var previous: String? = null
+            for (sentence in paragraph.split(SENTENCE_END).filter { it.isNotBlank() }) {
+                for ((index, piece) in pieces(sentence, maxWords).withIndex()) {
+                    val separator = when {
+                        previous == null -> "\n\n"
+                        index == 0 && previous.last() in CJK_TERMINATORS -> ""
+                        else -> " "
+                    }
+                    add(piece, WordCount.count(piece), separator)
+                    previous = piece
                 }
             }
         }
@@ -52,7 +63,8 @@ object TextChunker {
         if (joined.size >= 2) {
             val last = joined.last()
             val before = joined[joined.size - 2]
-            if (words(last) < maxWords / TAIL_FRACTION && words(before) + words(last) <= maxWords + maxWords / TAIL_FRACTION) {
+            val lastWords = WordCount.count(last)
+            if (lastWords < maxWords / TAIL_FRACTION && WordCount.count(before) + lastWords <= maxWords + maxWords / TAIL_FRACTION) {
                 joined[joined.size - 2] = before + "\n\n" + last
                 joined.removeAt(joined.lastIndex)
             }
@@ -60,7 +72,55 @@ object TextChunker {
         return joined
     }
 
-    private fun words(text: String) = text.split(WHITESPACE).count { it.isNotEmpty() }
+    /**
+     * [sentence] cut into pieces of at most [maxWords]: the sentence itself when it fits, else runs of words
+     * (rejoined with single spaces) or, for text without spaces, runs of characters, never inside a word.
+     */
+    private fun pieces(sentence: String, maxWords: Int): List<String> {
+        if (WordCount.count(sentence) <= maxWords) return listOf(sentence.trim())
+        // Half-words, so a CJK character (half a word) and a word (two halves) share one budget.
+        val budget = maxWords * WordCount.CJK_CHARS_PER_WORD
+        val out = mutableListOf<String>()
+        val piece = StringBuilder()
+        var used = 0
+
+        fun flush() {
+            if (piece.isNotBlank()) out += piece.toString().trim()
+            piece.setLength(0)
+            used = 0
+        }
+
+        var i = 0
+        while (i < sentence.length) {
+            val codePoint = sentence.codePointAt(i)
+            when {
+                WordCount.isCjk(codePoint) -> {
+                    if (used + 1 > budget) flush()
+                    piece.appendCodePoint(codePoint)
+                    used += 1
+                    i += Character.charCount(codePoint)
+                }
+                Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint) -> {
+                    if (piece.isNotEmpty() && piece.last() != ' ') piece.append(' ')
+                    i += Character.charCount(codePoint)
+                }
+                else -> {
+                    var end = i
+                    while (end < sentence.length) {
+                        val c = sentence.codePointAt(end)
+                        if (Character.isWhitespace(c) || Character.isSpaceChar(c) || WordCount.isCjk(c)) break
+                        end += Character.charCount(c)
+                    }
+                    if (used + WordCount.CJK_CHARS_PER_WORD > budget) flush()
+                    piece.append(sentence, i, end)
+                    used += WordCount.CJK_CHARS_PER_WORD
+                    i = end
+                }
+            }
+        }
+        flush()
+        return out
+    }
 
     /** A tail under a quarter of a part joins the part before, which may grow by a quarter. */
     private const val TAIL_FRACTION = 4

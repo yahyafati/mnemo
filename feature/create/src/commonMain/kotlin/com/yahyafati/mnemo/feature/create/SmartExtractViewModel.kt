@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
+import com.yahyafati.mnemo.core.domain.BookDeckNames
 import com.yahyafati.mnemo.core.domain.ExtractEvent
 import com.yahyafati.mnemo.core.domain.ExtractRequest
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
@@ -14,6 +15,8 @@ import com.yahyafati.mnemo.core.domain.RegenerateResult
 import com.yahyafati.mnemo.core.domain.SkipReason
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
+import com.yahyafati.mnemo.core.model.BookResult
+import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractOptions
@@ -21,10 +24,14 @@ import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceResult
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -32,6 +39,10 @@ import kotlinx.coroutines.launch
  * Smart Extract (ARCHITECTURE §5.2): source → text → streamed cards in a review queue → accepted
  * notes. Nothing is saved until a card is accepted; cards that arrived before a failure stay in
  * the queue, and Retry resumes at the part that failed.
+ *
+ * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
+ * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
+ * (made by the book import) the chapter's deck is selected, found by computing its name.
  */
 class SmartExtractViewModel(
     private val aiProviders: AiProviderRepository,
@@ -40,6 +51,7 @@ class SmartExtractViewModel(
     private val generateCards: GenerateCardsUseCase,
     private val regenerateCard: RegenerateCardUseCase,
     private val acceptCards: AcceptGeneratedCardsUseCase,
+    private val bookHandoff: BookHandoff,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SmartExtractUiState(dictationAvailable = sources.isDictationAvailable()))
     val uiState: StateFlow<SmartExtractUiState> = _uiState.asStateFlow()
@@ -52,6 +64,18 @@ class SmartExtractViewModel(
     private var dictationJob: Job? = null
     private var readJob: Job? = null
 
+    /** The book whose chapters can be chosen, and the name its deck has (or would have) under the book's root. */
+    private var book: BookSource? = null
+    private var bookName: String = ""
+
+    /** The deck path of the chosen chapter, until the decks list has it (the first emission may come later). */
+    private var preferredDeckPath: String? = null
+
+    private val adoptedBooks = Channel<Unit>(Channel.CONFLATED)
+
+    /** Emits when a book arrives from the book import, so the screen can show Smart Extract. */
+    val bookAdopted: Flow<Unit> = adoptedBooks.receiveAsFlow()
+
     /** What to do once the provider notice is accepted. */
     private var afterDisclosure: (() -> Unit)? = null
 
@@ -63,14 +87,21 @@ class SmartExtractViewModel(
             combine(aiProviders.observeEffectiveRoutes(), deckRepository.observeDeckSummaries()) { routes, decks ->
                 routes[AiTask.Extract] to decks.map { DeckOption(it.deck.id, it.path) }.sortedBy { it.path.lowercase() }
             }.collect { (route, decks) ->
+                val preferred = preferredDeck(decks)
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         route = route,
                         decks = decks,
-                        deckId = state.deckId?.takeIf { id -> decks.any { it.id == id } } ?: decks.firstOrNull()?.id,
+                        deckId = preferred?.id ?: state.deckId?.takeIf { id -> decks.any { it.id == id } } ?: decks.firstOrNull()?.id,
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            bookHandoff.offer.filterNotNull().collect { offer ->
+                bookHandoff.take(offer)
+                adopt(offer.book, offer.bookName, offer.chapterId)
             }
         }
     }
@@ -82,12 +113,18 @@ class SmartExtractViewModel(
                 _uiState.update { it.copy(sourceKind = action.kind, sourceProblem = null) }
             }
             is SmartExtractAction.TextChanged -> _uiState.update {
-                if (action.text.isBlank()) it.copy(text = action.text, title = null, truncated = false) else it.copy(text = action.text)
+                if (action.text.isBlank()) it.withText(action.text).copy(title = null, truncated = false) else it.withText(action.text)
             }
-            SmartExtractAction.ClearText -> _uiState.update { it.copy(text = "", title = null, truncated = false, sourceProblem = null) }
+            SmartExtractAction.ClearText -> _uiState.update {
+                it.withText("").copy(title = null, truncated = false, chapterId = null, sourceProblem = null)
+            }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
             is SmartExtractAction.PdfPicked -> read(SourceInput.Pdf(action.uri))
+            is SmartExtractAction.EpubPicked -> readBook(action.uri)
+            is SmartExtractAction.SelectChapter -> selectChapter(action.id)
+            SmartExtractAction.ShowChapters -> _uiState.update { if (it.book != null) it.copy(showChapters = true) else it }
+            SmartExtractAction.DismissChapters -> _uiState.update { it.copy(showChapters = false) }
             is SmartExtractAction.FileDropped -> when (DroppedFile.of(action.location)) {
                 DroppedFile.Pdf -> {
                     _uiState.update { it.copy(sourceKind = SourceKind.Pdf) }
@@ -103,13 +140,17 @@ class SmartExtractViewModel(
             SmartExtractAction.StopDictation -> stopDictation()
             SmartExtractAction.DictationPermissionDenied ->
                 _uiState.update { it.copy(dictation = DictationState.Failed(DictationProblem.NoPermission)) }
-            is SmartExtractAction.SelectDeck -> _uiState.update { it.copy(deckId = action.deckId) }
+            is SmartExtractAction.SelectDeck -> {
+                preferredDeckPath = null
+                _uiState.update { it.copy(deckId = action.deckId) }
+            }
             SmartExtractAction.ShowDeckDialog -> _uiState.update { it.copy(showDeckDialog = true) }
             SmartExtractAction.DismissDeckDialog -> _uiState.update { it.copy(showDeckDialog = false) }
             is SmartExtractAction.CreateDeck -> {
                 _uiState.update { it.copy(showDeckDialog = false) }
                 viewModelScope.launch {
                     val id = deckRepository.saveDeck(action.path, action.description, action.category)
+                    preferredDeckPath = null
                     _uiState.update { it.copy(deckId = id) }
                 }
             }
@@ -153,12 +194,85 @@ class SmartExtractViewModel(
         readJob = viewModelScope.launch {
             when (val result = sources.read(source)) {
                 is SourceResult.Success -> _uiState.update {
-                    it.copy(reading = false, text = result.source.text, title = result.source.title, truncated = result.source.truncated)
+                    it.withText(result.source.text).copy(reading = false, title = result.source.title, truncated = result.source.truncated, chapterId = null)
                 }
                 is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
             }
         }
     }
+
+    private fun readBook(location: String) {
+        readJob?.cancel()
+        _uiState.update { it.copy(reading = true, sourceProblem = null) }
+        readJob = viewModelScope.launch {
+            when (val result = sources.readBook(SourceInput.Epub(location))) {
+                is BookResult.Success -> adopt(result.book, name = null, chapterId = null)
+                is BookResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
+            }
+        }
+    }
+
+    /**
+     * Makes [book] the one chapters are chosen from: the picked one, or the one the book import handed over
+     * under [name], the name the user gave its deck. [chapterId] chooses a chapter at once; without one the
+     * chapter list opens.
+     */
+    private suspend fun adopt(book: BookSource, name: String?, chapterId: Int?) {
+        val titled = book.withDefaultTitles()
+        this.book = titled
+        bookName = name ?: titled.defaultName()
+        _uiState.update {
+            it.copy(
+                reading = false,
+                sourceKind = SourceKind.Epub,
+                sourceProblem = null,
+                book = titled.summary(),
+                chapterId = null,
+                showChapters = chapterId == null,
+            )
+        }
+        chapterId?.let(::selectChapter)
+        adoptedBooks.trySend(Unit)
+    }
+
+    private fun BookSource.summary() = BookSummary(
+        title = title.ifBlank { bookName },
+        author = author?.takeIf { it.isNotBlank() },
+        chapters = chapters.map { ChapterOption(it.id, it.title, it.wordCount, it.kind, it.truncated) },
+        truncated = truncated,
+    )
+
+    /** Puts the chapter's text in the box, titled "Book — Chapter", and selects its deck if the import made one. */
+    private fun selectChapter(id: Int) {
+        val book = book ?: return
+        val chapter = book.chapters.firstOrNull { it.id == id } ?: return
+        val title = "${book.title.ifBlank { bookName }} — ${chapter.title}"
+        preferredDeckPath = BookDeckNames.path(BookDeckNames.book(bookName), BookDeckNames.chapter(chapter.id + 1, book.deckCount(), chapter.title))
+        val preferred = preferredDeck(_uiState.value.decks)
+        // Only a list that hasn't loaded yet can still bring the deck; later on a missing deck stays missing.
+        if (preferred == null && !_uiState.value.isLoading) preferredDeckPath = null
+        _uiState.update {
+            it.withText(chapter.text).copy(
+                title = title,
+                truncated = chapter.truncated,
+                chapterId = id,
+                showChapters = false,
+                deckId = preferred?.id ?: it.deckId,
+            )
+        }
+    }
+
+    /** The deck waiting to be selected, if [decks] has it now; asking for it uses it up. */
+    private fun preferredDeck(decks: List<DeckOption>): DeckOption? {
+        val path = preferredDeckPath ?: return null
+        val deck = decks.firstOrNull { it.path.equals(path, ignoreCase = true) } ?: return null
+        preferredDeckPath = null
+        return deck
+    }
+
+    /** Sets the text and how many requests it takes (one per part), which the screen says when there are several. */
+    private fun SmartExtractUiState.withText(text: String) =
+        copy(text = text, requests = if (text.isBlank()) 0 else generateCards.split(text).size)
 
     private fun startDictation() {
         if (dictationJob?.isActive == true) return
@@ -173,7 +287,7 @@ class SmartExtractViewModel(
                     DictationEvent.Listening -> _uiState.update { it.copy(dictation = DictationState.Listening()) }
                     is DictationEvent.Partial -> _uiState.update { it.copy(dictation = DictationState.Listening(event.text)) }
                     is DictationEvent.Final -> _uiState.update {
-                        it.copy(text = appendPhrase(it.text, event.text), dictation = DictationState.Listening())
+                        it.withText(appendPhrase(it.text, event.text)).copy(dictation = DictationState.Listening())
                     }
                     is DictationEvent.Failed -> {
                         _uiState.update { it.copy(dictation = DictationState.Failed(event.problem)) }
@@ -191,7 +305,7 @@ class SmartExtractViewModel(
         _uiState.update { state ->
             val partial = (state.dictation as? DictationState.Listening)?.partial.orEmpty()
             val text = if (partial.isNotBlank()) appendPhrase(state.text, partial) else state.text
-            state.copy(text = text, dictation = if (state.dictation is DictationState.Failed) state.dictation else DictationState.Off)
+            state.withText(text).copy(dictation = if (state.dictation is DictationState.Failed) state.dictation else DictationState.Off)
         }
     }
 

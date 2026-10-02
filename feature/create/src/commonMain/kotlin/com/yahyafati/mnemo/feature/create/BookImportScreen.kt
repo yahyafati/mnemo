@@ -76,6 +76,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_book_entry_me
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_entry_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_exists_note
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_front_matter
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_generate
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_has_deck
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name_hint
@@ -96,12 +97,13 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-private const val EPUB_MIME_TYPE = "application/epub+zip"
+internal const val EPUB_MIME_TYPE = "application/epub+zip"
 
 /** The book import as its own screen (a route, not a tab), so it owns its top bar. */
 @Composable
 internal fun BookImportFullScreen(
     onClose: () -> Unit,
+    onGenerateCards: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookImportViewModel = koinViewModel(),
 ) {
@@ -126,6 +128,7 @@ internal fun BookImportFullScreen(
             uiState = uiState,
             onAction = viewModel::onAction,
             onClose = onClose,
+            onGenerateCards = onGenerateCards,
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding),
@@ -143,6 +146,8 @@ internal fun BookImportScreen(
     onAction: (BookImportAction) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Leaves for Smart Extract, which takes the book (see [BookImportAction.GenerateCards]). */
+    onGenerateCards: () -> Unit = {},
 ) {
     val picker = rememberFilePicker(listOf(EPUB_MIME_TYPE)) { onAction(BookImportAction.FilePicked(it)) }
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -155,7 +160,15 @@ internal fun BookImportScreen(
                 CircularProgressIndicator()
                 Text(stringResource(Res.string.feature_create_book_reading), style = MaterialTheme.typography.bodyMedium)
             }
-            uiState.created != null -> BookCreated(uiState.created, onDone = onClose, onAnother = { onAction(BookImportAction.Reset) })
+            uiState.created != null -> BookCreated(
+                result = uiState.created,
+                onDone = onClose,
+                onAnother = { onAction(BookImportAction.Reset) },
+                onGenerate = {
+                    onAction(BookImportAction.GenerateCards)
+                    onGenerateCards()
+                },
+            )
             uiState.book != null -> ChapterPicker(uiState, uiState.book, onAction)
             else -> EmptyState(
                 icon = MnemoIcons.Book,
@@ -332,7 +345,7 @@ private fun CreateBar(uiState: BookImportUiState, onAction: (BookImportAction) -
 }
 
 @Composable
-private fun BookCreated(result: BookImportResult, onDone: () -> Unit, onAnother: () -> Unit) {
+private fun BookCreated(result: BookImportResult, onDone: () -> Unit, onAnother: () -> Unit, onGenerate: () -> Unit) {
     val spacing = MnemoTheme.spacing
     EmptyState(
         icon = MnemoIcons.CheckCircle,
@@ -345,7 +358,8 @@ private fun BookCreated(result: BookImportResult, onDone: () -> Unit, onAnother:
         modifier = Modifier.widthIn(max = 680.dp),
         action = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(spacing.sm)) {
-                MnemoButton(text = stringResource(Res.string.feature_create_book_done), onClick = onDone)
+                MnemoButton(text = stringResource(Res.string.feature_create_book_generate), onClick = onGenerate, leadingIcon = MnemoIcons.Sparkle)
+                MnemoButton(text = stringResource(Res.string.feature_create_book_done), onClick = onDone, style = MnemoButtonStyle.Secondary)
                 MnemoButton(text = stringResource(Res.string.feature_create_book_another), onClick = onAnother, style = MnemoButtonStyle.Text)
             }
         },
@@ -379,7 +393,7 @@ internal fun BookImportEntry(onClick: () -> Unit, modifier: Modifier = Modifier)
 }
 
 @Composable
-private fun bookProblemText(problem: SourceProblem): String = stringResource(
+internal fun bookProblemText(problem: SourceProblem): String = stringResource(
     when (problem) {
         SourceProblem.Drm -> Res.string.feature_create_source_drm
         SourceProblem.NoText -> Res.string.feature_create_book_no_text

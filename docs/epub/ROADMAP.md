@@ -320,7 +320,7 @@ real Gutenberg books from B0 produce sensible chapter lists in a scratch test, n
       "title, details" (the row merges its texts into the checkbox).
 - [x] `DesktopAppTest.aBookOpenedFromTheMenuOrDroppedBecomesADeckPerChapter`; `DesktopGraphTest` and
       `DependencyGraphTest` list the new ViewModel.
-- [ ] Per-chapter "Generate cards" after creating (B5).
+- [x] "Generate cards" after creating (B5: one button that opens Smart Extract on the book).
 - [ ] Try it on a device and in the real desktop window with a Gutenberg book (B7).
 
 **Exit:** the Android exit check and `desktopTest` / `:desktop:test` are green; importing a real book on a device
@@ -328,36 +328,70 @@ and on the desktop is still to be tried by hand (B7).
 
 ## B5 — Generate cards for a chapter
 
+**Status: built and tested on Android and desktop (2026-10-02), with these differences from the plan below:**
+
+- The Epub source is a fifth chip (Paste / PDF / EPUB / Link / Dictation). The book is read by
+  `SourceRepository.readBook` and stays in `SmartExtractViewModel`; the UI state holds only a `BookSummary`
+  (titles, word counts, kinds). The chapter list is a dialog (`ChapterChooserDialog`, one chapter, a radio
+  list; front and back matter are listed and marked). The chosen chapter's text goes in the box, editable,
+  with `title` = "Book — Chapter".
+- **Deck preselection** computes `BookDeckNames.path(BookDeckNames.book(bookName), BookDeckNames.chapter(…))`
+  and selects the deck at that path (ignoring case) if there is one. A chapter with no deck leaves the user's
+  choice alone, and a deck the user picked by hand is never overridden. For a picked book `bookName` is its
+  title (or "Untitled book"); a book renamed at import is found only through the handoff below, which carries
+  the name the user typed.
+- **From the import's result screen** one **Generate cards** button (not one per chapter) hands the parsed book
+  over in memory (`BookHandoff`, a Koin `single` in `:feature:create`) and opens the Create tab on Smart
+  Extract with the chapter list open: the user picks the chapter there, so the result screen needs no
+  chapter list of its own. Chapter text never travels as a navigation argument and no cross-feature route was
+  added (`bookImportScreen(onGenerateCards)` goes to the Create tab through the shell).
+- **Languages without spaces:** `SourceText.countWords` is now `WordCount.count` (`:core:model`), Han and kana
+  count two characters to a word, and `TextChunker` measures with it, breaks at 。！？ and, without a mark,
+  between characters. The EPUB reader's own stub/title-page thresholds keep counting words between spaces.
+  It changes Smart Extract for pasted Japanese or Chinese text as well, and the word counts shown in the book
+  picker. See ADR 0011.
+- The text box's caption says "N words · M requests" when the text takes more than one request; the existing
+  `AiDisclosureDialog` still comes before the first request. Not done: a **cost** figure, since the provider's
+  price isn't known to the app.
+- Not done: dropping an `.epub` on Smart Extract's own drop target (the shell's drop still opens the book
+  import, which is where a dropped book belongs).
+- Tests: `SmartExtractBookTest` (both targets: chapter into the box, deck preselection and its edge cases,
+  DRM, the handoff before and after Smart Extract exists, nothing saved before Accept, request count),
+  `SmartExtractScreenTest` (chip → chapter dialog → text; DRM message), `WordCountTest`, `TextChunkerTest`
+  (Japanese), `BookImportViewModelTest` (the handoff), screenshots `create_epub_chapters_{light,dark}.png`.
+
+Original plan:
+
 **Goal:** cards for an existing chapter deck, through the review queue that already exists.
 
-- [ ] Smart Extract gets an **EPUB source** (`SourceKind.Epub`; the source row today is
+- [x] Smart Extract gets an **EPUB source** (`SourceKind.Epub`; the source row today is
       Paste / PDF / Link / Dictation). Choosing it opens the file picker, then a **chapter chooser**
       (single chapter; one book, one chapter at a time keeps the review queue small). The chapter's
       text fills the text box like a PDF's does (editable, with its word count and the existing
       estimated-cards line), `title` = "Book — Chapter" for the prompt context.
-- [ ] **Deck preselection**: if a deck exists at `Book::NN Chapter` (compute it with B3's naming, not
+- [x] **Deck preselection**: if a deck exists at `Book::NN Chapter` (compute it with B3's naming, not
       by string guessing), select it as the destination; otherwise leave the user's choice. That is how
       "generate later" works without storing a link between deck and book.
-- [ ] From B4's result screen, "Generate cards" for a chapter opens Smart Extract with that chapter's
+- [x] From B4's result screen, "Generate cards" for a chapter opens Smart Extract with that chapter's
       text and deck already set (same module: pass the chapter through a shared holder/`SavedStateHandle`
       of the Create destination; don't put chapter text in navigation arguments, and don't add a
       cross-feature route). Keep the parsed book in memory only while the Create flow is open.
-- [ ] **Languages without spaces.** `TextChunker` and `SourceText.countWords` count whitespace-separated
+- [x] **Languages without spaces.** `TextChunker` and `SourceText.countWords` count whitespace-separated
       words, so a Japanese or Chinese chapter is a handful of "words": it would be sent as one huge
       request and the cost estimate would read ~0. Add a character-aware measure (for example, count a
       CJK character as half a word) to the chunker and the estimate before this ships; this affects
       Smart Extract with a pasted text too. The EPUB reader already avoids the problem in its own
       thresholds (ADR 0011).
-- [ ] Chapters over `TextChunker`'s limit are split into several requests as today. Show the request
+- [x] Chapters over `TextChunker`'s limit are split into several requests as today. Show the request
       count next to the cost-relevant numbers, and keep the existing `AiDisclosureDialog` before the first
       request.
-- [ ] AI surfaces need `ReportAiButton` (already present on Smart Extract output) — no new AI output
+- [x] AI surfaces need `ReportAiButton` (already present on Smart Extract output) — no new AI output
       is added, only a new source, but confirm the screen still shows the button.
-- [ ] Tests: `SmartExtractViewModelTest` for the EPUB source (chapter text lands in the box, deck is
+- [x] Tests: `SmartExtractViewModelTest` for the EPUB source (chapter text lands in the box, deck is
       preselected, `Drm` message), screenshots of the chapter chooser.
 
-**Exit:** with a mock AI server (`scripts/qa/device-checks.sh`'s or `MockWebServer`), a chapter's
-deck receives accepted cards and nothing is saved before Accept.
+**Exit:** a chapter's deck receives accepted cards and nothing is saved before Accept (`SmartExtractBookTest`, with the
+fake generation repository; a pass against a real mock server and a real book is part of B7).
 
 ## B6 — Generate for several chapters *(optional; do after B5 ships)*
 

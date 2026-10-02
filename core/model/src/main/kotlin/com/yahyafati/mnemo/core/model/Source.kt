@@ -26,9 +26,8 @@ data class SourceText(
     val wordCount: Int get() = countWords(text)
 
     companion object {
-        private val WORD = Regex("""\S+""")
-
-        fun countWords(text: String): Int = WORD.findAll(text).count()
+        /** See [WordCount.count]: Japanese and Chinese have no spaces, so their characters count too. */
+        fun countWords(text: String): Int = WordCount.count(text)
     }
 }
 

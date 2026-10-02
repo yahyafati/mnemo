@@ -17,18 +17,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,6 +48,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -55,6 +60,7 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
 import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
+import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -65,6 +71,7 @@ import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
@@ -105,6 +112,9 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_card_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_edit
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_number
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_regenerate
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_back_matter
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_cut_short
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_front_matter
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_balanced
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_comprehensive
@@ -121,6 +131,15 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_discard_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_disclosure_content
 import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file
 import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_another
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_chapter_change
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_chapter_choose
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_chapter_current
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_chapter_none
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_chapters_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_pick
 import com.yahyafati.mnemo.feature.create.resources.feature_create_extra
 import com.yahyafati.mnemo.feature.create.resources.feature_create_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_front
@@ -158,7 +177,9 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_via
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_epub
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_from
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_http
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_invalid_url
@@ -167,6 +188,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_source_no_tex
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_paste
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_pdf
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_placeholder
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_requests
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_text
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_too_large
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_truncated
@@ -293,6 +315,14 @@ internal fun SmartExtractScreen(
             onDismiss = { onAction(SmartExtractAction.DismissDisclosure) },
         )
     }
+    uiState.book?.takeIf { uiState.showChapters }?.let { book ->
+        ChapterChooserDialog(
+            book = book,
+            selectedId = uiState.chapterId,
+            onSelect = { onAction(SmartExtractAction.SelectChapter(it)) },
+            onDismiss = { onAction(SmartExtractAction.DismissChapters) },
+        )
+    }
     if (uiState.showDeckDialog) {
         DeckEditorDialog(
             onConfirm = { onAction(SmartExtractAction.CreateDeck(it.path, it.category, it.description)) },
@@ -385,6 +415,7 @@ private fun SourcePicker(selected: SourceKind, dictationAvailable: Boolean, onSe
                     when (kind) {
                         SourceKind.Paste -> Res.string.feature_create_source_paste
                         SourceKind.Pdf -> Res.string.feature_create_source_pdf
+                        SourceKind.Epub -> Res.string.feature_create_source_epub
                         SourceKind.Link -> Res.string.feature_create_source_link
                         SourceKind.Dictation -> Res.string.feature_create_source_dictation
                     },
@@ -414,6 +445,7 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
                 )
                 Hint(stringResource(Res.string.feature_create_pdf_hint))
             }
+            SourceKind.Epub -> EpubControls(uiState, onAction)
             SourceKind.Link -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
                     OutlinedTextField(
@@ -446,7 +478,109 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             }
         }
         uiState.sourceProblem?.let {
-            Text(sourceProblemText(it), style = MaterialTheme.typography.bodySmall, color = colors.error)
+            // A book that can't be read says so in the book's words; the others are about PDFs and pages.
+            val text = if (uiState.sourceKind == SourceKind.Epub) bookProblemText(it) else sourceProblemText(it)
+            Text(text, style = MaterialTheme.typography.bodySmall, color = colors.error)
+        }
+    }
+}
+
+/** The Epub source: pick a book, then one of its chapters, whose text goes in the box below. */
+@Composable
+private fun EpubControls(uiState: SmartExtractUiState, onAction: (SmartExtractAction) -> Unit) {
+    val picker = rememberFilePicker(listOf(EPUB_MIME_TYPE)) { onAction(SmartExtractAction.EpubPicked(it)) }
+    val book = uiState.book
+    if (book == null) {
+        MnemoButton(
+            text = stringResource(Res.string.feature_create_epub_pick),
+            onClick = { picker.launch() },
+            style = MnemoButtonStyle.Secondary,
+            leadingIcon = MnemoIcons.Book,
+            enabled = !uiState.reading,
+        )
+        Hint(stringResource(Res.string.feature_create_epub_hint))
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+        Text(book.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        val chapter = book.chapters.firstOrNull { it.id == uiState.chapterId }
+        Hint(
+            if (chapter != null) {
+                stringResource(Res.string.feature_create_epub_chapter_current, chapter.title)
+            } else {
+                stringResource(Res.string.feature_create_epub_chapter_none)
+            },
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+            MnemoButton(
+                text = stringResource(if (chapter != null) Res.string.feature_create_epub_chapter_change else Res.string.feature_create_epub_chapter_choose),
+                onClick = { onAction(SmartExtractAction.ShowChapters) },
+                style = MnemoButtonStyle.Secondary,
+                leadingIcon = MnemoIcons.Book,
+            )
+            MnemoButton(
+                text = stringResource(Res.string.feature_create_epub_another),
+                onClick = { picker.launch() },
+                style = MnemoButtonStyle.Text,
+                enabled = !uiState.reading,
+            )
+        }
+    }
+}
+
+/**
+ * The chapters of the book, one to choose. Front and back matter are listed, marked, like the import does.
+ * A book can have hundreds, so the list is lazy.
+ */
+@Composable
+private fun ChapterChooserDialog(
+    book: BookSummary,
+    selectedId: Int?,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.feature_create_epub_chapters_title, book.title), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        text = { ChapterOptionList(book, selectedId, onSelect) },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_epub_cancel)) } },
+    )
+}
+
+@Composable
+internal fun ChapterOptionList(book: BookSummary, selectedId: Int?, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    LazyColumn(modifier.fillMaxWidth()) {
+        items(book.chapters, key = { it.id }, contentType = { "chapter" }) { chapter ->
+            ChapterOptionRow(chapter, selected = chapter.id == selectedId, onClick = { onSelect(chapter.id) })
+        }
+    }
+}
+
+/** One chapter: the whole row selects it, and reads as "title, details" to a screen reader. */
+@Composable
+private fun ChapterOptionRow(chapter: ChapterOption, selected: Boolean, onClick: () -> Unit) {
+    val details = buildList {
+        add(pluralStringResource(Res.plurals.feature_create_source_words, chapter.words, chapter.words))
+        when (chapter.kind) {
+            ChapterKind.Content -> Unit
+            ChapterKind.FrontMatter -> add(stringResource(Res.string.feature_create_book_front_matter))
+            ChapterKind.BackMatter -> add(stringResource(Res.string.feature_create_book_back_matter))
+        }
+        if (chapter.truncated) add(stringResource(Res.string.feature_create_book_cut_short))
+    }.joinToString(" · ")
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .clickCursor()
+            .padding(vertical = MnemoTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
+            Text(chapter.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -522,7 +656,21 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
             onValueChange = { onAction(SmartExtractAction.TextChanged(it)) },
             label = { Text(stringResource(Res.string.feature_create_source_text)) },
             placeholder = { Text(stringResource(Res.string.feature_create_source_placeholder)) },
-            supportingText = { Text(pluralStringResource(Res.plurals.feature_create_source_words, uiState.wordCount, uiState.wordCount)) },
+            supportingText = {
+                val words = pluralStringResource(Res.plurals.feature_create_source_words, uiState.wordCount, uiState.wordCount)
+                // A text that takes several requests is worth saying so, since each one is sent to the provider.
+                Text(
+                    if (uiState.requests > 1) {
+                        stringResource(
+                            Res.string.feature_create_source_count,
+                            words,
+                            pluralStringResource(Res.plurals.feature_create_source_requests, uiState.requests, uiState.requests),
+                        )
+                    } else {
+                        words
+                    },
+                )
+            },
             trailingIcon = if (uiState.text.isNotEmpty()) {
                 {
                     MnemoIconButton(

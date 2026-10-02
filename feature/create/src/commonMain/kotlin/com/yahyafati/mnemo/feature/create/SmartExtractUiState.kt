@@ -8,12 +8,13 @@ import com.yahyafati.mnemo.core.model.CardArchetype
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 
 /** Where the source text comes from. Every kind ends up as editable text in the same box. */
-enum class SourceKind { Paste, Pdf, Link, Dictation }
+enum class SourceKind { Paste, Pdf, Epub, Link, Dictation }
 
 data class SmartExtractUiState(
     val isLoading: Boolean = true,
@@ -29,8 +30,14 @@ data class SmartExtractUiState(
     val link: String = "",
     val reading: Boolean = false,
     val sourceProblem: SourceProblem? = null,
-    /** The PDF or page was longer than Mnemo reads. */
+    /** The PDF, page or chapter was longer than Mnemo reads. */
     val truncated: Boolean = false,
+    /** How many requests [text] is sent in (one per part); 0 for no text. More than one is worth saying. */
+    val requests: Int = 0,
+    /** The EPUB read for the Epub source, and the chapter whose text is in the box. */
+    val book: BookSummary? = null,
+    val chapterId: Int? = null,
+    val showChapters: Boolean = false,
     /** The device has a speech recognizer; without one the Dictation source isn't offered. */
     val dictationAvailable: Boolean = true,
     val dictation: DictationState = DictationState.Off,
@@ -63,6 +70,17 @@ data class SmartExtractUiState(
 
     val deckPath: String? get() = decks.firstOrNull { it.id == deckId }?.path
 }
+
+/** The book Smart Extract is reading chapters from. The text stays in the ViewModel; the screen needs only this. */
+data class BookSummary(
+    val title: String,
+    val author: String?,
+    val chapters: List<ChapterOption>,
+    /** The book was longer than Mnemo reads. */
+    val truncated: Boolean,
+)
+
+data class ChapterOption(val id: Int, val title: String, val words: Int, val kind: ChapterKind, val truncated: Boolean)
 
 /** A proposed card in the review queue. [source] is the part of the text it came from, for regenerating. */
 data class QueueItem(
@@ -117,6 +135,16 @@ sealed interface SmartExtractAction {
 
     /** A PDF picked through the Storage Access Framework. */
     data class PdfPicked(val uri: String) : SmartExtractAction
+
+    /** An EPUB picked: read it, then choose a chapter. */
+    data class EpubPicked(val uri: String) : SmartExtractAction
+
+    /** The chapter whose text goes in the box. */
+    data class SelectChapter(val id: Int) : SmartExtractAction
+
+    data object ShowChapters : SmartExtractAction
+
+    data object DismissChapters : SmartExtractAction
 
     /**
      * A file dropped on the screen (desktop): a PDF is read like a picked one, a text or Markdown

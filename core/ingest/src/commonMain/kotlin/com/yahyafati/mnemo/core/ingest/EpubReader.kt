@@ -482,9 +482,15 @@ private class BookParser(private val zip: ZipFile, private val limits: EpubLimit
         return out
     }
 
-    private fun isShort(text: String) = SourceText.countWords(text) < SHORT_WORDS && text.length < SHORT_CHARS
+    private fun isShort(text: String) = spacedWords(text) < SHORT_WORDS && text.length < SHORT_CHARS
 
-    private fun isStub(text: String) = SourceText.countWords(text) <= STUB_WORDS && text.length <= STUB_CHARS
+    private fun isStub(text: String) = spacedWords(text) <= STUB_WORDS && text.length <= STUB_CHARS
+
+    /**
+     * Words between spaces only: the thresholds above pair them with a length in characters, which is what tells
+     * a short page of Japanese (no spaces: one "word") from a chapter, so they don't use [SourceText.countWords].
+     */
+    private fun spacedWords(text: String) = WHITESPACE.split(text).count { it.isNotEmpty() }
 
     private fun Element.epubTypes(): Set<String> = attr("epub:type").lowercase().split(WHITESPACE).filter { it.isNotEmpty() }.toSet()
 

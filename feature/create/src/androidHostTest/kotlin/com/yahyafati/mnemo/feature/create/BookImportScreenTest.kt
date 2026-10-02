@@ -48,7 +48,7 @@ class BookImportScreenTest {
         BookChapter(id, title, "word ".repeat(words), kind)
 
     private fun showScreen(closed: () -> Unit = {}) {
-        val viewModel = BookImportViewModel(SavedStateHandle(mapOf("location" to file)), sources, decks, CreateBookDecksUseCase(decks))
+        val viewModel = BookImportViewModel(SavedStateHandle(mapOf("location" to file)), sources, decks, CreateBookDecksUseCase(decks), BookHandoff())
         composeRule.setContent {
             MnemoTheme {
                 val state = viewModel.uiState.collectAsState()
@@ -119,7 +119,7 @@ class BookImportScreenTest {
 
     @Test
     fun withoutAFileTheScreenAsksForOne() {
-        val viewModel = BookImportViewModel(SavedStateHandle(), sources, decks, CreateBookDecksUseCase(decks))
+        val viewModel = BookImportViewModel(SavedStateHandle(), sources, decks, CreateBookDecksUseCase(decks), BookHandoff())
         composeRule.setContent { MnemoTheme { BookImportScreen(viewModel.uiState.collectAsState().value, viewModel::onAction, onClose = {}) } }
         composeRule.onNodeWithText("Choose a book").assertExists()
         composeRule.onNodeWithText("Choose an EPUB").assertExists()

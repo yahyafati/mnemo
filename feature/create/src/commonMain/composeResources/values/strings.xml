@@ -68,6 +68,7 @@
 
     <string name="feature_create_source_paste">Paste notes</string>
     <string name="feature_create_source_pdf">PDF</string>
+    <string name="feature_create_source_epub">EPUB</string>
     <string name="feature_create_source_link">Link</string>
     <string name="feature_create_source_dictation">Dictation</string>
     <string name="feature_create_source_text">Source text</string>
@@ -77,6 +78,11 @@
         <item quantity="one">%1$d word</item>
         <item quantity="other">%1$d words</item>
     </plurals>
+    <plurals name="feature_create_source_requests">
+        <item quantity="one">%1$d request</item>
+        <item quantity="other">%1$d requests</item>
+    </plurals>
+    <string name="feature_create_source_count">%1$s · %2$s</string>
     <string name="feature_create_source_from">From: %1$s</string>
     <string name="feature_create_source_truncated">Only the beginning was read: the source is very long.</string>
     <string name="feature_create_pdf_pick">Choose a PDF</string>
@@ -253,9 +259,21 @@
         <item quantity="one">%1$d chapter already had its deck.</item>
         <item quantity="other">%1$d chapters already had their decks.</item>
     </plurals>
-    <string name="feature_create_book_done_next">The decks are empty. Add cards by hand, or use Smart Extract on a chapter's text.</string>
+    <string name="feature_create_book_done_next">The decks are empty. Add cards by hand, or generate them from a chapter with AI.</string>
+    <string name="feature_create_book_generate">Generate cards</string>
     <string name="feature_create_book_done">Done</string>
     <string name="feature_create_book_another">Import another book</string>
     <string name="feature_create_book_no_text">This book has no text to read, only pictures.</string>
     <string name="feature_create_book_unsupported">This isn't an EPUB book Mnemo can read.</string>
+
+    <!-- Smart Extract's EPUB source: docs/epub/ROADMAP.md, B5 -->
+    <string name="feature_create_epub_pick">Choose an EPUB</string>
+    <string name="feature_create_epub_hint">The book is read on your device. Pick one chapter and its text goes in the box below. Books with DRM can't be read.</string>
+    <string name="feature_create_epub_chapter_choose">Choose a chapter</string>
+    <string name="feature_create_epub_chapter_change">Change chapter</string>
+    <string name="feature_create_epub_chapter_none">No chapter chosen yet</string>
+    <string name="feature_create_epub_chapter_current">Chapter: %1$s</string>
+    <string name="feature_create_epub_another">Another book</string>
+    <string name="feature_create_epub_chapters_title">Chapters of %1$s</string>
+    <string name="feature_create_epub_cancel">Cancel</string>
 </resources>

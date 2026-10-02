@@ -35,9 +35,10 @@ fun NavGraphBuilder.createScreen(onSetUpAi: () -> Unit, onImportBook: () -> Unit
     }
 }
 
-fun NavGraphBuilder.bookImportScreen(onClose: () -> Unit) {
+/** [onGenerateCards] leaves for the Create tab, where Smart Extract has taken the book (the import hands it over first). */
+fun NavGraphBuilder.bookImportScreen(onClose: () -> Unit, onGenerateCards: () -> Unit) {
     composable<BookImportRoute> {
-        BookImportFullScreen(onClose = onClose)
+        BookImportFullScreen(onClose = onClose, onGenerateCards = onGenerateCards)
     }
 }
 

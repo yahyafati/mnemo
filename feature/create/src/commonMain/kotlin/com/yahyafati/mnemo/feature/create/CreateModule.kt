@@ -6,6 +6,7 @@ import org.koin.dsl.module
 
 /** The ViewModels of this feature. Screens get them with `koinViewModel()`. */
 val createModule = module {
+    single { BookHandoff() }
     viewModelOf(::NoteEditorViewModel)
     viewModelOf(::SmartExtractViewModel)
     viewModelOf(::BookImportViewModel)

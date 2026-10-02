@@ -25,8 +25,14 @@ import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
+import com.yahyafati.mnemo.core.model.BookChapter
+import com.yahyafati.mnemo.core.model.BookResult
+import com.yahyafati.mnemo.core.model.BookSource
+import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
@@ -62,11 +68,13 @@ class SmartExtractScreenTest {
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()
 
+    private val sources = FakeSourceRepository()
+
     private val viewModel = run {
         runBlocking { decks.saveDeck("Neuroscience") }
         SmartExtractViewModel(
-            providers, decks, FakeSourceRepository(),
-            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards),
+            providers, decks, sources,
+            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards), BookHandoff(),
         )
     }
 
@@ -118,6 +126,54 @@ class SmartExtractScreenTest {
         assertTrue(cards.notes.value.values.all { it.source == NoteSource.Ai })
         composeRule.onNodeWithText("Accept all (2)").assertDoesNotExist()
         composeRule.onNodeWithContentDescription("Clear source text").assertExists()
+    }
+
+    @Test
+    fun aBooksChapterBecomesTheSourceText() {
+        sources.books[SourceInput.Epub("/books/origin.epub")] = BookResult.Success(
+            BookSource(
+                title = "Origin",
+                chapters = listOf(
+                    BookChapter(0, "Contents", "Chapter list", ChapterKind.FrontMatter),
+                    BookChapter(1, "Variation", "Animals vary under domestication."),
+                ),
+            ),
+        )
+        composeRule.setContent {
+            MnemoTheme {
+                val state by viewModel.uiState.collectAsStateWithLifecycle()
+                SmartExtractScreen(state, viewModel::onAction, onSetUpAi = {})
+            }
+        }
+        composeRule.onNodeWithText("EPUB").performClick()
+        composeRule.onNodeWithText("Choose an EPUB").assertExists()
+
+        // The file picker is the platform's; what it reports goes through the same action.
+        viewModel.onAction(SmartExtractAction.EpubPicked("/books/origin.epub"))
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("Chapters of Origin").fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithText("Front matter", substring = true).assertExists()
+        composeRule.onNodeWithText("Variation").performClick()
+
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("Chapters of Origin").fetchSemanticsNodes().isEmpty() }
+        composeRule.onNodeWithText("From: Origin — Variation").assertExists()
+        composeRule.onNodeWithText("Chapter: Variation").assertExists()
+        composeRule.onNodeWithText("Change chapter").assertExists()
+        assertEquals("Animals vary under domestication.", viewModel.uiState.value.text)
+        assertTrue(cards.notes.value.isEmpty())
+    }
+
+    @Test
+    fun aBookWithDrmSaysSo() {
+        sources.books[SourceInput.Epub("/books/drm.epub")] = BookResult.Failure(SourceProblem.Drm)
+        composeRule.setContent {
+            MnemoTheme {
+                val state by viewModel.uiState.collectAsStateWithLifecycle()
+                SmartExtractScreen(state, viewModel::onAction, onSetUpAi = {})
+            }
+        }
+        composeRule.onNodeWithText("EPUB").performClick()
+        viewModel.onAction(SmartExtractAction.EpubPicked("/books/drm.epub"))
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText("protected by DRM", substring = true).fetchSemanticsNodes().isNotEmpty() }
     }
 
     @Test

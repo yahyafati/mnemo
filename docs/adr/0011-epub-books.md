@@ -46,10 +46,30 @@ the result:
 
 Images, MathML, SVG, page-break markers, note references, footnote bodies and ruby readings (`rt`, `rp`)
 are dropped: the text of a chapter is what a reader would read in order. Formulas and diagrams are lost
-and the UI says so. Words are counted as `SourceText` does, by whitespace, which counts a Japanese or
-Chinese chapter as a handful of "words"; the reader's own thresholds therefore use characters as well,
-but `TextChunker` does not, and Smart Extract for such a book needs a character-aware limit (open item
-for roadmap step B5).
+and the UI says so.
+
+### Counting words in languages without spaces
+
+`SourceText.countWords` is `WordCount.count` (`:core:model`): a word is a run between spaces, and Han
+ideographs and kana count two to a word (`WordCount.CJK_CHARS_PER_WORD`), which is close to the tokens they
+take. Before B5 a Japanese or Chinese chapter was a handful of "words", so the picker, the card estimate and
+`TextChunker` all read it as tiny: a 100,000-character chapter would have gone out as one request. Now the
+chunker measures with `WordCount` too, breaks Japanese at 。！？ (keeping a closing quote with its sentence)
+and, with no mark to break at, between characters; the pieces are rejoined without inventing spaces. The
+reader's own thresholds (what is a stub, what is a part's title page) still count words between spaces and
+pair them with a length in characters: they were tuned for that and don't use `WordCount`. Thai, Lao, Khmer
+and Burmese are also written without spaces and are not covered: a run of them is one word.
+
+### Generating from a book
+
+Smart Extract has an EPUB source: the file is read into chapters (kept in the ViewModel, not in the UI
+state), the user chooses one, and its text fills the box like a PDF's, with "Book — Chapter" as the title
+sent for context. The chapter's deck is **found by name**, not by a stored link: `BookDeckNames` computes
+`Book::NN Chapter` and a deck at that path (ignoring case) becomes the destination, which is how a book
+imported a week ago still works. The book import's "Generate cards" hands its parsed book over in memory
+(`BookHandoff`) so the file isn't asked for twice; the handoff holds the name the user gave the book's deck,
+so a renamed book still finds its decks. Nothing is sent before the user presses Generate (after the
+provider notice), and nothing is saved before Accept.
 
 ### DRM
 

@@ -47,6 +47,7 @@ class SmartExtractViewModelTest {
     private val sources = FakeSourceRepository()
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()
+    private val handoff = BookHandoff()
     private val deckId = runBlocking { decks.saveDeck("Neuroscience") }
 
     private val provider = AiProvider(
@@ -61,6 +62,7 @@ class SmartExtractViewModelTest {
         generateCards = GenerateCardsUseCase(generation, cards),
         regenerateCard = RegenerateCardUseCase(generation, cards),
         acceptCards = AcceptGeneratedCardsUseCase(cards),
+        bookHandoff = handoff,
     )
 
     private fun readyViewModel(text: String = "The amygdala processes fear.") = viewModel().also {
