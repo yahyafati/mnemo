@@ -16,36 +16,62 @@ object TextChunker {
 
     private val PARAGRAPH = Regex("""\n\s*\n""")
 
+    // Markdown the converter writes (MarkdownText): fenced blocks and pipe tables stay whole, a heading starts a part.
+    private val HEADING = Regex("""^#{1,6}\s+\S""")
+    private val FENCE_OPEN = Regex("""^((?:\s*>)*\s*)(`{3,}|~{3,})[^`]*$""")
+    private val TABLE_DELIMITER = Regex("""^\s*\|(\s*:?-+:?\s*\|)+\s*$""")
+    private val STRUCTURE = Regex("""^\s*(?:>\s*)*(?:`{3,}|~{3,})|^\s*\|(?:\s*:?-+:?\s*\|)+\s*$""", RegexOption.MULTILINE)
+
     // After . ! ? and a space (the space is the break), or after 。！？ (no space) with closing quotes kept on the sentence.
     private val SENTENCE_END = Regex("""(?<=[.!?])\s+|(?<=[。！？][」』）)”’]{0,2})(?![」』）)”’])""")
     private const val CJK_TERMINATORS = "。！？"
 
     fun chunk(text: String, maxWords: Int = DEFAULT_MAX_WORDS): List<String> {
         require(maxWords > 0)
-        val paragraphs = text.split(PARAGRAPH).map { it.trim() }.filter { it.isNotEmpty() }
-        val chunks = mutableListOf<MutableList<String>>()
-        var current = mutableListOf<String>()
+        val chunks = mutableListOf<String>()
+        var current = mutableListOf<Piece>()
         var currentWords = 0
 
-        fun add(piece: String, words: Int, separator: String) {
-            if (currentWords + words > maxWords && current.isNotEmpty()) {
-                chunks += current
-                current = mutableListOf()
-                currentWords = 0
+        fun join(pieces: List<Piece>) = pieces.withIndex().joinToString("") { (index, piece) -> if (index == 0) piece.text else piece.separator + piece.text }
+
+        /** Where to cut [current] so that a part starts at its section's title: before the last heading, if that leaves enough. */
+        fun cut(): Int {
+            var before = currentWords
+            for (index in current.lastIndex downTo 1) {
+                before -= current[index].words
+                if (current[index].heading && (index == current.lastIndex || before >= maxWords / HEADING_FRACTION)) return index
             }
-            current += if (current.isEmpty()) piece else separator + piece
+            return current.size
+        }
+
+        fun add(piece: String, words: Int, separator: String, heading: Boolean = false) {
+            while (currentWords + words > maxWords && current.isNotEmpty()) {
+                val at = cut()
+                chunks += join(current.subList(0, at))
+                current = current.subList(at, current.size).toMutableList()
+                currentWords = current.sumOf { it.words }
+            }
+            current += Piece(piece, words, heading, separator)
             currentWords += words
         }
 
-        for (paragraph in paragraphs) {
-            val words = WordCount.count(paragraph)
+        for (block in blocks(text)) {
+            val words = WordCount.count(block.text)
             if (words <= maxWords) {
-                add(paragraph, words, "\n\n")
+                add(block.text, words, "\n\n", block.heading)
+                continue
+            }
+            if (block is Block.Fence) {
+                for (piece in block.split(maxWords)) add(piece, WordCount.count(piece), "\n\n")
+                continue
+            }
+            if (block is Block.Table) {
+                for (piece in block.split(maxWords)) add(piece, WordCount.count(piece), "\n\n")
                 continue
             }
             // Too long for one part: break it by sentences, and sentences by words (or, in Japanese, characters).
             var previous: String? = null
-            for (sentence in paragraph.split(SENTENCE_END).filter { it.isNotBlank() }) {
+            for (sentence in block.text.split(SENTENCE_END).filter { it.isNotBlank() }) {
                 for ((index, piece) in pieces(sentence, maxWords).withIndex()) {
                     val separator = when {
                         previous == null -> "\n\n"
@@ -57,9 +83,9 @@ object TextChunker {
                 }
             }
         }
-        if (current.isNotEmpty()) chunks += current
+        if (current.isNotEmpty()) chunks += join(current)
 
-        val joined = chunks.map { it.joinToString("") }.toMutableList()
+        val joined = chunks.toMutableList()
         if (joined.size >= 2) {
             val last = joined.last()
             val before = joined[joined.size - 2]
@@ -70,6 +96,120 @@ object TextChunker {
             }
         }
         return joined
+    }
+
+    private class Piece(val text: String, val words: Int, val heading: Boolean, val separator: String)
+
+    /** A unit that is cut only as a last resort: a paragraph, a fenced block (blank lines and all) or a pipe table. */
+    private sealed class Block(val text: String) {
+        val heading: Boolean get() = this is Paragraph && HEADING.containsMatchIn(text)
+
+        class Paragraph(text: String) : Block(text)
+
+        class Fence(val open: String, val body: List<String>, val close: String) : Block((listOf(open) + body + close).joinToString("\n")) {
+            /** Parts of at most [maxWords], each a whole fence again (the opening line repeated). */
+            fun split(maxWords: Int): List<String> {
+                val budget = (maxWords - 2).coerceAtLeast(1)
+                val out = mutableListOf<String>()
+                var lines = mutableListOf<String>()
+                var words = 0
+
+                fun flush() {
+                    if (lines.isEmpty()) return
+                    out += (listOf(open) + lines + close).joinToString("\n")
+                    lines = mutableListOf()
+                    words = 0
+                }
+                for (line in body.flatMap { cutLine(it, budget) }) {
+                    val n = WordCount.count(line)
+                    if (words + n > budget) flush()
+                    lines += line
+                    words += n
+                }
+                flush()
+                return out
+            }
+        }
+
+        class Table(val header: List<String>, val rows: List<String>) : Block((header + rows).joinToString("\n")) {
+            /** Parts of at most [maxWords], each with the header again. */
+            fun split(maxWords: Int): List<String> {
+                val head = header.sumOf { WordCount.count(it) }
+                val budget = (maxWords - head).coerceAtLeast(1)
+                val out = mutableListOf<String>()
+                var lines = mutableListOf<String>()
+                var words = 0
+
+                fun flush() {
+                    if (lines.isEmpty()) return
+                    out += (header + lines).joinToString("\n")
+                    lines = mutableListOf()
+                    words = 0
+                }
+                for (row in rows) {
+                    val n = WordCount.count(row)
+                    if (words + n > budget) flush()
+                    lines += row
+                    words += n
+                }
+                flush()
+                return out
+            }
+        }
+
+        protected fun cutLine(line: String, maxWords: Int): List<String> =
+            if (WordCount.count(line) <= maxWords) listOf(line) else pieces(line, maxWords)
+    }
+
+    private fun blocks(text: String): List<Block> {
+        if (!STRUCTURE.containsMatchIn(text)) return text.split(PARAGRAPH).map { it.trim() }.filter { it.isNotEmpty() }.map { Block.Paragraph(it) }
+        val lines = text.replace("\r\n", "\n").split('\n')
+        val out = mutableListOf<Block>()
+        val paragraph = mutableListOf<String>()
+
+        fun endParagraph() {
+            paragraph.joinToString("\n").trim().takeIf { it.isNotEmpty() }?.let { out += Block.Paragraph(it) }
+            paragraph.clear()
+        }
+
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
+            val fence = FENCE_OPEN.matchEntire(line)
+            when {
+                line.isBlank() -> {
+                    endParagraph()
+                    i++
+                }
+                fence != null -> {
+                    endParagraph()
+                    val marker = fence.groupValues[2]
+                    var end = i + 1
+                    while (end < lines.size && !isFenceClose(lines[end], marker)) end++
+                    val closed = end < lines.size
+                    out += Block.Fence(line, lines.subList(i + 1, end), if (closed) lines[end] else fence.groupValues[1] + marker)
+                    i = if (closed) end + 1 else end
+                }
+                line.trimStart().startsWith("|") && lines.getOrNull(i + 1)?.let { TABLE_DELIMITER.matches(it) } == true -> {
+                    endParagraph()
+                    var end = i + 2
+                    while (end < lines.size && lines[end].trimStart().startsWith("|")) end++
+                    out += Block.Table(lines.subList(i, i + 2), lines.subList(i + 2, end))
+                    i = end
+                }
+                else -> {
+                    paragraph += line
+                    i++
+                }
+            }
+        }
+        endParagraph()
+        return out
+    }
+
+    private fun isFenceClose(line: String, marker: String): Boolean {
+        val trimmed = line.trim().trimStart('>', ' ')
+        return trimmed.length >= marker.length && trimmed.all { it == marker[0] }
     }
 
     /**
@@ -124,6 +264,9 @@ object TextChunker {
 
     /** A tail under a quarter of a part joins the part before, which may grow by a quarter. */
     private const val TAIL_FRACTION = 4
+
+    /** A part is cut before a heading only if what comes before it is at least a quarter of a part. */
+    private const val HEADING_FRACTION = 4
 }
 
 /** Tidies extracted text: control characters, runs of spaces, trailing blanks, extra blank lines. */
@@ -141,6 +284,48 @@ object TextCleanup {
         .joinToString("\n") { it.trim() }
         .replace(BLANK_LINES, "\n\n")
         .trim()
+
+    private val FENCE = Regex("""^((?:\s*>)*\s*)(`{3,}|~{3,})(.*)$""")
+
+    /**
+     * [normalize] for Markdown ([MarkdownText]): the same tidying, but a line keeps its leading indentation
+     * (nested lists), and the lines of a fenced code block are left exactly as written, blank ones included.
+     * Outside fences at most one blank line in a row.
+     */
+    fun normalizeMarkdown(text: String): String {
+        val lines = text.replace("\r\n", "\n").replace('\r', '\n').replace(CONTROL, "").split('\n')
+        val out = ArrayList<String>(lines.size)
+        var fence: String? = null
+        var blank = 0
+        for (line in lines) {
+            val open = fence
+            if (open != null) {
+                out += line
+                val close = FENCE.matchEntire(line)
+                if (close != null && close.groupValues[3].isBlank() && close.groupValues[2][0] == open[0] && close.groupValues[2].length >= open.length) fence = null
+                continue
+            }
+            val tidy = tidy(line)
+            if (tidy.isEmpty()) {
+                if (++blank == 1) out += ""
+                continue
+            }
+            blank = 0
+            out += tidy
+            val start = FENCE.matchEntire(line)
+            // A backtick fence's info string has no backticks (else it is inline code at the start of a line).
+            if (start != null && !(start.groupValues[2][0] == '`' && '`' in start.groupValues[3])) fence = start.groupValues[2]
+        }
+        while (out.isNotEmpty() && out.first().isEmpty()) out.removeAt(0)
+        return out.joinToString("\n").trimEnd()
+    }
+
+    /** A line without trailing blanks or runs of spaces, but with the spaces it starts with. */
+    private fun tidy(line: String): String {
+        val indent = line.takeWhile { it == ' ' }
+        val rest = line.substring(indent.length).replace(SPACES, " ").trim()
+        return if (rest.isEmpty()) "" else indent + rest
+    }
 
     /**
      * Joins lines a PDF wrapped mid-sentence: a line that doesn't end a sentence, followed by one

@@ -76,9 +76,12 @@ data class CardGenerationPrompt(
         }
         appendLine("$label:")
         appendLine("<source>")
-        appendLine(source.trim())
+        appendLine(fenced(source.trim()))
         append("</source>")
     }
+
+    /** A `<source>` or `</source>` in the text (a page about HTML, or a trick) must not end the fence. */
+    private fun fenced(text: String) = text.replace(SOURCE_TAG, "&lt;$1source")
 
     private fun densityHint() = when (options.density) {
         ExtractDensity.Concise -> "Only the high-yield facts a student must know."
@@ -106,6 +109,7 @@ data class CardGenerationPrompt(
     }
 
     companion object {
+        private val SOURCE_TAG = Regex("""<(/?)source\b""", RegexOption.IGNORE_CASE)
         const val MAX_AVOID = 60
         private const val MAX_AVOID_CHARS = 120
 

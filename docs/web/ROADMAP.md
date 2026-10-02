@@ -172,19 +172,36 @@ Escaping: characters that would start Markdown by accident (`*`, `_`, `` ` ``, a
 `>` or `1.` at the start of a text line) are escaped only where they would change the meaning,
 so ordinary text stays readable.
 
-- [ ] `MarkdownText` with the mapping above, and `onElement` offsets that match the final text (the
+- [x] `MarkdownText` with the mapping above, and `onElement` offsets that match the final text (the
       same contract `ReadableText` has today).
-- [ ] **Markdown-safe cleanup**: `TextCleanup.normalizeMarkdown` (or a flag on `normalize`) that leaves
+- [x] **Markdown-safe cleanup**: `TextCleanup.normalizeMarkdown` (or a flag on `normalize`) that leaves
       lines inside fences alone and keeps leading indentation; everything else as `normalize`.
-- [ ] **`TextChunker` keeps blocks whole**: never splits inside a fenced block or a pipe table (a block
+- [x] **`TextChunker` keeps blocks whole**: never splits inside a fenced block or a pipe table (a block
       longer than a part is split by lines, the fence reopened in the next part, a table's header
       repeated); prefers to break **before a heading**, so a part starts with its section's title.
       Plain text (PDF, paste, dictation) chunks exactly as before: existing `TextChunkerTest` cases
       pass unchanged.
-- [ ] A `</source>` (or `<source>`) in page text cannot end the prompt's fence: check
+- [x] A `</source>` (or `<source>`) in page text cannot end the prompt's fence: check
       `CardGenerationPrompt` and escape it there if needed (this applies to plain text today too).
-- [ ] `MarkdownTextTest` (`commonTest`): one test per row of the mapping, nested lists, code with
+- [x] `MarkdownTextTest` (`commonTest`): one test per row of the mapping, nested lists, code with
       backticks, a table with a pipe in a cell, a layout table, math in both forms, escaping, offsets.
+
+**Done 2026-10-02.** `MarkdownText.kt`, `TextCleanup.normalizeMarkdown` and the block-aware `TextChunker`
+(`:core:ingest`), `CardGenerationPrompt.fenced` (`:core:ai`); tests in `MarkdownTextTest`, `TextChunkerTest`,
+`CardGenerationPromptTest`. Choices the mapping left open:
+
+- An ordered item's continuation lines indent by its marker's width (`1. ` is three spaces), a bullet's by two,
+  so nested lists stay valid Markdown. An item that ends in a paragraph does not loosen the list (no blank line
+  before the next item); two paragraphs *inside* an item are still separated by a blank line.
+- Elements inside a table are all reported at the table's offset (the table is built cell by cell first).
+  Elements the converter drops or reads whole (`img`, `pre`, `code`, math) are still reported, in document order.
+- A pipe table is recognised by its `| --- |` delimiter row; a plain paragraph that starts with `|` is not one.
+  A fence or table longer than a part is cut by lines, the fence reopened (the header repeated) in the next part.
+  A part is cut before a heading only if that leaves at least a quarter of a part before it, or if the heading
+  would otherwise end the part alone.
+- `normalizeMarkdown` keeps a line's leading spaces; it does not turn a table row's empty cell into two spaces
+  (`| 1 | |`). `<source>` / `</source>` in a source is written `&lt;source>` in the prompt.
+- Zero-width characters (U+2060, U+200B …) Wikipedia puts around formulas are dropped.
 
 **Exit:** the converter and the chunker are tested; nothing uses them yet.
 

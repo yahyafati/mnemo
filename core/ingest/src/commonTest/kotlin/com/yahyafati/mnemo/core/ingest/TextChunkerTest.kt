@@ -86,4 +86,98 @@ class TextChunkerTest {
             TextCleanup.joinWrappedLines("Photo-\nsynthesis turns light\ninto sugar.\nChlorophyll absorbs it."),
         )
     }
+
+    // ---- Markdown (W1) ----
+
+    @Test
+    fun markdownCleanupKeepsIndentationAndFences() {
+        val text = "# T\r\n\r\n\r\n\r\n- a  b \n    - nested   x\n\n```kotlin\n  fun  x()  {\n\n\n\n  }\n```\n\n\n\nend  "
+        assertEquals(
+            "# T\n\n- a b\n    - nested x\n\n```kotlin\n  fun  x()  {\n\n\n\n  }\n```\n\nend",
+            TextCleanup.normalizeMarkdown(text),
+        )
+    }
+
+    @Test
+    fun aLongerFenceIsClosedByAtLeastItsLength() {
+        val text = "````\nbody\n```\n\n\n\nstill code\n````\n\n\n\nafter"
+        assertEquals("````\nbody\n```\n\n\n\nstill code\n````\n\nafter", TextCleanup.normalizeMarkdown(text))
+    }
+
+    @Test
+    fun markdownCleanupDropsControlCharactersAndLeadingBlankLines() {
+        assertEquals("a\n\nb", TextCleanup.normalizeMarkdown("\n\na\u0000 \n \n\n\nb"))
+    }
+
+    private fun fence(lines: Int, language: String = "kotlin") =
+        "```$language\n" + (1..lines).joinToString("\n") { if (it % 7 == 0) "" else "    val line$it = $it" } + "\n```"
+
+    private fun openFences(part: String) = part.lines().count { it.startsWith("```") }
+
+    @Test
+    fun aFencedBlockWithBlankLinesIsNotCut() {
+        val code = fence(14)
+        val text = words(40, "a") + "\n\n" + code + "\n\n" + words(40, "b")
+        val chunks = TextChunker.chunk(text, maxWords = 100)
+        assertTrue(chunks.any { code in it }, chunks.joinToString("\n---\n"))
+        assertTrue(chunks.all { openFences(it) % 2 == 0 })
+    }
+
+    @Test
+    fun aFenceLongerThanAPartIsSplitIntoWholeFences() {
+        val code = fence(120)
+        val chunks = TextChunker.chunk(code, maxWords = 60)
+        assertTrue(chunks.size >= 3, "${chunks.size} parts")
+        for (chunk in chunks) {
+            assertTrue(chunk.startsWith("```kotlin\n") && chunk.endsWith("\n```"), chunk)
+            assertTrue(wordCount(chunk) <= 60 + 15, "${wordCount(chunk)} words")
+        }
+        // Every line survives once, in order.
+        val lines = chunks.flatMap { it.lines().drop(1).dropLast(1) }
+        assertEquals(code.lines().drop(1).dropLast(1), lines)
+    }
+
+    private fun table(rows: Int) =
+        "| Name | Value |\n| --- | --- |\n" + (1..rows).joinToString("\n") { "| row$it | value$it |" }
+
+    @Test
+    fun aTableIsNotCutAndALongOneRepeatsItsHeader() {
+        val small = table(5)
+        val kept = TextChunker.chunk(words(40, "a") + "\n\n" + small + "\n\n" + words(40, "b"), maxWords = 70)
+        assertTrue(kept.any { small in it })
+
+        val chunks = TextChunker.chunk(table(100), maxWords = 60)
+        assertTrue(chunks.size >= 3)
+        assertTrue(chunks.all { it.startsWith("| Name | Value |\n| --- | --- |\n| row") })
+        assertEquals((1..100).map { "| row$it | value$it |" }, chunks.flatMap { it.lines().drop(2) })
+    }
+
+    @Test
+    fun aPartPrefersToStartAtAHeading() {
+        val text = listOf(
+            "# Intro", words(40, "i"),
+            "## Alpha", words(40, "a"),
+            "## Beta", words(40, "b"),
+            "## Gamma", words(40, "g"),
+        ).joinToString("\n\n")
+        val chunks = TextChunker.chunk(text, maxWords = 100)
+        assertTrue(chunks.size >= 2)
+        for (chunk in chunks.drop(1)) assertTrue(chunk.startsWith("#"), chunk.take(40))
+        assertTrue(chunks.none { it.trimEnd().lines().last().startsWith("#") })
+    }
+
+    @Test
+    fun aHeadingIsNeverLeftAloneAtTheEndOfAPart() {
+        val text = words(95, "a") + "\n\n## Next\n\n" + words(60, "b")
+        val chunks = TextChunker.chunk(text, maxWords = 100)
+        assertEquals(2, chunks.size)
+        assertTrue(chunks[1].startsWith("## Next"))
+    }
+
+    @Test
+    fun plainTextWithHashesInItIsStillSplitLikeBefore() {
+        val paragraphs = (1..10).map { "#tag " + words(30, "p$it-") }
+        val chunks = TextChunker.chunk(paragraphs.joinToString("\n\n"), maxWords = 100)
+        assertEquals(paragraphs, chunks.flatMap { it.split("\n\n") })
+    }
 }
