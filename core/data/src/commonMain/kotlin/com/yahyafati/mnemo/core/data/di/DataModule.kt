@@ -47,6 +47,7 @@ import com.yahyafati.mnemo.core.database.di.databaseModule
 import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
 import com.yahyafati.mnemo.core.ingest.EpubReader
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
+import com.yahyafati.mnemo.core.ingest.site.WikipediaExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
 import okhttp3.OkHttpClient
 import org.koin.core.module.dsl.factoryOf
@@ -117,8 +118,8 @@ val dataModule = module {
     factory { StudyAssistClient(get()) }
     factory { CoAuthorClient(get()) }
     // Shares the AI client's connection pool; it follows redirects on its own copy of the client.
-    // Site extractors (ADR 0012) go in `sites`, one class each; Wikipedia's is added in W3.
-    factory { WebPageExtractor(get(), get(), sites = emptyList()) }
+    // Site extractors (ADR 0012) go in `sites`, one class each.
+    factory { WebPageExtractor(get(), get(), sites = listOf(WikipediaExtractor())) }
     factory { EpubReader(cacheDir = { get<AppDirectories>().cache }) }
 }
 

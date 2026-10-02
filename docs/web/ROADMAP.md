@@ -259,30 +259,52 @@ fetching through the shared fetcher, the User-Agent). Choices the step left open
 
 **Goal:** a clean Wikipedia article: text, sections and math, without chrome, references or navboxes.
 
-- [ ] `handles`: hosts `<lang>.wikipedia.org` and `<lang>.m.wikipedia.org`, with paths `/wiki/<Title>`
+- [x] `handles`: hosts `<lang>.wikipedia.org` and `<lang>.m.wikipedia.org`, with paths `/wiki/<Title>`
       and `/w/index.php?title=<Title>`. Not special pages (`Special:`, `Talk:`, `File:`, `Category:` …:
       the namespace prefix in the title; these return null and are read generically). The `#fragment`
       is kept for W4.
-- [ ] Fetch `https://<lang>.wikipedia.org/api/rest_v1/page/html/<Title>` (title percent-encoded,
+- [x] Fetch `https://<lang>.wikipedia.org/api/rest_v1/page/html/<Title>` (title percent-encoded,
       spaces as `_`, mobile host mapped to the desktop one). The API follows redirects by default; the
       title shown is the target's. The base URL is a constructor parameter for tests.
-- [ ] Remove before converting: `sup.reference`, `.mw-ref`, `ol.references`, `.reflist`, infoboxes
+- [x] Remove before converting: `sup.reference`, `.mw-ref`, `ol.references`, `.reflist`, infoboxes
       (`table.infobox`), navboxes (`.navbox`, `.vertical-navbox`), hatnotes (`.hatnote`), `.metadata`,
       `.ambox`, `.mw-editsection`, `.noprint`, `style`/`link` elements, coordinates (`#coordinates`),
       `.thumb` images (keeping their captions is optional; decide with fixtures). Drop whole sections
       titled *References*, *Notes*, *Citations*, *Sources*, *Further reading*, *External links*, *See
       also* — by the section's `data-mw-section-id` and heading **in English and by structure** (a
       section that is only a reference list or a link list), because titles differ by language.
-- [ ] Math: Parsoid puts TeX in `<math alttext>` / the fallback image's `alt`; `MarkdownText`'s math
+- [x] Math: Parsoid puts TeX in `<math alttext>` / the fallback image's `alt`; `MarkdownText`'s math
       row covers it. Check `{\displaystyle …}` wrappers and strip them.
-- [ ] Title from the page's `<title>` / `<h1>` (Parsoid has it in the head), with underscores as spaces.
-- [ ] **Disambiguation pages** (`.mw-disambig` or the page property): fail with `NoText` and a detail
+- [x] Title from the page's `<title>` / `<h1>` (Parsoid has it in the head), with underscores as spaces.
+- [x] **Disambiguation pages** (`.mw-disambig` or the page property): fail with `NoText` and a detail
       saying it is a disambiguation page, or return the list as text; decide with the fixture (the
       default is to return the list: the user may still want it).
-- [ ] Sections recorded for W4: each top-level `<section>`'s heading, level and text range.
-- [ ] `WikipediaExtractorTest` with the W0 fixtures: no references or navbox text, math as `\(…\)`,
+- [x] Sections recorded for W4: each top-level `<section>`'s heading, level and text range.
+- [x] `WikipediaExtractorTest` with the W0 fixtures: no references or navbox text, math as `\(…\)`,
       headings kept, mobile and `index.php` URLs, special pages fall through, Japanese article, redirect.
-- [ ] Added to the `sites` list in `dataModule`.
+- [x] Added to the `sites` list in `dataModule`.
+
+**Done 2026-10-02.** `WikipediaExtractor` and `WikipediaArticle` (`:core:ingest` `site/`), added to `dataModule`'s `sites`;
+tests in `WikipediaExtractorTest` (the four Wikipedia fixtures, on both targets). Choices the step left open:
+
+- `handles` refuses the namespace itself (English names and aliases only: `Talk:`, `File:`, `Special:`, `Wikipedia:` …;
+  another language's names, such as `ノート:`, are read as the API serves them), an old revision (`oldid`, `diff`), a
+  non-view `action` and a link with no title; those links are read generically with no request. The only `null` from
+  `extract` is an API answer that is not HTML. A 404 is returned as `HttpError`, not retried generically.
+- The base URL is a function of the language (`baseUrl: (String) -> HttpUrl`), because the host is `<lang>.wikipedia.org`;
+  tests return MockWebServer's. The title is sent as one encoded path segment (`AC/DC` → `AC%2FDC`).
+- **Images go together with their captions** (`figure`, `.thumb`, `.gallery`): the captions in the fixtures ("Coronal",
+  "Subdivisions of the mouse amygdala") say little without the picture. Infoboxes go too, as the roadmap said.
+- Section dropping is by title (English list) **or** by structure (no subsections and nothing or only mostly-link list items),
+  so the Japanese 関連項目, 出典 and 外部リンク go without being named. A parent whose subsections were all dropped goes
+  too. A disambiguation page (`meta[property="mw:PageProp/disambiguation"]`, `.dmbox-disambig` or the
+  `Disambiguation_pages` category link) keeps every section and returns its lists.
+- Sections are kept as `WikipediaArticle.Section(title, level, start, end)`, one per section, flat in document order (a
+  subsection follows its parent, which stops where the subsection starts; the lead has level 0 and no title). They are
+  ranges of the final text (each section is converted and joined with a blank line, and the text is already tidy, which
+  `sectionsAreRangesOfTheText` checks). Nothing outside the tests reads them yet: W4 maps them to `SourceText.sections`.
+- `MarkdownText` now reads a `role="presentation"` table as layout: Wikipedia's numbered equations are
+  one, and were coming out as a pipe table with the formula as its header row.
 
 **Exit:** a Wikipedia link fills the box with a clean Markdown article, on both platforms.
 
@@ -364,7 +386,7 @@ Before writing one, check:
 
 | Site | Status | Notes |
 |---|---|---|
-| Wikipedia (all languages) | W3 | REST API on the same host |
+| Wikipedia (all languages) | **done (W3)** | REST API on the same host |
 | Other MediaWiki wikis (Wiktionary, Wikibooks, Fandom, …) | idea | Same REST API on Wikimedia hosts; others by `<meta name="generator" content="MediaWiki">`, which needs a fetch before `handles` can say yes — would need a post-fetch hook on `SiteExtractor` |
 | arXiv | idea | `arxiv.org/abs/<id>` → the HTML version (`arxiv.org/html/<id>`) when there is one, else the PDF; keeps LaTeX |
 | GitHub | idea | A repository or a `blob/…/*.md` link → the raw Markdown from `raw.githubusercontent.com` (GitHub's own host) |

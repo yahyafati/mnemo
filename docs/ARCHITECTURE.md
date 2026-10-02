@@ -237,6 +237,7 @@ mnemo/
 │   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
 │   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
 │   │   ├── GenericExtractor.kt  MarkdownText.kt         # jsoup page → Markdown
+│   │   ├── site/WikipediaExtractor.kt  WikipediaArticle.kt  # REST API (Parsoid HTML) → article + sections
 │   │   ├── SpeechTranscriber.kt                         # on-device SpeechRecognizer
 │   │   └── TextChunker.kt                               # + TextCleanup
 │   │

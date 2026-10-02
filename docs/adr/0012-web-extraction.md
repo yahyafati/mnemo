@@ -40,7 +40,7 @@ which loses the header row.
 | `pre` (+ `code class="language-x"`) | fenced block with the language; content exactly as written |
 | `ul` / `ol` / `li`, nested | `- ` / `1. ` (honouring `start`), two spaces per level |
 | `blockquote` | `> ` on each line |
-| `table` | pipe table (first row or `thead` is the header; `\|` escaped; line breaks in a cell become spaces). A layout table (one column, or nested tables) is read as paragraphs |
+| `table` | pipe table (first row or `thead` is the header; `\|` escaped; line breaks in a cell become spaces). A layout table (one column, nested tables, or `role="presentation"`) is read as paragraphs |
 | `a` | its text only, **the URL is dropped** |
 | `img`, `svg`, `video`, `audio`, `picture` | dropped |
 | `figcaption` | a paragraph |
@@ -107,7 +107,16 @@ rendered page, whose chrome (navigation, tools, banners) is large and changes. W
   must refuse a namespace prefix itself and let those links be read generically (returning null).
 - Disambiguation pages are recognised by `.dmbox-disambig` or a `Disambiguation_pages` category link. A
   hatnote "for other uses…" does not make a page one (`mw-disambig` is the class of links *to* such pages).
-  W3 decides with the fixture whether the list is returned (default) or refused.
+  W3 returns the list (the user may still want it) and drops no section of such a page, since a disambiguation
+  page is nothing but lists of links.
+- **What W3 removes.** Citation markers and reference lists, infobox, navboxes, sidebars, sister-project boxes,
+  hatnotes, message boxes, the hidden short description, "[edit]" and "[citation needed]", the table of contents,
+  and **images together with their captions** (a caption such as "Coronal" says little without its picture; the
+  converter drops images anyway). A section is dropped when its title is References, Notes, Citations,
+  Sources, Further reading, External links, See also, Footnotes or Bibliography, or, in any language, when it has
+  no subsections and holds nothing or only a list whose items are mostly links. That last rule would also drop a
+  section that is a bare list of links to related topics, which has nothing to make cards from either.
+- A numbered equation is a `role="presentation"` table: layout, so the formula and its number are paragraphs.
 - A formula comes twice (hidden MathML + fallback image, both with the TeX in an attribute, wrapped in
   `{\displaystyle …}`); `MarkdownText` reads one.
 - Sections are nested `<section data-mw-section-id>`; section ids are stable within one revision only, so a
@@ -133,7 +142,7 @@ A new site is one class in `core/ingest/.../ingest/site/`, its fixtures and its 
    page is not one it reads (it returns null).
 6. It is added to the `sites` list in `dataModule`, to the roadmap's table and to this ADR's list below.
 
-Sites: Wikipedia (W3). Not planned: video sites (transcripts need an unofficial endpoint or a key their terms do
+Sites: Wikipedia (W3, `WikipediaExtractor`). Not planned: video sites (transcripts need an unofficial endpoint or a key their terms do
 not allow) and paywalled news (not circumvented).
 
 ### No new dependency

@@ -277,7 +277,8 @@ internal object MarkdownText {
         private fun table(el: Element): NodeFilter.FilterResult {
             val rows = el.select("tr").filter { it.closest("table") === el }
             val cells = rows.map { row -> row.children().filter { it.normalName() == "td" || it.normalName() == "th" } }
-            val layout = el.select("table").any { it !== el } || cells.all { it.size <= 1 }
+            // role=presentation is the page saying it is layout (Wikipedia's numbered equations: formula | | Eq.1).
+            val layout = el.attr("role") == "presentation" || el.select("table").any { it !== el } || cells.all { it.size <= 1 }
             if (rows.isEmpty() || layout || inline) return block(el)
 
             val offset = out.length

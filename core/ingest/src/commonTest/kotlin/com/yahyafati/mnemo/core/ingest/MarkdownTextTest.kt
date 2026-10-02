@@ -145,6 +145,14 @@ class MarkdownTextTest {
     }
 
     @Test
+    fun aPresentationTableIsLayoutEvenWithSeveralColumns() {
+        assertEquals(
+            "x = 1\n\n(1)",
+            md("<table role=\"presentation\"><tr><td>x = 1</td><td>(1)</td></tr></table>"),
+        )
+    }
+
+    @Test
     fun aTableInsideALayoutTableIsStillATable() {
         assertEquals(
             "| a | b |\n| --- | --- |\n| 1 | 2 |",
