@@ -70,7 +70,8 @@
     <string name="feature_study_ai_failed">Couldn't get an answer: %1$s</string>
     <string name="feature_study_ai_retry">Try again</string>
     <string name="feature_study_ai_saved">Saved on %1$s</string>
-    <string name="feature_study_ai_saved_hint">Saved: opens without asking AI again</string>
+    <string name="feature_study_ai_saved_hint">Opens without asking AI again</string>
+    <string name="feature_study_ai_saved_badge">Saved</string>
     <string name="feature_study_ai_outdated">The card was edited after this was saved.</string>
     <string name="feature_study_ai_regenerate">Regenerate</string>
     <string name="feature_study_ai_proposal">Proposed rewrite</string>

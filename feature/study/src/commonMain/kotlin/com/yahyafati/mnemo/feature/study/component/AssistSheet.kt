@@ -70,6 +70,7 @@ import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_retry
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_rewrite
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_rewrite_hint
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_saved
+import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_saved_badge
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_saved_hint
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_thinking
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_via
@@ -152,7 +153,7 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
         when (val assist = sheet.assist) {
             null -> StudyAssist.entries.filter { state.routeFor(it) != null }.forEach { option ->
                 val hint = if (option in sheet.savedAnswers) Res.string.feature_study_ai_saved_hint else option.hintRes()
-                MenuItem(option.icon(), stringResource(option.titleRes()), stringResource(hint)) {
+                MenuItem(option.icon(), stringResource(option.titleRes()), stringResource(hint), saved = option in sheet.savedAnswers) {
                     onAction(AssistAction.Run(option))
                 }
             }
@@ -231,7 +232,7 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
 }
 
 @Composable
-private fun MenuItem(icon: ImageVector, title: String, hint: String, onClick: () -> Unit) {
+private fun MenuItem(icon: ImageVector, title: String, hint: String, saved: Boolean = false, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -242,10 +243,35 @@ private fun MenuItem(icon: ImageVector, title: String, hint: String, onClick: ()
     ) {
         Row(Modifier.padding(MnemoTheme.spacing.md), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = colors.primary)
-            Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = MnemoTheme.spacing.md),
+            ) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(hint, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
+            if (saved) SavedBadge(Modifier.padding(start = MnemoTheme.spacing.sm))
+        }
+    }
+}
+
+/** Marks an answer that is stored on this device and opens without a request. */
+@Composable
+private fun SavedBadge(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Surface(shape = MaterialTheme.shapes.small, color = colors.secondaryContainer, modifier = modifier) {
+        Row(
+            modifier = Modifier.padding(horizontal = MnemoTheme.spacing.sm, vertical = MnemoTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(MnemoIcons.CheckCircle, null, tint = colors.onSecondaryContainer, modifier = Modifier.size(14.dp))
+            Text(
+                text = stringResource(Res.string.feature_study_ai_saved_badge),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSecondaryContainer,
+                modifier = Modifier.padding(start = MnemoTheme.spacing.xs),
+            )
         }
     }
 }
@@ -255,11 +281,15 @@ private fun MenuItem(icon: ImageVector, title: String, hint: String, onClick: ()
 private fun SavedNote(answer: SavedAssistAnswer) {
     val colors = MaterialTheme.colorScheme
     Column {
-        Text(
-            text = stringResource(Res.string.feature_study_ai_saved, SAVED_DATE.format(answer.savedAt.atZone(ZoneId.systemDefault()))),
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SavedBadge()
+            Text(
+                text = stringResource(Res.string.feature_study_ai_saved, SAVED_DATE.format(answer.savedAt.atZone(ZoneId.systemDefault()))),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(start = MnemoTheme.spacing.sm),
+            )
+        }
         if (answer.outdated) {
             Text(stringResource(Res.string.feature_study_ai_outdated), style = MaterialTheme.typography.bodySmall, color = colors.error)
         }
