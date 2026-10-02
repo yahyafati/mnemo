@@ -103,8 +103,9 @@ independent of Wikipedia and can be done in any order after W2.
 **Goal:** confirm the defaults and get test material.
 
 - [ ] **(owner)** Confirm or change the proposed defaults above, especially: pipe tables in the
-      source, URLs dropped, EPUB switching in W5, and whether sections (W4) are wanted in v1.
-- [ ] **ADR 0012 "Web extraction"** (`docs/adr/0012-web-extraction.md`), recording at least:
+      source, URLs dropped, EPUB switching in W5, and whether sections (W4) are wanted in v1. *Not
+      answered yet: ADR 0012 is written on the proposed defaults and marks each point to change.*
+- [x] **ADR 0012 "Web extraction"** (`docs/adr/0012-web-extraction.md`), recording at least:
   - The two axes (where the content is / how it becomes text), and why the converter's output is
     for the model and the box, not the card renderer.
   - The `SiteExtractor` contract (W2): when it applies, the fallback, which hosts it may contact, and
@@ -112,7 +113,7 @@ independent of Wikipedia and can be done in any order after W2.
   - The paywall and login stance.
   - The Markdown mapping table (W1), including what is dropped.
   - How to add a site (the checklist under "Adding a site extractor" below).
-- [ ] **Fixtures** in `core/ingest/src/commonTest/resources/web/`, trimmed by hand to what the tests
+- [x] **Fixtures** in `core/ingest/src/commonTest/resources/web/`, trimmed by hand to what the tests
       need, each listed in the README with its source URL, date, revision and licence:
   - Wikipedia, Parsoid HTML from the REST API: an article with sections, an infobox, references, a
     navbox, a hatnote, a table and `<math>` (e.g. *Amygdala* for the plain case, *Fourier transform*
@@ -120,6 +121,18 @@ independent of Wikipedia and can be done in any order after W2.
     `WordCount` and section titles); a redirect.
   - Generic pages: a news-style `<article>`, a blog with `.entry-content`, a documentation page with
     `<pre><code>` and nested lists, and a page with no semantic markup at all (`div` soup).
+
+**Done 2026-10-02** except the owner's confirmation. Fixtures and findings that shape W3 are in
+`core/ingest/src/commonTest/resources/web/README.md`; ADR 0012 is `docs/adr/0012-web-extraction.md`. What the
+saved pages changed in the plan:
+
+- *Neural network* is an article with a hatnote, not a disambiguation page; the disambiguation fixture is
+  *Mercury*. A page is a disambiguation page by `.dmbox-disambig` or a `Disambiguation_pages` category link.
+- A formula is in the HTML twice (hidden `<math alttext>` and a fallback `<img alt>`); W1 must emit one.
+- The REST API answers a redirect with a 307 to a relative `/w/rest.php/v1/page/<Target>/html?redirect=no`
+  (the client follows it), and serves `Talk:`-style namespaces, so W3's `handles` must refuse them itself.
+- Section ids are only stable within one revision: W4 identifies sections by position and title.
+- The redirect fixture is `wikipedia-redirect.txt` (headers only); the generic fixtures are hand-written.
 
 **Exit:** ADR written (**owner: review it**); fixtures in place.
 

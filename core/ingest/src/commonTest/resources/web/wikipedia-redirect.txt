@@ -1,0 +1,9 @@
+HTTP/2 307
+location: /w/rest.php/v1/page/Fourier_transform/html?redirect=no
+content-type: text/html; charset=utf-8
+
+(body: a short "Redirect" page, ignored by clients that follow the Location header)
+
+Recorded 2026-10-02 from
+https://en.wikipedia.org/api/rest_v1/page/html/Fourier_Transform
+The target is served as fourier-transform.html. The Location is relative and on the same host.

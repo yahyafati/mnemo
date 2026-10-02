@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+
+<html about="//en.wikipedia.org/wiki/Special:Redirect/revision/1377137736" prefix="dc: http://purl.org/dc/terms/ mw: http://mediawiki.org/rdf/"><head prefix="mwr: //en.wikipedia.org/wiki/Special:Redirect/"><meta charset="utf-8"/><link rel="dc:replaces" resource="mwr:revision/1377098508"/><meta content="slr90siaown49of2g9igty6ch0fe58b" property="mw:revisionSHA1"/><meta content="2026-09-28T01:44:15Z" property="dc:modified"/><meta content="0" property="mw:pageNamespace"/><meta content="52247" property="mw:pageId"/><meta content="2.8.0" property="mw:htmlVersion"/><meta content="2.8.0" property="mw:html:version"/><base href="//en.wikipedia.org/wiki/"/><link href="//en.wikipedia.org/wiki/Fourier_transform" rel="dc:isVersionOf"/><title>Fourier transform</title><meta content='{"wgParsoidHtmlVersion":"2.8.0"}' property="mw:jsConfigVars"/><meta content="ext.math.polyfills|ext.pygments.view|ext.cite.ux-enhancements|mediawiki.page.media|ext.scribunto.logs" property="mw:generalModules"/><meta content="ext.math.styles|mediawiki.page.gallery.styles|ext.pygments|ext.cite.parsoid.styles|ext.cite.styles|mediawiki.skinning.content.parsoid" property="mw:moduleStyles"/><link href="/w/load.php?lang=en&amp;modules=ext.math.styles%7Cmediawiki.page.gallery.styles%7Cext.pygments%7Cext.cite.parsoid.styles%7Cext.cite.styles%7Cmediawiki.skinning.content.parsoid%7Cmediawiki.skinning.interface%7Csite.styles&amp;only=styles&amp;skin=vector" rel="stylesheet"/><meta content="en" http-equiv="content-language"/><meta content="Accept" http-equiv="vary"/><meta content="80fb506c-bd37-11f1-9bd0-a3a843659344" http-equiv="x-mediawiki-render-id"/></head><body class="mw-content-ltr sitedir-ltr ltr mw-body-content mediawiki mw-parser-output parsoid-body" data-mw-html-version="2.8.0" data-mw-parsoid-version="0.24.0.0-alpha24" dir="ltr" lang="en"><section data-mw-section-id="0" id="mwAQ"><div about="#mwt1" class="shortdescription nomobile noexcerpt noprint searchaux" id="mwAg" style="display:none" typeof="mw:Transclusion">Mathematical transform that expresses a function of time as a function of frequency</div><span about="#mwt1" class="mw-empty-elt"><link href="./Category:Articles_with_short_description" rel="mw:PageProp/Category"/><link href="./Category:Short_description_matches_Wikidata" rel="mw:PageProp/Category"/></span>
+<span about="#mwt2" class="mw-empty-elt" id="mwAw" typeof="mw:Transclusion"><style about="#mwt3" data-mw-deduplicate="TemplateStyles:r1368532237" typeof="mw:Extension/templatestyles">.mw-parser-output .hatnote{font-style:italic}.mw-parser-output div.hatnote{padding-left:1.6em;margin-bottom:0.5em}.mw-parser-output .hatnote i{font-style:normal}.mw-parser-output .hatnote+.mw-empty-elt+.hatnote{margin-top:-0.5em}@media print{body.ns-0 .mw-parser-output .hatnote{display:none!important}}</style></span><div about="#mwt2" class="hatnote navigation-not-searchable" id="mwBA" role="note">Not to be confused with <a href="./Separation_of_variables" rel="mw:WikiLink" title="Separation of variables">Fourier method</a> or Fourier's original <a href="./Sine_and_cosine_transforms" rel="mw:WikiLink" title="Sine and cosine transforms">sine and cosine transforms</a>.</div>
+<figure class="mw-default-size" id="mwBQ" typeof="mw:File/Thumb"><a class="mw-file-description" href="./File:CQT-piano-chord.png" id="mwBg"><img class="mw-file-element" data-file-height="556" data-file-type="bitmap" data-file-width="784" decoding="async" height="177" id="mwBw" loading="lazy" resource="./File:CQT-piano-chord.png" src="//thumb.wikimedia.org/wikipedia/commons/thumb/3/31/CQT-piano-chord.png/250px-CQT-piano-chord.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail" srcset="//thumb.wikimedia.org/wikipedia/commons/thumb/3/31/CQT-piano-chord.png/500px-CQT-piano-chord.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x" width="250"/></a><figcaption id="mwCA">The Fourier transform applied to the waveform of a <a href="./C_major" id="mwCQ" rel="mw:WikiLink" title="C major">C major</a> <a href="./Piano" id="mwCg" rel="mw:WikiLink" title="Piano">piano</a> <a href="./Chord_(music)" id="mwCw" rel="mw:WikiLink" title="Chord (music)">chord</a> (with logarithmic horizontal (frequency) axis). The first three peaks on the left correspond to the <a href="./Fundamental_frequency" id="mwDA" rel="mw:WikiLink" title="Fundamental frequency">fundamental frequencies</a> of the chord (C, E, G). The remaining smaller peaks are higher-frequency <a href="./Overtone" id="mwDQ" rel="mw:WikiLink" title="Overtone">overtones</a> of the fundamental pitches.</figcaption></figure>
+
+
+
+
+
+
+<meta id="mwWg" property="mw:PageProp/toc"/></section><section data-mw-section-id="1" id="mwWw"><h2 id="Definition">Definition</h2>
+<p id="mwXA">The Fourier transform of a <a class="mw-redirect" href="./Lebesgue_integrable" id="mwXQ" rel="mw:WikiLink" title="Lebesgue integrable">Lebesgue integrable</a> complex-valued function <span about="#mwt31" class="mwe-math-element mwe-math-element-inline" id="mwXg" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(x)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(x)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(x)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/202945cce41ecebb6f643f31d119c514bec7a074" style="vertical-align: -0.838ex; width:4.418ex; height:2.843ex;"/></span> on the real line, is the complex valued function <span about="#mwt26" class="nowrap" id="mwXw" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt27" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}(\xi )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mo stretchy="false">(</mo>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}(\xi )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}(\xi )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/daf24289c9219fa2cfd300c1e50881fcb2089c5c" style="vertical-align: -0.838ex; width:4.61ex; height:3.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>, defined by the integral<sup about="#mwt28" class="mw-ref reference" id="cite_ref-FOOTNOTEPinsky200291_5-0" rel="dc:references" typeof="mw:Transclusion mw:Extension/ref"><a href="./Fourier_transform#cite_note-FOOTNOTEPinsky200291-5" id="mwYA"><span class="mw-reflink-text" id="mwYQ"><span class="cite-bracket" id="mwYg">[</span>1<span class="cite-bracket" id="mwYw">]</span></span></a></sup></p>
+<div about="#mwt32" class="equation-box" id="mwZA" style="margin: 0 0 0 1.6em;padding: 6px; border-width:2px; border-style: solid; border-color: #0073CF; color: inherit;text-align: center; display: table" typeof="mw:Transclusion">Fourier transform
+<span class="mw-empty-elt"><style about="#mwt33" data-mw-deduplicate="TemplateStyles:r1266403038" typeof="mw:Extension/templatestyles">.mw-parser-output table.numblk{border-collapse:collapse;border:none;margin-top:0;margin-right:0;margin-bottom:0}.mw-parser-output table.numblk>tbody>tr>td{vertical-align:middle;padding:0}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2){width:99%}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table{border-collapse:collapse;margin:0;border:none;width:100%}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:first-child>td:first-child,.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:first-child>td:last-child{padding:0 0.4ex}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:first-child>td:nth-child(2){width:100%;padding:0}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:last-child>td{padding:0}.mw-parser-output table.numblk>tbody>tr>td:last-child{font-weight:bold}.mw-parser-output table.numblk.numblk-raw-n>tbody>tr>td:last-child{font-weight:unset}.mw-parser-output table.numblk>tbody>tr>td:last-child::before{content:"("}.mw-parser-output table.numblk>tbody>tr>td:last-child::after{content:")"}.mw-parser-output table.numblk.numblk-raw-n>tbody>tr>td:last-child::before,.mw-parser-output table.numblk.numblk-raw-n>tbody>tr>td:last-child::after{content:none}.mw-parser-output table.numblk>tbody>tr>td{border:none}.mw-parser-output table.numblk.numblk-border>tbody>tr>td{border:thin solid}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:first-child>td{border:none}.mw-parser-output table.numblk.numblk-border>tbody>tr>td:nth-child(2)>table>tbody>tr:first-child>td{border:thin solid}.mw-parser-output table.numblk>tbody>tr>td:nth-child(2)>table>tbody>tr:last-child>td{border-left:none;border-right:none;border-bottom:none}.mw-parser-output table.numblk.numblk-border>tbody>tr>td:nth-child(2)>table>tbody>tr:last-child>td{border-left:thin solid;border-right:thin solid;border-bottom:thin solid}.mw-parser-output table.numblk:target{color:var(--color-base,#202122);background-color:#cfe8fd}@media screen{html.skin-theme-clientpref-night .mw-parser-output table.numblk:target{color:var(--color-base,#eaecf0);background-color:#301702}}@media screen and (prefers-color-scheme:dark){html.skin-theme-clientpref-os .mw-parser-output table.numblk:target{color:var(--color-base,#eaecf0);background-color:#301702}}</style></span><table class="numblk" role="presentation" style="margin-left: 0em;"><tbody><tr><td class="nowrap">
+<p><span about="#mwt34" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}(\xi )=\int _{-\infty }^{\infty }f(x)\ e^{-i2\pi \xi x}\,dx,\quad \forall \xi \in \mathbb {R} .}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mo stretchy="false">(</mo>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+<mo>=</mo>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mtext> </mtext>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>ξ<!-- ξ --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>,</mo>
+<mspace width="1em"></mspace>
+<mi mathvariant="normal">∀<!-- ∀ --></mi>
+<mi>ξ<!-- ξ --></mi>
+<mo>∈<!-- ∈ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo>.</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}(\xi )=\int _{-\infty }^{\infty }f(x)\ e^{-i2\pi \xi x}\,dx,\quad \forall \xi \in \mathbb {R} .}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}(\xi )=\int _{-\infty }^{\infty }f(x)\ e^{-i2\pi \xi x}\,dx,\quad \forall \xi \in \mathbb {R} .}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/78c98b6f8d5527b42929344a3ad3de7bee5bfcaa" style="vertical-align: -2.505ex; width:37.912ex; height:6.009ex;"/></span></p>
+</td> <td></td> <td class="nowrap"><span class="reference nourlexpansion" id="math_Eq.1" style="font-weight:bold;">Eq.1</span></td></tr></tbody></table>
+</div>
+<p id="mwZQ">When <span about="#mwt37" class="mwe-math-element mwe-math-element-inline" id="mwZg" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(x)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(x)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(x)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/202945cce41ecebb6f643f31d119c514bec7a074" style="vertical-align: -0.838ex; width:4.418ex; height:2.843ex;"/></span> is (Lebesgue) integrable over the whole real line, the above integral converges for all <span about="#mwt38" class="mwe-math-element mwe-math-element-inline" id="mwZw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi \in \mathbb {R} }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+<mo>∈<!-- ∈ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi \in \mathbb {R} }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi \in \mathbb {R} }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/7d76d71407fc7c7e1978c8f4a7d393f243ea1c83" style="vertical-align: -0.671ex; width:5.549ex; height:2.509ex;"/></span>, and <span about="#mwt39" class="mwe-math-element mwe-math-element-inline" id="mwaA" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}(\xi )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mo stretchy="false">(</mo>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}(\xi )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}(\xi )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/daf24289c9219fa2cfd300c1e50881fcb2089c5c" style="vertical-align: -0.838ex; width:4.61ex; height:3.509ex;"/></span> is a <a class="mw-redirect" href="./Uniformly_continuous" id="mwaQ" rel="mw:WikiLink" title="Uniformly continuous">uniformly continuous</a> function of <span about="#mwt40" class="mwe-math-element mwe-math-element-inline" id="mwag" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/e0b461aaf61091abd5d2c808931c48b8ff9647db" style="vertical-align: -0.671ex; width:1.03ex; height:2.509ex;"/></span> which decays to zero as <span about="#mwt35" class="nowrap" id="mwaw" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt36" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi \to \infty }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">→<!-- → --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi \to \infty }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi \to \infty }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/35d5a9a92811e30848e5110f894eca9adac15c24" style="vertical-align: -0.671ex; width:6.968ex; height:2.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>.</p>
+
+
+
+
+<section data-mw-section-id="2" id="mwow"><h3 id="Angular_frequency_(ω)"><span id="Angular_frequency_.28.CF.89.29" typeof="mw:FallbackId"></span>Angular frequency (<i id="mwpA"><span id="mwpQ" typeof="mw:Entity">ω</span></i>)</h3>
+<p id="mwpg">When the independent variable (<span about="#mwt69" class="nowrap" id="mwpw" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt70" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle x}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>x</mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle x}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle x}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/87f9e315fd7e2ba406057a97300593c4802b53e4" style="vertical-align: -0.338ex; width:1.33ex; height:1.676ex;"/></span><span typeof="mw:Entity">⁠</span></span>) represents <i id="mwqA">time</i> (often denoted by <span about="#mwt71" class="nowrap" id="mwqQ" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt72" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle t}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>t</mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle t}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle t}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/65658b7b223af9e1acc877d848888ecdb4466560" style="vertical-align: -0.338ex; width:0.84ex; height:2.009ex;"/></span><span typeof="mw:Entity">⁠</span></span>), the transform variable (<span about="#mwt73" class="nowrap" id="mwqg" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt74" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/e0b461aaf61091abd5d2c808931c48b8ff9647db" style="vertical-align: -0.671ex; width:1.03ex; height:2.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>) represents <a href="./Frequency" id="mwqw" rel="mw:WikiLink" title="Frequency">frequency</a> (often denoted by <span about="#mwt75" class="nowrap" id="mwrA" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt76" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/132e57acb643253e7810ee9702d9581f159a1c61" style="vertical-align: -0.671ex; width:1.279ex; height:2.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>). For example, if time has the unit <a href="./Second" id="mwrQ" rel="mw:WikiLink" title="Second">second</a>, then frequency has the unit <a href="./Hertz" id="mwrg" rel="mw:WikiLink" title="Hertz">hertz</a>. The transform variable can also be written in terms of <a href="./Angular_frequency" id="mwrw" rel="mw:WikiLink" title="Angular frequency">angular frequency</a>, <span about="#mwt77" class="nowrap" id="mwsA" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt78" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \omega =2\pi \xi }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ω<!-- ω --></mi>
+<mo>=</mo>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>ξ<!-- ξ --></mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \omega =2\pi \xi }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \omega =2\pi \xi }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/0d7a4c7c58f489ad173cd8e39e6135e42a2dd5ca" style="vertical-align: -0.671ex; width:8.069ex; height:2.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>, with the unit <a href="./Radian" id="mwsQ" rel="mw:WikiLink" title="Radian">radian</a> per second.</p>
+<p id="mwsg">The substitution <span about="#mwt82" class="mwe-math-element mwe-math-element-inline" id="mwsw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi ={\tfrac {\omega }{2\pi }}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="false" scriptlevel="0">
+<mfrac>
+<mi>ω<!-- ω --></mi>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mstyle>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi ={\tfrac {\omega }{2\pi }}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi ={\tfrac {\omega }{2\pi }}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/0df73ed29b9da8b21d7153501885e6ee3a80ef8a" style="vertical-align: -1.171ex; width:6.729ex; height:3.176ex;"/></span> into <b about="#mwt79" id="mwtA" typeof="mw:Transclusion"><a class="mw-selflink-fragment" href="./Fourier_transform#math_Eq.1" rel="mw:WikiLink">Eq.1</a></b> produces this convention, where function <span about="#mwt83" class="mwe-math-element mwe-math-element-inline" id="mwtQ" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/153a4a4d50ef7099fc5f8804e34dccc539f08743" style="vertical-align: -0.671ex; margin-right: -0.019ex; width:1.79ex; height:3.343ex;"/></span> is relabeled <span about="#mwt80" class="nowrap" id="mwtg" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt81" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}_{1}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}_{1}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}_{1}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/9232afc16fb75c18c0f00f1d9f69c2eaa4eeb2de" style="vertical-align: -0.838ex; width:2.825ex; height:3.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>:
+<span about="#mwt84" class="mwe-math-element mwe-math-element-block" id="mwtw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )&amp;\triangleq \int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}" class="mathjax_ignore" display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mtable columnalign="right left right left right left right left right left right left" columnspacing="0em 2em 0em 2em 0em 2em 0em 2em 0em 2em 0em" displaystyle="true" rowspacing="3pt">
+<mtr>
+<mtd>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>≜<!-- ≜ --></mo>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mo>⋅<!-- ⋅ --></mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>=</mo>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mrow>
+<mo>(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="false" scriptlevel="0">
+<mfrac>
+<mi>ω<!-- ω --></mi>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mstyle>
+</mrow>
+<mo>)</mo>
+</mrow>
+<mo>,</mo>
+</mtd>
+</mtr>
+<mtr>
+<mtd>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mrow>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mo>⋅<!-- ⋅ --></mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>ω<!-- ω --></mi>
+<mo>.</mo>
+</mtd>
+</mtr>
+</mtable>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )&amp;\triangleq \int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )&amp;\triangleq \int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}" aria-hidden="true" class="mwe-math-fallback-image-display mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/ca70a7e2f1b2a274d70d17ed3514e24dbf7880a6" style="vertical-align: -5.505ex; width:41.638ex; height:12.176ex;"/></span>
+Unlike the <b about="#mwt85" id="mwuA" typeof="mw:Transclusion"><a class="mw-selflink-fragment" href="./Fourier_transform#math_Eq.1" rel="mw:WikiLink">Eq.1</a></b> definition, the Fourier transform is no longer a <a href="./Unitary_transformation" id="mwuQ" rel="mw:WikiLink" title="Unitary transformation">unitary transformation</a>, and there is less symmetry between the formulas for the transform and its inverse.  Those properties are restored by splitting the <span about="#mwt86" class="mwe-math-element mwe-math-element-inline" id="mwug" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle 2\pi }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle 2\pi }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle 2\pi }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/73efd1f6493490b058097060a572606d2c550a06" style="vertical-align: -0.338ex; width:2.494ex; height:2.176ex;"/></span> factor evenly between the transform and its inverse, which leads to another convention:
+<span about="#mwt87" class="mwe-math-element mwe-math-element-block" id="mwuw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )&amp;\triangleq {\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}" class="mathjax_ignore" display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mtable columnalign="right left right left right left right left right left right left" columnspacing="0em 2em 0em 2em 0em 2em 0em 2em 0em 2em 0em" displaystyle="true" rowspacing="3pt">
+<mtr>
+<mtd>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>≜<!-- ≜ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mo>⋅<!-- ⋅ --></mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<mtext> </mtext>
+<mtext> </mtext>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mrow>
+<mo>(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="false" scriptlevel="0">
+<mfrac>
+<mi>ω<!-- ω --></mi>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mstyle>
+</mrow>
+<mo>)</mo>
+</mrow>
+<mo>,</mo>
+</mtd>
+</mtr>
+<mtr>
+<mtd>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mo>⋅<!-- ⋅ --></mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>ω<!-- ω --></mi>
+<mo>.</mo>
+</mtd>
+</mtr>
+</mtable>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )&amp;\triangleq {\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )&amp;\triangleq {\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }f(x)\cdot e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\left({\tfrac {\omega }{2\pi }}\right),\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\cdot e^{i\omega x}\,d\omega .\end{aligned}}}" aria-hidden="true" class="mwe-math-fallback-image-display mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/2fd7b207a9e9f6abbf9689be9d38a49b3810f13a" style="vertical-align: -5.838ex; width:53.719ex; height:12.843ex;"/></span>
+Variations of all three conventions can be created by conjugating the complex-exponential <a class="mw-redirect" href="./Integral_kernel" id="mwvA" rel="mw:WikiLink" title="Integral kernel">kernel</a> of both the forward and the reverse transform. The signs must be opposites.</p>
+<table class="wikitable" id="mwvQ">
+<caption id="mwvg">Summary of popular forms of the Fourier transform, one-dimensional</caption>
+<tbody id="mwvw"><tr id="mwwA">
+<th id="mwwQ">ordinary frequency <span about="#mwt88" class="texhtml mvar" id="mwwg" style="font-style:italic;" typeof="mw:Transclusion">ξ</span> (Hz)</th>
+<th id="mwww">unitary</th>
+<td id="mwxA"><span about="#mwt89" class="mwe-math-element mwe-math-element-inline" id="mwxQ" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\begin{aligned}{\widehat {f}}_{1}(\xi )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i2\pi \xi x}\,dx={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(2\pi \xi )={\widehat {f}}_{3}(2\pi \xi )\\f(x)&amp;=\int _{-\infty }^{\infty }{\widehat {f}}_{1}(\xi )\,e^{i2\pi x\xi }\,d\xi \end{aligned}}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mtable columnalign="right left right left right left right left right left right left" columnspacing="0em 2em 0em 2em 0em 2em 0em 2em 0em 2em 0em" displaystyle="true" rowspacing="3pt">
+<mtr>
+<mtd>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+<mtext> </mtext>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>≜<!-- ≜ --></mo>
+<mtext> </mtext>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>ξ<!-- ξ --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mrow>
+<mtext> </mtext>
+<mtext> </mtext>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+<mo>=</mo>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+</mtd>
+</mtr>
+<mtr>
+<mtd>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>=</mo>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ξ<!-- ξ --></mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mi>x</mi>
+<mi>ξ<!-- ξ --></mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>ξ<!-- ξ --></mi>
+</mtd>
+</mtr>
+</mtable>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\begin{aligned}{\widehat {f}}_{1}(\xi )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i2\pi \xi x}\,dx={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(2\pi \xi )={\widehat {f}}_{3}(2\pi \xi )\\f(x)&amp;=\int _{-\infty }^{\infty }{\widehat {f}}_{1}(\xi )\,e^{i2\pi x\xi }\,d\xi \end{aligned}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\begin{aligned}{\widehat {f}}_{1}(\xi )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i2\pi \xi x}\,dx={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(2\pi \xi )={\widehat {f}}_{3}(2\pi \xi )\\f(x)&amp;=\int _{-\infty }^{\infty }{\widehat {f}}_{1}(\xi )\,e^{i2\pi x\xi }\,d\xi \end{aligned}}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/84768d0d7bc5000ce22ab94dcdd757a115dad9f1" style="vertical-align: -5.505ex; width:58.335ex; height:12.176ex;"/></span></td></tr>
+<tr id="mwxg">
+<th id="mwxw" rowspan="2">angular frequency <span about="#mwt90" class="texhtml mvar" id="mwyA" style="font-style:italic;" typeof="mw:Transclusion">ω</span> (rad/s)</th>
+<th id="mwyQ">unitary</th>
+<td id="mwyg"><span about="#mwt91" class="mwe-math-element mwe-math-element-inline" id="mwyw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )\ &amp;\triangleq \ {\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\!\left({\frac {\omega }{2\pi }}\right)={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{3}(\omega )\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mtable columnalign="right left right left right left right left right left right left" columnspacing="0em 2em 0em 2em 0em 2em 0em 2em 0em 2em 0em" displaystyle="true" rowspacing="3pt">
+<mtr>
+<mtd>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mtext> </mtext>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>≜<!-- ≜ --></mo>
+<mtext> </mtext>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<mtext> </mtext>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<mtext> </mtext>
+<mtext> </mtext>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mspace width="negativethinmathspace"></mspace>
+<mrow>
+<mo>(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mi>ω<!-- ω --></mi>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mrow>
+<mo>)</mo>
+</mrow>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<mtext> </mtext>
+<mtext> </mtext>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+</mtd>
+</mtr>
+<mtr>
+<mtd>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mfrac>
+</mrow>
+<mtext> </mtext>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>ω<!-- ω --></mi>
+</mtd>
+</mtr>
+</mtable>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )\ &amp;\triangleq \ {\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\!\left({\frac {\omega }{2\pi }}\right)={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{3}(\omega )\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\begin{aligned}{\widehat {f}}_{2}(\omega )\ &amp;\triangleq \ {\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{1}\!\left({\frac {\omega }{2\pi }}\right)={\frac {1}{\sqrt {2\pi }}}\ \ {\widehat {f}}_{3}(\omega )\\f(x)&amp;={\frac {1}{\sqrt {2\pi }}}\ \int _{-\infty }^{\infty }{\widehat {f}}_{2}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/eeee0ad1dcbd740f16717c1c7a3dd682d3d88aa7" style="vertical-align: -5.838ex; width:69.085ex; height:12.843ex;"/></span></td></tr>
+<tr id="mwzA">
+<th id="mwzQ">non-unitary</th>
+<td id="mwzg"><span about="#mwt92" class="mwe-math-element mwe-math-element-inline" id="mwzw" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\frac {\omega }{2\pi }}\right)={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(\omega )\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mtable columnalign="right left right left right left right left right left right left" columnspacing="0em 2em 0em 2em 0em 2em 0em 2em 0em 2em 0em" displaystyle="true" rowspacing="3pt">
+<mtr>
+<mtd>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mtext> </mtext>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>≜<!-- ≜ --></mo>
+<mtext> </mtext>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>=</mo>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mrow>
+<mo>(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mi>ω<!-- ω --></mi>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mrow>
+<mo>)</mo>
+</mrow>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<msqrt>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</msqrt>
+</mrow>
+<mtext> </mtext>
+<mtext> </mtext>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+</mtd>
+</mtr>
+<mtr>
+<mtd>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mtd>
+<mtd>
+<mi></mi>
+<mo>=</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mfrac>
+<mn>1</mn>
+<mrow>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+</mrow>
+</mfrac>
+</mrow>
+<msubsup>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msubsup>
+<msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>3</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mi>ω<!-- ω --></mi>
+<mo stretchy="false">)</mo>
+<mspace width="thinmathspace"></mspace>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi>i</mi>
+<mi>ω<!-- ω --></mi>
+<mi>x</mi>
+</mrow>
+</msup>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>ω<!-- ω --></mi>
+</mtd>
+</mtr>
+</mtable>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\frac {\omega }{2\pi }}\right)={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(\omega )\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\begin{aligned}{\widehat {f}}_{3}(\omega )\ &amp;\triangleq \ \int _{-\infty }^{\infty }f(x)\,e^{-i\omega x}\,dx={\widehat {f}}_{1}\left({\frac {\omega }{2\pi }}\right)={\sqrt {2\pi }}\ \ {\widehat {f}}_{2}(\omega )\\f(x)&amp;={\frac {1}{2\pi }}\int _{-\infty }^{\infty }{\widehat {f}}_{3}(\omega )\,e^{i\omega x}\,d\omega \end{aligned}}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/d913525e50896937f65071bd74e0bd62df752add" style="vertical-align: -5.505ex; width:56.361ex; height:12.176ex;"/></span></td></tr>
+</tbody></table>
+
+</section><section data-mw-section-id="3" id="mw5A"><h3 id="Lebesgue_integrable_functions">Lebesgue integrable functions</h3>
+<span about="#mwt99" class="mw-empty-elt" id="mw5Q" typeof="mw:Transclusion"><link about="#mwt100" href="mw-data:TemplateStyles:r1368532237" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/></span><div about="#mwt99" class="hatnote navigation-not-searchable" id="mw5g" role="note">See also: <a href="./Lp_space#Lp_spaces_and_Lebesgue_integrals" rel="mw:WikiLink" title="Lp space">L<sup>p</sup> space § L<sup>p</sup> spaces and Lebesgue integrals</a></div>
+<p id="mw5w">A <a href="./Measurable_function" id="mw6A" rel="mw:WikiLink" title="Measurable function">measurable function</a> <span about="#mwt101" class="mwe-math-element mwe-math-element-inline" id="mw6Q" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f:\mathbb {R} \to \mathbb {C} }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo>:</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo stretchy="false">→<!-- → --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">C</mi>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f:\mathbb {R} \to \mathbb {C} }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f:\mathbb {R} \to \mathbb {C} }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/56fd4f6d5889adc68cfb7e6043cfc3cf8d0dd258" style="vertical-align: -0.671ex; width:10.186ex; height:2.509ex;"/></span> is called (Lebesgue) integrable if the <a href="./Lebesgue_integral" id="mw6g" rel="mw:WikiLink" title="Lebesgue integral">Lebesgue integral</a> of its <a href="./Absolute_value" id="mw6w" rel="mw:WikiLink" title="Absolute value">absolute value</a> is finite:
+<span about="#mwt102" class="mwe-math-element mwe-math-element-block" id="mw7A" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \|f\|_{1}=\int _{\mathbb {R} }|f(x)|\,dx&lt;\infty .}" class="mathjax_ignore" display="block" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mo fence="false" stretchy="false">‖<!-- ‖ --></mo>
+<mi>f</mi>
+<msub>
+<mo fence="false" stretchy="false">‖<!-- ‖ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+<mo>=</mo>
+<msub>
+<mo>∫<!-- ∫ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+</mrow>
+</msub>
+<mrow class="MJX-TeXAtom-ORD">
+<mo stretchy="false">|</mo>
+</mrow>
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mo stretchy="false">|</mo>
+</mrow>
+<mspace width="thinmathspace"></mspace>
+<mi>d</mi>
+<mi>x</mi>
+<mo>&lt;</mo>
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+<mo>.</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \|f\|_{1}=\int _{\mathbb {R} }|f(x)|\,dx&lt;\infty .}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \|f\|_{1}=\int _{\mathbb {R} }|f(x)|\,dx&lt;\infty .}" aria-hidden="true" class="mwe-math-fallback-image-display mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/594dfc8c7fcd0575cfa65ff750d563aa4875583a" style="vertical-align: -2.338ex; width:25.568ex; height:5.676ex;"/></span>
+If <span about="#mwt109" class="mwe-math-element mwe-math-element-inline" id="mw7Q" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/132e57acb643253e7810ee9702d9581f159a1c61" style="vertical-align: -0.671ex; width:1.279ex; height:2.509ex;"/></span> is Lebesgue integrable then the Fourier transform, given by <b about="#mwt103" id="mw7g" typeof="mw:Transclusion"><a class="mw-selflink-fragment" href="./Fourier_transform#math_Eq.1" rel="mw:WikiLink">Eq.1</a></b>, is well-defined for all <span about="#mwt104" class="nowrap" id="mw7w" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt105" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \xi \in \mathbb {R} }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>ξ<!-- ξ --></mi>
+<mo>∈<!-- ∈ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \xi \in \mathbb {R} }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \xi \in \mathbb {R} }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/7d76d71407fc7c7e1978c8f4a7d393f243ea1c83" style="vertical-align: -0.671ex; width:5.549ex; height:2.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>.<sup about="#mwt106" class="mw-ref reference" id="cite_ref-FOOTNOTEStade2005298–299_14-0" rel="dc:references" typeof="mw:Transclusion mw:Extension/ref"><a href="./Fourier_transform#cite_note-FOOTNOTEStade2005298–299-14" id="mw8A"><span class="mw-reflink-text" id="mw8Q"><span class="cite-bracket" id="mw8g">[</span>10<span class="cite-bracket" id="mw8w">]</span></span></a></sup> Furthermore, <span about="#mwt110" class="mwe-math-element mwe-math-element-inline" id="mw9A" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle {\widehat {f}}\in L^{\infty }\cap C_{0}(\mathbb {R} )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mrow class="MJX-TeXAtom-ORD">
+<mover>
+<mi>f</mi>
+<mo>^<!-- ^ --></mo>
+</mover>
+</mrow>
+</mrow>
+<mo>∈<!-- ∈ --></mo>
+<msup>
+<mi>L</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="normal">∞<!-- ∞ --></mi>
+</mrow>
+</msup>
+<mo>∩<!-- ∩ --></mo>
+<msub>
+<mi>C</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>0</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle {\widehat {f}}\in L^{\infty }\cap C_{0}(\mathbb {R} )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle {\widehat {f}}\in L^{\infty }\cap C_{0}(\mathbb {R} )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/8a2525f6b96e3581b2d88adc34cd0258e027acf4" style="vertical-align: -0.838ex; width:16.856ex; height:3.509ex;"/></span> is bounded, <a class="mw-redirect" href="./Uniformly_continuous" id="mw9Q" rel="mw:WikiLink" title="Uniformly continuous">uniformly continuous</a> and (by the <a href="./Riemann–Lebesgue_lemma" id="mw9g" rel="mw:WikiLink" title="Riemann–Lebesgue lemma">Riemann–Lebesgue lemma</a>) <a href="./Vanish_at_infinity" id="mw9w" rel="mw:WikiLink" title="Vanish at infinity">vanishing at infinity</a>. Here <span about="#mwt111" class="mwe-math-element mwe-math-element-inline" id="mw-A" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle C_{0}(\mathbb {R} )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<msub>
+<mi>C</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>0</mn>
+</mrow>
+</msub>
+<mo stretchy="false">(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle C_{0}(\mathbb {R} )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle C_{0}(\mathbb {R} )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/b291a758a02ce8473dba27a2bcc64085902da8bd" style="vertical-align: -0.838ex; width:6.203ex; height:2.843ex;"/></span> denotes the space of continuous functions on <span about="#mwt112" class="mwe-math-element mwe-math-element-inline" id="mw-Q" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \mathbb {R} }" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \mathbb {R} }</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \mathbb {R} }" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/786849c765da7a84dbc3cce43e96aad58a5868dc" style="vertical-align: -0.338ex; width:1.678ex; height:2.176ex;"/></span> that approach 0 as x approaches positive or negative infinity.</p>
+<p id="mw-g">The space <span about="#mwt114" class="mwe-math-element mwe-math-element-inline" id="mw-w" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle L^{1}(\mathbb {R} )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<msup>
+<mi>L</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msup>
+<mo stretchy="false">(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle L^{1}(\mathbb {R} )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle L^{1}(\mathbb {R} )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/c9a86223fba658a5daf612b39d3e25495d548bdb" style="vertical-align: -0.838ex; width:6.124ex; height:3.176ex;"/></span> is the space of measurable functions for which the norm <span about="#mwt115" class="mwe-math-element mwe-math-element-inline" id="mw_A" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \|f\|_{1}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mo fence="false" stretchy="false">‖<!-- ‖ --></mo>
+<mi>f</mi>
+<msub>
+<mo fence="false" stretchy="false">‖<!-- ‖ --></mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msub>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \|f\|_{1}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \|f\|_{1}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/7424ae90c8c07aa9acdbc113116e7f8f618659ab" style="vertical-align: -0.838ex; width:4.658ex; height:2.843ex;"/></span> is finite, modulo the <a href="./Equivalence_class" id="mw_Q" rel="mw:WikiLink" title="Equivalence class">equivalence relation</a> of equality <a href="./Almost_everywhere" id="mw_g" rel="mw:WikiLink" title="Almost everywhere">almost everywhere</a>.  The Fourier transform on <span about="#mwt116" class="mwe-math-element mwe-math-element-inline" id="mw_w" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle L^{1}(\mathbb {R} )}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<msup>
+<mi>L</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>1</mn>
+</mrow>
+</msup>
+<mo stretchy="false">(</mo>
+<mrow class="MJX-TeXAtom-ORD">
+<mi mathvariant="double-struck">R</mi>
+</mrow>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle L^{1}(\mathbb {R} )}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle L^{1}(\mathbb {R} )}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/c9a86223fba658a5daf612b39d3e25495d548bdb" style="vertical-align: -0.838ex; width:6.124ex; height:3.176ex;"/></span> is <a href="./Bijection,_injection_and_surjection" id="mwAQA" rel="mw:WikiLink" title="Bijection, injection and surjection">one-to-one</a>.  However, there is no easy characterization of the image, and thus no easy characterization of the inverse transform.  In particular, <b about="#mwt113" id="mwAQE" typeof="mw:Transclusion"><a class="mw-selflink-fragment" href="./Fourier_transform#math_Eq.2" rel="mw:WikiLink">Eq.2</a></b> is no longer valid, as it was stated only under the hypothesis that <span about="#mwt117" class="mwe-math-element mwe-math-element-inline" id="mwAQI" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(x)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(x)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(x)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/202945cce41ecebb6f643f31d119c514bec7a074" style="vertical-align: -0.838ex; width:4.418ex; height:2.843ex;"/></span> was "sufficiently nice" (e.g., <span about="#mwt118" class="mwe-math-element mwe-math-element-inline" id="mwAQM" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(x)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>x</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(x)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(x)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/202945cce41ecebb6f643f31d119c514bec7a074" style="vertical-align: -0.838ex; width:4.418ex; height:2.843ex;"/></span> <a class="mw-redirect" href="./Schwartz_function" id="mwAQQ" rel="mw:WikiLink" title="Schwartz function">decays with all derivatives</a>).</p>
+
+
+
+
+</section></section><section data-mw-section-id="45" id="mwBuo"><h2 id="Alternatives">Alternatives</h2>
+<p id="mwBus">In <a href="./Signal_processing" id="mwBuw" rel="mw:WikiLink" title="Signal processing">signal processing</a> terms, a function (of time) is a representation of a signal with perfect <i id="mwBu0">time resolution</i>, but no frequency information, while the Fourier transform has perfect <i id="mwBu4">frequency resolution</i>, but no time information: the magnitude of the Fourier transform at a point is how much frequency content there is, but location is only given by phase (argument of the Fourier transform at a point), and <a href="./Standing_wave" id="mwBu8" rel="mw:WikiLink" title="Standing wave">standing waves</a> are not localized in time – a sine wave continues out to infinity, without decaying. This limits the usefulness of the Fourier transform for analyzing signals that are localized in time, notably <a href="./Transient_(acoustics)" id="mwBvA" rel="mw:WikiLink" title="Transient (acoustics)">transients</a>, or any signal of finite extent.</p>
+<p id="mwBvE">As alternatives to the Fourier transform, in <a href="./Time–frequency_analysis" id="mwBvI" rel="mw:WikiLink" title="Time–frequency analysis">time–frequency analysis</a>, one uses time–frequency transforms or time–frequency distributions to represent signals in a form that has some time information and some frequency information – by the uncertainty principle, there is a trade-off between these. These can be generalizations of the Fourier transform, such as the <a href="./Short-time_Fourier_transform" id="mwBvM" rel="mw:WikiLink" title="Short-time Fourier transform">short-time Fourier transform</a>, <a href="./Fractional_Fourier_transform" id="mwBvQ" rel="mw:WikiLink" title="Fractional Fourier transform">fractional Fourier transform</a>, synchrosqueezing Fourier transform,<sup about="#mwt1149" class="mw-ref reference" id="cite_ref-FOOTNOTECorreiaJustoAngélico2024_77-0" rel="dc:references" typeof="mw:Transclusion mw:Extension/ref"><a href="./Fourier_transform#cite_note-FOOTNOTECorreiaJustoAngélico2024-77" id="mwBvU"><span class="mw-reflink-text" id="mwBvY"><span class="cite-bracket" id="mwBvc">[</span>70<span class="cite-bracket" id="mwBvg">]</span></span></a></sup> or other functions to represent signals, as in <a href="./Wavelet_transform" id="mwBvk" rel="mw:WikiLink" title="Wavelet transform">wavelet transforms</a> and <a href="./Chirplet_transform" id="mwBvo" rel="mw:WikiLink" title="Chirplet transform">chirplet transforms</a>, with the wavelet analog of the Fourier transform being the <a href="./Continuous_wavelet_transform" id="mwBvs" rel="mw:WikiLink" title="Continuous wavelet transform">continuous wavelet transform</a>.<sup about="#mwt1152" class="mw-ref reference" id="cite_ref-Boashash-2003_33-1" rel="dc:references" typeof="mw:Extension/ref"><a href="./Fourier_transform#cite_note-Boashash-2003-33" id="mwBvw"><span class="mw-reflink-text" id="mwBv0"><span class="cite-bracket" id="mwBv4">[</span>27<span class="cite-bracket" id="mwBv8">]</span></span></a></sup></p>
+</section><section data-mw-section-id="46" id="mwBwA"><h2 id="Example">Example</h2>
+<p id="mwBwE">The following figures provide a visual illustration of how the Fourier transform's integral measures whether a frequency is present in a particular function. The first image depicts the function <span about="#mwt1153" class="nowrap" id="mwBwI" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt1154" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(t)=\cos(2\pi \ 3t)\ e^{-\pi t^{2}}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>t</mi>
+<mo stretchy="false">)</mo>
+<mo>=</mo>
+<mi>cos</mi>
+<mo>⁡<!-- ⁡ --></mo>
+<mo stretchy="false">(</mo>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mtext> </mtext>
+<mn>3</mn>
+<mi>t</mi>
+<mo stretchy="false">)</mo>
+<mtext> </mtext>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>π<!-- π --></mi>
+<msup>
+<mi>t</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mn>2</mn>
+</mrow>
+</msup>
+</mrow>
+</msup>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(t)=\cos(2\pi \ 3t)\ e^{-\pi t^{2}}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(t)=\cos(2\pi \ 3t)\ e^{-\pi t^{2}}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/6577d552cc6c39d77bd7f80868096dd969a225f0" style="vertical-align: -0.838ex; width:22.566ex; height:3.509ex;"/></span><span typeof="mw:Entity">⁠</span></span>, which is a 3<span id="mwBwM" typeof="mw:Entity"> </span><a href="./Hertz" id="mwBwQ" rel="mw:WikiLink" title="Hertz">Hz</a> cosine wave (the first term) shaped by a <a href="./Gaussian_function" id="mwBwU" rel="mw:WikiLink" title="Gaussian function">Gaussian</a> <a href="./Envelope_(waves)" id="mwBwY" rel="mw:WikiLink" title="Envelope (waves)">envelope function</a> (the second term) that smoothly turns the wave on and off. The next 2 images show the product <span about="#mwt1155" class="nowrap" id="mwBwc" typeof="mw:Transclusion"><span typeof="mw:Entity">⁠</span><span about="#mwt1156" class="mwe-math-element mwe-math-element-inline" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(t)e^{-i2\pi 3t}}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>t</mi>
+<mo stretchy="false">)</mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mn>3</mn>
+<mi>t</mi>
+</mrow>
+</msup>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(t)e^{-i2\pi 3t}}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(t)e^{-i2\pi 3t}}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/7950a27c3f2a11c88147f25dc77f640116cf47bd" style="vertical-align: -0.838ex; width:10.269ex; height:3.176ex;"/></span><span typeof="mw:Entity">⁠</span></span>, which must be integrated to calculate the Fourier transform at +3<span id="mwBwg" typeof="mw:Entity"> </span>Hz. The real part of the integrand has a non-negative average value, because the alternating signs of <span about="#mwt1157" class="mwe-math-element mwe-math-element-inline" id="mwBwk" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(t)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>t</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(t)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(t)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/5bf044fe2fbfc4bd8d6d7230f4108430263f9fd6" style="vertical-align: -0.838ex; width:3.927ex; height:2.843ex;"/></span> and <span about="#mwt1158" class="mwe-math-element mwe-math-element-inline" id="mwBwo" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \operatorname {Re} (e^{-i2\pi 3t})}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>Re</mi>
+<mo>⁡<!-- ⁡ --></mo>
+<mo stretchy="false">(</mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mn>3</mn>
+<mi>t</mi>
+</mrow>
+</msup>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \operatorname {Re} (e^{-i2\pi 3t})}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \operatorname {Re} (e^{-i2\pi 3t})}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/bd7c5dfe8df5d7dd2caf85bafab65f7bf15b4570" style="vertical-align: -0.838ex; width:10.894ex; height:3.176ex;"/></span> oscillate at the same rate and in phase, whereas <span about="#mwt1159" class="mwe-math-element mwe-math-element-inline" id="mwBws" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle f(t)}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>f</mi>
+<mo stretchy="false">(</mo>
+<mi>t</mi>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle f(t)}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle f(t)}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/5bf044fe2fbfc4bd8d6d7230f4108430263f9fd6" style="vertical-align: -0.838ex; width:3.927ex; height:2.843ex;"/></span> and <span about="#mwt1160" class="mwe-math-element mwe-math-element-inline" id="mwBww" typeof="mw:Extension/math"><span class="mwe-math-mathml-a11y" style="display: none;"><math alttext="{\displaystyle \operatorname {Im} (e^{-i2\pi 3t})}" class="mathjax_ignore" xmlns="http://www.w3.org/1998/Math/MathML">
+<semantics>
+<mrow class="MJX-TeXAtom-ORD">
+<mstyle displaystyle="true" scriptlevel="0">
+<mi>Im</mi>
+<mo>⁡<!-- ⁡ --></mo>
+<mo stretchy="false">(</mo>
+<msup>
+<mi>e</mi>
+<mrow class="MJX-TeXAtom-ORD">
+<mo>−<!-- − --></mo>
+<mi>i</mi>
+<mn>2</mn>
+<mi>π<!-- π --></mi>
+<mn>3</mn>
+<mi>t</mi>
+</mrow>
+</msup>
+<mo stretchy="false">)</mo>
+</mstyle>
+</mrow>
+<annotation encoding="application/x-tex">{\displaystyle \operatorname {Im} (e^{-i2\pi 3t})}</annotation>
+</semantics>
+</math></span><img alt="{\displaystyle \operatorname {Im} (e^{-i2\pi 3t})}" aria-hidden="true" class="mwe-math-fallback-image-inline mw-invert skin-invert" src="https://wikimedia.org/api/rest_v1/media/math/render/svg/e9b7a3fd61b28e9ab6fdc7e9eb4a18617789df74" style="vertical-align: -0.838ex; width:10.926ex; height:3.176ex;"/></span> oscillate at the same rate but with orthogonal phase. The absolute value of the Fourier transform at +3<span id="mwBw0" typeof="mw:Entity"> </span>Hz is 0.5, which is relatively large. When added to the Fourier transform at −3<span id="mwBw4" typeof="mw:Entity"> </span>Hz (which is identical because we started with a real signal), we find that the amplitude of the 3<span id="mwBw8" typeof="mw:Entity"> </span>Hz frequency component is 1.</p>
+<figure class="mw-halign-left skin-invert-image" id="mwBxA" typeof="mw:File/Thumb"><a class="mw-file-description" href="./File:Onfreq.png" id="mwBxE"><img class="mw-file-element" data-file-height="594" data-file-type="bitmap" data-file-width="1274" decoding="async" height="324" id="mwBxI" loading="lazy" resource="./File:Onfreq.png" src="//thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Onfreq.png/960px-Onfreq.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail" srcset="//upload.wikimedia.org/wikipedia/commons/2/2f/Onfreq.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail_unscaled 2x" width="695"/></a><figcaption id="mwBxM">Original function, which has a strong 3<span id="mwBxQ" typeof="mw:Entity"> </span>Hz component. Real and imaginary parts of the integrand of its Fourier transform at +3<span id="mwBxU" typeof="mw:Entity"> </span>Hz.</figcaption></figure>
+<div about="#mwt1161" class="" id="mwBxY" style="clear:both;" typeof="mw:Transclusion"></div>
+
+</section><section data-mw-section-id="65" id="mwDBY"><h2 id="See_also">See also</h2>
+<span about="#mwt1795" class="mw-empty-elt" id="mwDBc" typeof="mw:Transclusion"><style about="#mwt1796" data-mw-deduplicate="TemplateStyles:r1184024115" typeof="mw:Extension/templatestyles">.mw-parser-output .div-col{margin-top:0.3em;column-width:30em}.mw-parser-output .div-col-small{font-size:90%}.mw-parser-output .div-col-rules{column-rule:1px solid #aaa}.mw-parser-output .div-col dl,.mw-parser-output .div-col ol,.mw-parser-output .div-col ul{margin-top:0}.mw-parser-output .div-col li,.mw-parser-output .div-col dd{page-break-inside:avoid;break-inside:avoid-column}</style></span><div about="#mwt1795" class="div-col" id="mwDBg" style="column-width: 22em;">
+<ul><li><a href="./Analog_signal_processing" rel="mw:WikiLink" title="Analog signal processing">Analog signal processing</a><span typeof="mw:Entity"> </span>– Signal processing conducted on analog signals</li>
+<li><a href="./Beevers–Lipson_strip" rel="mw:WikiLink" title="Beevers–Lipson strip">Beevers–Lipson strip</a><span typeof="mw:Entity"> </span>– Mathematical tool in crystallography</li>
+<li><a href="./Constant-Q_transform" rel="mw:WikiLink" title="Constant-Q transform">Constant-Q transform</a><span typeof="mw:Entity"> </span>– Short-time Fourier transform with variable resolution</li>
+<li><a href="./DFT_matrix" rel="mw:WikiLink" title="DFT matrix">DFT matrix</a><span typeof="mw:Entity"> </span>– Discrete fourier transform expressed as a matrix</li>
+<li><a href="./Discrete_Fourier_transform" rel="mw:WikiLink" title="Discrete Fourier transform">Discrete Fourier transform</a><span typeof="mw:Entity"> </span>– Function in discrete mathematics</li>
+<li><a href="./Fast_Fourier_transform" rel="mw:WikiLink" title="Fast Fourier transform">Fast Fourier transform</a><span typeof="mw:Entity"> </span>– Discrete Fourier transform algorithm</li>
+<li><a href="./Fourier_integral_operator" rel="mw:WikiLink" title="Fourier integral operator">Fourier integral operator</a><span typeof="mw:Entity"> </span>– Class of differential and integral operators</li>
+<li><a href="./Fourier_inversion_theorem" rel="mw:WikiLink" title="Fourier inversion theorem">Fourier inversion theorem</a><span typeof="mw:Entity"> </span>– Mathematical theorem about functions</li>
+<li><a class="mw-redirect" href="./Fourier_multiplier" rel="mw:WikiLink" title="Fourier multiplier">Fourier multiplier</a><span typeof="mw:Entity"> </span>– Type of operator in Fourier analysis<span class="category-annotation-with-redirected-description" style="display:none">Pages displaying short descriptions of redirect targets</span><link href="./Category:Pages_displaying_short_descriptions_of_redirect_targets_via_Module:Annotated_link" rel="mw:PageProp/Category"/></li>
+<li><a href="./Fourier_series" rel="mw:WikiLink" title="Fourier series">Fourier series</a><span typeof="mw:Entity"> </span>– Decomposition of periodic functions</li>
+<li><a class="mw-redirect" href="./Fourier_sine_transform" rel="mw:WikiLink" title="Fourier sine transform">Fourier sine transform</a><span typeof="mw:Entity"> </span>– Variant Fourier transforms<span class="category-annotation-with-redirected-description" style="display:none">Pages displaying short descriptions of redirect targets</span><link href="./Category:Pages_displaying_short_descriptions_of_redirect_targets_via_Module:Annotated_link" rel="mw:PageProp/Category"/></li>
+<li><a href="./Fourier–Deligne_transform" rel="mw:WikiLink" title="Fourier–Deligne transform">Fourier–Deligne transform</a></li>
+<li><a href="./Fourier–Mukai_transform" rel="mw:WikiLink" title="Fourier–Mukai transform">Fourier–Mukai transform</a></li>
+<li><a href="./Fractional_Fourier_transform" rel="mw:WikiLink" title="Fractional Fourier transform">Fractional Fourier transform</a><span typeof="mw:Entity"> </span>– Mathematical operation</li>
+<li><a class="mw-redirect" href="./Indirect_Fourier_transform" rel="mw:WikiLink" title="Indirect Fourier transform">Indirect Fourier transform</a></li>
+<li><a href="./Integral_transform" rel="mw:WikiLink" title="Integral transform">Integral transform</a><span typeof="mw:Entity"> </span>– Mapping involving integration between function spaces
+<ul><li><a href="./Hankel_transform" rel="mw:WikiLink" title="Hankel transform">Hankel transform</a><span typeof="mw:Entity"> </span>– Mathematical operation</li>
+<li><a href="./Hartley_transform" rel="mw:WikiLink" title="Hartley transform">Hartley transform</a><span typeof="mw:Entity"> </span>– Integral transform closely related to the Fourier transform</li></ul></li>
+<li><a href="./Laplace_transform" rel="mw:WikiLink" title="Laplace transform">Laplace transform</a><span typeof="mw:Entity"> </span>– Integral transform useful in probability theory, physics, and engineering</li>
+<li><a href="./Least-squares_spectral_analysis" rel="mw:WikiLink" title="Least-squares spectral analysis">Least-squares spectral analysis</a><span typeof="mw:Entity"> </span>– Periodicity computation method</li>
+<li><a class="mw-redirect" href="./Linear_canonical_transform" rel="mw:WikiLink" title="Linear canonical transform">Linear canonical transform</a></li>
+<li><a href="./List_of_Fourier-related_transforms" rel="mw:WikiLink" title="List of Fourier-related transforms">List of Fourier-related transforms</a></li>
+<li><a href="./Mellin_transform" rel="mw:WikiLink" title="Mellin transform">Mellin transform</a><span typeof="mw:Entity"> </span>– Mathematical operation</li>
+<li><a href="./Multidimensional_transform" rel="mw:WikiLink" title="Multidimensional transform">Multidimensional transform</a><span typeof="mw:Entity"> </span>– Mathematical analysis of frequency content of signals</li>
+<li><a href="./NGC_4622" rel="mw:WikiLink" title="NGC 4622">NGC 4622</a> – Especially the image NGC 4622 Fourier transform <span class="texhtml"><i>m</i> = 2</span>.</li>
+<li><a href="./Nonlocal_operator" rel="mw:WikiLink" title="Nonlocal operator">Nonlocal operator</a><span typeof="mw:Entity"> </span>– Class of operator mapping</li>
+<li><a href="./Quadratic_Fourier_transform" rel="mw:WikiLink" title="Quadratic Fourier transform">Quadratic Fourier transform</a></li>
+<li><a href="./Quantum_Fourier_transform" rel="mw:WikiLink" title="Quantum Fourier transform">Quantum Fourier transform</a><span typeof="mw:Entity"> </span>– Change of basis applied in quantum computing</li>
+<li><a href="./Short-time_Fourier_transform" rel="mw:WikiLink" title="Short-time Fourier transform">Short-time Fourier transform</a><span typeof="mw:Entity"> </span>– Fourier-related transform for signals that change over time</li>
+<li><a href="./Spectral_density" rel="mw:WikiLink" title="Spectral density">Spectral density</a><span typeof="mw:Entity"> </span>– Relative importance of certain frequencies in a composite signal
+<ul><li><a href="./Spectral_density_estimation" rel="mw:WikiLink" title="Spectral density estimation">Spectral density estimation</a><span typeof="mw:Entity"> </span>– Signal processing technique</li></ul></li>
+<li><a href="./Symbolic_integration" rel="mw:WikiLink" title="Symbolic integration">Symbolic integration</a><span typeof="mw:Entity"> </span>– Computation of an antiderivatives</li>
+<li><a href="./Time_stretch_dispersive_Fourier_transform" rel="mw:WikiLink" title="Time stretch dispersive Fourier transform">Time stretch dispersive Fourier transform</a></li>
+<li><a class="mw-redirect" href="./Transform_(mathematics)" rel="mw:WikiLink" title="Transform (mathematics)">Transform (mathematics)</a><span typeof="mw:Entity"> </span>– Function that applies a set to itself<span class="category-annotation-with-redirected-description" style="display:none">Pages displaying short descriptions of redirect targets</span><link href="./Category:Pages_displaying_short_descriptions_of_redirect_targets_via_Module:Annotated_link" rel="mw:PageProp/Category"/></li></ul>
+</div>
+</section><section data-mw-section-id="66" id="mwDBk"><h2 id="Notes">Notes</h2>
+<span about="#mwt1825" class="mw-empty-elt" id="mwDBo" typeof="mw:Transclusion"><style about="#mwt1826" data-mw-deduplicate="TemplateStyles:r1327269900" typeof="mw:Extension/templatestyles">.mw-parser-output .reflist-columns-2{column-width:30em}.mw-parser-output .reflist-columns-3{column-width:25em}body.skin-vector-2022 .mw-parser-output .reflist-columns-2{column-width:27em}body.skin-vector-2022 .mw-parser-output .reflist-columns-3{column-width:22.5em}.mw-parser-output .references[data-mw-group=upper-alpha]{list-style-type:upper-alpha}.mw-parser-output .references[data-mw-group=upper-roman]{list-style-type:upper-roman}.mw-parser-output .references[data-mw-group=lower-alpha]{list-style-type:lower-alpha}.mw-parser-output .references[data-mw-group=lower-greek]{list-style-type:lower-greek}.mw-parser-output .references[data-mw-group=lower-roman]{list-style-type:lower-roman}.mw-parser-output div.reflist-liststyle-upper-alpha .references{list-style-type:upper-alpha}.mw-parser-output div.reflist-liststyle-upper-roman .references{list-style-type:upper-roman}.mw-parser-output div.reflist-liststyle-lower-alpha .references{list-style-type:lower-alpha}.mw-parser-output div.reflist-liststyle-lower-greek .references{list-style-type:lower-greek}.mw-parser-output div.reflist-liststyle-lower-roman .references{list-style-type:lower-roman}</style></span><div about="#mwt1825" id="mwDBs">
+<div about="#mwt1827" class="mw-references-wrap" id="mwDBw" typeof="mw:Extension/references"><ol class="mw-references references" data-mw-group="note" id="mwDB0"><li about="#cite_note-1" data-mw-footnote-number="1" id="cite_note-1"><span class="mw-cite-backlink" id="mwDB4"><a data-mw-group="note" href="./Fourier_transform#cite_ref-1" id="mwDB8" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDCA">↑</span></a></span> <span class="mw-reference-text reference-text" data-mw-group="note" id="mw-reference-text-cite_note-1">Sentence structure is often sufficient to distinguish the intended meaning: for example, "Apply the Fourier transform to [an input]" refers to the operation, whereas "The Fourier transform of [an input]" refers to its output.</span></li>
+<li about="#cite_note-2" data-mw-footnote-number="2" id="cite_note-2"><span class="mw-cite-backlink" id="mwDCE"><a data-mw-group="note" href="./Fourier_transform#cite_ref-2" id="mwDCI" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDCM">↑</span></a></span> <span class="mw-reference-text reference-text" data-mw-group="note" id="mw-reference-text-cite_note-2">Depending on the application a <a href="./Lebesgue_integral" id="mwDCQ" rel="mw:WikiLink" title="Lebesgue integral">Lebesgue integral</a>, <a class="mw-redirect" href="./Distribution_(mathematics)" id="mwDCU" rel="mw:WikiLink" title="Distribution (mathematics)">distributional</a>, or other approach may be most appropriate.</span></li>
+<li about="#cite_note-3" data-mw-footnote-number="3" id="cite_note-3"><span class="mw-cite-backlink" id="mwDCY"><a data-mw-group="note" href="./Fourier_transform#cite_ref-3" id="mwDCc" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDCg">↑</span></a></span> <span class="mw-reference-text reference-text" data-mw-group="note" id="mw-reference-text-cite_note-3"><a class="mw-selflink-fragment" href="./Fourier_transform#CITEREFVretblad2000" id="mwDCk" rel="mw:WikiLink">Vretblad (2000)</a> provides solid justification for these formal procedures without going too deeply into <a href="./Functional_analysis" id="mwDCo" rel="mw:WikiLink" title="Functional analysis">functional analysis</a> or the <a class="mw-redirect" href="./Distribution_(mathematics)" id="mwDCs" rel="mw:WikiLink" title="Distribution (mathematics)">theory of distributions</a>.</span></li>
+<li about="#cite_note-4" data-mw-footnote-number="4" id="cite_note-4"><span class="mw-cite-backlink" id="mwDCw"><a data-mw-group="note" href="./Fourier_transform#cite_ref-4" id="mwDC0" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDC4">↑</span></a></span> <span class="mw-reference-text reference-text" data-mw-group="note" id="mw-reference-text-cite_note-4">In <a href="./Relativistic_quantum_mechanics" id="mwDC8" rel="mw:WikiLink" title="Relativistic quantum mechanics">relativistic quantum mechanics</a> one encounters vector-valued Fourier transforms of multi-component wave functions. In <a href="./Quantum_field_theory" id="mwDDA" rel="mw:WikiLink" title="Quantum field theory">quantum field theory</a>, operator-valued Fourier transforms of operator-valued functions of spacetime are in frequent use, see for example <a class="mw-selflink-fragment" href="./Fourier_transform#CITEREFGreinerReinhardt1996" id="mwDDE" rel="mw:WikiLink">Greiner <span id="mwDDI" typeof="mw:Entity">&amp;</span> Reinhardt (1996)</a>.</span></li>
+
+
+
+
+
+
+</ol></div></div>
+</section><section data-mw-section-id="67" id="mwDWU"><h2 id="Citations">Citations</h2>
+<span about="#mwt1828" class="mw-empty-elt" id="mwDWY" typeof="mw:Transclusion"><link about="#mwt1829" href="mw-data:TemplateStyles:r1327269900" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/></span><div about="#mwt1828" class="mw-references-wrap mw-references-columns" id="mwDWc" style="column-width: calc( 0.9 * 22em );"><ol about="#mwt1830" class="mw-references references" id="mwDWg" typeof="mw:Extension/references"><li about="#cite_note-FOOTNOTEPinsky200291-5" data-mw-footnote-number="1" id="cite_note-FOOTNOTEPinsky200291-5"><span class="mw-cite-backlink" id="mwDWk"><a href="./Fourier_transform#cite_ref-FOOTNOTEPinsky200291_5-0" id="mwDWo" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDWs">↑</span></a></span> <span class="mw-reference-text reference-text" id="mw-reference-text-cite_note-FOOTNOTEPinsky200291-5"><a class="mw-selflink-fragment" href="./Fourier_transform#CITEREFPinsky2002" id="mwDWw" rel="mw:WikiLink">Pinsky 2002</a>, p.<span id="mwDW0" typeof="mw:Entity"> </span>91</span></li>
+<li about="#cite_note-FOOTNOTELiebLoss2001123–125-6" data-mw-footnote-number="2" id="cite_note-FOOTNOTELiebLoss2001123–125-6"><span class="mw-cite-backlink" id="mwDW4"><a href="./Fourier_transform#cite_ref-FOOTNOTELiebLoss2001123–125_6-0" id="mwDW8" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDXA">↑</span></a></span> <span class="mw-reference-text reference-text" id="mw-reference-text-cite_note-FOOTNOTELiebLoss2001123–125-6"><a class="mw-selflink-fragment" href="./Fourier_transform#CITEREFLiebLoss2001" id="mwDXE" rel="mw:WikiLink">Lieb <span id="mwDXI" typeof="mw:Entity">&amp;</span> Loss 2001</a>, pp.<span id="mwDXM" typeof="mw:Entity"> </span>123–125</span></li>
+<li about="#cite_note-FOOTNOTEGelfandShilov1968128-7" data-mw-footnote-number="3" id="cite_note-FOOTNOTEGelfandShilov1968128-7"><span class="mw-cite-backlink" id="mwDXQ"><a href="./Fourier_transform#cite_ref-FOOTNOTEGelfandShilov1968128_7-0" id="mwDXU" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDXY">↑</span></a></span> <span class="mw-reference-text reference-text" id="mw-reference-text-cite_note-FOOTNOTEGelfandShilov1968128-7"><a class="mw-selflink-fragment" href="./Fourier_transform#CITEREFGelfandShilov1968" id="mwDXc" rel="mw:WikiLink">Gelfand <span id="mwDXg" typeof="mw:Entity">&amp;</span> Shilov 1968</a>, p.<span id="mwDXk" typeof="mw:Entity"> </span>128</span></li>
+<li about="#cite_note-8" data-mw-footnote-number="4" id="cite_note-8"><span class="mw-cite-backlink" id="mwDXo"><a href="./Fourier_transform#cite_ref-8" id="mwDXs" rel="mw:referencedBy"><span class="mw-linkback-text" id="mwDXw">↑</span></a></span> <span class="mw-reference-text reference-text" id="mw-reference-text-cite_note-8"><a about="#mwt48" class="mw-selflink-fragment" href="./Fourier_transform#CITEREFFourier1822" id="mwDX0" rel="mw:WikiLink" typeof="mw:Transclusion">Fourier 1822</a><span about="#mwt48" id="mwDX4">, p.</span><span about="#mwt48" id="mwDX8" typeof="mw:Entity"> </span><span about="#mwt48" id="mwDYA">525</span></span></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ol></div>
+</section><section data-mw-section-id="68" id="mwD2U"><h2 id="References">References</h2>
+<span about="#mwt1831" class="mw-empty-elt" id="mwD2Y" typeof="mw:Transclusion"><style about="#mwt1832" data-mw-deduplicate="TemplateStyles:r1365158831" typeof="mw:Extension/templatestyles">.mw-parser-output .refbegin{margin-bottom:0.5em}.mw-parser-output .refbegin-hanging-indents>ul,.mw-parser-output .refbegin-hanging-indents section>ul{margin-left:0}.mw-parser-output .refbegin-hanging-indents>ul>li,.mw-parser-output .refbegin-hanging-indents section>ul>li{margin-left:0;padding-left:3.2em;text-indent:-3.2em}.mw-parser-output .refbegin-hanging-indents ul,.mw-parser-output .refbegin-hanging-indents ul li{list-style:none}@media(max-width:720px){.mw-parser-output .refbegin-hanging-indents>ul>li,.mw-parser-output .refbegin-hanging-indents section>ul>li{padding-left:1.6em;text-indent:-1.6em}}.mw-parser-output .refbegin-columns{margin-top:0.3em}.mw-parser-output .refbegin-columns ul{margin-top:0}.mw-parser-output .refbegin-columns li{page-break-inside:avoid;break-inside:avoid-column}@media screen{.mw-parser-output .refbegin{font-size:90%}}</style></span><div about="#mwt1831" class="refbegin refbegin-hanging-indents refbegin-columns references-column-width" id="mwD2c" style="column-width: 30em">
+<!-- DO NOT leave blank lines between list items, they create entirely new lists -->
+<ul><li><link about="#mwt1834" href="mw-data:TemplateStyles:r1333433106" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><cite class="citation journal cs1" id="CITEREFAblowitzKaupNewellSegur1974">Ablowitz, Mark J.; Kaup, David J.; Newell, Alan C.; Segur, Harvey (1974). <span class="id-lock-subscription" title="Paid subscription required"><a class="external text" href="https://onlinelibrary.wiley.com/doi/10.1002/sapm1974534249" rel="mw:ExtLink nofollow">"The Inverse Scattering Transform‐Fourier Analysis for Nonlinear Problems"</a></span>. <i>Studies in Applied Mathematics</i>. <b>53</b> (4): <span class="nowrap">249–</span>315. <a class="mw-redirect" href="./Doi_(identifier)" rel="mw:WikiLink" title="Doi (identifier)">doi</a>:<a class="external text" href="https://doi.org/10.1002%2Fsapm1974534249" rel="mw:ExtLink nofollow">10.1002/sapm1974534249</a>. <a class="mw-redirect" href="./ISSN_(identifier)" rel="mw:WikiLink" title="ISSN (identifier)">ISSN</a><span typeof="mw:Entity"> </span><a class="external text" href="https://search.worldcat.org/issn/0022-2526" rel="mw:ExtLink nofollow">0022-2526</a><span class="reference-accessdate">. Retrieved <span class="nowrap">2025-09-21</span></span>.</cite><span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.genre=article&amp;rft.jtitle=Studies+in+Applied+Mathematics&amp;rft.atitle=The+Inverse+Scattering+Transform%E2%80%90Fourier+Analysis+for+Nonlinear+Problems&amp;rft.volume=53&amp;rft.issue=4&amp;rft.pages=249-315&amp;rft.date=1974&amp;rft_id=info%3Adoi%2F10.1002%2Fsapm1974534249&amp;rft.issn=0022-2526&amp;rft.aulast=Ablowitz&amp;rft.aufirst=Mark+J.&amp;rft.au=Kaup%2C+David+J.&amp;rft.au=Newell%2C+Alan+C.&amp;rft.au=Segur%2C+Harvey&amp;rft_id=https%3A%2F%2Fonlinelibrary.wiley.com%2Fdoi%2F10.1002%2Fsapm1974534249&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3AFourier+transform"></span></li>
+<li><link about="#mwt1836" href="mw-data:TemplateStyles:r1333433106" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><cite class="citation cs2" id="CITEREFArfken1985">Arfken, George (1985), <i>Mathematical Methods for Physicists</i> (3rd<span typeof="mw:Entity"> </span>ed.), Academic Press, <a class="mw-redirect" href="./ISBN_(identifier)" rel="mw:WikiLink" title="ISBN (identifier)">ISBN</a><span typeof="mw:Entity"> </span><a href="./Special:BookSources/978-0-12-059820-5" rel="mw:WikiLink" title="Special:BookSources/978-0-12-059820-5"><bdi>978-0-12-059820-5</bdi></a></cite><span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&amp;rft.genre=book&amp;rft.btitle=Mathematical+Methods+for+Physicists&amp;rft.edition=3rd&amp;rft.pub=Academic+Press&amp;rft.date=1985&amp;rft.isbn=978-0-12-059820-5&amp;rft.aulast=Arfken&amp;rft.aufirst=George&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3AFourier+transform"></span></li>
+<li><link about="#mwt1838" href="mw-data:TemplateStyles:r1333433106" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><cite class="citation cs2" id="CITEREFBaileySwarztrauber1994">Bailey, David H.; Swarztrauber, Paul N. (1994), <a class="external text" href="https://web.archive.org/web/20080720002714/http://crd.lbl.gov/~dhbailey/dhbpapers/fourint.pdf" rel="mw:ExtLink nofollow">"A fast method for the numerical evaluation of continuous Fourier and Laplace transforms"</a> <span class="cs1-format">(PDF)</span>, <i><a href="./SIAM_Journal_on_Scientific_Computing" rel="mw:WikiLink" title="SIAM Journal on Scientific Computing">SIAM Journal on Scientific Computing</a></i>, <b>15</b> (5): <span class="nowrap">1105–</span>1110, <a class="mw-redirect" href="./Bibcode_(identifier)" rel="mw:WikiLink" title="Bibcode (identifier)">Bibcode</a>:<a class="external text" href="https://ui.adsabs.harvard.edu/abs/1994SJSC...15.1105B" rel="mw:ExtLink nofollow">1994SJSC...15.1105B</a>, <a class="mw-redirect" href="./Doi_(identifier)" rel="mw:WikiLink" title="Doi (identifier)">doi</a>:<a class="external text" href="https://doi.org/10.1137%2F0915067" rel="mw:ExtLink nofollow">10.1137/0915067</a>, archived from <a class="external text" href="http://crd.lbl.gov/~dhbailey/dhbpapers/fourint.pdf" rel="mw:ExtLink nofollow">the original</a> <span class="cs1-format">(PDF)</span> on 2008-07-20<span class="reference-accessdate">, retrieved <span class="nowrap">2017-11-01</span></span></cite><span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.genre=article&amp;rft.jtitle=SIAM+Journal+on+Scientific+Computing&amp;rft.atitle=A+fast+method+for+the+numerical+evaluation+of+continuous+Fourier+and+Laplace+transforms&amp;rft.volume=15&amp;rft.issue=5&amp;rft.pages=1105-1110&amp;rft.date=1994&amp;rft_id=info%3Adoi%2F10.1137%2F0915067&amp;rft_id=info%3Abibcode%2F1994SJSC...15.1105B&amp;rft.aulast=Bailey&amp;rft.aufirst=David+H.&amp;rft.au=Swarztrauber%2C+Paul+N.&amp;rft_id=http%3A%2F%2Fcrd.lbl.gov%2F~dhbailey%2Fdhbpapers%2Ffourint.pdf&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3AFourier+transform"></span></li>
+<li><link about="#mwt1840" href="mw-data:TemplateStyles:r1333433106" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><cite class="citation cs2" id="CITEREFBillingsley1995">Billingsley, Patrick (1995), <i>Probability and measure</i>, New York, NY: Wiley, <a class="mw-redirect" href="./ISBN_(identifier)" rel="mw:WikiLink" title="ISBN (identifier)">ISBN</a><span typeof="mw:Entity"> </span><a href="./Special:BookSources/978-0-471-00710-4" rel="mw:WikiLink" title="Special:BookSources/978-0-471-00710-4"><bdi>978-0-471-00710-4</bdi></a></cite><span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&amp;rft.genre=book&amp;rft.btitle=Probability+and+measure&amp;rft.place=New+York%2C+NY&amp;rft.pub=Wiley&amp;rft.date=1995&amp;rft.isbn=978-0-471-00710-4&amp;rft.aulast=Billingsley&amp;rft.aufirst=Patrick&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3AFourier+transform"></span></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ul>
+</div>
+</section><section data-mw-section-id="69" id="mwD2g"><h2 id="External_links">External links</h2>
+<ul id="mwD2k"><li id="mwD2o"><style about="#mwt1991" data-mw-deduplicate="TemplateStyles:r1316373843" id="mwD2s" typeof="mw:Extension/templatestyles mw:Transclusion">@media screen{html.skin-theme-clientpref-night .mw-parser-output .sister-inline-image img[src*="Wiktionary-logo-en-v2.svg"]{filter:invert(1)brightness(55%)contrast(250%)hue-rotate(180deg)}}@media screen and (prefers-color-scheme:dark){html.skin-theme-clientpref-os .mw-parser-output .sister-inline-image img[src*="Wiktionary-logo-en-v2.svg"]{filter:invert(1)brightness(55%)contrast(250%)hue-rotate(180deg)}}</style><span about="#mwt1991" class="noviewer sister-inline-image" typeof="mw:File"><a class="mw-file-description" href="./File:Commons-logo.svg"><img alt="Wikimedia Commons logo" class="mw-file-element" data-file-height="1376" data-file-type="drawing" data-file-width="1024" decoding="async" height="16" loading="lazy" resource="./File:Commons-logo.svg" src="//thumb.wikimedia.org/wikipedia/en/thumb/4/4a/Commons-logo.svg/20px-Commons-logo.svg.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail" srcset="//thumb.wikimedia.org/wikipedia/en/thumb/4/4a/Commons-logo.svg/40px-Commons-logo.svg.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x" width="12"/></a></span><span about="#mwt1991"> Media related to </span><a about="#mwt1991" class="extiw" href="https://commons.wikimedia.org/wiki/Category:Fourier%20transformation" rel="mw:WikiLink/Interwiki" title="commons:Category:Fourier transformation">Fourier transformation</a><link about="#mwt1991" href="./Category:Commons_category_link_from_Wikidata" rel="mw:PageProp/Category"/><span about="#mwt1991"> at Wikimedia Commons</span></li>
+<li id="mwD2w"><a class="external text" href="https://www.encyclopediaofmath.org/index.php/Fourier_transform" id="mwD20" rel="mw:ExtLink nofollow">Encyclopedia of Mathematics</a></li>
+<li id="mwD24"><span about="#mwt1993" class="citation mathworld" id="Reference-Mathworld-Fourier_Transform" typeof="mw:Transclusion"><link about="#mwt1994" href="mw-data:TemplateStyles:r1333433106" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><cite class="citation web cs1" id="CITEREFWeisstein"><a href="./Eric_W._Weisstein" rel="mw:WikiLink" title="Eric W. Weisstein">Weisstein, Eric W.</a> <a class="external text" href="https://mathworld.wolfram.com/FourierTransform.html" rel="mw:ExtLink nofollow">"Fourier Transform"</a>. <i><a href="./MathWorld" rel="mw:WikiLink" title="MathWorld">MathWorld</a></i>.</cite><span class="Z3988" title="ctx_ver=Z39.88-2004&amp;rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Ajournal&amp;rft.genre=unknown&amp;rft.jtitle=MathWorld&amp;rft.atitle=Fourier+Transform&amp;rft.au=Weisstein%2C+Eric+W.&amp;rft_id=https%3A%2F%2Fmathworld.wolfram.com%2FFourierTransform.html&amp;rfr_id=info%3Asid%2Fen.wikipedia.org%3AFourier+transform"></span></span></li>
+<li id="mwD28"><a class="external text" href="https://www.xtal.iqf.csic.es/Cristalografia/parte_05-en.html" id="mwD3A" rel="mw:ExtLink nofollow">Fourier Transform in Crystallography</a></li></ul>
+<div about="#mwt1995" class="navbox-styles" id="mwD3E" typeof="mw:Transclusion"><span class="mw-empty-elt"><style about="#mwt1996" data-mw-deduplicate="TemplateStyles:r1374427404" typeof="mw:Extension/templatestyles">.mw-parser-output .hlist dl,.mw-parser-output .hlist ol,.mw-parser-output .hlist ul{margin:0;padding:0}.mw-parser-output .hlist dd,.mw-parser-output .hlist dt,.mw-parser-output .hlist li{margin:0;display:inline}.mw-parser-output .hlist.inline,.mw-parser-output .hlist.inline dl,.mw-parser-output .hlist.inline ol,.mw-parser-output .hlist.inline ul,.mw-parser-output .hlist dl dl,.mw-parser-output .hlist dl ol,.mw-parser-output .hlist dl ul,.mw-parser-output .hlist ol dl,.mw-parser-output .hlist ol ol,.mw-parser-output .hlist ol ul,.mw-parser-output .hlist ul dl,.mw-parser-output .hlist ul ol,.mw-parser-output .hlist ul ul{display:inline}.mw-parser-output .hlist .mw-empty-li{display:none}.mw-parser-output .hlist dt::after{content:": "}.mw-parser-output .hlist dd::after,.mw-parser-output .hlist li::after{content:"\a0 · ";font-weight:bold}.mw-parser-output .hlist dd:last-child::after,.mw-parser-output .hlist dt:last-child::after,.mw-parser-output .hlist li:last-child::after{content:none}.mw-parser-output .hlist dd dd:first-child::before,.mw-parser-output .hlist dd dt:first-child::before,.mw-parser-output .hlist dd li:first-child::before,.mw-parser-output .hlist dt dd:first-child::before,.mw-parser-output .hlist dt dt:first-child::before,.mw-parser-output .hlist dt li:first-child::before,.mw-parser-output .hlist li dd:first-child::before,.mw-parser-output .hlist li dt:first-child::before,.mw-parser-output .hlist li li:first-child::before{content:" (";font-weight:normal}.mw-parser-output .hlist dd dd:last-child::after,.mw-parser-output .hlist dd dt:last-child::after,.mw-parser-output .hlist dd li:last-child::after,.mw-parser-output .hlist dt dd:last-child::after,.mw-parser-output .hlist dt dt:last-child::after,.mw-parser-output .hlist dt li:last-child::after,.mw-parser-output .hlist li dd:last-child::after,.mw-parser-output .hlist li dt:last-child::after,.mw-parser-output .hlist li li:last-child::after{content:")";font-weight:normal}.mw-parser-output .hlist ol{counter-reset:listitem}.mw-parser-output .hlist ol>li{counter-increment:listitem}.mw-parser-output .hlist ol>li::before{content:" "counter(listitem)"\a0 "}.mw-parser-output .hlist dd ol>li:first-child::before,.mw-parser-output .hlist dt ol>li:first-child::before,.mw-parser-output .hlist li ol>li:first-child::before{content:" ("counter(listitem)"\a0 "}</style><style about="#mwt1997" data-mw-deduplicate="TemplateStyles:r1377086236" typeof="mw:Extension/templatestyles">.mw-parser-output .navbox{box-sizing:border-box;border:1px solid #a2a9b1;width:100%;clear:both;font-size:88%;text-align:center;padding:1px;margin:1em auto 0}.mw-parser-output .navbox .navbox{margin-top:0}.mw-parser-output .navbox+.navbox-styles+.navbox,.mw-parser-output .navbox+span.mw-empty-elt+.navbox-styles+.navbox{margin-top:-1px}.mw-parser-output .navbox-inner,.mw-parser-output .navbox-subgroup{width:100%}.mw-parser-output .navbox-group,.mw-parser-output .navbox-title,.mw-parser-output .navbox-abovebelow{padding:0.25em 1em;line-height:1.5em;text-align:center}.mw-parser-output .navbox-group{white-space:nowrap;text-align:right}.mw-parser-output .navbox,.mw-parser-output .navbox-subgroup{background-color:#fdfdfd;color:inherit}.mw-parser-output .navbox-list{line-height:1.5em;border-color:#fdfdfd}.mw-parser-output .navbox-list-with-group{text-align:left;border-left-width:2px;border-left-style:solid}.mw-parser-output tr+tr>.navbox-abovebelow,.mw-parser-output tr+tr>.navbox-group,.mw-parser-output tr+tr>.navbox-image,.mw-parser-output tr+tr>.navbox-list{border-top:2px solid #fdfdfd}.mw-parser-output .navbox-title{background-color:#ccf;color:inherit}.mw-parser-output .navbox-abovebelow,.mw-parser-output .navbox-group,.mw-parser-output .navbox-subgroup .navbox-title{background-color:#ddf;color:inherit}.mw-parser-output .navbox-subgroup .navbox-group,.mw-parser-output .navbox-subgroup .navbox-abovebelow{background-color:#e6e6ff;color:inherit}.mw-parser-output .navbox-even{background-color:#f7f7f7;color:inherit}.mw-parser-output .navbox-odd{background-color:transparent;color:inherit}.mw-parser-output .navbox .hlist td dl,.mw-parser-output .navbox .hlist td ol,.mw-parser-output .navbox .hlist td ul,.mw-parser-output .navbox td.hlist dl,.mw-parser-output .navbox td.hlist ol,.mw-parser-output .navbox td.hlist ul{padding:0.125em 0}.mw-parser-output .navbox .navbar{display:block;font-size:100%}.mw-parser-output .navbox-title .navbar{float:left;text-align:left;margin-right:0.5em}body.skin--responsive .mw-parser-output .navbox-image img{max-width:none!important}@media print{body.ns-0 .mw-parser-output .navbox{display:none!important}}</style><style about="#mwt1998" data-mw-deduplicate="TemplateStyles:r1038841319" typeof="mw:Extension/templatestyles">.mw-parser-output .tooltip-dotted{border-bottom:1px dotted;cursor:help}</style><link about="#mwt1999" href="mw-data:TemplateStyles:r1038841319" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/><link about="#mwt2000" href="mw-data:TemplateStyles:r1038841319" rel="mw-deduplicated-inline-style" typeof="mw:Extension/templatestyles"/></span></div><div about="#mwt1995" aria-labelledby="Authority_control_databases_frameless&amp;#124;text-top&amp;#124;10px&amp;#124;alt=Edit_this_at_Wikidata&amp;#124;link=https&amp;#58;//www.wikidata.org/wiki/Q6520159#identifiers&amp;#124;class=noprint&amp;#124;Edit_this_at_Wikidata1579" class="navbox authority-control" id="mwD3I" role="navigation" style="padding:3px"><table class="nowraplinks hlist mw-collapsible autocollapse navbox-inner" style="border-spacing:0;background:transparent;color:inherit"><tbody><tr><th class="navbox-title" colspan="2" scope="col"><div id="Authority_control_databases_frameless&amp;#124;text-top&amp;#124;10px&amp;#124;alt=Edit_this_at_Wikidata&amp;#124;link=https&amp;#58;//www.wikidata.org/wiki/Q6520159#identifiers&amp;#124;class=noprint&amp;#124;Edit_this_at_Wikidata1579" style="font-size:114%;margin:0 4em"><a href="./Help:Authority_control" rel="mw:WikiLink" title="Help:Authority control">Authority control databases</a> <span class="mw-valign-text-top noprint" typeof="mw:File/Frameless"><a href="https://www.wikidata.org/wiki/Q6520159#identifiers" title="Edit this at Wikidata"><img alt="Edit this at Wikidata" class="mw-file-element" data-file-height="20" data-file-type="drawing" data-file-width="20" decoding="async" height="10" loading="lazy" resource="./File:OOjs_UI_icon_edit-ltr-progressive.svg" src="//thumb.wikimedia.org/wikipedia/en/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail" width="10"/></a></span></div></th></tr><tr><th class="navbox-group" scope="row" style="width:1%">International</th><td class="navbox-list-with-group navbox-list navbox-odd" style="width:100%;padding:0"><div style="padding:0 0.25em"><ul><li><span class="uid"><a class="external text" href="https://d-nb.info/gnd/4798599-9" rel="mw:ExtLink nofollow">GND</a></span></li></ul></div></td></tr><tr><th class="navbox-group" scope="row" style="width:1%">National</th><td class="navbox-list-with-group navbox-list navbox-even" style="width:100%;padding:0"><div style="padding:0 0.25em"><ul><li><span class="uid"><a class="external text" href="https://id.loc.gov/authorities/sh85051094" rel="mw:ExtLink nofollow">United States</a></span></li><li><span class="uid"><span about="#mwt2001" class="rt-commentedText tooltip tooltip-dotted" title="Fourier, Transformations de" typeof="mw:ExpandedAttrs"><a class="external text" href="https://catalogue.bnf.fr/ark:/12148/cb119793260" rel="mw:ExtLink nofollow">France</a></span></span></li><li><span class="uid"><span about="#mwt2002" class="rt-commentedText tooltip tooltip-dotted" title="Fourier, Transformations de" typeof="mw:ExpandedAttrs"><a class="external text" href="https://data.bnf.fr/ark:/12148/cb119793260" rel="mw:ExtLink nofollow">BnF data</a></span></span></li><li><span class="uid"><a class="external text" href="https://id.ndl.go.jp/auth/ndlna/00562090" rel="mw:ExtLink nofollow">Japan</a></span></li><li><span class="uid"><span about="#mwt2003" class="rt-commentedText tooltip tooltip-dotted" title="Fourierova transformace" typeof="mw:ExpandedAttrs"><a class="external text" href="https://aleph.nkp.cz/F/?func=find-c&amp;local_base=aut&amp;ccl_term=ica=ph117565&amp;CON_LNG=ENG" rel="mw:ExtLink nofollow">Czech Republic</a></span></span></li><li><span class="uid"><a class="external text" href="https://www.nli.org.il/en/authorities/987007548250405171" rel="mw:ExtLink nofollow">Israel</a></span></li></ul></div></td></tr><tr><th class="navbox-group" scope="row" style="width:1%">Other</th><td class="navbox-list-with-group navbox-list navbox-odd" style="width:100%;padding:0"><div style="padding:0 0.25em"><ul><li><span class="uid"><a class="external text" href="https://lux.collections.yale.edu/view/concept/cd5ed4d5-80b4-49c6-8df2-e630a65e6d73" rel="mw:ExtLink nofollow">Yale LUX</a></span></li></ul></div></td></tr></tbody></table></div>
+<span about="#mwt2004" id="mwD3Y" typeof="mw:Transclusion"></span>
+<link href="./Category:Fourier_analysis" id="mwD3c" rel="mw:PageProp/Category"/>
+<link href="./Category:Integral_transforms" id="mwD3g" rel="mw:PageProp/Category"/>
+<link href="./Category:Unitary_operators" id="mwD3k" rel="mw:PageProp/Category"/>
+<link href="./Category:Joseph_Fourier" id="mwD3o" rel="mw:PageProp/Category"/>
+<link href="./Category:Mathematical_physics" id="mwD3s" rel="mw:PageProp/Category"/></section></body></html>

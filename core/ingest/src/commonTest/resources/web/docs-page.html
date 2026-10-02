@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Coroutines basics | Example Docs</title>
+  <meta property="og:title" content="Coroutines basics">
+</head>
+<body>
+<nav aria-label="Main"><a href="/docs">Docs</a> <a href="/api">API</a></nav>
+<div class="layout">
+<aside class="sidebar"><ul><li><a href="/docs/a">Getting started</a></li><li><a href="/docs/b">Coroutines</a></li></ul></aside>
+<main id="main-content">
+  <h1>Coroutines basics</h1>
+  <p>A coroutine is an instance of a suspendable computation. Start one with <code>launch</code>:</p>
+<pre><code class="language-kotlin">fun main() = runBlocking {
+    launch {
+        delay(1000L)
+
+        println("World!")
+    }
+    println("Hello")
+}</code></pre>
+  <p>Things to remember:</p>
+  <ul>
+    <li>Structured concurrency
+      <ul>
+        <li>A parent waits for its children</li>
+        <li>A failed child cancels its parent</li>
+      </ul>
+    </li>
+    <li>Dispatchers
+      <ol>
+        <li><code>Dispatchers.Default</code></li>
+        <li><code>Dispatchers.IO</code></li>
+      </ol>
+    </li>
+  </ul>
+  <table>
+    <thead><tr><th>Builder</th><th>Returns</th></tr></thead>
+    <tbody>
+      <tr><td><code>launch</code></td><td><code>Job</code></td></tr>
+      <tr><td><code>async</code></td><td><code>Deferred&lt;T&gt;</code></td></tr>
+      <tr><td>a | b</td><td>a pipe in a cell</td></tr>
+    </tbody>
+  </table>
+  <p>Use <code>`backticks`</code> sparingly.</p>
+</main>
+</div>
+<footer>Last updated 2026-09-01</footer>
+</body>
+</html>
