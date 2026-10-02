@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.create
 
+import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.SourceProblem
@@ -24,6 +25,10 @@ data class BookImportUiState(
     val creating: Boolean = false,
     val createFailed: Boolean = false,
     val created: BookImportResult? = null,
+    /** The provider and model Smart Extract would use for a book run; null when none is set up. */
+    val route: AiRoute? = null,
+    /** What "Create decks and generate" would send; set while the user is asked to confirm it. */
+    val batchPlan: BatchPlan? = null,
 ) {
     val chapters: List<BookChapter> get() = book?.chapters.orEmpty()
 
@@ -33,7 +38,16 @@ data class BookImportUiState(
     val newDecks: Int get() = checked.count { it !in existing }
 
     val canCreate: Boolean get() = book != null && checked.isNotEmpty() && bookName.isNotBlank() && !creating && created == null
+
+    /** Chapters without any text can't be generated from, so a selection of only those has nothing to run. */
+    val canGenerate: Boolean get() = canCreate && selectedWords > 0
 }
+
+/**
+ * What a book run (docs/epub/ROADMAP.md, B6) would send, shown before anything is: [chapterIds] in book order,
+ * their [words], and the number of AI [requests] (one per part [GenerateCardsUseCase.split] cuts them into).
+ */
+data class BatchPlan(val chapterIds: List<Int>, val words: Int, val requests: Int)
 
 /** What creating the decks did. */
 data class BookImportResult(
@@ -63,6 +77,14 @@ sealed interface BookImportAction {
 
     /** After the decks are made: hand the book to Smart Extract to choose a chapter and generate its cards. */
     data object GenerateCards : BookImportAction
+
+    /** "Create decks and generate": work out what a run would send and ask the user to confirm it. */
+    data object ShowBatch : BookImportAction
+
+    data object DismissBatch : BookImportAction
+
+    /** Confirmed: create the decks, then hand the run to Smart Extract. */
+    data object ConfirmBatch : BookImportAction
 
     /** Back to asking for a file, from a problem or from the result. */
     data object Reset : BookImportAction

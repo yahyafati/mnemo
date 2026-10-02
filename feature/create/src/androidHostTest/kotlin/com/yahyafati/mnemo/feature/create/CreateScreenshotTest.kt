@@ -6,6 +6,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.AiCapabilities
+import com.yahyafati.mnemo.core.model.AiProvider
+import com.yahyafati.mnemo.core.model.AiRoute
+import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
@@ -73,8 +77,43 @@ class CreateScreenshotTest {
     fun epubChaptersDark() = captureRoboImage("src/androidHostTest/screenshots/create_epub_chapters_dark.png") { EpubChapters(dark = true) }
 
     @Test
+    fun batchRunLight() = captureRoboImage("src/androidHostTest/screenshots/create_batch_run_light.png") { BatchRun(dark = false) }
+
+    @Test
+    fun batchRunDark() = captureRoboImage("src/androidHostTest/screenshots/create_batch_run_dark.png") { BatchRun(dark = true) }
+
+    @Test
     fun bookImportDrm() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_drm.png") {
         MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
+    }
+
+    /** Smart Extract in the middle of a book run: chapter 3 of 8 is done and waits for its review. */
+    @androidx.compose.runtime.Composable
+    private fun BatchRun(dark: Boolean) {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val text = "Natural selection acts on the variation that already exists in every population."
+        val chapters = listOf("Variation under domestication", "Variation under nature", "Struggle for existence", "Natural selection", "Laws of variation", "Difficulties", "Instinct", "Hybridism")
+            .mapIndexed { index, title -> ChapterOption(index, title, 4000, ChapterKind.Content, false) }
+        MnemoTheme(darkTheme = dark) {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Origin::03 Struggle for existence")),
+                    deckId = "d",
+                    text = text,
+                    title = "Origin — Struggle for existence",
+                    batch = BookBatch(chapters, position = 2),
+                    generation = GenerationState.Done(2),
+                    queue = listOf(
+                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What does natural selection act on?", "The variation that already exists in a population.", listOf("selection")), text),
+                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "Natural selection acts on {{c1::existing variation}}.", ""), text),
+                    ),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
     }
 
     /** The list inside Smart Extract's chapter dialog (a dialog is its own window, which the screenshot doesn't take). */

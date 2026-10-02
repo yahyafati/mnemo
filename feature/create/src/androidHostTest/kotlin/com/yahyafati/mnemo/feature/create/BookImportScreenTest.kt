@@ -16,12 +16,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
+import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
+import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import kotlinx.coroutines.runBlocking
@@ -47,8 +52,21 @@ class BookImportScreenTest {
     private fun chapter(id: Int, title: String, words: Int, kind: ChapterKind = ChapterKind.Content) =
         BookChapter(id, title, "word ".repeat(words), kind)
 
+    private val providers = FakeAiProviderRepository()
+    private val handoff = BookHandoff()
+
+    private fun bookImportViewModel(handle: SavedStateHandle) = BookImportViewModel(
+        savedStateHandle = handle,
+        sources = sources,
+        deckRepository = decks,
+        createBookDecks = CreateBookDecksUseCase(decks),
+        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
+        aiProviders = providers,
+        bookHandoff = handoff,
+    )
+
     private fun showScreen(closed: () -> Unit = {}) {
-        val viewModel = BookImportViewModel(SavedStateHandle(mapOf("location" to file)), sources, decks, CreateBookDecksUseCase(decks), BookHandoff())
+        val viewModel = bookImportViewModel(SavedStateHandle(mapOf("location" to file)))
         composeRule.setContent {
             MnemoTheme {
                 val state = viewModel.uiState.collectAsState()
@@ -110,6 +128,63 @@ class BookImportScreenTest {
     }
 
     @Test
+    fun aBookRunShowsWhatItSendsAndCreatesTheDecksOnlyWhenConfirmed() {
+        providers.addProvider(
+            AiProvider(
+                id = "p", name = "Ollama", baseUrl = "http://192.168.1.20:11434/v1", defaultModel = "llama3.2", isLocal = true,
+                createdAt = java.time.Instant.EPOCH, updatedAt = java.time.Instant.EPOCH,
+            ),
+        )
+        sources.books[SourceInput.Epub(file)] = BookResult.Success(
+            BookSource(title = "Origin", chapters = listOf(chapter(0, "Variation", 500), chapter(1, "Struggle", 800))),
+        )
+        var left = false
+        val viewModel = bookImportViewModel(SavedStateHandle(mapOf("location" to file)))
+        composeRule.setContent {
+            MnemoTheme {
+                androidx.compose.runtime.LaunchedEffect(viewModel) { viewModel.runStarted.collect { left = true } }
+                BookImportScreen(viewModel.uiState.collectAsState().value, viewModel::onAction, onClose = {})
+            }
+        }
+        composeRule.waitUntil(5_000) { viewModel.uiState.value.let { !it.reading && it.route != null } }
+
+        composeRule.onNodeWithText("Create decks and generate").performClick()
+        composeRule.onNodeWithText("Generate cards for these chapters?").assertExists()
+        composeRule.onNodeWithText("2 chapters · 1300 words").assertExists()
+        composeRule.onNodeWithText("Sends 2 requests to Ollama (llama3.2).").assertExists()
+        composeRule.onNodeWithText("no charge per request", substring = true).assertExists()
+        // Showing the numbers made nothing.
+        assertTrue(runBlocking { decks.getDecks() }.isEmpty())
+
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Generate cards for these chapters?").assertDoesNotExist()
+        composeRule.onNodeWithText("Create decks and generate").performClick()
+        composeRule.onNodeWithText("Create and start").performClick()
+
+        composeRule.waitUntil(5_000) { left }
+        assertEquals(2, runBlocking { decks.getDecks() }.count { it.parentId != null })
+        assertEquals(listOf(0, 1), handoff.offer.value?.batch)
+    }
+
+    @Test
+    fun aBookRunWithoutAProviderOffersTheSetupInstead() {
+        sources.books[SourceInput.Epub(file)] = BookResult.Success(BookSource(title = "Origin", chapters = listOf(chapter(0, "Variation", 500))))
+        var setUp = false
+        val viewModel = bookImportViewModel(SavedStateHandle(mapOf("location" to file)))
+        composeRule.setContent {
+            MnemoTheme { BookImportScreen(viewModel.uiState.collectAsState().value, viewModel::onAction, onClose = {}, onSetUpAi = { setUp = true }) }
+        }
+        composeRule.waitUntil(5_000) { !viewModel.uiState.value.reading }
+
+        composeRule.onNodeWithText("Create decks and generate").performClick()
+        composeRule.onNodeWithText("Generating cards needs an AI provider.", substring = true).assertExists()
+        composeRule.onNodeWithText("Create and start").assertDoesNotExist()
+        composeRule.onNodeWithText("Set up a provider").performClick()
+        assertTrue(setUp)
+        assertTrue(runBlocking { decks.getDecks() }.isEmpty())
+    }
+
+    @Test
     fun aBookWithDrmExplainsItself() {
         sources.books[SourceInput.Epub(file)] = BookResult.Failure(SourceProblem.Drm)
         showScreen()
@@ -119,7 +194,7 @@ class BookImportScreenTest {
 
     @Test
     fun withoutAFileTheScreenAsksForOne() {
-        val viewModel = BookImportViewModel(SavedStateHandle(), sources, decks, CreateBookDecksUseCase(decks), BookHandoff())
+        val viewModel = bookImportViewModel(SavedStateHandle())
         composeRule.setContent { MnemoTheme { BookImportScreen(viewModel.uiState.collectAsState().value, viewModel::onAction, onClose = {}) } }
         composeRule.onNodeWithText("Choose a book").assertExists()
         composeRule.onNodeWithText("Choose an EPUB").assertExists()

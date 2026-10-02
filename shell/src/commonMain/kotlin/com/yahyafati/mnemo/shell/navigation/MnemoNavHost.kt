@@ -71,6 +71,7 @@ fun MnemoNavHost(
         bookImportScreen(
             onClose = navController::popBackStack,
             onGenerateCards = { appState.navigateToTopLevelDestination(TopLevelDestination.Create) },
+            onSetUpAi = { navController.navigateToAiProviders() },
         )
         browseScreen(onBack = navController::popBackStack, onEditNote = editNote)
     }

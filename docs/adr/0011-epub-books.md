@@ -71,6 +71,22 @@ imported a week ago still works. The book import's "Generate cards" hands its pa
 so a renamed book still finds its decks. Nothing is sent before the user presses Generate (after the
 provider notice), and nothing is saved before Accept.
 
+### Generating for several chapters (the book run)
+
+"Create decks and generate" on the import screen first shows what would be sent: chapters, words, the number
+of requests (the sum of `TextChunker` parts) and the routed provider and model, with a line saying a local
+model costs time but no money; without a provider it shows the setup prompt instead. Confirming creates the
+decks and hands Smart Extract a batch offer (chapter ids in book order, plus the decks' ids, so the run doesn't
+depend on the deck list having caught up). Smart Extract then runs it **one chapter at a time on its normal
+screen**: the chapter's text, its deck, Generate, the usual queue. It **never moves on by itself**: the user
+presses Next chapter (or Skip, or Finish), and if the queue still holds cards they are asked before it is
+discarded. So a rate limit or bad key stops the run where it is (Retry resumes at the part that failed, as
+before), and a review that isn't finished is never thrown away silently. Stop ends the run and keeps the queue.
+The provider notice still comes before the first request. The run lives in `SmartExtractViewModel` like the
+queue: it survives rotation, not the process ending, which is the same as a single chapter and follows from
+not storing the book; the decks and accepted cards are saved, and a later run over the same book picks the
+chapters up again (existing decks are reused, and cards already in a deck are not generated twice).
+
 ### DRM
 
 Mnemo reads books without DRM only, and never tries to read protected content. The reader fails with

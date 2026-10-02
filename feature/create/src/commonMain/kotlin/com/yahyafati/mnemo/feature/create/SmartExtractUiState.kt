@@ -38,6 +38,10 @@ data class SmartExtractUiState(
     val book: BookSummary? = null,
     val chapterId: Int? = null,
     val showChapters: Boolean = false,
+    /** A run over several chapters of the book (B6), at its current chapter; null when none is going. */
+    val batch: BookBatch? = null,
+    /** Asking the user to discard the queue before the run starts or goes on to the next chapter. */
+    val batchConfirmation: BatchConfirmation? = null,
     /** The device has a speech recognizer; without one the Dictation source isn't offered. */
     val dictationAvailable: Boolean = true,
     val dictation: DictationState = DictationState.Off,
@@ -82,6 +86,26 @@ data class BookSummary(
 
 data class ChapterOption(val id: Int, val title: String, val words: Int, val kind: ChapterKind, val truncated: Boolean)
 
+/**
+ * Generating for several chapters in book order (docs/epub/ROADMAP.md, B6): [chapters] are the ones to run and
+ * [position] the one in the box now. One chapter at a time, each with its own review queue; the run never goes
+ * on by itself, so a failure, a rate limit or an unfinished review keeps it where it is.
+ */
+data class BookBatch(val chapters: List<ChapterOption>, val position: Int) {
+    val current: ChapterOption get() = chapters[position]
+    val total: Int get() = chapters.size
+    val isLast: Boolean get() = position == chapters.lastIndex
+}
+
+/** What the queue's unreviewed cards are about to be discarded for. */
+enum class BatchConfirmation {
+    /** A new run starts. */
+    Start,
+
+    /** The run goes on to the next chapter, or ends after the last. */
+    Advance,
+}
+
 /** A proposed card in the review queue. [source] is the part of the text it came from, for regenerating. */
 data class QueueItem(
     val card: GeneratedCard,
@@ -120,6 +144,9 @@ sealed interface ExtractMessage {
     data object NothingNew : ExtractMessage
 
     data class RegenerateFailed(val failure: AiFailure) : ExtractMessage
+
+    /** The last chapter of a book run was done (or skipped). */
+    data class BatchFinished(val chapters: Int) : ExtractMessage
 }
 
 sealed interface SmartExtractAction {
@@ -143,6 +170,20 @@ sealed interface SmartExtractAction {
     data class SelectChapter(val id: Int) : SmartExtractAction
 
     data object ShowChapters : SmartExtractAction
+
+    /**
+     * Book run: go on to the next chapter (skipping this one if it isn't done), or end the run after the last.
+     * Asks first when the queue still has cards.
+     */
+    data object BatchNext : SmartExtractAction
+
+    /** Ends the book run here; the queue and the chapter in the box stay. */
+    data object BatchStop : SmartExtractAction
+
+    /** The user agreed to discard the queue ([SmartExtractUiState.batchConfirmation]). */
+    data object ConfirmBatchDiscard : SmartExtractAction
+
+    data object CancelBatchDiscard : SmartExtractAction
 
     data object DismissChapters : SmartExtractAction
 

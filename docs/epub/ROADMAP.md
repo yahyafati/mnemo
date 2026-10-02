@@ -67,7 +67,7 @@ Owner-only tasks are marked **(owner)**.
 | **B3** | Create the decks | `CreateBookDecksUseCase`: naming, numbering, reuse | 1 day |
 | **B4** | Import-a-book UI | Pick file → chapter checklist → create decks; Create tab and desktop drop | 2–3 days |
 | **B5** | Generate for a chapter | Smart Extract gets an EPUB source: pick a chapter, deck preselected | 1–2 days |
-| **B6** | Generate for several chapters *(optional)* | Run selected chapters in order with a cost estimate; one review per chapter | 2–3 days |
+| **B6** | Generate for several chapters | Run selected chapters in order with a request estimate; one review per chapter | 2–3 days |
 | **B7** | Polish and QA | Real books, accessibility, docs, release notes | 1–2 days |
 
 ```
@@ -393,25 +393,61 @@ Original plan:
 **Exit:** a chapter's deck receives accepted cards and nothing is saved before Accept (`SmartExtractBookTest`, with the
 fake generation repository; a pass against a real mock server and a real book is part of B7).
 
-## B6 — Generate for several chapters *(optional; do after B5 ships)*
+## B6 — Generate for several chapters
+
+**Status: built and tested on Android and desktop (2026-10-02), with these differences from the plan below:**
+
+- The run is **inside Smart Extract's ViewModel**, not a second queue: `SmartExtractUiState.batch` (`BookBatch`: the chapters,
+  the position) next to the usual text, deck, generation and queue. Each step is `selectChapter` + `generate()`, so the
+  provider notice, `Retry`, `Stop`, duplicates and the review all behave as for one chapter. A banner at the top of the
+  workshop shows "Chapter 3 of 8", the title, what to do now, **Next chapter / Skip chapter / Finish the run** (one
+  button, labelled by state) and **Stop the run**.
+- **It never goes on by itself.** After a chapter finishes, fails or hits a rate limit it stays put; only the user's
+  `BatchNext` moves on. That is how "pause on 429, don't skip ahead" is met without special cases. With cards still in
+  the queue, going on asks first (`BatchConfirmation.Advance`); so does starting a run over a queue that has cards
+  or a generation under way (`Start`). Stop ends the run and keeps the queue; choosing a chapter by hand, reading
+  another source or clearing the text also ends it.
+- **Survival:** like the queue, the run is in the ViewModel: it survives rotation and tab switches, not the process ending.
+  The book is memory-only (ADR 0011), so after a process death the user picks the book again; the decks exist and
+  accepted cards are saved, and Smart Extract skips cards a deck already has.
+- The import's offer carries **the deck ids** `CreateBookDecksUseCase` returned (`BookHandoff.Offer.deckIds`), and
+  Smart Extract pins the chapter's deck by id (`pinnedDeckId`) until its deck list has it: looking decks up by name
+  right after creating them can race the list and send cards to the wrong deck, which matters when generation starts
+  at once. A run started from a fresh ViewModel waits for the provider route's first load before generating.
+- The confirmation is a dialog on the import screen (`BatchPlan`: chapters, words, requests, from `GenerateCardsUseCase.split`).
+  It names the provider and model, says whether the provider is local ("no charge per request, but it can take a while")
+  or may charge, and without a provider shows `AiSetupPrompt` with a link to the provider settings (`onSetUpAi`)
+  instead of "Create and start". Making the decks needs no provider, so the plain "Create N decks" button stays.
+- The run covers the **checked chapters that have text**, in book order; decks are made for every checked chapter.
+- Not done: a **money** figure (the provider's price isn't known, as in B5); the run from the import's result screen
+  (decks already made): that screen has "Generate cards", which picks one chapter.
+- Tests: `SmartExtractBatchTest` (13: start, no auto-advance, ask before discarding, accept then go on, finish,
+  failure and Retry, skip after failure, stop, start over a queue, provider notice, chapters without text, manual choice
+  ends it, deck pinned), `BookImportViewModelTest` (plan numbers, front matter, confirm creates decks and hands over,
+  no provider, no text, route kept on Reset), `SmartExtractScreenTest` / `BookImportScreenTest` (banner and dialogs,
+  confirmation, setup prompt), screenshots `create_batch_run_{light,dark}.png`.
+
+Original plan:
 
 **Goal:** "Create decks **and generate cards**" for the chapters checked in B4.
 
-- [ ] On the B4 screen, a second action: "Create decks and generate". Before anything is sent show:
+- [x] On the B4 screen, a second action: "Create decks and generate". Before anything is sent show:
       number of chapters, words, **number of AI requests** (sum of `TextChunker` parts), and the
       routed provider/model (a local model costs nothing but time; say so from `AiRoute`). Block with
       `AiSetupPrompt` when `routeFor(task)` is null.
-- [ ] Chapters run **in order, one review queue at a time**: generate chapter N, the user reviews and
+- [x] Chapters run **in order, one review queue at a time**: generate chapter N, the user reviews and
       accepts (or skips), then chapter N+1. Never one giant queue. Progress "Chapter 3 of 8", the
       ability to stop, skip a chapter, and resume after a failure (reuse `GenerationState.Failed` /
       `fromPart`).
-- [ ] The queue state across chapters survives configuration changes and process death the same way
-      Smart Extract's does today (check how; if it doesn't, a batch run that is lost on rotation is
-      unacceptable and this step must handle it).
-- [ ] Rate limits and errors: the existing runner never retries auth/429; a batch must pause on them,
+- [x] The queue state across chapters survives configuration changes and process death the same way
+      Smart Extract's does today (it is ViewModel state: rotation yes, process death no, see above).
+- [x] Rate limits and errors: the existing runner never retries auth/429; a batch must pause on them,
       not skip ahead.
-- [ ] Tests: ViewModel tests for ordering, skipping, stopping, resuming; a test that nothing is sent
+- [x] Tests: ViewModel tests for ordering, skipping, stopping, resuming; a test that nothing is sent
       before the confirmation.
+
+**Exit:** the Android exit check, `desktopTest` / `:desktop:test` green; a run against a real mock server and a real book is
+part of B7.
 
 ## B7 — Polish and QA
 

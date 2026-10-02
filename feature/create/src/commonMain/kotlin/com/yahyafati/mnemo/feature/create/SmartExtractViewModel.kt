@@ -15,6 +15,7 @@ import com.yahyafati.mnemo.core.domain.RegenerateResult
 import com.yahyafati.mnemo.core.domain.SkipReason
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
+import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.DictationEvent
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -43,6 +45,12 @@ import kotlinx.coroutines.launch
  * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
  * (made by the book import) the chapter's deck is selected, found by computing its name.
+ *
+ * A **book run** (B6) goes through several chapters in book order. It is this same screen state: the chapter's
+ * text in the box, its deck chosen, Generate, one review queue. It moves on only when the user says so
+ * ([SmartExtractAction.BatchNext]), never by itself, so a failure (a rate limit, a bad key) or a review that isn't
+ * finished leaves it where it is, and Retry resumes at the part that failed. Like the queue, the run lives in
+ * this ViewModel: it survives rotation, not the process ending (the book is in memory only, ADR 0011).
  */
 class SmartExtractViewModel(
     private val aiProviders: AiProviderRepository,
@@ -71,6 +79,17 @@ class SmartExtractViewModel(
     /** The deck path of the chosen chapter, until the decks list has it (the first emission may come later). */
     private var preferredDeckPath: String? = null
 
+    /** The run waiting for the user to agree to discard the queue before it starts. */
+    private class PendingBatch(val chapterIds: List<Int>, val deckIds: Map<Int, String>)
+
+    private var pendingBatch: PendingBatch? = null
+
+    /** The decks the book import made for the run's chapters, by chapter id. */
+    private var batchDecks: Map<Int, String> = emptyMap()
+
+    /** A deck known to exist that the decks list may not have yet (the run's first chapter, made a moment ago). */
+    private var pinnedDeckId: String? = null
+
     private val adoptedBooks = Channel<Unit>(Channel.CONFLATED)
 
     /** Emits when a book arrives from the book import, so the screen can show Smart Extract. */
@@ -88,12 +107,16 @@ class SmartExtractViewModel(
                 routes[AiTask.Extract] to decks.map { DeckOption(it.deck.id, it.path) }.sortedBy { it.path.lowercase() }
             }.collect { (route, decks) ->
                 val preferred = preferredDeck(decks)
+                val pinned = pinnedDeckId
+                if (pinned != null && decks.any { it.id == pinned }) pinnedDeckId = null
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         route = route,
                         decks = decks,
-                        deckId = preferred?.id ?: state.deckId?.takeIf { id -> decks.any { it.id == id } } ?: decks.firstOrNull()?.id,
+                        deckId = preferred?.id
+                            ?: state.deckId?.takeIf { id -> id == pinned || decks.any { it.id == id } }
+                            ?: decks.firstOrNull()?.id,
                     )
                 }
             }
@@ -101,7 +124,13 @@ class SmartExtractViewModel(
         viewModelScope.launch {
             bookHandoff.offer.filterNotNull().collect { offer ->
                 bookHandoff.take(offer)
-                adopt(offer.book, offer.bookName, offer.chapterId)
+                adopt(offer.book, offer.bookName, offer.chapterId, openChapters = offer.chapterId == null && offer.batch.isEmpty())
+                if (offer.batch.isNotEmpty()) {
+                    // A run generates at once, which needs the provider route: wait for the first load when this
+                    // ViewModel was made by the handoff itself.
+                    _uiState.first { !it.isLoading }
+                    startBatch(offer.batch, offer.deckIds)
+                }
             }
         }
     }
@@ -115,14 +144,33 @@ class SmartExtractViewModel(
             is SmartExtractAction.TextChanged -> _uiState.update {
                 if (action.text.isBlank()) it.withText(action.text).copy(title = null, truncated = false) else it.withText(action.text)
             }
-            SmartExtractAction.ClearText -> _uiState.update {
-                it.withText("").copy(title = null, truncated = false, chapterId = null, sourceProblem = null)
+            SmartExtractAction.ClearText -> {
+                endBatch()
+                _uiState.update { it.withText("").copy(title = null, truncated = false, chapterId = null, sourceProblem = null) }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
             is SmartExtractAction.PdfPicked -> read(SourceInput.Pdf(action.uri))
             is SmartExtractAction.EpubPicked -> readBook(action.uri)
-            is SmartExtractAction.SelectChapter -> selectChapter(action.id)
+            is SmartExtractAction.SelectChapter -> {
+                endBatch()
+                selectChapter(action.id)
+            }
+            SmartExtractAction.BatchNext -> nextChapter(confirmed = false)
+            SmartExtractAction.BatchStop -> {
+                generationJob?.cancel()
+                endBatch()
+                _uiState.update { if (it.isGenerating) it.copy(generation = GenerationState.Idle) else it }
+            }
+            SmartExtractAction.ConfirmBatchDiscard -> when (_uiState.value.batchConfirmation) {
+                BatchConfirmation.Start -> pendingBatch?.let(::beginBatch)
+                BatchConfirmation.Advance -> nextChapter(confirmed = true)
+                null -> Unit
+            }
+            SmartExtractAction.CancelBatchDiscard -> {
+                pendingBatch = null
+                _uiState.update { it.copy(batchConfirmation = null) }
+            }
             SmartExtractAction.ShowChapters -> _uiState.update { if (it.book != null) it.copy(showChapters = true) else it }
             SmartExtractAction.DismissChapters -> _uiState.update { it.copy(showChapters = false) }
             is SmartExtractAction.FileDropped -> when (DroppedFile.of(action.location)) {
@@ -142,6 +190,7 @@ class SmartExtractViewModel(
                 _uiState.update { it.copy(dictation = DictationState.Failed(DictationProblem.NoPermission)) }
             is SmartExtractAction.SelectDeck -> {
                 preferredDeckPath = null
+                pinnedDeckId = null
                 _uiState.update { it.copy(deckId = action.deckId) }
             }
             SmartExtractAction.ShowDeckDialog -> _uiState.update { it.copy(showDeckDialog = true) }
@@ -151,6 +200,7 @@ class SmartExtractViewModel(
                 viewModelScope.launch {
                     val id = deckRepository.saveDeck(action.path, action.description, action.category)
                     preferredDeckPath = null
+                    pinnedDeckId = null
                     _uiState.update { it.copy(deckId = id) }
                 }
             }
@@ -189,6 +239,7 @@ class SmartExtractViewModel(
         _uiState.update { it.copy(options = transform(it.options)) }
 
     private fun read(source: SourceInput) {
+        endBatch()
         readJob?.cancel()
         _uiState.update { it.copy(reading = true, sourceProblem = null) }
         readJob = viewModelScope.launch {
@@ -202,6 +253,7 @@ class SmartExtractViewModel(
     }
 
     private fun readBook(location: String) {
+        endBatch()
         readJob?.cancel()
         _uiState.update { it.copy(reading = true, sourceProblem = null) }
         readJob = viewModelScope.launch {
@@ -217,10 +269,12 @@ class SmartExtractViewModel(
      * under [name], the name the user gave its deck. [chapterId] chooses a chapter at once; without one the
      * chapter list opens.
      */
-    private suspend fun adopt(book: BookSource, name: String?, chapterId: Int?) {
+    private suspend fun adopt(book: BookSource, name: String?, chapterId: Int?, openChapters: Boolean = chapterId == null) {
         val titled = book.withDefaultTitles()
         this.book = titled
         bookName = name ?: titled.defaultName()
+        batchDecks = emptyMap()
+        pendingBatch = null
         _uiState.update {
             it.copy(
                 reading = false,
@@ -228,39 +282,124 @@ class SmartExtractViewModel(
                 sourceProblem = null,
                 book = titled.summary(),
                 chapterId = null,
-                showChapters = chapterId == null,
+                showChapters = openChapters,
+                batch = null,
+                batchConfirmation = null,
             )
         }
-        chapterId?.let(::selectChapter)
+        chapterId?.let { selectChapter(it) }
         adoptedBooks.trySend(Unit)
     }
 
     private fun BookSource.summary() = BookSummary(
         title = title.ifBlank { bookName },
         author = author?.takeIf { it.isNotBlank() },
-        chapters = chapters.map { ChapterOption(it.id, it.title, it.wordCount, it.kind, it.truncated) },
+        chapters = chapters.map { it.option() },
         truncated = truncated,
     )
 
-    /** Puts the chapter's text in the box, titled "Book — Chapter", and selects its deck if the import made one. */
-    private fun selectChapter(id: Int) {
+    private fun BookChapter.option() = ChapterOption(id, title, wordCount, kind, truncated)
+
+    /**
+     * Puts the chapter's text in the box, titled "Book — Chapter", and selects its deck if the import made one.
+     * A [deckId] the book import handed over (a book run) is used as it is, with no looking up by name.
+     */
+    private fun selectChapter(id: Int, deckId: String? = null) {
         val book = book ?: return
         val chapter = book.chapters.firstOrNull { it.id == id } ?: return
         val title = "${book.title.ifBlank { bookName }} — ${chapter.title}"
-        preferredDeckPath = BookDeckNames.path(BookDeckNames.book(bookName), BookDeckNames.chapter(chapter.id + 1, book.deckCount(), chapter.title))
-        val preferred = preferredDeck(_uiState.value.decks)
-        // Only a list that hasn't loaded yet can still bring the deck; later on a missing deck stays missing.
-        if (preferred == null && !_uiState.value.isLoading) preferredDeckPath = null
+        val preferred = if (deckId != null) {
+            preferredDeckPath = null
+            pinnedDeckId = deckId
+            null
+        } else {
+            preferredDeckPath = BookDeckNames.path(BookDeckNames.book(bookName), BookDeckNames.chapter(chapter.id + 1, book.deckCount(), chapter.title))
+            preferredDeck(_uiState.value.decks).also {
+                // Only a list that hasn't loaded yet can still bring the deck; later on a missing deck stays missing.
+                if (it == null && !_uiState.value.isLoading) preferredDeckPath = null
+            }
+        }
         _uiState.update {
             it.withText(chapter.text).copy(
                 title = title,
                 truncated = chapter.truncated,
                 chapterId = id,
                 showChapters = false,
-                deckId = preferred?.id ?: it.deckId,
+                deckId = deckId ?: preferred?.id ?: it.deckId,
             )
         }
     }
+
+    /**
+     * Starts a run over [chapterIds] (book order, chapters without text left out) with their decks [deckIds].
+     * A queue that still has cards, or a generation under way, is the user's: they are asked before it is discarded.
+     */
+    private fun startBatch(chapterIds: List<Int>, deckIds: Map<Int, String>) {
+        val book = book ?: return
+        val ids = chapterIds.distinct().filter { id -> book.chapters.any { it.id == id && it.text.isNotBlank() } }
+        if (ids.isEmpty()) return
+        val plan = PendingBatch(ids, deckIds)
+        val state = _uiState.value
+        if (state.queue.isNotEmpty() || state.isGenerating) {
+            pendingBatch = plan
+            _uiState.update { it.copy(batchConfirmation = BatchConfirmation.Start) }
+        } else {
+            beginBatch(plan)
+        }
+    }
+
+    private fun beginBatch(plan: PendingBatch) {
+        val book = book ?: return
+        pendingBatch = null
+        generationJob?.cancel()
+        run = null
+        batchDecks = plan.deckIds
+        val chapters = plan.chapterIds.mapNotNull { id -> book.chapters.firstOrNull { it.id == id }?.option() }
+        _uiState.update { it.withoutQueue().copy(batch = BookBatch(chapters, position = 0), batchConfirmation = null) }
+        enterBatchChapter()
+    }
+
+    /** Puts the run's current chapter in the box and generates it; the provider notice still comes first. */
+    private fun enterBatchChapter() {
+        val batch = _uiState.value.batch ?: return
+        val id = batch.current.id
+        selectChapter(id, batchDecks[id])
+        generate()
+    }
+
+    /** Goes on to the next chapter of the run, or ends it after the last. Never called by a failure or a finished part. */
+    private fun nextChapter(confirmed: Boolean) {
+        val state = _uiState.value
+        val batch = state.batch ?: return
+        if (!confirmed && state.queue.isNotEmpty()) {
+            _uiState.update { it.copy(batchConfirmation = BatchConfirmation.Advance) }
+            return
+        }
+        generationJob?.cancel()
+        run = null
+        if (batch.isLast) {
+            batchDecks = emptyMap()
+            _uiState.update { it.withoutQueue().copy(batch = null, batchConfirmation = null, message = ExtractMessage.BatchFinished(batch.total)) }
+        } else {
+            _uiState.update { it.withoutQueue().copy(batch = batch.copy(position = batch.position + 1), batchConfirmation = null) }
+            enterBatchChapter()
+        }
+    }
+
+    private fun endBatch() {
+        pendingBatch = null
+        batchDecks = emptyMap()
+        _uiState.update { if (it.batch != null || it.batchConfirmation != null) it.copy(batch = null, batchConfirmation = null) else it }
+    }
+
+    /** The review queue emptied for the next chapter of a run: nothing of the last one carries over. */
+    private fun SmartExtractUiState.withoutQueue() = copy(
+        queue = emptyList(),
+        editingId = null,
+        duplicatesSkipped = 0,
+        invalidSkipped = 0,
+        generation = GenerationState.Idle,
+    )
 
     /** The deck waiting to be selected, if [decks] has it now; asking for it uses it up. */
     private fun preferredDeck(decks: List<DeckOption>): DeckOption? {

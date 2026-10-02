@@ -16,8 +16,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -27,7 +30,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,14 +52,25 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.SourceProblem
+import com.yahyafati.mnemo.core.ui.ai.AiSetupPrompt
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
 import com.yahyafati.mnemo.core.ui.scroll.ScrollbarFor
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_chapters
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_cost_local
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_cost_remote
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_how
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_requests
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_setup
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_start
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_another
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_back
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_back_matter
@@ -77,6 +93,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_book_entry_ti
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_exists_note
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_front_matter
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_generate
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_generate_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_has_deck
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name_hint
@@ -104,10 +121,15 @@ internal const val EPUB_MIME_TYPE = "application/epub+zip"
 internal fun BookImportFullScreen(
     onClose: () -> Unit,
     onGenerateCards: () -> Unit,
+    onSetUpAi: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookImportViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A confirmed book run is with Smart Extract now: go there.
+    LaunchedEffect(viewModel) {
+        viewModel.runStarted.collect { onGenerateCards() }
+    }
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
@@ -129,6 +151,7 @@ internal fun BookImportFullScreen(
             onAction = viewModel::onAction,
             onClose = onClose,
             onGenerateCards = onGenerateCards,
+            onSetUpAi = onSetUpAi,
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding),
@@ -148,6 +171,8 @@ internal fun BookImportScreen(
     modifier: Modifier = Modifier,
     /** Leaves for Smart Extract, which takes the book (see [BookImportAction.GenerateCards]). */
     onGenerateCards: () -> Unit = {},
+    /** Opens the AI provider settings, from the book run's confirmation when no provider is set up. */
+    onSetUpAi: () -> Unit = {},
 ) {
     val picker = rememberFilePicker(listOf(EPUB_MIME_TYPE)) { onAction(BookImportAction.FilePicked(it)) }
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -179,6 +204,70 @@ internal fun BookImportScreen(
             )
         }
     }
+    uiState.batchPlan?.let { plan ->
+        BatchConfirmDialog(
+            plan = plan,
+            route = uiState.route,
+            onConfirm = { onAction(BookImportAction.ConfirmBatch) },
+            onDismiss = { onAction(BookImportAction.DismissBatch) },
+            onSetUp = {
+                onAction(BookImportAction.DismissBatch)
+                onSetUpAi()
+            },
+        )
+    }
+}
+
+/**
+ * What "Create decks and generate" would send, before it sends anything: the chapters, the words, the number of
+ * AI requests and where they go. A model on the user's own machine costs nothing but time, and says so. Without a
+ * provider the dialog is the setup prompt instead.
+ */
+@Composable
+private fun BatchConfirmDialog(
+    plan: BatchPlan,
+    route: AiRoute?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    onSetUp: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.feature_create_batch_confirm_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                Text(
+                    pluralStringResource(Res.plurals.feature_create_batch_confirm_chapters, plan.chapterIds.size, plan.chapterIds.size, plan.words),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                if (route == null) {
+                    AiSetupPrompt(onSetUp = onSetUp, message = stringResource(Res.string.feature_create_batch_confirm_setup))
+                } else {
+                    Text(
+                        pluralStringResource(Res.plurals.feature_create_batch_confirm_requests, plan.requests, plan.requests, route.provider.name, route.modelId),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        if (route.provider.isLocal) {
+                            stringResource(Res.string.feature_create_batch_confirm_cost_local)
+                        } else {
+                            stringResource(Res.string.feature_create_batch_confirm_cost_remote)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(Res.string.feature_create_batch_confirm_how),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (route != null) TextButton(onClick = onConfirm) { Text(stringResource(Res.string.feature_create_batch_confirm_start)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_batch_confirm_cancel)) } },
+    )
 }
 
 @Composable
@@ -339,6 +428,14 @@ private fun CreateBar(uiState: BookImportUiState, onAction: (BookImportAction) -
             },
             onClick = { onAction(BookImportAction.Create) },
             enabled = uiState.canCreate,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        MnemoButton(
+            text = stringResource(Res.string.feature_create_book_generate_all),
+            onClick = { onAction(BookImportAction.ShowBatch) },
+            style = MnemoButtonStyle.Secondary,
+            leadingIcon = MnemoIcons.Sparkle,
+            enabled = uiState.canGenerate,
             modifier = Modifier.fillMaxWidth(),
         )
     }

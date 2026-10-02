@@ -2,6 +2,8 @@ package com.yahyafati.mnemo.feature.create
 
 import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
+import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
@@ -11,6 +13,9 @@ import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.PlatformTest
+import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import kotlinx.coroutines.flow.first
@@ -29,6 +34,8 @@ class BookImportViewModelTest : PlatformTest() {
     private val sources = FakeSourceRepository()
     private val decks = FakeDeckRepository()
     private val handoff = BookHandoff()
+    private val providers = FakeAiProviderRepository()
+    private val generation = FakeCardGenerationRepository()
 
     private val file = "/books/origin.epub"
 
@@ -55,6 +62,8 @@ class BookImportViewModelTest : PlatformTest() {
         sources = sources,
         deckRepository = decks,
         createBookDecks = CreateBookDecksUseCase(decks),
+        generateCards = GenerateCardsUseCase(generation, FakeCardRepository()),
+        aiProviders = providers,
         bookHandoff = handoff,
     )
 
@@ -234,5 +243,112 @@ class BookImportViewModelTest : PlatformTest() {
         assertEquals("My Origin", offer.bookName)
         assertEquals(listOf("Contents", "Variation", "Struggle", "Index"), offer.book.chapters.map { it.title })
         assertNull(offer.chapterId)
+    }
+    private val provider = AiProvider(
+        id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b",
+        createdAt = java.time.Instant.EPOCH, updatedAt = java.time.Instant.EPOCH,
+    )
+
+    /** A book whose Variation takes three requests (the fake generation splits on "---" lines). */
+    private fun runBook() = BookSource(
+        title = "Origin",
+        chapters = listOf(
+            BookChapter(0, "Contents", "Chapter list", ChapterKind.FrontMatter),
+            BookChapter(1, "Variation", "Part one\n---\nPart two\n---\nPart three"),
+            BookChapter(2, "Struggle", "A single part"),
+            BookChapter(3, "Blank", "  "),
+        ),
+    )
+
+    private suspend fun BookImportViewModel.openRunBook(withProvider: Boolean = true): BookImportUiState {
+        provide(runBook())
+        if (withProvider) providers.addProvider(provider)
+        val state = open()
+        return if (withProvider) uiState.first { it.route != null } else state
+    }
+
+    @Test
+    fun aRunShowsWhatItWouldSendBeforeAnythingIsMadeOrSent() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.ShowBatch)
+
+        val plan = assertNotNull(vm.uiState.value.batchPlan)
+        // Content only, in book order; the blank chapter has nothing to send.
+        val counts = vm.uiState.value.wordCounts
+        assertEquals(BatchPlan(chapterIds = listOf(1, 2), words = counts.getValue(1) + counts.getValue(2), requests = 4), plan)
+        assertEquals("Groq", vm.uiState.value.route?.provider?.name)
+        assertTrue(decks.getDecks().isEmpty())
+        assertNull(handoff.offer.value)
+        assertTrue(generation.requests.isEmpty())
+
+        vm.onAction(BookImportAction.DismissBatch)
+        assertNull(vm.uiState.value.batchPlan)
+    }
+
+    @Test
+    fun theRunIncludesFrontMatterOnlyWhenTheUserCheckedIt() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.ToggleChapter(0))
+        vm.onAction(BookImportAction.ShowBatch)
+        assertEquals(listOf(0, 1, 2), vm.uiState.value.batchPlan?.chapterIds)
+    }
+
+    @Test
+    fun confirmingMakesTheDecksAndHandsTheRunToSmartExtract() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.BookNameChanged("My Origin"))
+        vm.onAction(BookImportAction.ShowBatch)
+        vm.onAction(BookImportAction.ConfirmBatch)
+
+        vm.runStarted.first()
+        val offer = assertNotNull(handoff.offer.value)
+        assertEquals("My Origin", offer.bookName)
+        assertEquals(listOf(1, 2), offer.batch)
+        // Every checked chapter got its deck, the blank one too, and those are the ids handed over.
+        val all = decks.getDecks()
+        assertEquals(setOf(1, 2, 3), offer.deckIds.keys)
+        assertEquals(offer.deckIds.values.toSet(), all.filter { it.parentId != null }.map { it.id }.toSet())
+        assertNull(vm.uiState.value.batchPlan)
+        assertEquals(BookImportResult(bookDeck = "My Origin", newDecks = 3, reusedDecks = 0), vm.uiState.value.created)
+        assertTrue(generation.requests.isEmpty(), "this screen sends nothing")
+    }
+
+    @Test
+    fun withoutAProviderTheRunCantStartButTheDecksCanStillBeMade() = runTest {
+        val vm = viewModel()
+        vm.openRunBook(withProvider = false)
+        assertNull(vm.uiState.value.route)
+        vm.onAction(BookImportAction.ShowBatch)
+        assertNotNull(vm.uiState.value.batchPlan) // the dialog shows the setup prompt
+
+        vm.onAction(BookImportAction.ConfirmBatch)
+        assertTrue(decks.getDecks().isEmpty())
+        assertNull(handoff.offer.value)
+
+        vm.onAction(BookImportAction.DismissBatch)
+        assertEquals(true, vm.uiState.value.canCreate)
+    }
+
+    @Test
+    fun aSelectionWithNoTextHasNothingToRun() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.SelectNone)
+        vm.onAction(BookImportAction.ToggleChapter(3))
+        assertEquals(true, vm.uiState.value.canCreate)
+        assertEquals(false, vm.uiState.value.canGenerate)
+        vm.onAction(BookImportAction.ShowBatch)
+        assertNull(vm.uiState.value.batchPlan)
+    }
+
+    @Test
+    fun theRouteSurvivesStartingOver() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.Reset)
+        assertNotNull(vm.uiState.value.route)
     }
 }

@@ -261,6 +261,7 @@
     </plurals>
     <string name="feature_create_book_done_next">The decks are empty. Add cards by hand, or generate them from a chapter with AI.</string>
     <string name="feature_create_book_generate">Generate cards</string>
+    <string name="feature_create_book_generate_all">Create decks and generate</string>
     <string name="feature_create_book_done">Done</string>
     <string name="feature_create_book_another">Import another book</string>
     <string name="feature_create_book_no_text">This book has no text to read, only pictures.</string>
@@ -276,4 +277,46 @@
     <string name="feature_create_epub_another">Another book</string>
     <string name="feature_create_epub_chapters_title">Chapters of %1$s</string>
     <string name="feature_create_epub_cancel">Cancel</string>
+
+    <!-- A book run, several chapters in order: docs/epub/ROADMAP.md, B6 -->
+    <string name="feature_create_batch_confirm_title">Generate cards for these chapters?</string>
+    <plurals name="feature_create_batch_confirm_chapters">
+        <item quantity="one">%1$d chapter · %2$d words</item>
+        <item quantity="other">%1$d chapters · %2$d words</item>
+    </plurals>
+    <plurals name="feature_create_batch_confirm_requests">
+        <item quantity="one">Sends %1$d request to %2$s (%3$s).</item>
+        <item quantity="other">Sends %1$d requests to %2$s (%3$s).</item>
+    </plurals>
+    <string name="feature_create_batch_confirm_cost_local">This model runs on your own machine or network, so there is no charge per request, but a long book can take a while.</string>
+    <string name="feature_create_batch_confirm_cost_remote">Your provider may charge for these requests.</string>
+    <string name="feature_create_batch_confirm_how">The decks are created first. Then Smart Extract goes through the chapters in order, one at a time: you review each chapter's cards before the next one starts. Nothing is saved until you accept cards, and you can stop at any point.</string>
+    <string name="feature_create_batch_confirm_setup">Generating cards needs an AI provider. You can still create the decks without one.</string>
+    <string name="feature_create_batch_confirm_start">Create and start</string>
+    <string name="feature_create_batch_confirm_cancel">Cancel</string>
+    <string name="feature_create_batch_label">Book run</string>
+    <string name="feature_create_batch_progress">Chapter %1$d of %2$d</string>
+    <string name="feature_create_batch_hint_running">Generating this chapter's cards…</string>
+    <string name="feature_create_batch_hint_review">Review the cards below and accept the ones you want, then go on to the next chapter.</string>
+    <string name="feature_create_batch_hint_failed">This chapter stopped early. Try again, or skip it.</string>
+    <string name="feature_create_batch_hint_idle">Generate this chapter's cards, or skip it.</string>
+    <string name="feature_create_batch_next">Next chapter</string>
+    <string name="feature_create_batch_skip">Skip chapter</string>
+    <string name="feature_create_batch_finish">Finish the run</string>
+    <string name="feature_create_batch_stop">Stop the run</string>
+    <string name="feature_create_batch_discard_title">Discard unreviewed cards?</string>
+    <plurals name="feature_create_batch_discard_advance">
+        <item quantity="one">%1$d card hasn't been accepted. Going on discards it.</item>
+        <item quantity="other">%1$d cards haven't been accepted. Going on discards them.</item>
+    </plurals>
+    <plurals name="feature_create_batch_discard_start">
+        <item quantity="one">Starting the book run discards the %1$d card waiting for review.</item>
+        <item quantity="other">Starting the book run discards the %1$d cards waiting for review.</item>
+    </plurals>
+    <string name="feature_create_batch_discard_confirm">Discard and continue</string>
+    <string name="feature_create_batch_discard_keep">Keep reviewing</string>
+    <plurals name="feature_create_batch_done">
+        <item quantity="one">Book run finished: %1$d chapter.</item>
+        <item quantity="other">Book run finished: %1$d chapters.</item>
+    </plurals>
 </resources>

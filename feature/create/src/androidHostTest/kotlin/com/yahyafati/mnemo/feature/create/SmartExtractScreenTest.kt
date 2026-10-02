@@ -24,7 +24,10 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
+import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiProvider
+import com.yahyafati.mnemo.core.model.AiRoute
+import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
@@ -56,14 +59,11 @@ class SmartExtractScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val providers = FakeAiProviderRepository().apply {
-        addProvider(
-            AiProvider(
-                id = "p", name = "Ollama", baseUrl = "http://192.168.1.20:11434/v1", defaultModel = "llama3.2", isLocal = true,
-                createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
-            ),
-        )
-    }
+    private val ollama = AiProvider(
+        id = "p", name = "Ollama", baseUrl = "http://192.168.1.20:11434/v1", defaultModel = "llama3.2", isLocal = true,
+        createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
+    )
+    private val providers = FakeAiProviderRepository().apply { addProvider(ollama) }
     private val decks = FakeDeckRepository()
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()
@@ -160,6 +160,47 @@ class SmartExtractScreenTest {
         composeRule.onNodeWithText("Change chapter").assertExists()
         assertEquals("Animals vary under domestication.", viewModel.uiState.value.text)
         assertTrue(cards.notes.value.isEmpty())
+    }
+
+    @Test
+    fun aBookRunShowsWhereItIsAndGoesOnOnlyWhenAsked() {
+        val actions = mutableListOf<SmartExtractAction>()
+        val chapters = listOf("One", "Two", "Three").mapIndexed { i, title -> ChapterOption(i, title, 100, ChapterKind.Content, false) }
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Some text.",
+                batch = BookBatch(chapters, position = 1),
+                generation = GenerationState.Done(1),
+                queue = listOf(QueueItem(card("Front", "Back"), "Some text.")),
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("BOOK RUN · Chapter 2 of 3").assertExists()
+        composeRule.onNodeWithText("Two").assertExists()
+        composeRule.onNodeWithText("Review the cards below", substring = true).assertExists()
+        composeRule.onNodeWithText("Next chapter").performClick()
+        assertEquals(listOf<SmartExtractAction>(SmartExtractAction.BatchNext), actions)
+
+        // Before the chapter is done the same button skips it; on the last one it ends the run.
+        state = state.copy(generation = GenerationState.Running(0, 1))
+        composeRule.onNodeWithText("Generating this chapter's cards…").assertExists()
+        composeRule.onNodeWithText("Skip chapter").assertExists()
+        state = state.copy(generation = GenerationState.Done(1), batch = BookBatch(chapters, position = 2))
+        composeRule.onNodeWithText("Finish the run").assertExists()
+
+        composeRule.onNodeWithText("Stop the run").performClick()
+        assertEquals(SmartExtractAction.BatchStop, actions.last())
+
+        // Going on with cards still in the queue asks first.
+        state = state.copy(batchConfirmation = BatchConfirmation.Advance)
+        composeRule.onNodeWithText("1 card hasn't been accepted. Going on discards it.").assertExists()
+        composeRule.onNodeWithText("Keep reviewing").performClick()
+        assertEquals(SmartExtractAction.CancelBatchDiscard, actions.last())
+        composeRule.onNodeWithText("Discard and continue").performClick()
+        assertEquals(SmartExtractAction.ConfirmBatchDiscard, actions.last())
     }
 
     @Test

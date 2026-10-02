@@ -106,6 +106,22 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_clo
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_definition
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetypes
 import com.yahyafati.mnemo.feature.create.resources.feature_create_back
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_advance
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_confirm
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_keep
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_start
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_done
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_finish
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_idle
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_review
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_running
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_next
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_progress
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_skip
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_stop
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_accept
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_discard
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_done
@@ -315,6 +331,14 @@ internal fun SmartExtractScreen(
             onDismiss = { onAction(SmartExtractAction.DismissDisclosure) },
         )
     }
+    uiState.batchConfirmation?.let { confirmation ->
+        BatchDiscardDialog(
+            confirmation = confirmation,
+            cards = uiState.queue.size,
+            onConfirm = { onAction(SmartExtractAction.ConfirmBatchDiscard) },
+            onDismiss = { onAction(SmartExtractAction.CancelBatchDiscard) },
+        )
+    }
     uiState.book?.takeIf { uiState.showChapters }?.let { book ->
         ChapterChooserDialog(
             book = book,
@@ -335,6 +359,7 @@ internal fun SmartExtractScreen(
 private fun messageText(message: ExtractMessage): String = when (message) {
     is ExtractMessage.Accepted -> pluralStringResource(Res.plurals.feature_create_accepted, message.cards, message.cards, message.deckPath)
     ExtractMessage.NothingNew -> stringResource(Res.string.feature_create_nothing_new)
+    is ExtractMessage.BatchFinished -> pluralStringResource(Res.plurals.feature_create_batch_done, message.chapters, message.chapters)
     is ExtractMessage.RegenerateFailed -> stringResource(Res.string.feature_create_regenerate_failed, aiFailureText(message.failure))
 }
 
@@ -370,6 +395,7 @@ private fun Workshop(
                 }
             }
 
+            uiState.batch?.let { BatchBanner(it, uiState.generation, onAction) }
             SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
             if (LocalPlatformCapabilities.current.keyboardAndMouse) Hint(stringResource(Res.string.feature_create_drop_file_hint))
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
@@ -402,6 +428,78 @@ private fun Workshop(
             }
         }
     }
+}
+
+/**
+ * Where a book run is: "Chapter 3 of 8", its title, what to do now, and the two ways to leave this chapter. The
+ * run goes on only when the user presses Next (or Skip), so a failed chapter waits here for Retry or Skip.
+ */
+@Composable
+private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction: (SmartExtractAction) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val spacing = MnemoTheme.spacing
+    Surface(shape = MaterialTheme.shapes.small, color = colors.secondaryContainer, contentColor = colors.onSecondaryContainer) {
+        Column(Modifier.fillMaxWidth().padding(spacing.md), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+            Text(
+                text = stringResource(Res.string.feature_create_batch_label).uppercase() + " · " +
+                    stringResource(Res.string.feature_create_batch_progress, batch.position + 1, batch.total),
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Text(batch.current.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = stringResource(
+                    when (generation) {
+                        is GenerationState.Running -> Res.string.feature_create_batch_hint_running
+                        is GenerationState.Done -> Res.string.feature_create_batch_hint_review
+                        is GenerationState.Failed -> Res.string.feature_create_batch_hint_failed
+                        GenerationState.Idle -> Res.string.feature_create_batch_hint_idle
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+                MnemoButton(
+                    text = stringResource(
+                        when {
+                            batch.isLast -> Res.string.feature_create_batch_finish
+                            generation is GenerationState.Done -> Res.string.feature_create_batch_next
+                            else -> Res.string.feature_create_batch_skip
+                        },
+                    ),
+                    onClick = { onAction(SmartExtractAction.BatchNext) },
+                    style = MnemoButtonStyle.Secondary,
+                )
+                MnemoButton(
+                    text = stringResource(Res.string.feature_create_batch_stop),
+                    onClick = { onAction(SmartExtractAction.BatchStop) },
+                    style = MnemoButtonStyle.Text,
+                )
+            }
+        }
+    }
+}
+
+/** Leaving a chapter, or starting a run, throws away the cards still in the queue: ask first. */
+@Composable
+private fun BatchDiscardDialog(confirmation: BatchConfirmation, cards: Int, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.feature_create_batch_discard_title)) },
+        text = {
+            Text(
+                pluralStringResource(
+                    when (confirmation) {
+                        BatchConfirmation.Start -> Res.plurals.feature_create_batch_discard_start
+                        BatchConfirmation.Advance -> Res.plurals.feature_create_batch_discard_advance
+                    },
+                    cards,
+                    cards,
+                ),
+            )
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(Res.string.feature_create_batch_discard_confirm)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_batch_discard_keep)) } },
+    )
 }
 
 @Composable
