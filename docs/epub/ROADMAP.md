@@ -108,8 +108,13 @@ B1 has no UI and can start before B0's ADR is final, once the fixtures exist.
       not an EPUB (a plain zip); two chapters with the same title; a title containing `::`; a
       Japanese book with ruby.
 - [ ] A real public-domain EPUB or two (Project Gutenberg) for the manual check in B7 only; do **not**
-      commit them. Not done: none was available offline, so **the reader has only been run on the
-      in-memory books**. Do this before trusting the heuristics.
+      commit them. Partly done (2026-10-02, a throwaway test, deleted): on *The Communist Manifesto*
+      (Gutenberg: 4 chapters, the contents page as front matter, the license as back matter, 2.6 s
+      cold), *The Motorcycle Diaries* (53 chapters, titles and sizes right; its preface, biography and
+      chronology count as content, which the picker lets the user uncheck). A OneDrive file that was
+      never downloaded (all zero bytes) correctly fails as `Unsupported`. **Still untried: a book with
+      real DRM** (the `sinf.xml`/`rights.xml`/`encryption.xml` paths are tested only on made-up files),
+      a Part → Chapter textbook, and a Japanese book.
 
 **Exit:** ADR written (**owner: review it**); test books in place.
 
@@ -211,22 +216,20 @@ real Gutenberg books from B0 produce sensible chapter lists in a scratch test, n
 
 ## B2 — Model and repository wiring
 
-- [~] `:core:model/Source.kt` (done in B1, 2026-10-02: `BookSource`, `BookChapter` (with `wordCount`),
-      `ChapterKind`, `BookResult`, `SourceProblem.Drm` and its text in Smart Extract's
-      `sourceProblemText`; **still to do: `SourceInput.Epub`**):
-  - `SourceInput.Epub(val uri: String)`.
-  - `BookSource(title, author?, language?, chapters: List<BookChapter>, truncated: Boolean)`,
-    `BookChapter(id: Int /* TOC order */, title, text, kind: ChapterKind, wordCount, truncated)`,
-    `ChapterKind { Content, FrontMatter, BackMatter }`, `BookResult` (Success/Failure like `SourceResult`).
-  - `SourceProblem.Drm` (add to the enum **and** to every `when` over it: the Smart Extract screen's
-    message mapping, tests and strings).
-- [ ] `SourceRepository.readBook(source: SourceInput.Epub): BookResult`. Implement in
-      `DefaultSourceRepository` the way `readPdf` is: size check from `documents.info`, open the stream,
-      `FileUnavailable` on `IOException`, `ioDispatcher`. `read()` for a `SourceInput.Epub` returns
-      `Unsupported` (a book is not one text): make the `when` exhaustive. Update
-      `FakeAiFeatureRepositories` in `:core:testing` and `SourceRepositoryTest`.
-- [ ] Register `EpubReader` in `dataModule`; add the new classes to `DependencyGraphTest` lists only if
-      they take a `SavedStateHandle` (they don't).
+- [x] `:core:model/Source.kt` (`BookSource`, `BookChapter` (with `wordCount`), `ChapterKind`, `BookResult` and
+      `SourceProblem.Drm` came with B1, with the text in Smart Extract's `sourceProblemText`; B2 added
+      `SourceInput.Epub(val uri: String)`). The other `when`s over `SourceInput` are only in
+      `DefaultSourceRepository`; no screen switches on it.
+- [x] `SourceRepository.readBook(source: SourceInput.Epub): BookResult`, implemented in
+      `DefaultSourceRepository` the way `readPdf` is: size check from `documents.info` against
+      `EpubReader.maxFileBytes` (new, the reader's own limit), `FileUnavailable` on `IOException`,
+      `ioDispatcher`, the file's name passed on as the title fallback. `read()` of a `SourceInput.Epub`
+      returns `Unsupported`. `FakeSourceRepository` has `books` (a map per `SourceInput.Epub`, else
+      `FileUnavailable`); `SourceRepositoryTest` covers a book read into chapters with the cache left
+      empty, `read()` refusing a book, and a non-EPUB, a too-large and a missing file.
+- [x] `EpubReader` is registered in `dataModule` (`cacheDir = { AppDirectories.cache }`). It does take a
+      lambda and an `EpubLimits`, which Koin's `verify()` looks for, so `DependencyGraphTest` has a
+      `ParameterTypeInjection` for it, like `FileSecretStore`'s.
 - [x] The word "Encrypted" in `SourceProblem` means a password-protected PDF; keep `Drm` separate, with
       its own user-facing text ("This book is protected by DRM. Mnemo can only read DRM-free books").
 
@@ -236,23 +239,41 @@ real Gutenberg books from B0 produce sensible chapter lists in a scratch test, n
 
 **Goal:** the rules for turning chapters into deck paths, tested without UI.
 
-- [ ] `suspend operator fun invoke(bookName: String, chapters: List<ChapterDeckRequest>): BookDecks`
+**Status: built and tested on both targets (2026-10-02), with these differences from the plan below:**
+
+- The naming rules are in a public `BookDeckNames` (`book(name)`, `chapter(position, chapterCount, title)`,
+  `path(...)`), so B5 computes a chapter's deck name the same way. `CreateBookDecksUseCase` takes an extra
+  `chapterCount` (the whole book's) and returns `BookDecks(rootDeckId, rootCreated, chapterDeckIds,
+  createdChapterIds)`, so B4 can say how many decks were new.
+- **Existing decks are looked up first and not saved again.** `OfflineDeckRepository.saveDeck` on an existing
+  path overwrites the deck's description and category with the given ones, so "call `saveDeck`, it is
+  idempotent" would wipe what the user wrote after a first import. Only missing decks go through `saveDeck`.
+- **Numbers pad to the width of the whole book**, not of the created chapters (every deck of a 120-chapter
+  book is `001 …`…`120 …`, whichever chapters one import picks, so a later import slots in and names match).
+  Callers that import a subset pass `chapterCount = book.chapters.size`.
+- A colon at either end of a name is dropped (`Notes:` + `::` would split the path in the wrong place) and a
+  `::` inside becomes " – ". A name cut at the limit ends with "…" and stays within it.
+- **No description** on the decks: the use case has no strings, and English text on every deck of a
+  non-English book is worse than none. The same goes for "Chapter N", used for a blank title: B4 fills in
+  its own, localized, before calling.
+
+- [x] `suspend operator fun invoke(bookName: String, chapters: List<ChapterDeckRequest>): BookDecks`
       (`ChapterDeckRequest(chapterId, title)`; result maps `chapterId` → `deckId` plus the root deck id),
       using `DeckRepository.saveDeck`. All-or-nothing is not required (`saveDeck` is idempotent by path);
       a retry after a failure just reuses what exists.
-- [ ] **Names**: replace `::` in the book and chapter titles (for example with " – "), collapse
+- [x] **Names**: replace `::` in the book and chapter titles (for example with " – "), collapse
       whitespace, strip control characters, trim, and cut to a sane length (suggested 60 for the book,
       80 for a chapter) at a word boundary; an empty name becomes "Chapter N".
-- [ ] **Numbering**: prefix each chapter with its **zero-padded position among the created chapters**
+- [x] **Numbering**: prefix each chapter with its **zero-padded position among the created chapters**
       (width = digits of the highest number, minimum 2: `01 Introduction`, `02 …`). This keeps the deck
       list in book order (it sorts by name) and keeps equal chapter titles from merging (matching is
       case-insensitive by name). Use the chapter's position in the book (its `id`), not among the checked
       ones, so a later import of more chapters slots in correctly.
-- [ ] **Re-import**: the same book name reuses its root and chapter decks (that is what `saveDeck` does
+- [x] **Re-import**: the same book name reuses its root and chapter decks (that is what `saveDeck` does
       for an existing path). The picker (B4) tells the user which chapters already have a deck.
-- [ ] Nothing else is stored; the description of a chapter deck may carry the book title and the
+- [x] Nothing else is stored; the description of a chapter deck may carry the book title and the
       chapter's position ("Chapter 3 of *Book*") if it helps; keep it plain text.
-- [ ] Tests with `FakeDeckRepository`: naming edge cases, `::` in titles, numbering width, equal titles,
+- [x] Tests with `FakeDeckRepository`: naming edge cases, `::` in titles, numbering width, equal titles,
       a re-run creating nothing new, a retry after a failure half-way.
 
 **Exit:** `:core:domain` tests green on both targets.

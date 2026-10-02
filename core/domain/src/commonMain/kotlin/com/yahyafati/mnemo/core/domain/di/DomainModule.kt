@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.AnswerCardUseCase
 import com.yahyafati.mnemo.core.domain.BuildStudyQueueUseCase
 import com.yahyafati.mnemo.core.domain.ComputeRetentionStatsUseCase
+import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.FindDuplicateNotesUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
@@ -19,6 +20,7 @@ val domainModule = module {
     factoryOf(::AnswerCardUseCase)
     factoryOf(::BuildStudyQueueUseCase)
     factoryOf(::ComputeRetentionStatsUseCase)
+    factoryOf(::CreateBookDecksUseCase)
     factoryOf(::FindDuplicateNotesUseCase)
     factoryOf(::GenerateCardsUseCase)
     factoryOf(::GetRetentionOverviewUseCase)

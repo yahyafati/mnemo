@@ -10,6 +10,9 @@ sealed interface SourceInput {
 
     /** A web page, or a PDF behind a link. */
     data class Link(val url: String) : SourceInput
+
+    /** An EPUB book. It is read into chapters (`SourceRepository.readBook`), not into one text. */
+    data class Epub(val uri: String) : SourceInput
 }
 
 /** Plain text read from a [SourceInput], ready to be edited and sent. */

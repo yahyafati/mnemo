@@ -42,6 +42,9 @@ data class EpubLimits(
  * zip is only a name. Blocking; call it off the main thread.
  */
 class EpubReader(private val cacheDir: () -> File, private val limits: EpubLimits = EpubLimits()) {
+    /** The largest file [read] takes; callers that know a file's size can refuse a bigger one before opening it. */
+    val maxFileBytes: Long get() = limits.maxFileBytes
+
     fun read(input: InputStream, fileName: String? = null): BookResult {
         val file = try {
             spool(input)

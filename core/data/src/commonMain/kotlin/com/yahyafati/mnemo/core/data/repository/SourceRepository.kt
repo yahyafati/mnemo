@@ -1,9 +1,11 @@
 package com.yahyafati.mnemo.core.data.repository
 
 import com.yahyafati.mnemo.core.common.platform.DocumentAccess
+import com.yahyafati.mnemo.core.ingest.EpubReader
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
+import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
@@ -18,7 +20,11 @@ import java.io.InputStream
 
 /** Smart Extract's sources (`:core:ingest`): PDFs, links and dictation become plain text on the device. */
 interface SourceRepository {
+    /** The text of one source. A book is not one text: an [SourceInput.Epub] fails as [SourceProblem.Unsupported]; use [readBook]. */
     suspend fun read(source: SourceInput): SourceResult
+
+    /** An EPUB read into chapters. Read-only: nothing is saved. */
+    suspend fun readBook(source: SourceInput.Epub): BookResult
 
     fun isDictationAvailable(): Boolean
 
@@ -30,6 +36,7 @@ internal class DefaultSourceRepository(
     private val documents: DocumentAccess,
     private val pdf: PdfTextExtractor,
     private val web: WebPageExtractor,
+    private val epub: EpubReader,
     private val speech: SpeechTranscriber,
     private val ioDispatcher: CoroutineDispatcher,
 ) : SourceRepository {
@@ -38,7 +45,23 @@ internal class DefaultSourceRepository(
             is SourceInput.Link -> web.extract(source.url)
             is SourceInput.Pdf -> readPdf(source.uri)
             is SourceInput.TextFile -> readTextFile(source.uri)
+            is SourceInput.Epub -> SourceResult.Failure(SourceProblem.Unsupported)
         }
+    }
+
+    override suspend fun readBook(source: SourceInput.Epub): BookResult = withContext(ioDispatcher) {
+        val info = try {
+            documents.info(source.uri)
+        } catch (e: IOException) {
+            return@withContext BookResult.Failure(SourceProblem.FileUnavailable)
+        }
+        if ((info.size ?: 0) > epub.maxFileBytes) return@withContext BookResult.Failure(SourceProblem.TooLarge)
+        val input = try {
+            documents.openInput(source.uri)
+        } catch (e: IOException) {
+            return@withContext BookResult.Failure(SourceProblem.FileUnavailable)
+        }
+        input.use { epub.read(it, info.name) }
     }
 
     private fun readPdf(uri: String): SourceResult {

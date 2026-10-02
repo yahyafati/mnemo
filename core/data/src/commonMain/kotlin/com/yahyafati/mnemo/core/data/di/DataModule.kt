@@ -45,6 +45,7 @@ import com.yahyafati.mnemo.core.data.transfer.AnkiImporter
 import com.yahyafati.mnemo.core.data.transfer.JsonExporter
 import com.yahyafati.mnemo.core.database.di.databaseModule
 import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
+import com.yahyafati.mnemo.core.ingest.EpubReader
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
 import okhttp3.OkHttpClient
@@ -80,7 +81,7 @@ val dataModule = module {
     } bind CoAuthorRepository::class
     factory { DefaultStudyAssistRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO)) } bind StudyAssistRepository::class
     factory {
-        DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+        DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind SourceRepository::class
     factoryOf(::OfflineStatsRepository) bind StatsRepository::class
 
@@ -115,6 +116,7 @@ val dataModule = module {
     factory { CoAuthorClient(get()) }
     // Shares the AI client's connection pool; it follows redirects on its own copy of the client.
     factory { WebPageExtractor(get(), get()) }
+    factory { EpubReader(cacheDir = { get<AppDirectories>().cache }) }
 }
 
 /**

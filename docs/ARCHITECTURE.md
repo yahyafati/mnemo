@@ -418,6 +418,8 @@ SmartExtractViewModel
 
 Nothing touches the database before step 8 (except the token-usage log). If the network fails partway, the cards already received stay in the review queue and Retry resumes at the failed part. Study-time AI (Explain / Example / Rewrite) goes through `StudyAssistRepository` the same way; a rewrite is a proposal that updates the note's fields only when applied. See ADR 0006.
 
+Books (EPUB, ADR 0011) enter before step 1: `SourceRepository.readBook` → `EpubReader` gives chapters with their text; `CreateBookDecksUseCase` makes the empty `Book::NN Chapter` decks (`BookDeckNames`); a chapter's text then fills the same text box and goes through steps 2–8 into that chapter's deck. Nothing about the book is stored.
+
 ### 5.3 AI provider management
 
 - API keys are **not** in the database (ADR 0005). `SecretStore` keeps each one AES-GCM-encrypted with a non-exportable Keystore key in `noBackupFilesDir/secrets`, bound to its provider id. A key is decrypted only to build one request's `ProviderConfig`. `AiProvider` only says whether a key exists.

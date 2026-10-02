@@ -44,6 +44,11 @@ class DependencyGraphTest {
             injections = injectedParameters(
                 ParameterTypeInjection(Class.forName("com.yahyafati.mnemo.core.data.repository.FileMediaRepository").kotlin, listOf(File::class)),
                 ParameterTypeInjection(FileSecretStore::class, listOf(Function0::class)),
+                // Likewise: the cache directory comes from AppDirectories through a lambda, the limits are defaults.
+                ParameterTypeInjection(
+                    Class.forName("com.yahyafati.mnemo.core.ingest.EpubReader").kotlin,
+                    listOf(Function0::class, Class.forName("com.yahyafati.mnemo.core.ingest.EpubLimits").kotlin),
+                ),
             ),
         )
     }

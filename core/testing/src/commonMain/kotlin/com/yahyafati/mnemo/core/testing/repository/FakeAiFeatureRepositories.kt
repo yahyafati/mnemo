@@ -8,6 +8,7 @@ import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AssistUpdate
+import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.ChatTurn
 import com.yahyafati.mnemo.core.model.CoAuthorDeck
 import com.yahyafati.mnemo.core.model.DictationEvent
@@ -87,14 +88,18 @@ class FakeStudyAssistRepository : StudyAssistRepository {
     }
 }
 
-/** [SourceRepository] with [results] per source; dictation is driven through [dictation]. */
+/** [SourceRepository] with [results] per source and [books] per EPUB; dictation is driven through [dictation]. */
 class FakeSourceRepository : SourceRepository {
     val results = mutableMapOf<SourceInput, SourceResult>()
+    val books = mutableMapOf<SourceInput.Epub, BookResult>()
     val dictation = MutableSharedFlow<DictationEvent>(extraBufferCapacity = 16)
     var dictationAvailable = true
 
     override suspend fun read(source: SourceInput): SourceResult =
         results[source] ?: SourceResult.Failure(SourceProblem.FileUnavailable)
+
+    override suspend fun readBook(source: SourceInput.Epub): BookResult =
+        books[source] ?: BookResult.Failure(SourceProblem.FileUnavailable)
 
     override fun isDictationAvailable(): Boolean = dictationAvailable
 
