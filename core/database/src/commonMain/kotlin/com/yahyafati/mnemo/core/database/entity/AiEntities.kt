@@ -71,3 +71,21 @@ data class AiUsageEntity(
     val updatedAt: Long,
     val deletedAt: Long? = null,
 )
+
+/**
+ * A study-time AI answer kept for a note: one per note and [kind] (`StudyAssist.Explain` or
+ * `Example`), replaced when the user regenerates it. [fieldsHash] is the hash of the note's fields
+ * it answered, so an edited card can say the answer may be out of date.
+ */
+@Entity(tableName = "ai_answers", primaryKeys = ["noteId", "kind"])
+data class AiAnswerEntity(
+    val noteId: String,
+    val kind: String,
+    val text: String,
+    val providerName: String,
+    val modelId: String,
+    val fieldsHash: Int,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long? = null,
+)

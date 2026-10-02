@@ -427,6 +427,7 @@ Books (EPUB, ADR 0011) enter before step 1: `SourceRepository.readBook` → `Epu
 - `AiTaskRouteEntity` maps each `AiTask` (Extract, CoAuthor, Explain, Rewrite) to a provider and optional model. A missing or disabled route falls back to the default provider: the first enabled one with a model. `routeFor` returns null when nothing is usable, and AI entry points show `AiSetupPrompt`.
 - Backups, exports and Android Auto Backup **cannot** contain API keys: they live outside every backed-up location.
 - `ai_usage` logs reported tokens per provider and task, locally.
+- `ai_answers` keeps the last complete Explain and Example answer per note (ADR 0006), so they are asked for once and regenerated on demand.
 
 ### 5.4 Import / backup
 

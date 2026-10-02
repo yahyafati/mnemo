@@ -3,9 +3,11 @@ package com.yahyafati.mnemo.core.database
 import androidx.room.useReaderConnection
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
 import com.yahyafati.mnemo.core.database.migration.Migration1To2
 import com.yahyafati.mnemo.core.database.migration.Migration2To3
 import com.yahyafati.mnemo.core.database.migration.Migration3To4
+import com.yahyafati.mnemo.core.database.migration.Migration4To5
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import kotlinx.coroutines.flow.first
@@ -108,12 +110,31 @@ class MigrationTest : MigrationTestBase() {
         }
     }
 
+    @Test
+    fun migrate4To5() = runTest {
+        createDatabase(4).use { it.insertDeck() }
+
+        migrate(5, Migration4To5).close()
+
+        val database = open()
+        try {
+            assertEquals("Biology", database.deckDao().getDeck("d1")?.name)
+            assertEquals(emptyList(), database.aiAnswerDao().getForNote("n1"))
+            val answer = AiAnswerEntity("n1", "Explain", "Text", "Ollama", "llama3.2", 7, 1, 1)
+            database.aiAnswerDao().upsert(answer)
+            database.aiAnswerDao().upsert(answer.copy(text = "Again", updatedAt = 2))
+            assertEquals(listOf("Again"), database.aiAnswerDao().getForNote("n1").map { it.text })
+        } finally {
+            database.close()
+        }
+    }
+
     private fun SQLiteConnection.insertDeck() = execSQL(
         "INSERT INTO decks (id, parentId, name, description, category, starred, createdAt, updatedAt, deletedAt) " +
             "VALUES ('d1', NULL, 'Biology', '', NULL, 0, 1, 1, NULL)",
     )
 
     private companion object {
-        const val LATEST = 4
+        const val LATEST = 5
     }
 }

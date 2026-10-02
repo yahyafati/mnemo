@@ -16,6 +16,7 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     Migration1To2,
     Migration2To3,
     Migration3To4,
+    Migration4To5,
 )
 
 /** Phase 2: content-addressed media, and Anki guids on notes for duplicate-free imports. */
@@ -74,5 +75,16 @@ internal object Migration3To4 : Migration(3, 4) {
         connection.execSQL("ALTER TABLE `notes` ADD COLUMN `hint` TEXT")
         connection.execSQL("ALTER TABLE `decks` ADD COLUMN `examDate` INTEGER")
         insertBuiltInNoteTypes(connection, listOf(NoteType.TypeIn, NoteType.MultipleChoice))
+    }
+}
+
+/** Saved study-time AI answers ("Explain this", "Give me an example"), one per note and kind. */
+internal object Migration4To5 : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `ai_answers` (`noteId` TEXT NOT NULL, `kind` TEXT NOT NULL, `text` TEXT NOT NULL, " +
+                "`providerName` TEXT NOT NULL, `modelId` TEXT NOT NULL, `fieldsHash` INTEGER NOT NULL, " +
+                "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`noteId`, `kind`))",
+        )
     }
 }

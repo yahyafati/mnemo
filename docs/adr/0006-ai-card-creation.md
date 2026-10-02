@@ -127,6 +127,13 @@ schema) and is only a proposal: applying it updates the note's fields in place, 
 and every card's schedule. A cloze rewrite must keep exactly the same cloze numbers; otherwise
 applying it would delete or add cards and lose their history, so it can't be applied.
 
+A complete explanation or example is saved for the note (`ai_answers`, schema v5: one row per note
+and kind, replaced on regenerate), so opening it again shows the saved answer with no request and
+no provider notice; "Regenerate" asks again. An answer that failed or was cut short is never saved.
+The row keeps the provider and model that wrote it and a hash of the note's fields, so an answer to
+a card edited since is marked as possibly out of date. It is ordinary collection data: backups
+carry it, Anki and JSON exports don't.
+
 ## Consequences
 
 - AI entry points follow ADR 0005: the setup prompt without a provider (Smart Extract; study-time

@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
 import com.yahyafati.mnemo.core.database.converter.Converters
+import com.yahyafati.mnemo.core.database.dao.AiAnswerDao
 import com.yahyafati.mnemo.core.database.dao.AiProviderDao
 import com.yahyafati.mnemo.core.database.dao.CardDao
 import com.yahyafati.mnemo.core.database.dao.DeckDao
@@ -15,6 +16,7 @@ import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
 import com.yahyafati.mnemo.core.database.dao.StatsDao
+import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
 import com.yahyafati.mnemo.core.database.entity.AiModelEntity
 import com.yahyafati.mnemo.core.database.entity.AiProviderEntity
 import com.yahyafati.mnemo.core.database.entity.AiTaskRouteEntity
@@ -47,8 +49,9 @@ import kotlinx.serialization.json.Json
         AiModelEntity::class,
         AiTaskRouteEntity::class,
         AiUsageEntity::class,
+        AiAnswerEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -67,6 +70,8 @@ abstract class MnemoDatabase : RoomDatabase() {
     abstract fun aiProviderDao(): AiProviderDao
 
     abstract fun statsDao(): StatsDao
+
+    abstract fun aiAnswerDao(): AiAnswerDao
 
     companion object {
         const val NAME = "mnemo.db"

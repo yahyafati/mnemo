@@ -1,5 +1,7 @@
 package com.yahyafati.mnemo.core.model
 
+import java.time.Instant
+
 /** Study-time AI on the current card (PROJECT_OVERVIEW §4). */
 enum class StudyAssist(val task: AiTask) {
     /** "Explain this". */
@@ -26,3 +28,15 @@ sealed interface RewriteOutcome {
 
     data class Failed(val failure: AiFailure) : RewriteOutcome
 }
+
+/**
+ * An "Explain this" or "Give me an example" answer kept for a note, so opening it again costs no
+ * request. [outdated] is set when the note's fields changed after it was saved.
+ */
+data class SavedAssistAnswer(
+    val text: String,
+    val providerName: String,
+    val modelId: String,
+    val savedAt: Instant,
+    val outdated: Boolean = false,
+)

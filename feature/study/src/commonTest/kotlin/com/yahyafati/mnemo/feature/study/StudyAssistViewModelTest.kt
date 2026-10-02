@@ -75,6 +75,58 @@ class StudyAssistViewModelTest {
     }
 
     @Test
+    fun aSavedAnswerOpensWithoutARequestUntilRegenerated() = runTest {
+        fixture.aiProviders.addProvider(provider)
+        val vm = fixture.assistViewModel()
+        val card = studyCard()
+        vm.onAction(AssistAction.Open(card))
+        vm.onAction(AssistAction.Run(StudyAssist.Explain))
+        assertEquals("An explanation.", vm.uiState.value.sheet?.text)
+        assertNull(vm.uiState.value.sheet?.saved)
+        assertEquals(setOf(StudyAssist.Explain), vm.uiState.value.sheet?.savedAnswers?.keys)
+
+        // Opened again (even in a new session): the saved answer, with no request.
+        val again = fixture.assistViewModel()
+        again.onAction(AssistAction.Open(card))
+        assertEquals(setOf(StudyAssist.Explain), again.uiState.value.sheet?.savedAnswers?.keys)
+        again.onAction(AssistAction.Run(StudyAssist.Explain))
+        val sheet = assertNotNull(again.uiState.value.sheet)
+        assertEquals("An explanation.", sheet.text)
+        assertEquals("llama-3.3-70b", sheet.saved?.modelId)
+        assertFalse(sheet.running)
+        assertEquals(1, fixture.assist.explained.size)
+
+        // Example has none yet, so it asks.
+        again.onAction(AssistAction.Back)
+        again.onAction(AssistAction.Run(StudyAssist.Example))
+        assertEquals(2, fixture.assist.explained.size)
+
+        // Regenerate asks again and replaces the saved one.
+        fixture.assist.explanation = { flowOf(AssistUpdate.Text("A better one."), AssistUpdate.Done()) }
+        again.onAction(AssistAction.Back)
+        again.onAction(AssistAction.Run(StudyAssist.Explain, regenerate = true))
+        assertEquals(3, fixture.assist.explained.size)
+        assertEquals("A better one.", again.uiState.value.sheet?.text)
+        assertNull(again.uiState.value.sheet?.saved)
+        assertEquals("A better one.", fixture.assist.saved.getValue(card.note.id to StudyAssist.Explain).text)
+    }
+
+    @Test
+    fun aFailedAnswerIsNotSaved() = runTest {
+        fixture.aiProviders.addProvider(provider)
+        fixture.assist.explanation = { flowOf(AssistUpdate.Text("Mito"), AssistUpdate.Done(AiFailure(AiProblem.Unreachable))) }
+        val vm = fixture.assistViewModel()
+        vm.onAction(AssistAction.Open(studyCard()))
+        vm.onAction(AssistAction.Run(StudyAssist.Explain))
+        assertTrue(fixture.assist.saved.isEmpty())
+        assertEquals(emptyMap(), vm.uiState.value.sheet?.savedAnswers)
+
+        // "Try again" asks the provider again.
+        vm.onAction(AssistAction.Run(StudyAssist.Explain, regenerate = true))
+        assertEquals(2, fixture.assist.explained.size)
+    }
+
+    @Test
     fun theProviderNoticeComesFirst() = runTest {
         fixture.aiProviders.addProvider(provider.copy(disclosureAcceptedAt = null))
         val vm = fixture.assistViewModel()

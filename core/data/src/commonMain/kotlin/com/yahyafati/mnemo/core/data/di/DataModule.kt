@@ -79,7 +79,9 @@ val dataModule = module {
     factory {
         DefaultCoAuthorRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind CoAuthorRepository::class
-    factory { DefaultStudyAssistRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO)) } bind StudyAssistRepository::class
+    factory {
+        DefaultStudyAssistRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+    } bind StudyAssistRepository::class
     factory {
         DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind SourceRepository::class

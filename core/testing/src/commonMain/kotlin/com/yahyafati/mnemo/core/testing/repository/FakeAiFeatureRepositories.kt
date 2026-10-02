@@ -15,6 +15,7 @@ import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.RewriteOutcome
+import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -24,8 +25,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.transformWhile
+import java.time.Instant
 
 /**
  * [CardGenerationRepository] that answers each request with [respond]. By default a request
@@ -70,17 +73,32 @@ class FakeCardGenerationRepository : CardGenerationRepository {
     }
 }
 
-/** [StudyAssistRepository] with canned answers. */
+/**
+ * [StudyAssistRepository] with canned answers. Like the real one, a complete explanation is kept
+ * in [saved] per note, and read back by [savedAnswers].
+ */
 class FakeStudyAssistRepository : StudyAssistRepository {
     val explained = mutableListOf<Pair<StudyAssist, StudyCard>>()
     val rewritten = mutableListOf<StudyCard>()
+    val saved = mutableMapOf<Pair<String, StudyAssist>, SavedAssistAnswer>()
     var explanation: (StudyAssist) -> Flow<AssistUpdate> = { flowOf(AssistUpdate.Text("An explanation."), AssistUpdate.Done()) }
     var rewrite: RewriteOutcome = RewriteOutcome.Proposed(listOf("Rewritten front", "Rewritten back"))
 
     override fun explain(route: AiRoute, assist: StudyAssist, card: StudyCard): Flow<AssistUpdate> {
         explained += assist to card
-        return explanation(assist)
+        val text = StringBuilder()
+        return explanation(assist).onEach { update ->
+            when (update) {
+                is AssistUpdate.Text -> text.append(update.delta)
+                is AssistUpdate.Done -> if (update.failure == null && text.isNotBlank()) {
+                    saved[card.note.id to assist] = SavedAssistAnswer(text.toString(), route.provider.name, route.modelId, Instant.EPOCH)
+                }
+            }
+        }
     }
+
+    override suspend fun savedAnswers(card: StudyCard): Map<StudyAssist, SavedAssistAnswer> =
+        saved.filterKeys { it.first == card.note.id }.mapKeys { it.key.second }
 
     override suspend fun rewrite(route: AiRoute, card: StudyCard): RewriteOutcome {
         rewritten += card

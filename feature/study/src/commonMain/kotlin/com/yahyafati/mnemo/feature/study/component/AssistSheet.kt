@@ -36,6 +36,7 @@ import com.yahyafati.mnemo.core.model.CardSides
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
@@ -60,16 +61,23 @@ import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_example_hint
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_explain
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_explain_hint
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_failed
+import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_outdated
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_problem_cloze
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_problem_empty
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_proposal
+import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_regenerate
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_retry
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_rewrite
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_rewrite_hint
+import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_saved
+import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_saved_hint
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_thinking
 import com.yahyafati.mnemo.feature.study.resources.feature_study_ai_via
 import org.jetbrains.compose.resources.stringResource
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * The study-time AI sheet: a menu of what AI can do with the card, then the streamed answer or
@@ -123,10 +131,12 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
                     text = sheet.assist?.let { stringResource(it.titleRes()) } ?: stringResource(Res.string.feature_study_ai),
                     style = MaterialTheme.typography.headlineSmall,
                 )
-                val route = sheet.assist?.let(state::routeFor)
-                if (route != null) {
+                // A saved answer names the model that wrote it, which may not be today's route.
+                val via = sheet.saved?.let { it.providerName to it.modelId }
+                    ?: sheet.assist?.let(state::routeFor)?.let { it.provider.name to it.modelId }
+                if (via != null) {
                     Text(
-                        text = stringResource(Res.string.feature_study_ai_via, route.provider.name, route.modelId),
+                        text = stringResource(Res.string.feature_study_ai_via, via.first, via.second),
                         style = MnemoTheme.typography.metricSm,
                         color = colors.onSurfaceVariant,
                         maxLines = 1,
@@ -141,18 +151,28 @@ internal fun AssistSheetContent(state: StudyAssistUiState, sheet: AssistSheet, o
 
         when (val assist = sheet.assist) {
             null -> StudyAssist.entries.filter { state.routeFor(it) != null }.forEach { option ->
-                MenuItem(option.icon(), stringResource(option.titleRes()), stringResource(option.hintRes())) {
+                val hint = if (option in sheet.savedAnswers) Res.string.feature_study_ai_saved_hint else option.hintRes()
+                MenuItem(option.icon(), stringResource(option.titleRes()), stringResource(hint)) {
                     onAction(AssistAction.Run(option))
                 }
             }
             StudyAssist.Explain, StudyAssist.Example -> {
+                sheet.saved?.let { SavedNote(it) }
                 if (sheet.text.isNotEmpty()) MarkdownText(sheet.text, style = MaterialTheme.typography.bodyLarge)
                 if (sheet.text.isNotEmpty() && !sheet.running) {
                     val kind = if (assist == StudyAssist.Explain) AiReportKind.Explain else AiReportKind.Example
-                    ReportAiButton(AiReport(kind, sheet.text, state.routeFor(assist)?.modelId), Modifier.align(Alignment.End))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.End)) {
+                        ReportAiButton(AiReport(kind, sheet.text, sheet.saved?.modelId ?: state.routeFor(assist)?.modelId))
+                        if (state.routeFor(assist) != null) {
+                            TextButton(onClick = { onAction(AssistAction.Run(assist, regenerate = true)) }) {
+                                Icon(MnemoIcons.Sparkle, contentDescription = null)
+                                Text(stringResource(Res.string.feature_study_ai_regenerate), modifier = Modifier.padding(start = spacing.xs))
+                            }
+                        }
+                    }
                 }
                 if (sheet.running && sheet.text.isEmpty()) Thinking()
-                sheet.failure?.let { Failure(aiFailureText(it)) { onAction(AssistAction.Run(assist)) } }
+                sheet.failure?.let { Failure(aiFailureText(it)) { onAction(AssistAction.Run(assist, regenerate = true)) } }
             }
             StudyAssist.Rewrite -> {
                 if (sheet.running && sheet.proposal == null) Thinking()
@@ -229,6 +249,24 @@ private fun MenuItem(icon: ImageVector, title: String, hint: String, onClick: ()
         }
     }
 }
+
+/** When a saved answer was written, and whether the card changed since. */
+@Composable
+private fun SavedNote(answer: SavedAssistAnswer) {
+    val colors = MaterialTheme.colorScheme
+    Column {
+        Text(
+            text = stringResource(Res.string.feature_study_ai_saved, SAVED_DATE.format(answer.savedAt.atZone(ZoneId.systemDefault()))),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant,
+        )
+        if (answer.outdated) {
+            Text(stringResource(Res.string.feature_study_ai_outdated), style = MaterialTheme.typography.bodySmall, color = colors.error)
+        }
+    }
+}
+
+private val SAVED_DATE: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 @Composable
 private fun Thinking() {

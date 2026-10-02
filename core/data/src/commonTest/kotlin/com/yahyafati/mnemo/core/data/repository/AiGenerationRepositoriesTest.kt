@@ -20,11 +20,14 @@ import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.RewriteOutcome
+import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.TestAppDirectories
+import com.yahyafati.mnemo.core.testing.TestClock
+import com.yahyafati.mnemo.core.testing.inMemoryDatabase
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
 import java.io.File
@@ -51,7 +54,11 @@ class AiGenerationRepositoriesTest : PlatformTest() {
     private val server = MockWebServer()
     private val runner = ChatTextRunner(OpenAiCompatibleClient(OkHttpClient()))
     private val generation = DefaultCardGenerationRepository(CardGenerationClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined)
-    private val assist = DefaultStudyAssistRepository(StudyAssistClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined)
+    private val database = inMemoryDatabase()
+    private val clock = TestClock()
+    private val assist = DefaultStudyAssistRepository(
+        StudyAssistClient(runner), ProviderConfigs(secrets), providers, database.aiAnswerDao(), clock, Dispatchers.Unconfined,
+    )
     private val coAuthor = DefaultCoAuthorRepository(
         CoAuthorClient(runner), CardGenerationClient(runner), StudyAssistClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined,
     )
@@ -60,7 +67,10 @@ class AiGenerationRepositoriesTest : PlatformTest() {
     fun setUp() = server.start()
 
     @After
-    fun tearDown() = server.close()
+    fun tearDown() {
+        server.close()
+        database.close()
+    }
 
     private fun route(task: AiTask = AiTask.Extract) = AiRoute(
         task = task,
@@ -132,6 +142,32 @@ class AiGenerationRepositoriesTest : PlatformTest() {
             assist.rewrite(route(AiTask.Rewrite), card),
         )
         assertEquals(setOf(AiTask.Explain, AiTask.Rewrite), providers.usage.first().map { it.task }.toSet())
+    }
+
+    @Test
+    fun completeExplanationsAreSavedPerNote() = runTest {
+        val now = Instant.EPOCH
+        val note = Note("n", "d", NoteType.Basic.id, listOf("What makes ATP?", "Mitochondria"), createdAt = now, updatedAt = now)
+        val card = StudyCard(Card("c", "n", "d", 0, due = now, createdAt = now, updatedAt = now), note, NoteKind.Basic, "Biology")
+        assertEquals(emptyMap(), assist.savedAnswers(card))
+
+        server.enqueue(completion("Oxidative phosphorylation."))
+        assist.explain(route(AiTask.Explain), StudyAssist.Explain, card).toList()
+        val saved = assist.savedAnswers(card).getValue(StudyAssist.Explain)
+        assertEquals(SavedAssistAnswer("Oxidative phosphorylation.", "Ollama", "llama3.2", clock.now()), saved)
+
+        // A failed regeneration keeps the answer before it; a successful one replaces it.
+        server.enqueue(MockResponse.Builder().code(401).build())
+        assertIs<AssistUpdate.Done>(assist.explain(route(AiTask.Explain), StudyAssist.Explain, card).toList().last()).failure!!
+        assertEquals(saved, assist.savedAnswers(card)[StudyAssist.Explain])
+        server.enqueue(completion("ATP synthase."))
+        assist.explain(route(AiTask.Explain), StudyAssist.Explain, card).toList()
+        assertEquals("ATP synthase.", assist.savedAnswers(card)[StudyAssist.Explain]?.text)
+        assertEquals(setOf(StudyAssist.Explain), assist.savedAnswers(card).keys)
+
+        // Editing the card's text marks the answer out of date.
+        val edited = card.copy(note = note.copy(fields = listOf("What makes most ATP?", "Mitochondria")))
+        assertTrue(assist.savedAnswers(edited).getValue(StudyAssist.Explain).outdated)
     }
 
     @Test

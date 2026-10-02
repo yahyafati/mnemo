@@ -12,9 +12,12 @@ import com.yahyafati.mnemo.core.model.AssistUpdate
 import com.yahyafati.mnemo.core.model.Cloze
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.RewriteOutcome
+import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +45,10 @@ data class AssistSheet(
     val assist: StudyAssist? = null,
     /** Explain/Example: the Markdown so far. */
     val text: String = "",
+    /** Explain/Example: [text] is this saved answer, not a new one. */
+    val saved: SavedAssistAnswer? = null,
+    /** The answers saved for the card's note, marked in the menu. */
+    val savedAnswers: Map<StudyAssist, SavedAssistAnswer> = emptyMap(),
     val running: Boolean = false,
     val failure: AiFailure? = null,
     /** Rewrite: the proposed note fields. */
@@ -64,7 +71,8 @@ sealed interface AssistAction {
 
     data object Close : AssistAction
 
-    data class Run(val assist: StudyAssist) : AssistAction
+    /** Shows the saved answer if there is one, unless [regenerate] asks the provider again. */
+    data class Run(val assist: StudyAssist, val regenerate: Boolean = false) : AssistAction
 
     /** Back to the menu. */
     data object Back : AssistAction
@@ -78,7 +86,8 @@ sealed interface AssistAction {
 
 /**
  * Study-time AI (PROJECT_OVERVIEW §4): explain, give an example, or rewrite the current card.
- * Answers stream into a sheet; a rewrite is only a proposal until applied, and applying keeps the
+ * Answers stream into a sheet and are saved per note, so asking again shows the saved one until
+ * the user regenerates it; a rewrite is only a proposal until applied, and applying keeps the
  * card's schedule (cloze numbers must not change).
  */
 class StudyAssistViewModel(
@@ -90,6 +99,7 @@ class StudyAssistViewModel(
     val uiState: StateFlow<StudyAssistUiState> = _uiState.asStateFlow()
 
     private var job: Job? = null
+    private var saved: Deferred<Map<StudyAssist, SavedAssistAnswer>>? = null
     private var afterDisclosure: (() -> Unit)? = null
     private val disclosed = mutableSetOf<String>()
 
@@ -106,15 +116,16 @@ class StudyAssistViewModel(
             is AssistAction.Open -> {
                 job?.cancel()
                 _uiState.update { it.copy(sheet = AssistSheet(action.card)) }
+                loadSaved(action.card)
             }
             AssistAction.Close -> {
                 job?.cancel()
                 _uiState.update { it.copy(sheet = null) }
             }
-            is AssistAction.Run -> run(action.assist)
+            is AssistAction.Run -> if (action.regenerate || action.assist == StudyAssist.Rewrite) run(action.assist) else showSaved(action.assist)
             AssistAction.Back -> {
                 job?.cancel()
-                _uiState.update { state -> state.copy(sheet = state.sheet?.let { AssistSheet(it.card) }) }
+                _uiState.update { state -> state.copy(sheet = state.sheet?.let { AssistSheet(it.card, savedAnswers = it.savedAnswers) }) }
             }
             AssistAction.ApplyRewrite -> applyRewrite()
             AssistAction.AcceptDisclosure -> {
@@ -132,13 +143,40 @@ class StudyAssistViewModel(
         }
     }
 
+    private fun loadSaved(card: StudyCard) {
+        val load = viewModelScope.async { assistRepository.savedAnswers(card) }
+        saved = load
+        viewModelScope.launch {
+            val answers = load.await()
+            _uiState.update { state -> state.copy(sheet = state.sheet?.takeIf { it.card == card }?.copy(savedAnswers = answers) ?: state.sheet) }
+        }
+    }
+
+    /** The saved answer costs no request (and needs no provider notice); without one, ask. */
+    private fun showSaved(assist: StudyAssist) {
+        val card = _uiState.value.sheet?.card ?: return
+        val load = saved ?: return run(assist)
+        job?.cancel()
+        job = viewModelScope.launch {
+            val answer = load.await()[assist]
+            when {
+                _uiState.value.sheet?.card != card -> Unit
+                answer != null -> updateSheet { AssistSheet(it.card, assist, text = answer.text, saved = answer, savedAnswers = it.savedAnswers) }
+                else -> {
+                    job = null // run() cancels the job before it starts its own
+                    run(assist)
+                }
+            }
+        }
+    }
+
     private fun run(assist: StudyAssist) {
         val state = _uiState.value
         val sheet = state.sheet ?: return
         val route = state.routeFor(assist) ?: return
         val start = {
             job?.cancel()
-            _uiState.update { it.copy(sheet = AssistSheet(sheet.card, assist, running = true)) }
+            _uiState.update { it.copy(sheet = AssistSheet(sheet.card, assist, running = true, savedAnswers = sheet.savedAnswers)) }
             job = viewModelScope.launch {
                 if (assist == StudyAssist.Rewrite) rewrite(route, sheet.card) else explain(route, assist, sheet.card)
             }
@@ -155,7 +193,11 @@ class StudyAssistViewModel(
         assistRepository.explain(route, assist, card).collect { update ->
             when (update) {
                 is AssistUpdate.Text -> updateSheet { it.copy(text = it.text + update.delta) }
-                is AssistUpdate.Done -> updateSheet { it.copy(running = false, failure = update.failure) }
+                is AssistUpdate.Done -> {
+                    updateSheet { it.copy(running = false, failure = update.failure) }
+                    // The repository kept a complete answer: the menu now shows it as saved.
+                    if (update.failure == null) loadSaved(card)
+                }
             }
         }
     }

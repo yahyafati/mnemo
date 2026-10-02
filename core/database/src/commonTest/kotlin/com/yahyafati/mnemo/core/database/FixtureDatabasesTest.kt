@@ -22,7 +22,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun everyVersionMigratesToTheCurrentOne() = runTest {
-        for (version in 1..4) {
+        for (version in 1..5) {
             val db = openFixture(version)
             try {
                 assertEquals("Biology", db.deckDao().getDeck("d1")?.name, "v$version deck")
@@ -32,7 +32,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
                 // Version 4 seeded the two card types the older databases lack.
                 val types = db.noteDao().getNoteTypes().map { it.id }
                 assertTrue(NoteType.TypeIn.id in types && NoteType.MultipleChoice.id in types, "v$version types")
-                assertEquals(4, DatabaseSnapshot(db).version(), "v$version schema version")
+                assertEquals(5, DatabaseSnapshot(db).version(), "v$version schema version")
             } finally {
                 db.close()
                 databaseFile.delete()
@@ -42,11 +42,12 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun aCurrentDatabaseKeepsItsRowsAndAcceptsWrites() = runTest {
-        val db = openFixture(4)
+        val db = openFixture(5)
         try {
             assertEquals(listOf("bio", "cells::organelles"), db.noteDao().getNote("n1")?.tags)
             assertEquals("Starts with M", db.noteDao().getNote("n1")?.hint)
             assertEquals(1, db.reviewLogDao().getForCards(listOf("c1")).size)
+            assertEquals(listOf("Mitochondria make ATP."), db.aiAnswerDao().getForNote("n1").map { it.text })
             db.deckDao().getDeck("d1")!!.let { db.deckDao().upsert(it.copy(name = "Cells")) }
         } finally {
             db.close()
