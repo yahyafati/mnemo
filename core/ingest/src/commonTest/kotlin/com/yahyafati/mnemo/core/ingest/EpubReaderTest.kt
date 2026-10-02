@@ -60,7 +60,8 @@ class EpubReaderTest {
         assertEquals(listOf(0, 1, 2), result.chapters.map { it.id })
         assertTrue(result.chapters.all { it.kind == ChapterKind.Content && !it.truncated })
         assertTrue(result.chapters[1].text.contains("b1 b2") && !result.chapters[1].text.contains("a1"))
-        assertEquals(152, result.chapters[1].wordCount)
+        // The heading's `#` is a word of its own: "# The Middle" and 150 more.
+        assertEquals(153, result.chapters[1].wordCount)
         assertFalse(result.truncated)
     }
 
@@ -177,7 +178,8 @@ class EpubReaderTest {
         )
         val result = book(read(epub))
         assertEquals(listOf("Chapter 1", "Poem 1", "Poem 2"), result.chapters.map { it.title })
-        assertTrue(result.chapters[0].text.startsWith("Prologue Part"))
+        assertTrue(result.chapters[0].text.startsWith("# Prologue Part"), "the part's heading is not repeated")
+        assertEquals(1, Regex("Prologue Part").findAll(result.chapters[0].text).count())
     }
 
     @Test
@@ -214,6 +216,78 @@ class EpubReaderTest {
     }
 
     // ---- text ----
+
+    @Test
+    fun chaptersKeepTheirHeadingsEmphasisListsAndTables() {
+        val epub = epub3(
+            listOf(
+                Ch(
+                    "a.xhtml",
+                    "A",
+                    "<h1>A</h1><p>Some <em>emphasis</em> and <strong>bold</strong>, plus <code>code</code>.</p>" +
+                        "<ul><li>one<ul><li>nested</li></ul></li><li>two</li></ul>" +
+                        "<table><tr><th>Name</th><th>Role</th></tr><tr><td>ATP</td><td>energy</td></tr></table>" +
+                        "<blockquote><p>Quoted words</p></blockquote>" + chapter("a"),
+                ),
+                Ch("b.xhtml", "B", chapter("b")),
+            ),
+        )
+        val text = book(read(epub)).chapters[0].text
+        assertTrue(text.startsWith("# A\n\nSome *emphasis* and **bold**, plus `code`."), text)
+        assertTrue("- one\n  - nested\n- two" in text, text)
+        assertTrue("| Name | Role |\n| --- | --- |\n| ATP | energy |" in text, text)
+        assertTrue("> Quoted words" in text, text)
+    }
+
+    @Test
+    fun anAnchorStartsItsChapterAtTheHeadingNotInTheMiddleOfTheBlockBefore() {
+        val epub = epub3(
+            listOf(
+                Ch(
+                    "book.xhtml",
+                    "Book",
+                    "<h2 id=\"a\">Alpha</h2><p>An <em>emphasised</em> end.</p><ul><li>last item</li></ul>" + chapter("alpha") +
+                        "<div><span id=\"b\"></span><h2>Beta</h2></div>" + chapter("beta"),
+                ),
+            ),
+            nav = navItem("book.xhtml#a", "Alpha") + navItem("book.xhtml#b", "Beta"),
+        )
+        val chapters = book(read(epub)).chapters
+        assertEquals(listOf("Alpha", "Beta"), chapters.map { it.title })
+        assertTrue(chapters[0].text.startsWith("## Alpha\n\nAn *emphasised* end.\n\n- last item"), chapters[0].text)
+        assertTrue(chapters[0].text.endsWith("alpha150"), "the first chapter ends where the second begins")
+        assertTrue(chapters[1].text.startsWith("## Beta\n\nbeta1 "), chapters[1].text)
+    }
+
+    @Test
+    fun aShortPageIsStillAStubWhateverItsMarksAdd() {
+        // 20 items: 20 words, but 40 "words" (and 60 characters) once each has its `- `.
+        val list = "<ul>" + (1..20).joinToString("") { "<li>x$it</li>" } + "</ul>"
+        val epub = epub3(listOf(Ch("a.xhtml", "Prelude", "<h1>Prelude</h1>$list"), Ch("b.xhtml", "Chapter 1", chapter("b"))))
+        val chapters = book(read(epub)).chapters
+        assertEquals(listOf("Chapter 1"), chapters.map { it.title }, "the stub folds into the chapter after it")
+        assertTrue(chapters[0].text.startsWith("# Prelude\n\n- x1\n"), chapters[0].text)
+    }
+
+    @Test
+    fun aTableOfShortCellsIsNotAChapterBecauseOfItsPipes() {
+        val table = "<table>" + (1..4).joinToString("") { "<tr><td>a$it</td><td>b$it</td><td>c$it</td></tr>" } + "</table>"
+        val epub = epub3(listOf(Ch("a.xhtml", "Key", "<h1>Key</h1>$table"), Ch("b.xhtml", "Chapter 1", chapter("b"))))
+        assertEquals(listOf("Chapter 1"), book(read(epub)).chapters.map { it.title })
+    }
+
+    @Test
+    fun codeBlocksKeepTheirLinesAndASceneBreakIsNotAMarkdownRule() {
+        val epub = epub3(
+            listOf(
+                Ch("a.xhtml", "A", "<pre><code>fun main() {\n\n    println()\n}</code></pre><p>***</p>" + chapter("a")),
+                Ch("b.xhtml", "B", chapter("b")),
+            ),
+        )
+        val text = book(read(epub)).chapters[0].text
+        assertTrue("```\nfun main() {\n\n    println()\n}\n```" in text, text)
+        assertTrue("\\*\\*\\*" in text, text)
+    }
 
     @Test
     fun noPageNumbersFootnotesOrRubyReadings() {

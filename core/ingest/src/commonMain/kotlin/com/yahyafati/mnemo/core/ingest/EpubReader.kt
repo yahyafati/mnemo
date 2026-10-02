@@ -34,7 +34,8 @@ data class EpubLimits(
 /**
  * An EPUB read into chapters (docs/epub/ROADMAP.md B1, ADR 0011). The chapters are the table of
  * contents' (EPUB 3 `nav`, EPUB 2 `toc.ncx`), else the reading order's files. Text only: images,
- * MathML, page numbers, footnotes and ruby readings are left out. A book with DRM fails with
+ * MathML, page numbers, footnotes and ruby readings are left out. A chapter's text is Markdown ([MarkdownText]):
+ * headings, emphasis, lists, quotes, code and tables keep their marks (ADR 0012). A book with DRM fails with
  * [SourceProblem.Drm]; nothing here tries to read protected content.
  *
  * The book is copied to [cacheDir] (a zip needs random access, and the file API only gives a stream),
@@ -425,7 +426,7 @@ private class BookParser(private val zip: ZipFile, private val limits: EpubLimit
         body.allElements.filter { element -> element !== body && (element.epubTypes().any { it in DROPPED_TYPES } || element.attr("role").lowercase() in DROPPED_ROLES) }
             .forEach { it.remove() }
         val anchors = HashMap<String, Int>()
-        val raw = ReadableText.of(body) { element, offset ->
+        val raw = MarkdownText.of(body) { element, offset ->
             if (element.id().isNotEmpty()) anchors.putIfAbsent(element.id(), offset)
             if (element.normalName() == "a" && element.hasAttr("name")) anchors.putIfAbsent(element.attr("name"), offset)
         }
@@ -443,7 +444,7 @@ private class BookParser(private val zip: ZipFile, private val limits: EpubLimit
         return out.toString()
     }
 
-    private fun clean(raw: String) = TextCleanup.normalize(raw)
+    private fun clean(raw: String) = TextCleanup.normalizeMarkdown(raw)
 
     private fun assemble(located: List<Located>, landmarks: Map<String, Set<String>>): List<RawChapter> {
         val end = Pos(spine.size, 0)
@@ -469,7 +470,7 @@ private class BookParser(private val zip: ZipFile, private val limits: EpubLimit
             var chapter = original
             carry?.let { stub ->
                 if (chapter.kind == ChapterKind.Content) {
-                    val lead = if (stub.text.startsWith(stub.title, ignoreCase = true)) stub.text else stub.title + "\n\n" + stub.text
+                    val lead = if (MarkdownText.plain(stub.text).startsWith(stub.title, ignoreCase = true)) stub.text else stub.title + "\n\n" + stub.text
                     chapter = RawChapter(chapter.title, lead + "\n\n" + chapter.text, chapter.kind)
                 } else {
                     out += stub
@@ -482,9 +483,10 @@ private class BookParser(private val zip: ZipFile, private val limits: EpubLimit
         return out
     }
 
-    private fun isShort(text: String) = spacedWords(text) < SHORT_WORDS && text.length < SHORT_CHARS
+    // The thresholds look at the text without its Markdown marks, so a `#` or a `|` never turns a chapter into a stub or back.
+    private fun isShort(text: String) = MarkdownText.plain(text).let { spacedWords(it) < SHORT_WORDS && it.length < SHORT_CHARS }
 
-    private fun isStub(text: String) = spacedWords(text) <= STUB_WORDS && text.length <= STUB_CHARS
+    private fun isStub(text: String) = MarkdownText.plain(text).let { spacedWords(it) <= STUB_WORDS && it.length <= STUB_CHARS }
 
     /**
      * Words between spaces only: the thresholds above pair them with a length in characters, which is what tells

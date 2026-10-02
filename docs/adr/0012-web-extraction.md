@@ -34,7 +34,7 @@ which loses the header row.
 | HTML | Markdown |
 |---|---|
 | `h1`–`h6` | `#`–`######` on their own line, blank line around |
-| block elements (`p`, `div`, `section`, …; `ReadableText`'s set) | paragraphs, one blank line between |
+| block elements (`p`, `div`, `section`, …; the set `ReadableText` had) | paragraphs, one blank line between |
 | `strong`, `b` / `em`, `i` / `s`, `del` | `**…**` / `*…*` / `~~…~~`; empty or whitespace-only emphasis dropped |
 | inline `code` | `` `…` ``, with a longer backtick run when the code contains backticks |
 | `pre` (+ `code class="language-x"`) | fenced block with the language; content exactly as written |
@@ -153,9 +153,11 @@ in the catalog. `NOTICE`, the FOSS dependency check and the F-Droid recipe do no
 
 ### EPUB
 
-`EpubReader` switches to `MarkdownText` in W5, after the converter has proven itself on web pages. Its
-stub and part thresholds are then counted on text without Markdown marks, so a `#` never changes a chapter's
-kind, and the `onElement` offsets that find table-of-contents anchors must keep landing where they do now.
+`EpubReader` switched to `MarkdownText` in W5, after the converter had proven itself on web pages (`ReadableText`
+is gone). Its stub and part thresholds are counted on text without Markdown marks (`MarkdownText.plain`), so a
+`#` never changes a chapter's kind, and the `onElement` offsets that find table-of-contents anchors land where
+they did: the converter reports an element's offset before the blank lines it still owes. A book's word counts
+include the marks, like a link's.
 
 ## Consequences
 

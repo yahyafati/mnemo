@@ -311,4 +311,14 @@ class MarkdownTextTest {
         assertTrue("扁桃体" in text)
         assertFalse("<" in text)
     }
+
+    @Test
+    fun plainTakesTheMarksOffASourceForSizing() {
+        val markdown = "# Title\n\nSome *em* and **bold** with `code` and \\*stars\\*.\n\n- one\n  - two\n1. three\n\n> quoted\n\n" +
+            "| A | B |\n| --- | --- |\n| x \\| y | z |\n\n```kotlin\nval a = 1 * 2\n```"
+        assertEquals(
+            "Title\nSome em and bold with code and stars.\none\ntwo\nthree\nquoted\nA B\nx | y z\nval a = 1  2",
+            MarkdownText.plain(markdown),
+        )
+    }
 }

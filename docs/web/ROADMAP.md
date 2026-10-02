@@ -351,13 +351,27 @@ Choices the step left open:
 
 **Goal:** books get the same structure as web pages.
 
-- [ ] `EpubReader` uses `MarkdownText` and the Markdown-safe cleanup instead of `ReadableText`; the
+- [x] `EpubReader` uses `MarkdownText` and the Markdown-safe cleanup instead of `ReadableText`; the
       `onElement` offsets for table-of-contents anchors still land at the same places (the existing
       `EpubReaderTest` anchor tests are the check).
-- [ ] The stub and part thresholds (30 words / 200 characters; 100 words / 600 characters) are counted
+- [x] The stub and part thresholds (30 words / 200 characters; 100 words / 600 characters) are counted
       on text **without** Markdown marks, so a chapter does not change kind because of a `#`.
-- [ ] `ReadableText` is deleted if nothing uses it any more.
-- [ ] `EpubReaderTest` and the book flow tests updated; word counts in tests re-read from the new text.
+- [x] `ReadableText` is deleted if nothing uses it any more.
+- [x] `EpubReaderTest` and the book flow tests updated; word counts in tests re-read from the new text.
+
+**Done 2026-10-02.** `EpubReader` (`:core:ingest`) reads each spine document with `MarkdownText` and cleans a
+chapter's slice with `TextCleanup.normalizeMarkdown`; `ReadableText.kt` is gone. `MarkdownText.plain(markdown)`
+is the text without its marks, and `isShort` / `isStub` count on it. Tests: `EpubReaderTest` (headings, emphasis,
+lists, quotes, tables and code kept; an anchor that starts a chapter at its heading; a list page and a table page
+that are still stubs), `MarkdownTextTest.plainTakesTheMarksOffASourceForSizing`. What the step changed or left:
+
+- **Anchors need no change.** `MarkdownText` reports an element's offset *before* the blank lines it still owes, so
+  a chapter's slice starts at the heading's `##` and the chapter before ends at its last word.
+- **A chapter's words now include the marks** (`# Title` is three words, `- item` two): the few percent the roadmap
+  expected. `BookChapter.wordCount`, the picker's numbers and the card estimate show them; the thresholds do not.
+- A title page folded into the chapter after it is detected by its text *without* marks (`# Part I` starts with
+  "Part I"), so the title is not written twice.
+- A chapter cut at `maxChapterChars` is cut as plain text: a fence or table at the cut can be left open. Left as it is.
 
 **Exit:** a book's chapters keep headings, emphasis, lists and tables.
 

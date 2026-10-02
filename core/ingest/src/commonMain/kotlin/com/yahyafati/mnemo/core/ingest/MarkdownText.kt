@@ -15,7 +15,7 @@ import org.jsoup.select.NodeTraversor
  * (a layout table is read as paragraphs), math as `\(…\)` / `\[…\]`. Link URLs and images are dropped.
  *
  * The text is written in one pass, so [of]'s `onElement` is told exactly how much text came before each
- * element (the same contract as [ReadableText]): a book finds where a table-of-contents `id` is in the text.
+ * element (the contract [EpubReader] relies on): a book finds where a table-of-contents `id` is in the text.
  * Elements inside a table are all reported at the table's offset, because a table is built cell by cell first.
  */
 internal object MarkdownText {
@@ -24,6 +24,30 @@ internal object MarkdownText {
         converter.run(root)
         return converter.result()
     }
+
+    private val LINE_MARKS = Regex("""^(?:\s*>)*\s*(?:#{1,6}\s+|[-+*]\s+|\d{1,9}[.)]\s+)*""")
+    private val FENCE_LINE = Regex("""^(?:\s*>)*\s*(?:`{3,}|~{3,})[^`]*$""")
+    private val TABLE_DELIMITER_LINE = Regex("""^\s*\|(?:\s*:?-+:?\s*\|)+\s*$""")
+    private val CELL_BORDER = Regex("""\s*(?<!\\)\|\s*""")
+    private val INLINE_MARKS = Regex("""\*\*|~~|[*`]""")
+    private val ESCAPES = Regex("""\\([!-/:-@\[-`{-~])""")
+
+    /**
+     * [markdown] (as [of] writes it) without its marks: heading hashes, list markers, quote prefixes, fences, table
+     * rules and pipes, emphasis and code ticks. For sizes that are compared with a threshold (a book's stub and
+     * title-page checks), so that a `#` or a `|` never changes what a text is taken for.
+     */
+    fun plain(markdown: String): String = markdown.lineSequence()
+        .filterNot { FENCE_LINE.matches(it) || TABLE_DELIMITER_LINE.matches(it) }
+        .map { line ->
+            var text = LINE_MARKS.replace(line, "")
+            if (text.startsWith("|")) text = text.replace(CELL_BORDER, " ")
+            // Escapes go first, so an escaped mark is unescaped first; a literal `*` or backtick is then dropped with the marks (a few characters).
+            text = text.replace(ESCAPES, "$1").replace(INLINE_MARKS, "")
+            text.trim()
+        }
+        .filter { it.isNotEmpty() }
+        .joinToString("\n")
 
     private val BLOCKS = setOf(
         "p", "div", "section", "article", "main", "blockquote", "dl", "dt", "dd", "table", "figure", "figcaption",
