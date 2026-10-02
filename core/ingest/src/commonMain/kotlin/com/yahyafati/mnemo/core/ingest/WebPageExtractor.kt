@@ -9,10 +9,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-import org.jsoup.nodes.Node
-import org.jsoup.nodes.TextNode
-import org.jsoup.select.NodeTraversor
-import org.jsoup.select.NodeVisitor
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
@@ -79,44 +75,7 @@ class WebPageExtractor(client: OkHttpClient, private val pdf: PdfTextExtractor) 
         return SourceResult.Success(SourceText(text.take(MAX_CHARS), title, truncated = text.length > MAX_CHARS))
     }
 
-    /** The element's text with paragraph breaks where blocks are, and list items marked. */
-    private fun readableText(root: Element): String {
-        val out = StringBuilder()
-        NodeTraversor.traverse(
-            object : NodeVisitor {
-                override fun head(node: Node, depth: Int) {
-                    when (node) {
-                        is TextNode -> {
-                            val parent = node.parent() as? Element
-                            if (parent != null && parent.closest("pre") != null) {
-                                out.append(node.wholeText)
-                            } else {
-                                val text = node.text()
-                                if (text.isNotBlank()) {
-                                    if (out.isNotEmpty() && !out.last().isWhitespace() && text.first().isWhitespace()) out.append(' ')
-                                    out.append(text.trim())
-                                    if (text.last().isWhitespace()) out.append(' ')
-                                }
-                            }
-                        }
-                        is Element -> when (node.normalName()) {
-                            "br" -> out.append('\n')
-                            "li" -> out.append("\n- ")
-                            "tr" -> out.append('\n')
-                            "td", "th" -> out.append(" | ")
-                            in BLOCKS -> out.append("\n\n")
-                        }
-                    }
-                }
-
-                override fun tail(node: Node, depth: Int) {
-                    if (node is Element && node.normalName() in BLOCKS) out.append("\n\n")
-                }
-            },
-            root,
-        )
-        return out.toString()
-    }
+    private fun readableText(root: Element): String = ReadableText.of(root)
 
     private fun ByteArray.startsWithPdfMagic() = size >= 5 && String(this, 0, 5, Charsets.ISO_8859_1) == "%PDF-"
 
@@ -128,10 +87,6 @@ class WebPageExtractor(client: OkHttpClient, private val pdf: PdfTextExtractor) 
         private const val USER_AGENT = "Mozilla/5.0 (Linux; Android) Mnemo/1.0"
 
         private val HTML_TYPES = setOf("html", "xhtml+xml")
-        private val BLOCKS = setOf(
-            "p", "div", "section", "article", "main", "blockquote", "pre", "ul", "ol", "dl", "dt", "dd", "table",
-            "h1", "h2", "h3", "h4", "h5", "h6", "figure", "figcaption", "header", "hr",
-        )
         private const val NOISE =
             "script, style, noscript, template, svg, canvas, iframe, object, embed, form, button, input, select, nav, footer, aside, " +
                 "[role=navigation], [role=banner], [role=contentinfo], [role=complementary], [aria-hidden=true], [hidden], " +

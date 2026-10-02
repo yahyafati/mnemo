@@ -100,6 +100,7 @@
 
     <string name="feature_create_source_no_text">There's no text to read. Scanned PDFs and video pages can't be read.</string>
     <string name="feature_create_source_encrypted">This PDF is password-protected.</string>
+    <string name="feature_create_source_drm">This book is protected by DRM. Mnemo can only read books without DRM.</string>
     <string name="feature_create_source_unsupported">This isn't a PDF, web page or text file Mnemo can read.</string>
     <string name="feature_create_source_too_large">The file is too large.</string>
     <string name="feature_create_source_invalid_url">Enter a web address, e.g. en.wikipedia.org/wiki/Amygdala.</string>

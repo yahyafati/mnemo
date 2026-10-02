@@ -157,6 +157,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_via
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_from
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_http
@@ -809,6 +810,7 @@ private fun sourceProblemText(problem: SourceProblem): String = stringResource(
         SourceProblem.Unreachable -> Res.string.feature_create_source_unreachable
         SourceProblem.HttpError -> Res.string.feature_create_source_http
         SourceProblem.FileUnavailable -> Res.string.feature_create_source_unavailable
+        SourceProblem.Drm -> Res.string.feature_create_source_drm
     },
 )
 

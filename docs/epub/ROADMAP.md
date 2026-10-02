@@ -83,7 +83,7 @@ B1 has no UI and can start before B0's ADR is final, once the fixtures exist.
 
 **Goal:** write down the rules that are easy to get wrong, and get test material.
 
-- [ ] **ADR 0011 "EPUB books"** (`docs/adr/0011-epub-books.md`), recording at least:
+- [x] **ADR 0011 "EPUB books"** ([../adr/0011-epub-books.md](../adr/0011-epub-books.md), written 2026-10-02; the owner has not reviewed it yet), recording at least:
   - Option A and why (cost, review fatigue).
   - **DRM stance** (below).
   - **Chapter definition**: the table of contents, with the spine as fallback; the heuristics of B1.
@@ -93,9 +93,13 @@ B1 has no UI and can start before B0's ADR is final, once the fixtures exist.
     backups carrying book files: leave it for a later phase unless the owner wants it.)
   - Text only: images, MathML, footnote popups and ruby readings are dropped (readings: base text only).
   - Limits (numbers in B1).
-- [ ] **Fixtures** in `core/ingest/src/commonTest/resources/epub/`, each tiny (a few KB, built by a
-      script `core/ingest/fixtures/make_epub_fixtures.py` using only `zipfile`, committed with its
-      README like `core/anki/fixtures`). Cover: EPUB 3 with `nav.xhtml`; EPUB 2 with `toc.ncx` only;
+- [x] **Test books.** Done differently from the first plan: no committed binaries and no Python
+      script. `EpubBuilder` (`core/ingest/src/commonTest/.../EpubBuilder.kt`) builds each EPUB in
+      memory, inside the test that reads it, so a test shows the book it uses and nothing needs
+      regenerating. Covered by `EpubReaderTest` (27 tests): everything in this list except that EPUB 3
+      with `nav`, EPUB 2 with `toc.ncx`, no TOC, anchors, nested parts, front matter, font
+      obfuscation vs DRM, picture-only, percent-encoded and `../` hrefs, the `../evil` entry, the
+      bomb, a plain zip, equal titles, `::`, and ruby are all there. Original list: EPUB 3 with `nav.xhtml`; EPUB 2 with `toc.ncx` only;
       no TOC at all (spine fallback); TOC entries pointing at **anchors inside one file**; nested TOC
       (Part → Chapter → Section); a **cover + copyright + dedication** front matter; font obfuscation
       listed in `encryption.xml` (**not** DRM); a text document listed in `encryption.xml` with a
@@ -104,9 +108,10 @@ B1 has no UI and can start before B0's ADR is final, once the fixtures exist.
       not an EPUB (a plain zip); two chapters with the same title; a title containing `::`; a
       Japanese book with ruby.
 - [ ] A real public-domain EPUB or two (Project Gutenberg) for the manual check in B7 only; do **not**
-      commit them.
+      commit them. Not done: none was available offline, so **the reader has only been run on the
+      in-memory books**. Do this before trusting the heuristics.
 
-**Exit:** ADR written and reviewed by the owner; fixtures generate reproducibly.
+**Exit:** ADR written (**owner: review it**); test books in place.
 
 ## B1 — `EpubReader` (`:core:ingest`, `commonMain`)
 
@@ -121,68 +126,94 @@ class EpubReader(private val cacheDir: () -> File /* from AppDirectories */) {
 }
 ```
 
-Returning a model type defined in B2 (`BookSource`, `BookChapter`, `BookResult`).
+Returning model types that B1 needed and so added to `:core:model/Source.kt` (they are B2's first
+item, ticked there): `BookSource`, `BookChapter`, `ChapterKind`, `BookResult`, `SourceProblem.Drm`.
+The reader also takes an `EpubLimits` (all the numbers below, with these defaults) so tests can use
+small ones.
 
-- [ ] **Spool, then `ZipFile`.** `DocumentAccess` only gives a stream, a sequential `ZipInputStream`
+**Status: built and tested on the desktop target and the Android host target (2026-10-02), with these
+differences from the plan below:**
+
+- Chapter and book titles the file doesn't give are left **blank**, not "Section N": the screens
+  and B3 write "Chapter N" in the user's language.
+- Content documents are parsed with jsoup's **HTML** parser after empty elements (`<span/>`) are written
+  out. Without that, jsoup keeps a non-void tag open and swallows the rest of the page (this lost the
+  text after a page-break marker). Only package files (OPF, NCX, container, encryption) use the XML parser.
+  Namespaced elements are matched by local name, not with `dc|title` selectors.
+- **Parts**: an entry named *Part/Book/Volume/Unit/Act/Division …*, with entries under it and a nearly
+  empty page of its own, is not a chapter; its children are, and its page text is dropped (as a
+  boundary, so it doesn't trail the chapter before it). Other entries with children are chapters that
+  contain their sections. See the ADR.
+- **Stubs** (merged into the next chapter) are chapters of **30 words or fewer and 200 characters or
+  fewer**, not 100 words: a 60-word poem is a chapter. The 100-word / 600-character threshold is only
+  used to tell a part's title page from a chapter.
+- The tests use no `PlatformTest` (nothing here needs Android classes) and `EpubBuilder`, not fixture files.
+- Not done: the **shared constants for `DocumentAccess`/`AppDirectories`** are wired in B2 (the reader
+  takes a `cacheDir` lambda), and the Gutenberg check (B0).
+
+- [x] **Spool, then `ZipFile`.** `DocumentAccess` only gives a stream, a sequential `ZipInputStream`
       can't find the OPF before it has passed other entries, and a book can be 100 MB of images. Copy
       the stream to a temp file in `AppDirectories.cache` (cap `MAX_FILE_BYTES`, suggested 100 MB;
       fail `TooLarge` while copying, not after), open `ZipFile`, **always delete the temp file**
       (`finally`). Do not extract anything to disk.
-- [ ] **Locate the package**: `META-INF/container.xml` → `rootfile@full-path` → OPF. Missing or not a
+- [x] **Locate the package**: `META-INF/container.xml` → `rootfile@full-path` → OPF. Missing or not a
       zip → `SourceProblem.Unsupported`. Parse OPF, NCX and nav with `Jsoup.parse(…, Parser.xmlParser())`;
       namespaced selectors need jsoup's `dc|title` form (not `dc:title`).
-- [ ] **Metadata**: title (prefer `title-type=main` / `refines`, else the first `dc:title`), author
+- [x] **Metadata**: title (prefer `title-type=main` / `refines`, else the first `dc:title`), author
       (`dc:creator`), language (`dc:language`). Fall back to the file name.
-- [ ] **Resolve hrefs** relative to the OPF/nav/ncx file's folder: percent-decode, collapse `./` and
+- [x] **Resolve hrefs** relative to the OPF/nav/ncx file's folder: percent-decode, collapse `./` and
       `../`, strip the `#fragment` for the lookup, and reject any path that escapes the zip root.
       Look entries up by exact name, then case-insensitively (real books have mismatches).
-- [ ] **Chapters from the TOC.** EPUB 3: the `<nav epub:type="toc">` (the manifest item with
+- [x] **Chapters from the TOC.** EPUB 3: the `<nav epub:type="toc">` (the manifest item with
       `properties~="nav"`). EPUB 2: `toc.ncx` `navMap`. Neither: one chapter per **linear** spine item,
       titled from the first heading in the file, else "Section N". Top-level entries are chapters;
       deeper levels are folded into their parent (an option for later, not v1).
-- [ ] **Entries that point into the middle of a file.** Several TOC entries can share one XHTML file
+- [x] **Entries that point into the middle of a file.** Several TOC entries can share one XHTML file
       (`ch1.xhtml#a`, `ch1.xhtml#b`). Cut the text between consecutive anchors in document order (walk the
       DOM, start collecting at the element with that `id`, stop at the next anchor of the same file).
       A chapter is also everything from its file up to the next entry's file, including spine files
       between them that the TOC doesn't mention (a chapter split over two files).
-- [ ] **Text**: reuse the readable-text logic of `WebPageExtractor` (extract the shared part into
+- [x] **Text**: reuse the readable-text logic of `WebPageExtractor` (extract the shared part into
       an `internal` helper in `:core:ingest`; don't copy it) and `TextCleanup`. Drop `script`, `style`,
       `nav`, images, `epub:type` `pagebreak` and `noteref` (page numbers like "[12]", footnote marks),
       `rp` and `rt`. Keep headings as paragraph breaks. Use jsoup's HTML parser for chapter files (more
       forgiving than XML); the document's declared encoding wins over a guess, and a BOM is removed.
-- [ ] **Classify** every chapter as `Content`, `FrontMatter` or `BackMatter`: use the `epub:type`/`guide`
+- [x] **Classify** every chapter as `Content`, `FrontMatter` or `BackMatter`: use the `epub:type`/`guide`
       references (`cover`, `copyright-page`, `dedication`, `titlepage`, `toc`, `colophon`, `index`,
       `bibliography`, `acknowledgements`, `endnotes`), then title keywords as a weak second signal
       ("Copyright", "Contents", "Acknowledgments", "Also by", "About the author", "Index", "Notes").
       The picker (B4) shows non-`Content` chapters **unchecked**, never hidden.
-- [ ] **Merge and split.** A chapter with under ~100 words that is not the only content (a section
+- [x] **Merge and split.** A chapter with under ~100 words that is not the only content (a section
       title page, "Part I") merges into the next chapter, keeping its title in the text. A chapter over
       the per-chapter cap is kept whole and flagged `truncated` (decks are cheap; silently splitting a
       chapter surprises people). Keep the original TOC order.
-- [ ] **DRM and encryption.** Parse `META-INF/encryption.xml`. Font obfuscation
+- [x] **DRM and encryption.** Parse `META-INF/encryption.xml`. Font obfuscation
       (`http://www.idpf.org/2008/embedding`, `http://ns.adobe.com/pdf/enc#RC`) is **not** DRM and is
       extremely common: ignore it. If any XHTML/HTML/text document of the spine is listed with another
       algorithm, or `META-INF/rights.xml` exists, fail with `SourceProblem.Drm`. Do not attempt to read
       or decrypt such a book.
-- [ ] **No text** (comics, fixed-layout scans, an image per page): `SourceProblem.NoText`.
-- [ ] **Limits** (constants in a companion, like `PdfTextExtractor`): file 100 MB; at most 5,000 zip
+- [x] **No text** (comics, fixed-layout scans, an image per page): `SourceProblem.NoText`.
+- [x] **Limits** (constants in a companion, like `PdfTextExtractor`): file 100 MB; at most 5,000 zip
       entries; each XML/XHTML entry read to at most 8 MB of **uncompressed** data (count bytes while
       reading: don't trust the entry's declared size, this is the zip-bomb guard); at most 400
       chapters; at most 4,000,000 characters of text in total; 200,000 characters per chapter. When
       a limit hits, return what was read with `truncated = true`, except the file and entry caps,
       which fail with `TooLarge`.
-- [ ] Never log book text or titles.
-- [ ] Tests (`commonTest`, extends `PlatformTest`): one test per fixture of B0 asserting titles, order,
+- [x] Never log book text or titles.
+- [x] Tests (`commonTest`, extends `PlatformTest`): one test per fixture of B0 asserting titles, order,
       word counts (approximate), classification, the DRM vs font-obfuscation distinction, that the
       `../evil` entry is never read and no temp file is left behind, that the bomb stops at the cap
       without reading it all, and that a non-EPUB zip is `Unsupported`.
 
-**Exit:** `./gradlew :core:ingest:desktopTest :core:ingest:testAndroidHostTest` green; the real
-Gutenberg books from B0 produce sensible chapter lists in a scratch test (not committed).
+**Exit:** `./gradlew :core:ingest:desktopTest :core:ingest:testAndroidHostTest` green (done); the
+real Gutenberg books from B0 produce sensible chapter lists in a scratch test, not committed
+(**not done**).
 
 ## B2 — Model and repository wiring
 
-- [ ] `:core:model/Source.kt`:
+- [~] `:core:model/Source.kt` (done in B1, 2026-10-02: `BookSource`, `BookChapter` (with `wordCount`),
+      `ChapterKind`, `BookResult`, `SourceProblem.Drm` and its text in Smart Extract's
+      `sourceProblemText`; **still to do: `SourceInput.Epub`**):
   - `SourceInput.Epub(val uri: String)`.
   - `BookSource(title, author?, language?, chapters: List<BookChapter>, truncated: Boolean)`,
     `BookChapter(id: Int /* TOC order */, title, text, kind: ChapterKind, wordCount, truncated)`,
@@ -196,7 +227,7 @@ Gutenberg books from B0 produce sensible chapter lists in a scratch test (not co
       `FakeAiFeatureRepositories` in `:core:testing` and `SourceRepositoryTest`.
 - [ ] Register `EpubReader` in `dataModule`; add the new classes to `DependencyGraphTest` lists only if
       they take a `SavedStateHandle` (they don't).
-- [ ] The word "Encrypted" in `SourceProblem` means a password-protected PDF; keep `Drm` separate, with
+- [x] The word "Encrypted" in `SourceProblem` means a password-protected PDF; keep `Drm` separate, with
       its own user-facing text ("This book is protected by DRM. Mnemo can only read DRM-free books").
 
 **Exit:** Android and desktop unit tests green.
@@ -275,6 +306,12 @@ in book order, re-importing creates nothing new, and the Android exit check is g
       text and deck already set (same module: pass the chapter through a shared holder/`SavedStateHandle`
       of the Create destination; don't put chapter text in navigation arguments, and don't add a
       cross-feature route). Keep the parsed book in memory only while the Create flow is open.
+- [ ] **Languages without spaces.** `TextChunker` and `SourceText.countWords` count whitespace-separated
+      words, so a Japanese or Chinese chapter is a handful of "words": it would be sent as one huge
+      request and the cost estimate would read ~0. Add a character-aware measure (for example, count a
+      CJK character as half a word) to the chunker and the estimate before this ships; this affects
+      Smart Extract with a pasted text too. The EPUB reader already avoids the problem in its own
+      thresholds (ADR 0011).
 - [ ] Chapters over `TextChunker`'s limit are split into several requests as today. Show the request
       count next to the cost-relevant numbers, and keep the existing `AiDisclosureDialog` before the first
       request.

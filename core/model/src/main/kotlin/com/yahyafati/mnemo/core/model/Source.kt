@@ -54,12 +54,48 @@ enum class SourceProblem {
 
     /** The picked file can't be opened any more. */
     FileUnavailable,
+
+    /** A book protected by DRM: Mnemo only reads DRM-free books and never tries to get around the protection. */
+    Drm,
 }
 
 sealed interface SourceResult {
     data class Success(val source: SourceText) : SourceResult
 
     data class Failure(val problem: SourceProblem, val detail: String? = null) : SourceResult
+}
+
+/** A book (EPUB) read into chapters. Nothing in it is saved until the user creates decks from it. */
+data class BookSource(
+    val title: String,
+    val author: String? = null,
+    /** The book's language tag (`dc:language`), when it names one. */
+    val language: String? = null,
+    val chapters: List<BookChapter>,
+    /** Some of the book was left out (too many chapters, or too much text). */
+    val truncated: Boolean = false,
+)
+
+/** One chapter of a [BookSource], with its plain text. */
+data class BookChapter(
+    /** The chapter's position in the book (0-based, after short pages were merged). Stable for the same file. */
+    val id: Int,
+    val title: String,
+    val text: String,
+    val kind: ChapterKind = ChapterKind.Content,
+    /** The chapter was longer than Mnemo reads and its end was left out. */
+    val truncated: Boolean = false,
+) {
+    val wordCount: Int get() = SourceText.countWords(text)
+}
+
+/** What a chapter is, so the picker can leave covers and copyright pages unchecked. */
+enum class ChapterKind { Content, FrontMatter, BackMatter }
+
+sealed interface BookResult {
+    data class Success(val book: BookSource) : BookResult
+
+    data class Failure(val problem: SourceProblem, val detail: String? = null) : BookResult
 }
 
 /** One event of on-device dictation. */
