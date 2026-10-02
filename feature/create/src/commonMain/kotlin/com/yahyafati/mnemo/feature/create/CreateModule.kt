@@ -8,5 +8,6 @@ import org.koin.dsl.module
 val createModule = module {
     viewModelOf(::NoteEditorViewModel)
     viewModelOf(::SmartExtractViewModel)
+    viewModelOf(::BookImportViewModel)
     viewModelOf(::CoAuthorViewModel)
 }

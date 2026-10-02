@@ -42,7 +42,10 @@ sealed interface AppCommand {
     /** Asks where to save the collection as [format] (File › Export). */
     data class ChooseExportLocation(val format: ExportFormat) : AppCommand
 
-    /** Opens the file at [location] by what it is: an Anki package is imported, a zip is a backup to restore. */
+    /**
+     * Opens the file at [location] by what it is: an Anki package is imported, a zip is a backup to restore,
+     * an EPUB opens the book import.
+     */
     data class OpenFile(val location: String) : AppCommand
 
     data class RestoreBackup(val location: String) : AppCommand
@@ -71,11 +74,13 @@ class AppCommands {
 
 /**
  * The commands for files dropped on the window: every Anki package is imported, one after another;
- * with none, the first backup is offered for restoring. Files of any other kind are not taken.
+ * with none, the first book is opened for import, and with no book either, the first backup is offered
+ * for restoring. Files of any other kind are not taken.
  */
 fun droppedFileCommands(paths: List<String>): List<AppCommand> {
     val packages = paths.filter { FileKind.of(it) == FileKind.AnkiPackage }
     if (packages.isNotEmpty()) return packages.map { AppCommand.OpenFile(it) }
+    paths.firstOrNull { FileKind.of(it) == FileKind.Epub }?.let { return listOf(AppCommand.OpenFile(it)) }
     return listOfNotNull(paths.firstOrNull { FileKind.of(it) == FileKind.Backup }?.let { AppCommand.OpenFile(it) })
 }
 
@@ -87,6 +92,9 @@ enum class FileKind {
     /** A Mnemo backup: `.zip`. Restored. */
     Backup,
 
+    /** A book: `.epub`. Read into chapters, one deck each (docs/epub/ROADMAP.md). */
+    Epub,
+
     Unknown,
     ;
 
@@ -94,6 +102,7 @@ enum class FileKind {
         fun of(location: String): FileKind = when (location.substringAfterLast('.', "").lowercase()) {
             "apkg", "colpkg" -> AnkiPackage
             "zip" -> Backup
+            "epub" -> Epub
             else -> Unknown
         }
     }

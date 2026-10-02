@@ -105,7 +105,7 @@ class MainViewModel(
 
     /**
      * Opens the file at [location] by what it is (an Anki package is imported, a zip is a backup to
-     * restore). Returns true if an import started, so the shell can show the Decks tab and its progress.
+     * restore, a book is left to the shell). Returns true if an import started, so the shell can show the Decks tab and its progress.
      */
     fun openFile(location: String): Boolean = when (FileKind.of(location)) {
         FileKind.AnkiPackage -> {
@@ -116,6 +116,8 @@ class MainViewModel(
             stageRestore(location)
             false
         }
+        // A book has its own screen, which the shell opens (MnemoRoot); there is nothing to start here.
+        FileKind.Epub -> false
         FileKind.Unknown -> {
             _messages.trySend(ShellMessage.UnsupportedFile)
             false

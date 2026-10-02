@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -181,6 +182,7 @@ object MnemoIcons {
     val Usage: ImageVector = Icons.Outlined.DataUsage
 
     // AI creation
+    val Book: ImageVector = Icons.AutoMirrored.Outlined.MenuBook
     val Link: ImageVector = Icons.Outlined.Link
     val Mic: ImageVector = Icons.Outlined.Mic
     val Paste: ImageVector = Icons.Outlined.ContentPaste

@@ -51,6 +51,7 @@ import com.yahyafati.mnemo.core.ui.navigation.BrowseRoute
 import com.yahyafati.mnemo.core.ui.navigation.CreateRoute
 import com.yahyafati.mnemo.core.ui.navigation.NoteEditorRoute
 import com.yahyafati.mnemo.feature.browse.navigation.navigateToBrowse
+import com.yahyafati.mnemo.feature.create.navigation.navigateToBookImport
 import com.yahyafati.mnemo.feature.create.navigation.navigateToNoteEditor
 import com.yahyafati.mnemo.feature.settings.RestoreDialogs
 import com.yahyafati.mnemo.feature.settings.backupFileName
@@ -264,7 +265,11 @@ private fun perform(
         AppCommand.ChooseBackupToRestore -> launchers?.restoreFile?.launch()
         AppCommand.ChooseBackupLocation -> launchers?.backupFile?.launch(backupFileName(Instant.now()))
         is AppCommand.ChooseExportLocation -> launchers?.export?.invoke(command.format)
-        is AppCommand.OpenFile -> if (viewModel.openFile(command.location)) appState.navigateToTopLevelDestination(TopLevelDestination.Decks)
+        is AppCommand.OpenFile -> if (FileKind.of(command.location) == FileKind.Epub) {
+            appState.navController.navigateToBookImport(command.location)
+        } else if (viewModel.openFile(command.location)) {
+            appState.navigateToTopLevelDestination(TopLevelDestination.Decks)
+        }
         is AppCommand.RestoreBackup -> viewModel.stageRestore(command.location)
         is AppCommand.BackUpTo -> viewModel.backUpTo(command.location)
         is AppCommand.ExportTo -> viewModel.exportTo(command.location, command.format)
@@ -281,7 +286,7 @@ private class FileCommandLaunchers(
 
 @Composable
 private fun rememberFileCommandLaunchers(commands: AppCommands): FileCommandLaunchers {
-    val open = rememberFilePicker(listOf(ZIP)) { commands.send(AppCommand.OpenFile(it)) }
+    val open = rememberFilePicker(listOf(ZIP, EPUB)) { commands.send(AppCommand.OpenFile(it)) }
     val restoreFile = rememberFilePicker(listOf(ZIP)) { commands.send(AppCommand.RestoreBackup(it)) }
     val backup = rememberFileSaver(ZIP) { commands.send(AppCommand.BackUpTo(it)) }
     var format by remember { mutableStateOf(ExportFormat.Apkg) }
@@ -295,6 +300,7 @@ private fun rememberFileCommandLaunchers(commands: AppCommands): FileCommandLaun
 }
 
 private const val ZIP = "application/zip"
+private const val EPUB = "application/epub+zip"
 
 /** Over the whole window while a file is dragged above it: what dropping does. */
 @Composable

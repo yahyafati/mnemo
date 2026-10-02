@@ -45,6 +45,7 @@ internal enum class CreateMode { SmartExtract, CoAuthor, Manual }
 @Composable
 internal fun CreateScreen(
     onSetUpAi: () -> Unit,
+    onImportBook: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NoteEditorViewModel = koinViewModel(),
     smartExtractViewModel: SmartExtractViewModel = koinViewModel(),
@@ -86,6 +87,7 @@ internal fun CreateScreen(
                 uiState = smartExtract,
                 onAction = smartExtractViewModel::onAction,
                 onSetUpAi = onSetUpAi,
+                onImportBook = onImportBook,
                 modifier = Modifier.weight(1f),
             )
             CreateMode.CoAuthor -> CoAuthorScreen(

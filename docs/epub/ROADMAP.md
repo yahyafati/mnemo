@@ -282,34 +282,49 @@ real Gutenberg books from B0 produce sensible chapter lists in a scratch test, n
 
 **Goal:** the user picks an EPUB, chooses chapters, and gets the decks.
 
-- [ ] `BookImportViewModel` + `BookImportScreen` (+ `BookImportUiState`/`Action`) following the Route/Screen
-      split (ARCHITECTURE §4.1) and the shape of `SmartExtractViewModel`. State: reading, problem,
-      the `BookSource`, per-chapter checked state, book name (editable), existing decks (to mark
-      chapters that already have one), creating, result.
-- [ ] **Screen**: title and author, an editable book (root) deck name, a chapter list with a checkbox,
-      title and word count each, **Select all / none / content only**, a summary ("12 of 14 chapters,
-      ~38,000 words"), and the primary action "Create decks". Front/back matter unchecked but visible.
-      No AI is involved on this screen. After creating: a message and, per chapter, a way to go on to
-      B5 ("Generate cards"). Handle `Drm`, `NoText`, `Unsupported`, `TooLarge`, `FileUnavailable` with
-      specific texts. Large lists use `LazyColumn`; a 400-chapter book must stay smooth.
-- [ ] **Entry points**: an "Import a book (EPUB)" action in the Create tab (next to Smart Extract; don't
-      add a fourth mode if an action fits), using `rememberFilePicker(listOf("application/epub+zip"))`;
-      check that the **desktop** picker maps that MIME type to `.epub` (extend its mapping if not).
-      On desktop add `FileKind.Epub` (`"epub"`) to `FileKind.of` and handle it in `MnemoRoot`'s drop
-      target and `AppCommand.OpenFile` so a dropped or "opened with" `.epub` goes to the import screen
-      (update `DesktopIntegration`/`OpenRequests` only if that path filters by extension). Android
-      "Open with Mnemo" for `.epub` (a `VIEW` intent filter) is optional: leave it out unless cheap, and if
-      added, mind CLAUDE.md's release rules (no new permissions).
-- [ ] Keyboard (desktop): Space toggles the focused chapter, Ctrl/⌘+A selects all; add to `Shortcuts`
-      and the `?` sheet only if a new shortcut is introduced (CLAUDE.md "Desktop experience").
-- [ ] Strings, `@Preview`, ViewModel tests in `commonTest` (fakes: `FakeSourceRepository`,
-      `FakeDeckRepository`), Compose tests in `androidHostTest`, Roborazzi screenshots (record on
-      Android; desktop only if there is a desktop-specific layout), accessibility labels on every
-      checkbox row (title + word count).
-- [ ] `DesktopAppTest`: drop an `.epub` fixture, pick chapters, create, see the decks.
+**Status: built and tested on Android and desktop (2026-10-02), with these differences from the plan below:**
 
-**Exit:** on a device/emulator and on desktop, importing a real book gives the numbered chapter decks
-in book order, re-importing creates nothing new, and the Android exit check is green.
+- The screen is its own full-screen route, `BookImportRoute(location: String? = null)` (`:core:ui/navigation`,
+  `navigateToBookImport(location)`), not a mode of the Create tab: `BookImportFullScreen` owns its top bar and the
+  shell hides its bars. A `location` (a dropped or "opened with" file) is read on arrival, otherwise the screen
+  asks for a file. Opening a book while the screen is already open replaces it.
+- The Create tab's entry is `BookImportEntry`, a card at the top of Smart Extract (also shown **without an AI
+  provider**: making decks needs none). `SmartExtractScreen(onImportBook = null)` leaves it out.
+- Blank chapter titles and a blank book title are filled in by the ViewModel with the localized "Chapter N" /
+  "Untitled book" (`getString`), so the list, the existing-deck check and the deck names agree.
+  Its test extends `PlatformTest`: compose resources don't load in a plain Android host test.
+- Word counts are computed once per book (`BookImportUiState.wordCounts`); `BookChapter.wordCount` is a pass over
+  the text and the summary needs the sum.
+- Checked on arrival: the `Content` chapters. A chapter that already has a deck (found by computing
+  `BookDeckNames.chapter(...)`, under a root of the typed name, ignoring case) is marked "Has a deck" and stays
+  selectable; creating it reuses the deck, and the result says how many were new and how many existed.
+- Desktop: `FileKind.Epub`; `droppedFileCommands` puts packages first, then the first book, then a backup;
+  `AppCommand.OpenFile` of an `.epub` opens the screen (`MnemoRoot.perform`; `MainViewModel.openFile` leaves
+  books to the shell); File › Import… also offers `.epub` (the picker maps `application/epub+zip` to `epub`).
+  `OpenRequests` filters its own marker files only, so "opened with" works as for packages. The screen has no
+  drop target of its own: the shell's takes the drop anywhere.
+- Not done: **the per-chapter "Generate cards" on the result screen** (it belongs to B5, which decides how the chapter
+  text reaches Smart Extract; the result screen now says the decks are empty and points to adding cards by hand);
+  **Ctrl/⌘+A** (a global select-all would fight the name field's; the All / Content only / None chips are on screen,
+  and Space toggles a focused row because the row is a `toggleable`); the Android "Open with Mnemo" intent filter;
+  a `.epub` file association in the installers (it would take the default away from people's readers).
+
+- [x] `BookImportViewModel` + `BookImportScreen` (+ `BookImportUiState`/`Action`), tests in `BookImportViewModelTest`
+      (`commonTest`, both targets), `BookImportScreenTest` (`androidHostTest`).
+- [x] **Screen**: title and author, editable book deck name, chapter list with checkbox, title and word count,
+      All / Content only / None, summary ("12 of 14 chapters selected · 38000 words"), "Create N decks";
+      front/back matter unchecked but visible; `Drm`, `NoText`, `Unsupported`, `TooLarge`, `FileUnavailable` each
+      have a text; `LazyColumn` with keys.
+- [x] **Entry points**: Create tab card; desktop drop, File › Import… and "opened with" (see above).
+- [x] Strings, `@Preview`, screenshots (`create_book_import_{light,dark,drm}.png`), row labels read as
+      "title, details" (the row merges its texts into the checkbox).
+- [x] `DesktopAppTest.aBookOpenedFromTheMenuOrDroppedBecomesADeckPerChapter`; `DesktopGraphTest` and
+      `DependencyGraphTest` list the new ViewModel.
+- [ ] Per-chapter "Generate cards" after creating (B5).
+- [ ] Try it on a device and in the real desktop window with a Gutenberg book (B7).
+
+**Exit:** the Android exit check and `desktopTest` / `:desktop:test` are green; importing a real book on a device
+and on the desktop is still to be tried by hand (B7).
 
 ## B5 — Generate cards for a chapter
 

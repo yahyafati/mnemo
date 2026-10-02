@@ -3,11 +3,15 @@ package com.yahyafati.mnemo.feature.create
 import androidx.compose.ui.text.input.TextFieldValue
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.model.BookChapter
+import com.yahyafati.mnemo.core.model.BookSource
+import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DuplicateGroup
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorMessage
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorScreen
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorUiState
@@ -52,6 +56,48 @@ class CreateScreenshotTest {
 
     @Test
     fun coAuthorDark() = captureRoboImage("src/androidHostTest/screenshots/create_coauthor_dark.png") { CoAuthor(dark = true) }
+
+    @Test
+    fun bookImportLight() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_light.png") { BookImport(dark = false) }
+
+    @Test
+    fun bookImportDark() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_dark.png") { BookImport(dark = true) }
+
+    @Test
+    fun bookImportDrm() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_drm.png") {
+        MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun BookImport(dark: Boolean) {
+        fun chapter(id: Int, title: String, words: Int, kind: ChapterKind = ChapterKind.Content) =
+            BookChapter(id, title, "word ".repeat(words), kind)
+        val book = BookSource(
+            title = "On the Origin of Species",
+            author = "Charles Darwin",
+            chapters = listOf(
+                chapter(0, "Title page", 12, ChapterKind.FrontMatter),
+                chapter(1, "Variation under domestication", 5200),
+                chapter(2, "Variation under nature", 3100),
+                chapter(3, "Struggle for existence", 4100),
+                chapter(4, "Natural selection", 7300),
+                chapter(5, "Glossary and index", 900, ChapterKind.BackMatter),
+            ),
+        )
+        MnemoTheme(darkTheme = dark) {
+            BookImportScreen(
+                uiState = BookImportUiState(
+                    book = book,
+                    wordCounts = book.chapters.associate { it.id to it.wordCount },
+                    bookName = book.title,
+                    checked = setOf(1, 2, 3, 4),
+                    existing = setOf(1),
+                ),
+                onAction = {},
+                onClose = {},
+            )
+        }
+    }
 
     @androidx.compose.runtime.Composable
     private fun CoAuthor(dark: Boolean) {

@@ -63,6 +63,7 @@ object DesktopFileDialogs {
                 "audio/*" -> listOf("mp3", "ogg", "wav", "m4a", "flac", "opus", "aac")
                 "application/pdf" -> listOf("pdf")
                 "application/zip" -> listOf("zip", "apkg", "colpkg")
+                "application/epub+zip" -> listOf("epub")
                 "application/json" -> listOf("json")
                 "text/plain" -> listOf("txt", "md")
                 else -> emptyList()

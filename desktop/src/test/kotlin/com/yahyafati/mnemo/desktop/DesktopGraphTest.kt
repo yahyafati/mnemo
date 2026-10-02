@@ -42,6 +42,7 @@ class DesktopGraphTest {
         val VIEW_MODELS_WITH_ARGUMENTS = listOf(
             "com.yahyafati.mnemo.feature.study.StudyViewModel",
             "com.yahyafati.mnemo.feature.create.NoteEditorViewModel",
+            "com.yahyafati.mnemo.feature.create.BookImportViewModel",
             "com.yahyafati.mnemo.feature.create.coauthor.CoAuthorViewModel",
             "com.yahyafati.mnemo.feature.browse.BrowseViewModel",
             "com.yahyafati.mnemo.feature.settings.ai.ProviderEditorViewModel",

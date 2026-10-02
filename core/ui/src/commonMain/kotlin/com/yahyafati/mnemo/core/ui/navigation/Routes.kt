@@ -37,6 +37,14 @@ data class StudySessionRoute(val deckId: String)
 data class NoteEditorRoute(val noteId: String? = null, val deckId: String? = null)
 
 /**
+ * Import a book (EPUB) into one deck per chapter. Reads the book at [location] on arrival (a file that was
+ * dropped or opened with Mnemo); without one, the screen asks for a file. Property names double as
+ * `SavedStateHandle` keys.
+ */
+@Serializable
+data class BookImportRoute(val location: String? = null)
+
+/**
  * The card browser, filtered to [deckId] and its subdecks when given. [focusSearch] puts the cursor
  * in the search box on arrival (Find, on a computer).
  */

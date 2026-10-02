@@ -193,6 +193,8 @@ internal fun SmartExtractScreen(
     onAction: (SmartExtractAction) -> Unit,
     onSetUpAi: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the book import; null leaves its entry out. */
+    onImportBook: (() -> Unit)? = null,
 ) {
     val snackbar = remember { SnackbarHostState() }
     val message = uiState.message?.let { messageText(it) }
@@ -222,11 +224,14 @@ internal fun SmartExtractScreen(
                     .padding(horizontal = MnemoTheme.spacing.screenMargin, vertical = MnemoTheme.spacing.md),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                AiSetupPrompt(
-                    onSetUp = onSetUpAi,
-                    message = stringResource(Res.string.feature_create_smart_setup),
-                    modifier = Modifier.widthIn(max = 680.dp),
-                )
+                Column(Modifier.widthIn(max = 680.dp), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md)) {
+                    AiSetupPrompt(
+                        onSetUp = onSetUpAi,
+                        message = stringResource(Res.string.feature_create_smart_setup),
+                    )
+                    // Making the decks of a book needs no provider.
+                    if (onImportBook != null) BookImportEntry(onImportBook)
+                }
             }
             else -> {
                 val acceptable = uiState.acceptable.size
@@ -245,6 +250,7 @@ internal fun SmartExtractScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md),
                 ) {
+                    if (onImportBook != null) item(key = "book") { BookImportEntry(onImportBook, Modifier.widthIn(max = 680.dp)) }
                     item(key = "workshop") { Workshop(uiState, uiState.route, onAction, onSetUpAi, Modifier.widthIn(max = 680.dp)) }
                     item(key = "queue-header") { QueueHeader(uiState, onAction, Modifier.widthIn(max = 680.dp)) }
                     itemsIndexed(uiState.queue, key = { _, item -> item.card.id }) { index, item ->

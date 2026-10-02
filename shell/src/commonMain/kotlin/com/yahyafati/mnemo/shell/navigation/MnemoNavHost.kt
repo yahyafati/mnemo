@@ -7,7 +7,9 @@ import com.yahyafati.mnemo.core.ui.navigation.DecksRoute
 import com.yahyafati.mnemo.feature.analytics.navigation.analyticsScreen
 import com.yahyafati.mnemo.feature.browse.navigation.browseScreen
 import com.yahyafati.mnemo.feature.browse.navigation.navigateToBrowse
+import com.yahyafati.mnemo.feature.create.navigation.bookImportScreen
 import com.yahyafati.mnemo.feature.create.navigation.createScreen
+import com.yahyafati.mnemo.feature.create.navigation.navigateToBookImport
 import com.yahyafati.mnemo.feature.create.navigation.navigateToNoteEditor
 import com.yahyafati.mnemo.feature.create.navigation.noteEditorScreen
 import com.yahyafati.mnemo.feature.decks.navigation.decksScreen
@@ -47,7 +49,10 @@ fun MnemoNavHost(
             onEditNote = editNote,
             onBackToDecks = { appState.navigateToTopLevelDestination(TopLevelDestination.Decks) },
         )
-        createScreen(onSetUpAi = { navController.navigateToAiProviders() })
+        createScreen(
+            onSetUpAi = { navController.navigateToAiProviders() },
+            onImportBook = { navController.navigateToBookImport() },
+        )
         analyticsScreen(onEditNote = editNote)
         settingsScreen(
             onBackClick = navController::popBackStack,
@@ -63,6 +68,7 @@ fun MnemoNavHost(
         aiProviderEditorScreen(onClose = navController::popBackStack)
         studySessionScreen(onClose = navController::popBackStack, onEditNote = editNote)
         noteEditorScreen(onClose = navController::popBackStack)
+        bookImportScreen(onClose = navController::popBackStack)
         browseScreen(onBack = navController::popBackStack, onEditNote = editNote)
     }
 }

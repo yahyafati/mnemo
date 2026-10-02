@@ -86,6 +86,7 @@ class MainViewModelTest {
     fun droppedFilesBecomeCommands() {
         assertEquals(FileKind.AnkiPackage, FileKind.of("deck.APKG"))
         assertEquals(FileKind.Backup, FileKind.of("/tmp/mnemo-backup-2026-10-01.zip"))
+        assertEquals(FileKind.Epub, FileKind.of("/Books/Dune.EPUB"))
         assertEquals(FileKind.Unknown, FileKind.of("/tmp/notes"))
 
         // Every package is imported; with none, the first backup is offered.
@@ -94,6 +95,9 @@ class MainViewModelTest {
             droppedFileCommands(listOf("a.apkg", "b.zip", "c.colpkg", "d.txt")),
         )
         assertEquals(listOf(AppCommand.OpenFile("b.zip")), droppedFileCommands(listOf("d.txt", "b.zip", "e.zip")))
+        // A book comes before a backup, and after the packages.
+        assertEquals(listOf(AppCommand.OpenFile("a.epub")), droppedFileCommands(listOf("b.zip", "a.epub", "c.epub")))
+        assertEquals(listOf(AppCommand.OpenFile("a.apkg")), droppedFileCommands(listOf("a.epub", "a.apkg")))
         assertTrue(droppedFileCommands(listOf("d.txt")).isEmpty())
     }
 }

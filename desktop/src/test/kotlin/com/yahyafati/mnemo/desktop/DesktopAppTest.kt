@@ -8,6 +8,7 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
@@ -46,8 +47,11 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.koin.dsl.module
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -392,6 +396,50 @@ class DesktopAppTest {
         // Something that is neither a package nor a backup is turned down, with a reason.
         commands.send(AppCommand.OpenFile("/home/me/photo.png"))
         await("Mnemo opens Anki packages", substring = true)
+    }
+
+    @Test
+    fun aBookOpenedFromTheMenuOrDroppedBecomesADeckPerChapter() = runComposeUiTest {
+        val session = open()
+        runBlocking { session.koin.get<UserSettingsRepository>().setOnboardingCompleted(true) }
+        val book = File(root, "Field Notes.epub").apply { writeBytes(smallEpub()) }
+        val commands = AppCommands()
+        showApp(session, commands)
+        await("No decks yet")
+
+        // Dropped on the window: the book is read, and its two chapters are listed, checked.
+        commands.send(AppCommand.OpenFile(book.absolutePath))
+        await("2 of 2 chapters selected", substring = true)
+        onNodeWithText("Birds").assertIsOn()
+        onNodeWithText("Create 2 decks").performClick()
+        await("Decks are ready")
+
+        val decks = runBlocking { session.koin.get<DeckRepository>().getDecks() }
+        assertEquals(listOf("01 Birds", "02 Bees"), decks.filter { it.parentId != null }.map { it.name }.sorted())
+        assertEquals("Field Notes", decks.single { it.parentId == null }.name)
+        onNodeWithText("Done").performClick()
+        await("Field Notes")
+    }
+
+    /** A book with two chapters of enough words to count as chapters. */
+    private fun smallEpub(): ByteArray {
+        fun page(title: String) = """<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>$title</title></head><body><h1>$title</h1><p>${"word ".repeat(80)}</p></body></html>"""
+        val files = linkedMapOf(
+            "META-INF/container.xml" to """<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>""",
+            "OEBPS/content.opf" to """<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Field Notes</dc:title><dc:language>en</dc:language></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="a" href="a.xhtml" media-type="application/xhtml+xml"/><item id="b" href="b.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="a"/><itemref idref="b"/></spine></package>""",
+            "OEBPS/nav.xhtml" to """<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="a.xhtml">Birds</a></li><li><a href="b.xhtml">Bees</a></li></ol></nav></body></html>""",
+            "OEBPS/a.xhtml" to page("Birds"),
+            "OEBPS/b.xhtml" to page("Bees"),
+        )
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            for ((name, text) in files) {
+                zip.putNextEntry(ZipEntry(name))
+                zip.write(text.toByteArray())
+                zip.closeEntry()
+            }
+        }
+        return out.toByteArray()
     }
 
     @Test

@@ -209,4 +209,53 @@
     <string name="feature_create_coauthor_applied">Card updated</string>
     <string name="feature_create_coauthor_not_applicable">This rewrite can't be applied: it left a side empty or changed the cloze numbers.</string>
     <string name="feature_create_coauthor_disclosure">this deck's cards as plain text (up to 150), and your messages,</string>
+
+    <!-- Import a book (EPUB): docs/epub/ROADMAP.md, B4 -->
+    <string name="feature_create_book_title">Import a book</string>
+    <string name="feature_create_book_back">Back</string>
+    <string name="feature_create_book_untitled">Untitled book</string>
+    <string name="feature_create_book_chapter_default">Chapter %1$d</string>
+    <string name="feature_create_book_entry_title">Import a book</string>
+    <string name="feature_create_book_entry_message">Make a deck for each chapter of an EPUB. The decks start empty; nothing is sent to an AI provider until you ask for cards.</string>
+    <string name="feature_create_book_choose">Choose an EPUB</string>
+    <string name="feature_create_book_empty_title">Choose a book</string>
+    <string name="feature_create_book_empty_message">Pick an EPUB book without DRM. You choose the chapters, and Mnemo makes one empty deck for each. Cards come later, only when you ask for them.</string>
+    <string name="feature_create_book_reading">Reading the book…</string>
+    <string name="feature_create_book_by">by %1$s</string>
+    <string name="feature_create_book_name">Book deck name</string>
+    <string name="feature_create_book_name_hint">The chapters become decks inside this one.</string>
+    <string name="feature_create_book_chapters">Chapters</string>
+    <string name="feature_create_book_select_all">All</string>
+    <string name="feature_create_book_select_none">None</string>
+    <string name="feature_create_book_select_content">Content only</string>
+    <plurals name="feature_create_book_summary">
+        <item quantity="one">%1$d of %2$d chapter selected · %3$d words</item>
+        <item quantity="other">%1$d of %2$d chapters selected · %3$d words</item>
+    </plurals>
+    <string name="feature_create_book_exists_note">%1$d already have a deck.</string>
+    <string name="feature_create_book_front_matter">Front matter</string>
+    <string name="feature_create_book_back_matter">Back matter</string>
+    <string name="feature_create_book_has_deck">Has a deck</string>
+    <string name="feature_create_book_cut_short">Cut short</string>
+    <string name="feature_create_book_truncated">This book is longer than Mnemo reads. Its end was left out.</string>
+    <plurals name="feature_create_book_create">
+        <item quantity="one">Create %1$d deck</item>
+        <item quantity="other">Create %1$d decks</item>
+    </plurals>
+    <string name="feature_create_book_creating">Creating decks…</string>
+    <string name="feature_create_book_create_failed">Couldn't create the decks. Try again.</string>
+    <string name="feature_create_book_done_title">Decks are ready</string>
+    <plurals name="feature_create_book_done_created">
+        <item quantity="one">%1$d new deck in %2$s.</item>
+        <item quantity="other">%1$d new decks in %2$s.</item>
+    </plurals>
+    <plurals name="feature_create_book_done_reused">
+        <item quantity="one">%1$d chapter already had its deck.</item>
+        <item quantity="other">%1$d chapters already had their decks.</item>
+    </plurals>
+    <string name="feature_create_book_done_next">The decks are empty. Add cards by hand, or use Smart Extract on a chapter's text.</string>
+    <string name="feature_create_book_done">Done</string>
+    <string name="feature_create_book_another">Import another book</string>
+    <string name="feature_create_book_no_text">This book has no text to read, only pictures.</string>
+    <string name="feature_create_book_unsupported">This isn't an EPUB book Mnemo can read.</string>
 </resources>
