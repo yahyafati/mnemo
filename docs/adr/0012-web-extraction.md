@@ -151,6 +151,13 @@ OkHttp and jsoup, already in `:core:ingest`; JSON, if a site needs it, through k
 in the catalog. `NOTICE`, the FOSS dependency check and the F-Droid recipe do not change. The code is
 `commonMain`, one implementation for Android and the desktop.
 
+### Pages that are not articles (W7)
+
+A disambiguation page returns its lists with `SourceText.disambiguation` set, and Smart Extract says it only lists
+other articles. A `Special:` or `Media:` link (tools and files) fails with `SourceProblem.NotAnArticle` without a
+request, instead of being read generically as whatever form the server returns. Other namespaces are readable text
+and still go to the generic extractor.
+
 ### EPUB
 
 `EpubReader` switched to `MarkdownText` in W5, after the converter had proven itself on web pages (`ReadableText`

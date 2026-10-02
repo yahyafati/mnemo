@@ -417,12 +417,30 @@ and `guide-with-sections.html`) and `MarkdownSectionsTest`. Choices the step lef
 - [ ] **(owner)** Try about 20 real links on a phone and on the desktop: Wikipedia in three languages,
       a math-heavy article, news sites, blogs, documentation (MDN, Kotlin docs), a PDF link, a page with
       cookie walls. Note in a short log at the end of this file what read well and what didn't.
-- [ ] Error texts: a disambiguation page and a special page say something useful.
-- [ ] `CLAUDE.md`, `docs/ARCHITECTURE.md` (§3 tree line, §5.2 "plain text" → "Markdown"), ADR 0012
+- [x] Error texts: a disambiguation page and a special page say something useful.
+- [x] `CLAUDE.md`, `docs/ARCHITECTURE.md` (§3 tree line, §5.2 "plain text" → "Markdown"), ADR 0012
       updated; `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` and
       `docs/release/release-notes.md` mention cleaner links and Wikipedia sections.
 
-**Exit:** QA log written; docs current.
+**Done 2026-10-02** except the owner's pass on real links (the log below stays empty until then). What the step did:
+
+- **A disambiguation page** still returns its lists, and now says so: `SourceText.disambiguation` (set by
+  `WikipediaExtractor` from `WikipediaArticle.disambiguation`) shows a hint under the box in Smart Extract ("it only
+  lists other articles. Open the one you mean"). It clears with the next read or Clear.
+- **A `Special:` or `Media:` link** (English names) fails with the new `SourceProblem.NotAnArticle` without a request;
+  `WikipediaExtractor.handles` claims them so the generic extractor does not read a search form as an article. Other
+  namespaces (`Talk:`, `File:` …) are still read generically.
+- Docs: `ARCHITECTURE.md` §3's module table row (the tree line and §5.2 were already Markdown), ADR 0012 and
+  `CLAUDE.md`'s web paragraph. The release text is the F-Droid changelog `changelogs/1.txt`; the release notes
+  (`docs/release/release-notes.md`) are a template that embeds the changelog, so they carry no feature text of their own.
+
+**Exit:** QA log written (**owner**); docs current.
+
+### QA log (owner)
+
+| Date | Link | Device | Read well / not | Notes |
+|---|---|---|---|---|
+| | | | | |
 
 ---
 

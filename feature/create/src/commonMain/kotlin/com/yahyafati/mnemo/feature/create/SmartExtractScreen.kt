@@ -207,6 +207,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_via
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_disambiguation
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_epub
@@ -215,6 +216,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_source_http
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_invalid_url
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_link
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_no_text
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_not_an_article
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_paste
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_pdf
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_placeholder
@@ -907,6 +909,7 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
             modifier = Modifier.fillMaxWidth(),
         )
         if (uiState.truncated) Hint(stringResource(Res.string.feature_create_source_truncated))
+        if (uiState.disambiguation) Hint(stringResource(Res.string.feature_create_source_disambiguation))
     }
 }
 
@@ -1181,6 +1184,7 @@ private fun sourceProblemText(problem: SourceProblem): String = stringResource(
         SourceProblem.Unreachable -> Res.string.feature_create_source_unreachable
         SourceProblem.HttpError -> Res.string.feature_create_source_http
         SourceProblem.FileUnavailable -> Res.string.feature_create_source_unavailable
+        SourceProblem.NotAnArticle -> Res.string.feature_create_source_not_an_article
         SourceProblem.Drm -> Res.string.feature_create_source_drm
     },
 )

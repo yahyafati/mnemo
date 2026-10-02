@@ -20,6 +20,8 @@ internal class WikipediaArticle(
     val text: String,
     /** In document order; a subsection follows its parent and starts where its own text starts. */
     val sections: List<Section>,
+    /** The page only lists other articles that share a title. */
+    val disambiguation: Boolean = false,
 ) {
     /**
      * One section's own text (its heading and what is above its first subsection) as the range [start], [end]
@@ -34,7 +36,7 @@ internal class WikipediaArticle(
             val disambiguation = document.selectFirst(DISAMBIGUATION) != null
             document.select(CHROME).remove()
             val body = document.body()
-            if (body.selectFirst(SECTION) == null) return WikipediaArticle(title, tidy(MarkdownText.of(body)), emptyList())
+            if (body.selectFirst(SECTION) == null) return WikipediaArticle(title, tidy(MarkdownText.of(body)), emptyList(), disambiguation)
 
             // Subsections first, so a section whose only content was dropped is empty by the time it is asked.
             for (section in body.select(SECTION).asReversed()) if (unwanted(section, disambiguation)) section.remove()
@@ -52,7 +54,7 @@ internal class WikipediaArticle(
                 val heading = heading(section)
                 sections += Section(heading?.text()?.trim(), heading?.normalName()?.drop(1)?.toIntOrNull() ?: 0, start, text.length)
             }
-            return WikipediaArticle(title, text.toString(), sections)
+            return WikipediaArticle(title, text.toString(), sections, disambiguation)
         }
 
         private fun tidy(markdown: String) = TextCleanup.normalizeMarkdown(markdown).trim()

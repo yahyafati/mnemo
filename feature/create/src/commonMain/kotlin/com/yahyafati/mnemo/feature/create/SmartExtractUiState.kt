@@ -32,6 +32,8 @@ data class SmartExtractUiState(
     val sourceProblem: SourceProblem? = null,
     /** The PDF, page or chapter was longer than Mnemo reads. */
     val truncated: Boolean = false,
+    /** The page read was a disambiguation page: a list of other articles, worth saying before cards are made from it. */
+    val disambiguation: Boolean = false,
     /** How many requests [text] is sent in (one per part); 0 for no text. More than one is worth saying. */
     val requests: Int = 0,
     /** The sections of the page the link was read from (W4), null when the page has none to pick from. */

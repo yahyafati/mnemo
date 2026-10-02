@@ -27,6 +27,8 @@ data class SourceText(
      * source that has none. Only extractors that know the structure fill it.
      */
     val sections: List<SourceSection> = emptyList(),
+    /** The page is a disambiguation page: it lists other articles and says little itself. */
+    val disambiguation: Boolean = false,
 ) {
     val wordCount: Int get() = countWords(text)
 
@@ -69,6 +71,9 @@ enum class SourceProblem {
 
     /** The server answered with an error status. */
     HttpError,
+
+    /** The link is to a page that has no article to read (Wikipedia's `Special:` pages, say). */
+    NotAnArticle,
 
     /** The picked file can't be opened any more. */
     FileUnavailable,

@@ -33,6 +33,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -214,6 +215,27 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.DiscardAll)
         assertTrue(vm.state.queue.isEmpty())
         assertTrue(cards.notes.value.isEmpty())
+    }
+
+    @Test
+    fun aDisambiguationPageIsFlaggedUntilTheNextReadOrClear() = runTest {
+        val vm = readyViewModel(text = "")
+        sources.results[SourceInput.Link("example.com/m")] = SourceResult.Success(SourceText("- Mercury (planet)", disambiguation = true))
+        sources.results[SourceInput.Link("example.com/a")] = SourceResult.Success(SourceText("An article."))
+        vm.onAction(SmartExtractAction.SelectSource(SourceKind.Link))
+
+        vm.onAction(SmartExtractAction.LinkChanged("example.com/m"))
+        vm.onAction(SmartExtractAction.FetchLink)
+        assertTrue(vm.state.disambiguation)
+
+        vm.onAction(SmartExtractAction.LinkChanged("example.com/a"))
+        vm.onAction(SmartExtractAction.FetchLink)
+        assertFalse(vm.state.disambiguation)
+
+        vm.onAction(SmartExtractAction.LinkChanged("example.com/m"))
+        vm.onAction(SmartExtractAction.FetchLink)
+        vm.onAction(SmartExtractAction.ClearText)
+        assertFalse(vm.state.disambiguation)
     }
 
     @Test

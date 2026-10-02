@@ -141,6 +141,28 @@ class WikipediaExtractorTest : PlatformTest() {
     }
 
     @Test
+    fun aDisambiguationPageSaysSoAndAnArticleDoesNot() {
+        server.enqueue(page("mercury-disambiguation.html"))
+        assertTrue(read("https://en.wikipedia.org/wiki/Mercury_(disambiguation)").disambiguation)
+        server.enqueue(page("amygdala.html"))
+        assertFalse(read("https://en.wikipedia.org/wiki/Amygdala").disambiguation)
+    }
+
+    @Test
+    fun aSpecialPageIsNotAnArticleAndNothingIsRequested() {
+        for (link in listOf(
+            "https://en.wikipedia.org/wiki/Special:Search?search=brain",
+            "https://en.wikipedia.org/wiki/Special:Random",
+            "https://en.wikipedia.org/w/index.php?title=Special:Search",
+            "https://en.wikipedia.org/wiki/Media:Brain.png",
+        )) {
+            assertTrue(wikipedia.handles(link.toHttpUrl()), link)
+            assertEquals(SourceProblem.NotAnArticle, assertIs<SourceResult.Failure>(web.extract(link)).problem, link)
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
     fun aRedirectIsFollowedAndNamesTheTarget() {
         server.enqueue(
             MockResponse.Builder().code(307).addHeader("Location", "/w/rest.php/v1/page/Fourier_transform/html?redirect=no").build(),
@@ -211,12 +233,10 @@ class WikipediaExtractorTest : PlatformTest() {
             "https://wikipedia.org.example.com/wiki/Amygdala",
             "https://example.com/wiki/Amygdala",
             "https://en.wikipedia.org/wiki/Talk:Amygdala",
-            "https://en.wikipedia.org/wiki/Special:Search?search=brain",
             "https://en.wikipedia.org/wiki/File:Brain.png",
             "https://en.wikipedia.org/wiki/Category:Brain",
             "https://en.wikipedia.org/wiki/Wikipedia:About",
             "https://en.wikipedia.org/wiki/Template_talk:Infobox",
-            "https://en.wikipedia.org/w/index.php?title=Special:Search",
             "https://en.wikipedia.org/w/index.php?title=Amygdala&oldid=123",
             "https://en.wikipedia.org/w/index.php?title=Amygdala&diff=123",
             "https://en.wikipedia.org/w/index.php?title=Amygdala&action=edit",

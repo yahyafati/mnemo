@@ -84,6 +84,7 @@
     </plurals>
     <string name="feature_create_source_count">%1$s · %2$s</string>
     <string name="feature_create_source_from">From: %1$s</string>
+    <string name="feature_create_source_disambiguation">This is a disambiguation page: it only lists other articles. Open the one you mean and read that instead.</string>
     <string name="feature_create_source_truncated">Only the beginning was read: the source is very long.</string>
     <string name="feature_create_pdf_pick">Choose a PDF</string>
     <string name="feature_create_drop_file">Drop a PDF or a text file to use it as the source</string>
@@ -105,6 +106,7 @@
     <string name="feature_create_dictation_error">Speech recognition stopped. Try again.</string>
 
     <string name="feature_create_source_no_text">There's no text to read. Scanned PDFs and video pages can't be read.</string>
+    <string name="feature_create_source_not_an_article">That link isn't an article: it's a tool or a file page. Open the article you want and paste its link.</string>
     <string name="feature_create_source_encrypted">This PDF is password-protected.</string>
     <string name="feature_create_source_drm">This book is protected by DRM. Mnemo can only read books without DRM.</string>
     <string name="feature_create_source_unsupported">This isn't a PDF, web page or text file Mnemo can read.</string>

@@ -158,12 +158,12 @@ class SmartExtractViewModel(
                 _uiState.update { it.copy(sourceKind = action.kind, sourceProblem = null) }
             }
             is SmartExtractAction.TextChanged -> _uiState.update {
-                if (action.text.isBlank()) it.withText(action.text).copy(title = null, truncated = false) else it.withText(action.text)
+                if (action.text.isBlank()) it.withText(action.text).copy(title = null, truncated = false, disambiguation = false) else it.withText(action.text)
             }
             SmartExtractAction.ClearText -> {
                 endBatch()
                 clearSections()
-                _uiState.update { it.withText("").copy(title = null, truncated = false, chapterId = null, sourceProblem = null) }
+                _uiState.update { it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null) }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
@@ -282,7 +282,13 @@ class SmartExtractViewModel(
                     val text = adoptSections(result.source, fragment)
                     _uiState.update { state ->
                         state.withText(text ?: result.source.text)
-                            .copy(reading = false, title = result.source.title, truncated = result.source.truncated, chapterId = null)
+                            .copy(
+                                reading = false,
+                                title = result.source.title,
+                                truncated = result.source.truncated,
+                                disambiguation = result.source.disambiguation,
+                                chapterId = null,
+                            )
                             .withSections()
                     }
                 }

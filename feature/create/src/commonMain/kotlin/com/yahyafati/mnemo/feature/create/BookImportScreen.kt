@@ -500,6 +500,7 @@ internal fun bookProblemText(problem: SourceProblem): String = stringResource(
         SourceProblem.Unsupported,
         SourceProblem.Encrypted,
         SourceProblem.InvalidUrl,
+        SourceProblem.NotAnArticle,
         SourceProblem.Unreachable,
         SourceProblem.HttpError,
         -> Res.string.feature_create_book_unsupported

@@ -5,3 +5,4 @@ First public release.
 - Anki .apkg/.colpkg import and export, backup and restore
 - Analytics: retention, forgetting curve, calendar, forecast
 - Optional AI with your own provider: Smart Extract, Explain, Co-Author
+- Links keep their headings, lists and tables; Wikipedia articles can be read by section
