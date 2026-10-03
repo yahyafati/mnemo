@@ -39,6 +39,11 @@ Co-Author suggest missing cards and fix the ones you keep forgetting. Works with
 OpenAI-compatible provider you choose (OpenAI, OpenRouter, Groq, Mistral, Gemini, DeepSeek, or
 your own Ollama or LM Studio). Nothing is sent until you set one up and confirm it.
 
+**Sync your devices, optionally**
+Keep your phone and computers in step without an account or a Mnemo server. Each device writes its changes to a place you own: a folder (with Syncthing,
+Nextcloud or similar), a WebDAV server such as Nextcloud, or a hidden folder in your Google Drive. Studying offline on several devices merges cleanly, no review is
+lost, and a passphrase encrypts everything before it leaves the device. Off until you turn it on.
+
 **Private by design**
 No account. No ads. No tracking. Your cards stay on your phone, with backups and exports to
 wherever you choose.
@@ -61,7 +66,10 @@ Everyone. No user-generated content is shared; no ads; no data collection.
   third-party endpoint the user configures, at the user's request, after an in-app disclosure; the
   developer operates no service and receives nothing. (Play treats user-initiated transfers to a
   service the user chose as not "shared"; confirm against the current form wording.)
-- Encrypted in transit: yes (HTTPS; plain HTTP only to user-marked local servers).
+- Sync (optional, off by default): the user's collection goes to storage the user chooses (a folder, their own WebDAV server, or the hidden app-data folder of their own Google Drive,
+  `drive.appdata` only), encrypted with the user's passphrase if they set one. The developer receives nothing. Same reading as for AI providers: a transfer the user starts to a service
+  they chose; confirm against the current form wording **(owner, with the Google consent screen's data-use text)**.
+- Encrypted in transit: yes (HTTPS; plain HTTP only to user-marked local servers and local WebDAV servers).
 - Deletion: uninstalling removes everything; decks and cards can be deleted in the app.
 
 ## Screenshots

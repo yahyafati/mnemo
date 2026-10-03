@@ -11,6 +11,7 @@ import java.time.Instant
 import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * The property the merge exists for (docs/sync/ROADMAP.md S3, working rule 3): two or three devices make random edits,
@@ -19,13 +20,13 @@ import kotlin.test.assertTrue
  */
 class SyncConvergenceTest : PlatformTest() {
     @Test
-    fun twoDevicesConverge() = runTest {
+    fun twoDevicesConverge() = runTest(timeout = LIMIT) {
         for (seed in 1..SEEDS) converge(seed, count = 2, steps = 70)
         println("sync: $replays card schedules replayed during the two-device runs")
     }
 
     @Test
-    fun threeDevicesConverge() = runTest {
+    fun threeDevicesConverge() = runTest(timeout = LIMIT) {
         for (seed in 100..100 + SEEDS) converge(seed, count = 3, steps = 90)
     }
 
@@ -101,7 +102,8 @@ class SyncConvergenceTest : PlatformTest() {
             }
             in 37..39 -> if (liveNotes.size > 2) device.cards.deleteNote(liveNotes.random(random))
             in 40..41 -> if (liveDecks.size > 2) device.decks.deleteDeck(liveDecks.random(random))
-            in 42..44 -> if (liveNotes.isNotEmpty()) {
+            // A device can hold a note whose deck's file is still on its way (files arrive late and in any order), so no live deck is possible.
+            in 42..44 -> if (liveNotes.isNotEmpty() && liveDecks.isNotEmpty()) {
                 val note = device.cards.getNote(liveNotes.random(random)) ?: return
                 device.cards.updateNote(note.id, liveDecks.random(random), note.fields, note.tags, note.hint)
             }
@@ -137,6 +139,8 @@ class SyncConvergenceTest : PlatformTest() {
     private var replays = 0
 
     private companion object {
+        // runTest stops after a minute by default: `MNEMO_SYNC_SEEDS=1500` needs more.
+        val LIMIT = 30.minutes
         val SEEDS = System.getenv("MNEMO_SYNC_SEEDS")?.toInt() ?: 14
         val DECK_NAMES = listOf("Spanish", "spanish", "French", "Math", "Lang::Spanish", "Lang::spanish", "Lang::French")
     }

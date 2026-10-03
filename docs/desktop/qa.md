@@ -10,8 +10,8 @@ backup, airplane mode) are worded the same on purpose.
 The parts a machine can do are in `scripts/qa/desktop-checks.py` (run it with `--help`). The rest needs a
 person at the keyboard looking at the window and listening to the audio.
 
-**Not bugs** (known gaps, listed in the release notes): unsigned installers and their first-run warning, no sync, no text to speech, dictation, reminder or widget, sound only in `wav`, `mp3` and `ogg`, and
-math that JLaTeXMath cannot draw showing as raw TeX.
+**Not bugs** (known gaps, listed in the release notes): unsigned installers and their first-run warning, no text to speech, dictation, reminder or widget, sound only in `wav`, `mp3` and `ogg`, and
+math that JLaTeXMath cannot draw showing as raw TeX. Sync, which this release also has, is checked by its own runbook, [../sync/qa.md](../sync/qa.md).
 
 ## 0. Set up
 
@@ -274,7 +274,7 @@ Turn Wi-Fi and Ethernet off (or block the app in the firewall). Then a **cold** 
       screens all work. Math cards render (no network fonts).
 - [ ] AI surfaces (Smart Extract, Explain/Example/Rewrite, Co-Author, Test connection, link source) fail with a
       readable message and a retry, never a crash or an endless spinner. A **local** provider on this machine still works.
-- [ ] **The app opens no connection of its own.** With the app idle and after a study session, list its connections and
+- [ ] **The app opens no connection of its own** (sync off, which is how it starts: [../sync/qa.md](../sync/qa.md) §9 covers it on). With the app idle and after a study session, list its connections and
       expect none (macOS `lsof -i -a -p $(pgrep -x Mnemo)`; Linux `ss -tp | grep -i mnemo`; Windows `netstat -ano` with
       the PID from Task Manager). The only traffic is to a provider you configured, the link you pasted, or the browser the
       Report button opens. There is no update check and no telemetry (`install.md` says so).

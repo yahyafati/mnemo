@@ -41,6 +41,8 @@ three things:
 - **Anki interop.** Import and export `.apkg` / `.colpkg` with review history and media.
 - **Your data stays yours.** Backup and restore, plus a full JSON export. API keys are encrypted on
   the device and are never included in backups or exports.
+- **Optional sync** between your phone and computers through a folder, a WebDAV server or Google Drive, with no Mnemo server and
+  optional end-to-end encryption ([help](docs/sync/help.md)). Off until you turn it on.
 - **Smart Extract.** Turn pasted notes, PDFs, links or dictation into a review queue of cards.
   Nothing is saved until you accept it.
 - **Study-time AI.** Explain, Example and Rewrite on a card, and Co-Author for suggesting missing

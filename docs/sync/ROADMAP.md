@@ -99,7 +99,7 @@ Owner-only tasks are marked **(owner)**.
 | **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors. **Done** (hardware pass: S8) | 2–3 days |
 | **S6** | Google Drive | OAuth seam, Drive REST store, tokens. **Done** (real-Google pass: owner, S8) | 3–4 days |
 | **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers. **Done** (real-server pass: owner, S8) | 1–2 days |
-| **S8** | Polish and QA | Two-device runbook on real hardware, large collections, docs, privacy policy, release notes | 2 days |
+| **S8** | Polish and QA | Two-device runbook on real hardware, large collections, docs, privacy policy, release notes. **Built** (the pass on real hardware: owner) | 2 days |
 
 ```
 S0 ──► S1 ──► S3 ──► S4 ──► S5 ──► S6 ──► S8
@@ -487,22 +487,32 @@ policy now describes WebDAV). What was built, and where it differs from the plan
 
 **Goal:** confidence on real devices before turning sync on in a release.
 
-- [ ] **Runbook** `docs/sync/qa.md` with a results log: the S3 scenarios by hand on a phone and a
+- [x] **Runbook** `docs/sync/qa.md` with a results log: the S3 scenarios by hand on a phone and a
       desktop, offline on both then online, a phone with a wrong clock, airplane mode during a sync, a
       large collection, a wrong passphrase, a revoked Google token, a full Drive, leave and rejoin,
-      restore on one device.
-- [ ] Battery and data use of background sync on Android (Battery Historian or `dumpsys`), recorded in
-      the log.
-- [ ] Docs: `CLAUDE.md` "Sync" section, `docs/ARCHITECTURE.md`, ADR 0013 updated with what changed,
+      restore on one device. *Written; **running it on real hardware is the owner's** (no result in the log yet).*
+- [ ] Battery and data use of background sync on Android (`device-checks.sh battery|data|sync-work`, procedure in the runbook §6),
+      recorded in the log **(owner: needs a phone)**.
+- [x] Docs: `CLAUDE.md` "Sync" section, `docs/ARCHITECTURE.md`, ADR 0013 updated with what changed,
       `docs/desktop/install.md` (moving a collection now has a sync option), user help for passphrase
-      loss ("the sync data can't be read; leave and create it again from a device that has the
-      collection").
-- [ ] Release notes, F-Droid changelog, the F-Droid recipe's anti-feature (S0's decision), the store
-      listing's feature list **(owner)**.
+      loss in `docs/sync/help.md` ("the sync data can't be read; leave and create it again from a device that has the
+      collection": the steps there are the ones the screens offer, Delete the sync data needing no passphrase).
+- [x] Release notes, F-Droid changelog, the F-Droid recipe's anti-feature (S0's decision: none, Drive hidden), the store
+      listing's feature list: **drafted** (`docs/release/release-notes.md`, `fastlane/…/changelogs/1.txt` and `full_description.txt`,
+      `docs/release/store-listing.md`, `docs/release/fdroid.md`). **(owner)** Read them against what the pass finds before the tag, and
+      fill in Play's data safety form.
 
-**Exit:** the runbook passes on real hardware; sync is announced in a release.
+**Exit:** the runbook passes on real hardware; sync is announced in a release. *Built 2026-10-03; the automated part of the exit
+checks pass. **Left for the owner:** the whole of `docs/sync/qa.md` on real devices (a Drive account with the verified consent screen, a Nextcloud, a phone,
+a second OS), the battery and data figures, the release decision and Play's form. What was built, and what it found (ADR 0013 "As built (S8)"):*
 
----
+- *`scripts/qa/sync-checks.py` (`folder`, `compare`, `watch`) and `device-checks.sh` (`battery`, `data`, `sync-work`; the Android ones are unrun on a phone).
+  `docs/sync/help.md` is the user page and is linked from `install.md`.*
+- *Convergence at more seeds: `MNEMO_SYNC_SEEDS=250` first failed at seed 120 in the **test**, not the merge (a device holding a note whose deck's file was still on its way
+  had no deck to move it to); fixed in `SyncConvergenceTest`, which also got a 30-minute limit. 1,000 seeds of two and of three devices then pass on the desktop target
+  (about 31 s and 46 s). Gradle does not count the environment variable as an input: run `:core:data:cleanDesktopTest` before repeating, or the run is skipped as up to date.*
+- *No product code changed in S8. The open question from S6 is unchanged: the Android custom-scheme redirect against real Google, and the consent screen's verification.*
+
 
 ## Not in v1
 

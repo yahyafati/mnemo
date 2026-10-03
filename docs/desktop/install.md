@@ -73,6 +73,9 @@ decrypts them is in your system's keychain (Windows Credential Manager, macOS Ke
 Service on Linux), or, where there is no keychain, in a file only your account can read; Settings › AI
 providers says which. Backups and exports never contain API keys: enter them again after a restore.
 
+If you turn on sync, where it syncs to is remembered in `sync/config.json` in the same folder, and its passphrase's key, a Google
+sign-in or a WebDAV password goes in `secrets` the same way. Backups contain none of these, so a restored computer asks again.
+
 ## Opening Anki packages
 
 Double-click an `.apkg` or `.colpkg` file (or drop one on the window, or use File › Import) and Mnemo
@@ -108,14 +111,18 @@ keychain if you want its key gone. Make a backup first (Settings › Data) if yo
 
 ## Moving a collection between phone and desktop
 
-There is no sync yet. Two manual paths use formats both apps share:
+The way to keep a phone and a computer (or two computers) together is **sync**: Settings › Sync. It goes through storage you own (a folder, which can be inside
+Google Drive for Desktop, Dropbox, Nextcloud or Syncthing; a WebDAV server such as Nextcloud; or, in builds that have it, your Google Drive), merges what you did on each device, also when you
+studied offline, and needs no account with us. How to set it up, what to do if you lose the passphrase or restore a backup: [../sync/help.md](../sync/help.md).
+
+Two manual paths use formats both apps share, for a one-off move or if you would rather not sync:
 
 | Want to move | Use | Effect on the other device |
 |---|---|---|
 | **Everything** (decks, notes, review history, settings, media) | Settings › Data › Back up (or File › Back up…), copy the file, then Restore on the other device | **Replaces** its whole collection |
 | **One deck** | Export as `.apkg`, then Import | **Adds** to its collection |
 
-Study on one device at a time, and move the backup before you switch: restoring overwrites reviews
+Without sync, study on one device at a time, and move the backup before you switch: restoring overwrites reviews
 made on the other device since its last transfer. The daily reminder and the home-screen widget are
 Android-only, and their settings are ignored on the desktop.
 

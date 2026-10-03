@@ -11,6 +11,10 @@
 #   scripts/qa/device-checks.sh push-apkg [file.apkg]   copy an Anki package to Downloads
 #   scripts/qa/device-checks.sh mock-ai                 serve the canned OpenAI-compatible replies
 #   scripts/qa/device-checks.sh permissions             what the app holds and what it may still ask for
+#   scripts/qa/device-checks.sh battery reset           zero the battery stats (S8: background sync, docs/sync/qa.md §6)
+#   scripts/qa/device-checks.sh battery report <label>  Mnemo's share of the battery and wake-ups since the reset
+#   scripts/qa/device-checks.sh data <label>            bytes Mnemo has sent and received (foreground + background)
+#   scripts/qa/device-checks.sh sync-work               Mnemo's scheduled jobs (the periodic SyncWorker) and their constraints
 #
 # Set ANDROID_SERIAL when more than one device is attached.
 set -euo pipefail
@@ -114,8 +118,47 @@ case "${1:-}" in
     adb shell dumpsys package "$PKG" | sed -n '/runtime permissions:/,/^$/p'
     ;;
 
+  battery)
+    need_adb
+    case "${2:-}" in
+      reset)
+        # Unplugged is the only time batterystats counts; "set" makes USB charging count as unplugged.
+        adb shell dumpsys batterystats --enable full-wake-history >/dev/null || true
+        adb shell dumpsys battery unplug >/dev/null || true
+        adb shell dumpsys batterystats --reset >/dev/null
+        echo "Battery stats reset and the device told it is unplugged. Leave it alone (screen off, Wi-Fi on) for the period in the runbook,"
+        echo "then: battery report <label>. Afterwards run: adb shell dumpsys battery reset" ;;
+      report)
+        label="${3:-background sync}"
+        uid="$(adb shell dumpsys package "$PKG" | grep -m1 -o 'userId=[0-9]*' | cut -d= -f2)"
+        echo "== $label (uid $uid) =="
+        out="$(adb shell dumpsys batterystats --charged "$PKG")"
+        echo "$out" | grep -E "Estimated power use|Uid u0a|Foreground|Cpu time|Wifi Running|Wakelock|Job|Network:|Mobile|Wi-Fi" | head -40
+        echo "(For the share of the whole battery: 'adb shell dumpsys batterystats --charged' lists every app under 'Estimated power use (mAh)'.)"
+        adb shell dumpsys battery reset >/dev/null || true ;;
+      *) echo "usage: battery reset | battery report <label>" >&2; exit 1 ;;
+    esac
+    ;;
+
+  data)
+    need_adb
+    label="${2:-sync}"
+    uid="$(adb shell dumpsys package "$PKG" | grep -m1 -o 'userId=[0-9]*' | cut -d= -f2)"
+    echo "== $label (uid $uid) =="
+    # The detail dump lists history buckets per uid and set (set=DEFAULT is foreground use, set=BACKGROUND... is not).
+    # Its layout differs between Android versions, so this prints the raw lines for the uid: read rb/tb off them.
+    adb shell dumpsys netstats detail | grep -E -A6 "uid=$uid( |$)" | head -80
+    echo "(Subtract the figures of two runs: the rb/tb columns are received/transmitted bytes. Wi-Fi and mobile are separate sections.)"
+    ;;
+
+  sync-work)
+    need_adb
+    adb shell dumpsys jobscheduler | grep -B2 -A14 "$PKG" | grep -E "JOB #|Required constraints|Satisfied constraints|Periodic|period|Last successful|Execution|Network|Standby bucket" | head -40
+    echo "(WorkManager runs the periodic SyncWorker as a JobScheduler job: it needs the network constraint and should show a period of several hours.)"
+    ;;
+
   *)
-    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
 esac

@@ -35,7 +35,7 @@ Install, update, uninstall and where your data lives:
 ### Good to know
 
 - Your collection is in your user's data folder, not the install folder: updating and uninstalling keep it.
-- No sync yet. Move a collection with Back up and Restore, or one deck with `.apkg` export and import.
+- Sync is optional and off until you turn it on (Settings › Sync). It uses a folder, a WebDAV server or, in builds that have it (not F-Droid's), your Google Drive, with an optional passphrase. How it works and what to do when something goes wrong: [docs/sync/help.md](https://github.com/yahyafati/mnemo/blob/main/docs/sync/help.md). Two separate collections can't be merged: a device that joins replaces its own (after saving a copy).
 - On a Mac, Apple menu › About This Mac says which `.dmg` to take: `arm64` for "Chip: Apple M…", `x64` for "Processor: Intel".
 - Each file is there twice: with the version in its name (what `SHA256SUMS.txt` and bug reports use) and
   without (`Mnemo-android.apk`, ...), the one the download page links to.

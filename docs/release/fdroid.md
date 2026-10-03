@@ -21,6 +21,10 @@ side of R7 is done; the boxes that need your GitLab account are marked **(owner)
   user configures, and most hosted ones are proprietary services. The description says the AI is
   optional and that local servers (Ollama, LM Studio) work. There is no `Tracking`, `Ads` or
   `NonFreeDep` anti-feature: no analytics, no ads, no proprietary library.
+- **Sync adds no anti-feature.** It is optional and off by default, and F-Droid builds offer a folder and WebDAV (a server the user runs or chooses, such as Nextcloud). The Google Drive
+  backend needs a Google OAuth client bound to the signing key's SHA-1, so the recipe has **no client id** (`MNEMO_GOOGLE_CLIENT_ID` is a build setting,
+  `docs/sync/google-setup.md`) and Drive is hidden in F-Droid builds (decision 2026-10-03, ADR 0013). If that ever changes, Drive would need `NonFreeNet`'s text to name it.
+  The store texts in `fastlane/` mention Drive as "where the build offers it" for that reason.
 - **`rm: gradle/gradle-daemon-jvm.properties`.** The file pins the Gradle daemon to JDK 25 (the
   test toolchain). F-Droid's build server doesn't have that JDK and shouldn't download one. The
   release build only needs JDK 17 or newer (AGP 9), and no test task runs there.
