@@ -19,10 +19,14 @@ import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.data.sync.SyncBackend
 import com.yahyafati.mnemo.core.data.sync.SyncProblem
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.backend
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.feature.decks.resources.Res
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_auth
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_auth_drive
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_gone_drive
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_quota_drive
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_gone
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_open
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_passphrase
@@ -41,6 +45,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun SyncBanner(status: SyncStatus, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val drive = status.backend == SyncBackend.GoogleDrive
     val message = stringResource(
         when (status) {
             is SyncStatus.Restored -> Res.string.feature_decks_sync_restored
@@ -48,10 +53,10 @@ internal fun SyncBanner(status: SyncStatus, onOpen: () -> Unit, modifier: Modifi
                 SyncProblem.PassphraseRequired, SyncProblem.PassphraseWrong -> Res.string.feature_decks_sync_passphrase
                 SyncProblem.Replaced, SyncProblem.MustRejoin -> Res.string.feature_decks_sync_rejoin
                 SyncProblem.UpdateRequired -> Res.string.feature_decks_sync_update
-                SyncProblem.LocationGone -> Res.string.feature_decks_sync_gone
-                SyncProblem.Auth -> Res.string.feature_decks_sync_auth
-                SyncProblem.Quota -> Res.string.feature_decks_sync_quota
-                SyncProblem.Offline, SyncProblem.LocationNotEmpty, SyncProblem.Other -> Res.string.feature_decks_sync_stalled
+                SyncProblem.LocationGone -> if (drive) Res.string.feature_decks_sync_gone_drive else Res.string.feature_decks_sync_gone
+                SyncProblem.Auth -> if (drive) Res.string.feature_decks_sync_auth_drive else Res.string.feature_decks_sync_auth
+                SyncProblem.Quota -> if (drive) Res.string.feature_decks_sync_quota_drive else Res.string.feature_decks_sync_quota
+                SyncProblem.Offline, SyncProblem.LocationNotEmpty, SyncProblem.SignInCancelled, SyncProblem.Other -> Res.string.feature_decks_sync_stalled
             }
             else -> Res.string.feature_decks_sync_stalled
         },

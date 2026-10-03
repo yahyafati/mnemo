@@ -45,6 +45,7 @@ import com.yahyafati.mnemo.feature.settings.Section
 import com.yahyafati.mnemo.feature.settings.formatted
 import com.yahyafati.mnemo.feature.settings.resources.Res
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_back
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_cancel
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ok
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_checking
@@ -94,6 +95,15 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_this
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_upload
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_upload_summary
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_use_folder
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_use_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_drive_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_signing_in
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_sign_in_again
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_location_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_auth_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_quota_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_gone_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_cancelled
 import java.net.URLDecoder
 import java.time.Instant
 import org.jetbrains.compose.resources.StringResource
@@ -104,6 +114,9 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Everything the Sync screen can ask for, so the stateless screen stays previewable. */
 internal class SyncCallbacks(
     val onFolderPicked: (String) -> Unit = {},
+    val onUseGoogleDrive: () -> Unit = {},
+    val onCancelSignIn: () -> Unit = {},
+    val onSignInAgain: () -> Unit = {},
     val onSyncNow: () -> Unit = {},
     val onAskToLeave: () -> Unit = {},
     val onAskToDelete: () -> Unit = {},
@@ -122,6 +135,9 @@ fun SyncRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: Sync
         state = state,
         callbacks = SyncCallbacks(
             onFolderPicked = viewModel::onFolderPicked,
+            onUseGoogleDrive = viewModel::useGoogleDrive,
+            onCancelSignIn = viewModel::cancelSignIn,
+            onSignInAgain = viewModel::signInAgain,
             onSyncNow = viewModel::syncNow,
             onAskToLeave = viewModel::askToLeave,
             onAskToDelete = viewModel::askToDelete,
@@ -187,7 +203,7 @@ internal fun SyncScreen(state: SyncUiState, callbacks: SyncCallbacks, onBack: ()
             }
         }
     }
-    SyncDialogs(state.dialog, state.working, callbacks.dialogs)
+    SyncDialogs(state.dialog, state.working, state.status.backend, callbacks.dialogs)
 }
 
 // --- Off -------------------------------------------------------------------------------------------------------------
@@ -213,7 +229,22 @@ private fun SetUp(state: SyncUiState, callbacks: SyncCallbacks) {
                 },
             ),
         )
-        if (state.working) Working(stringResource(Res.string.feature_settings_sync_checking))
+        if (state.googleDriveAvailable) {
+            MnemoButton(
+                text = stringResource(Res.string.feature_settings_sync_use_drive),
+                onClick = callbacks.onUseGoogleDrive,
+                enabled = !state.working,
+                style = MnemoButtonStyle.Secondary,
+                leadingIcon = MnemoIcons.Cloud,
+            )
+            Hint(stringResource(Res.string.feature_settings_sync_drive_hint))
+        }
+        if (state.signingIn) {
+            Working(stringResource(Res.string.feature_settings_sync_signing_in))
+            TextButton(onClick = callbacks.onCancelSignIn) { Text(stringResource(Res.string.feature_settings_cancel)) }
+        } else if (state.working) {
+            Working(stringResource(Res.string.feature_settings_sync_checking))
+        }
     }
 }
 
@@ -224,7 +255,7 @@ private fun Restored(status: SyncStatus.Restored, state: SyncUiState, callbacks:
     Section(stringResource(Res.string.feature_settings_sync), MnemoIcons.SyncProblem) {
         Text(stringResource(Res.string.feature_settings_sync_restored_title), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(Res.string.feature_settings_sync_restored_message), style = MaterialTheme.typography.bodyMedium)
-        Hint(stringResource(Res.string.feature_settings_sync_location, folderLabel(status.backend)))
+        LocationHint(status.backend)
         ActionRow(
             summary = stringResource(Res.string.feature_settings_sync_upload_summary),
             actionLabel = stringResource(Res.string.feature_settings_sync_upload),
@@ -257,7 +288,7 @@ private fun On(status: SyncStatus, state: SyncUiState, callbacks: SyncCallbacks)
                 },
             )
         }
-        if (status is SyncStatus.Error) Problem(status.problem, callbacks)
+        if (status is SyncStatus.Error) Problem(status.problem, backend, callbacks)
         MnemoButton(
             text = stringResource(Res.string.feature_settings_sync_now),
             onClick = callbacks.onSyncNow,
@@ -265,7 +296,7 @@ private fun On(status: SyncStatus, state: SyncUiState, callbacks: SyncCallbacks)
             leadingIcon = MnemoIcons.Sync,
         )
         if (syncing) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Hint(stringResource(Res.string.feature_settings_sync_location, folderLabel(backend)))
+        LocationHint(backend)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
             Icon(MnemoIcons.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Hint(
@@ -294,17 +325,24 @@ private fun StatusLine(status: SyncStatus, pending: Int) {
 
 /** What went wrong and, where the user can do something about it, the button for that. */
 @Composable
-private fun Problem(problem: SyncProblem, callbacks: SyncCallbacks) {
+private fun Problem(problem: SyncProblem, backend: SyncBackend, callbacks: SyncCallbacks) {
     val colors = MaterialTheme.colorScheme
     Surface(shape = MaterialTheme.shapes.small, color = colors.errorContainer, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(MnemoTheme.spacing.md), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
-            Text(syncProblemText(problem), style = MaterialTheme.typography.bodyMedium, color = colors.onErrorContainer)
+            Text(syncProblemText(problem, backend), style = MaterialTheme.typography.bodyMedium, color = colors.onErrorContainer)
             when (problem) {
                 SyncProblem.PassphraseRequired, SyncProblem.PassphraseWrong -> MnemoButton(
                     text = stringResource(Res.string.feature_settings_sync_enter_passphrase),
                     onClick = callbacks.onAskForPassphrase,
                     leadingIcon = MnemoIcons.Key,
                 )
+                SyncProblem.Auth -> if (backend == SyncBackend.GoogleDrive) {
+                    MnemoButton(
+                        text = stringResource(Res.string.feature_settings_sync_sign_in_again),
+                        onClick = callbacks.onSignInAgain,
+                        leadingIcon = MnemoIcons.Key,
+                    )
+                }
                 SyncProblem.Replaced, SyncProblem.MustRejoin -> MnemoButton(
                     text = stringResource(Res.string.feature_settings_sync_join_again),
                     onClick = callbacks.onAskToRejoin,
@@ -416,18 +454,19 @@ internal fun Working(text: String) {
 
 /** The words for a problem, in the status card and in the dialogs. */
 @Composable
-internal fun syncProblemText(problem: SyncProblem): String = stringResource(
+internal fun syncProblemText(problem: SyncProblem, backend: SyncBackend? = null): String = stringResource(
     when (problem) {
         SyncProblem.Offline -> Res.string.feature_settings_sync_problem_offline
-        SyncProblem.Auth -> Res.string.feature_settings_sync_problem_auth
-        SyncProblem.Quota -> Res.string.feature_settings_sync_problem_quota
+        SyncProblem.Auth -> if (backend == SyncBackend.GoogleDrive) Res.string.feature_settings_sync_problem_auth_drive else Res.string.feature_settings_sync_problem_auth
+        SyncProblem.Quota -> if (backend == SyncBackend.GoogleDrive) Res.string.feature_settings_sync_problem_quota_drive else Res.string.feature_settings_sync_problem_quota
         SyncProblem.PassphraseRequired -> Res.string.feature_settings_sync_problem_passphrase_required
         SyncProblem.PassphraseWrong -> Res.string.feature_settings_sync_problem_passphrase_wrong
         SyncProblem.UpdateRequired -> Res.string.feature_settings_sync_problem_update
-        SyncProblem.LocationGone -> Res.string.feature_settings_sync_problem_gone
+        SyncProblem.LocationGone -> if (backend == SyncBackend.GoogleDrive) Res.string.feature_settings_sync_problem_gone_drive else Res.string.feature_settings_sync_problem_gone
         SyncProblem.Replaced -> Res.string.feature_settings_sync_problem_replaced
         SyncProblem.MustRejoin -> Res.string.feature_settings_sync_problem_must_rejoin
         SyncProblem.LocationNotEmpty -> Res.string.feature_settings_sync_problem_not_empty
+        SyncProblem.SignInCancelled -> Res.string.feature_settings_sync_problem_cancelled
         SyncProblem.Other -> Res.string.feature_settings_sync_problem_other
     },
 )
@@ -436,16 +475,23 @@ internal fun syncProblemText(problem: SyncProblem): String = stringResource(
  * A readable name for a location: a Storage Access Framework tree (`content://…/tree/primary%3ADocuments%2FMnemo`) as
  * "Documents/Mnemo", a path on a computer as it is.
  */
-internal fun folderLabel(backend: SyncBackend): String = when (backend) {
-    is SyncBackend.Folder -> folderLabel(backend.location)
-}
-
 internal fun folderLabel(location: String): String =
     if (location.startsWith("content:")) {
         URLDecoder.decode(location.substringAfterLast('/'), "UTF-8").substringAfter(':').ifBlank { location }
     } else {
         location
     }
+
+/** Where the sync data is: "Folder: Documents/Mnemo" or Google Drive. */
+@Composable
+private fun LocationHint(backend: SyncBackend) {
+    Hint(
+        when (backend) {
+            is SyncBackend.Folder -> stringResource(Res.string.feature_settings_sync_location, folderLabel(backend.location))
+            SyncBackend.GoogleDrive -> stringResource(Res.string.feature_settings_sync_location_drive)
+        },
+    )
+}
 
 @Preview(heightDp = 900)
 @Composable

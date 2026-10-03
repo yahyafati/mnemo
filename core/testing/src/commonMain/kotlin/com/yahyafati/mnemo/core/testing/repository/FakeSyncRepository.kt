@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncResult
 import com.yahyafati.mnemo.core.data.sync.SyncReplacesLocalDataException
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.data.sync.backend
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -63,6 +64,25 @@ class FakeSyncRepository(initial: SyncStatus = SyncStatus.Off) : SyncRepository 
             throw it
         }
         return location
+    }
+
+    /** Whether the build has a Google client; [signInToGoogleDrive] then counts and throws [signInFailure] once if set. */
+    override var googleDriveAvailable: Boolean = false
+    var signIns = 0
+        private set
+    var signInFailure: Exception? = null
+
+    /** While set, [signInToGoogleDrive] waits for it, like a user who is still in the browser. */
+    var signInWait: CompletableDeferred<Unit>? = null
+
+    override suspend fun signInToGoogleDrive() {
+        signIns++
+        calls += Call("signInToGoogleDrive", SyncBackend.GoogleDrive)
+        signInWait?.await()
+        signInFailure?.let {
+            signInFailure = null
+            throw it
+        }
     }
 
     override suspend fun isEncrypted(): Boolean = encrypted

@@ -11,6 +11,7 @@ import com.yahyafati.mnemo.core.data.desktop.DesktopAppDirectories
 import com.yahyafati.mnemo.core.data.desktop.DesktopDataTransferRepository
 import com.yahyafati.mnemo.core.data.desktop.DesktopDocumentAccess
 import com.yahyafati.mnemo.core.data.desktop.DesktopFsrsOptimizationRepository
+import com.yahyafati.mnemo.core.data.desktop.DesktopOAuthAuthorizer
 import com.yahyafati.mnemo.core.data.desktop.DesktopReminderRepository
 import com.yahyafati.mnemo.core.data.desktop.ProcessAppRestarter
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
@@ -28,6 +29,7 @@ import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.desktop.NoSpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.desktop.PdfBoxTextExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
+import com.yahyafati.mnemo.core.sync.oauth.OAuthAuthorizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -63,6 +65,7 @@ val desktopDataModule = module {
     // No WorkManager here: while the app is open the timer is the periodic sync; the launcher can bind its version.
     single<SyncBackgroundWork> { DesktopSyncBackgroundWork(get(SyncScope), lazy { get<SyncRepository>() }) }
     factory<DeviceDescriber> { DesktopDeviceDescriber() }
+    factory<OAuthAuthorizer> { DesktopOAuthAuthorizer() }
 
     factory<SQLiteDriver> { BundledSQLiteDriver() }
 

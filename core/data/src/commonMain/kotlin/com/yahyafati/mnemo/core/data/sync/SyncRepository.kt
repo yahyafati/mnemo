@@ -23,6 +23,16 @@ interface SyncRepository {
      */
     suspend fun inspect(backend: SyncBackend): SyncLocation
 
+    /** Whether this build can sync through Google Drive. When it can't (no Google client in the build), the option isn't offered. */
+    val googleDriveAvailable: Boolean
+
+    /**
+     * Signs in to Google in the browser, for [SyncBackend.GoogleDrive]: before setting it up, and again after
+     * [SyncProblem.Auth] on it. `SyncSignInCancelledException` (see [SyncProblem.SignInCancelled]) if the user gives
+     * up; other failures are `SyncException`s.
+     */
+    suspend fun signInToGoogleDrive()
+
     /** Whether the sync data this device remembers is encrypted; false when there is none. Reads nothing remote. */
     suspend fun isEncrypted(): Boolean
 

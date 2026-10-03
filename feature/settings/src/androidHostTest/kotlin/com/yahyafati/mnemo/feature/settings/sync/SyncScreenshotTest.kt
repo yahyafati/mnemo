@@ -44,5 +44,14 @@ class SyncScreenshotTest {
     )
 
     @Test
+    fun offWithGoogleDrive() = shot("sync_off_drive", SyncUiState(googleDriveAvailable = true))
+
+    @Test
+    fun onWithGoogleDriveNeedsSigningInAgain() = shot(
+        "sync_drive_auth",
+        SyncUiState(status = SyncStatus.Error(SyncBackend.GoogleDrive, SyncProblem.Auth, seen), encrypted = true, devices = SyncDevices.Unavailable),
+    )
+
+    @Test
     fun restored() = shot("sync_restored", SyncUiState(status = SyncStatus.Restored(folder), devices = devices))
 }

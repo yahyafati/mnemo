@@ -52,7 +52,7 @@ class SyncScreenTest {
     fun offExplainsAndOffersAFolder() {
         show(SyncUiState())
         composeRule.onNodeWithText("Use a folder").assertIsDisplayed()
-        composeRule.onNodeWithText("Mnemo has no server", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Each device writes its changes", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("Devices").assertDoesNotExist()
         composeRule.onNodeWithText("Sync now").assertDoesNotExist()
     }
@@ -140,7 +140,7 @@ class SyncScreenTest {
         composeRule.onNodeWithText("Sync is paused").assertIsDisplayed()
         composeRule.onNodeWithText("Upload this collection as the new sync data", useUnmergedTree = true).performClick()
         assertEquals(1, uploads)
-        composeRule.onNodeWithText("Use the folder's sync data again", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Use the sync data again", useUnmergedTree = true).performClick()
         assertEquals(1, rejoins)
         // Syncing now makes no sense until one is chosen.
         composeRule.onNodeWithText("Sync now").assertDoesNotExist()
@@ -179,7 +179,7 @@ class SyncScreenTest {
 
     @Test
     fun aFolderThatCantBeUsedSaysWhy() {
-        show(SyncUiState(dialog = SyncDialog.FolderProblem(SyncProblem.Auth)))
+        show(SyncUiState(dialog = SyncDialog.FolderProblem(SyncProblem.Auth, folder)))
         composeRule.onNodeWithText("Can't use this folder").assertIsDisplayed()
         composeRule.onNodeWithText("can't open the sync folder", substring = true).assertIsDisplayed()
     }
@@ -187,8 +187,74 @@ class SyncScreenTest {
     @Test
     fun aJoinSaysWhereTheOldCollectionWasSaved() {
         show(SyncUiState(status = SyncStatus.Idle(folder, null), notice = SyncNotice.Joined("file:///files/sync-backups/before-sync.zip")))
-        composeRule.onNodeWithText("This device now has the collection from the folder.").assertIsDisplayed()
+        composeRule.onNodeWithText("This device now has the synced collection.").assertIsDisplayed()
         composeRule.onNodeWithText("file:///files/sync-backups/before-sync.zip", substring = true).assertIsDisplayed()
+    }
+
+    // --- Google Drive (S6) -------------------------------------------------------------------------------------
+
+    @Test
+    fun driveIsNotOfferedByABuildWithoutAGoogleClient() {
+        show(SyncUiState(googleDriveAvailable = false))
+        composeRule.onNodeWithText("Use Google Drive").assertDoesNotExist()
+    }
+
+    @Test
+    fun driveIsOfferedNextToTheFolderWithWhatItCanSee() {
+        var chosen = 0
+        show(SyncUiState(googleDriveAvailable = true), SyncCallbacks(onUseGoogleDrive = { chosen++ }))
+        composeRule.onNodeWithText("Use a folder").assertIsDisplayed()
+        composeRule.onNodeWithText("hidden folder of your Google Drive that only Mnemo can open", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Use Google Drive").performClick()
+        assertEquals(1, chosen)
+    }
+
+    @Test
+    fun whileSigningInTheButtonsWaitAndTheBrowserWaitCanBeCancelled() {
+        var cancelled = 0
+        show(SyncUiState(googleDriveAvailable = true, working = true, signingIn = true), SyncCallbacks(onCancelSignIn = { cancelled++ }))
+        composeRule.onNodeWithText("Use Google Drive").assertIsNotEnabled()
+        composeRule.onNodeWithText("Waiting for you in the browser…").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
+        assertEquals(1, cancelled)
+    }
+
+    @Test
+    fun driveShowsItsNameAsTheLocation() {
+        show(SyncUiState(status = SyncStatus.Idle(SyncBackend.GoogleDrive, null), encrypted = true, devices = devices))
+        composeRule.onNodeWithText("Google Drive (a hidden folder only Mnemo can open)").assertIsDisplayed()
+        composeRule.onNodeWithText("Folder:", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRefusedGoogleSignInCanBeRepeated() {
+        var signedIn = 0
+        show(
+            SyncUiState(status = SyncStatus.Error(SyncBackend.GoogleDrive, SyncProblem.Auth, null)),
+            SyncCallbacks(onSignInAgain = { signedIn++ }),
+        )
+        composeRule.onNodeWithText("no longer signed in to Google", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sign in to Google").performClick()
+        assertEquals(1, signedIn)
+    }
+
+    @Test
+    fun aRefusedFolderOffersNoSignIn() {
+        show(SyncUiState(status = SyncStatus.Error(folder, SyncProblem.Auth, null)))
+        composeRule.onNodeWithText("Sign in to Google").assertDoesNotExist()
+    }
+
+    @Test
+    fun aFullDriveSaysSo() {
+        show(SyncUiState(status = SyncStatus.Error(SyncBackend.GoogleDrive, SyncProblem.Quota, null)))
+        composeRule.onNodeWithText("Your Google Drive is full", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun aDriveThatCantBeUsedHasItsOwnTitle() {
+        show(SyncUiState(dialog = SyncDialog.FolderProblem(SyncProblem.Auth, SyncBackend.GoogleDrive)))
+        composeRule.onNodeWithText("Can't use Google Drive").assertIsDisplayed()
+        composeRule.onNodeWithText("Sign in again to keep syncing", substring = true).assertIsDisplayed()
     }
 
     @Test

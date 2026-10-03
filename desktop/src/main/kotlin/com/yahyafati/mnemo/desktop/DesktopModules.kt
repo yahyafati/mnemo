@@ -14,6 +14,7 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import com.yahyafati.mnemo.core.data.desktop.DesktopDeviceDescriber
 import com.yahyafati.mnemo.core.data.sync.DeviceDescriber
+import com.yahyafati.mnemo.core.data.sync.GoogleClientConfigSource
 
 /**
  * The desktop dependency graph: the same modules as the Android app's `mnemoModules`, with the data
@@ -30,5 +31,9 @@ val desktopModules: List<Module> = listOf(commonModule) + dataLayerModules + lis
     studyModule,
     shellModule,
     // The launcher knows the version; the data layer's default describer doesn't.
-    module { factory<DeviceDescriber> { DesktopDeviceDescriber(AppInfo.version) } },
+    module {
+        factory<DeviceDescriber> { DesktopDeviceDescriber(AppInfo.version) }
+        // Google Drive sync is offered only in a build made with a Google client.
+        factory<GoogleClientConfigSource> { GoogleClientConfigSource { AppInfo.googleClient } }
+    },
 )

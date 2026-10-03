@@ -50,6 +50,7 @@ PENDING = {
     # The Android application: entry points, widget, manifest-registered components.
     "app/src/main/java/com/yahyafati/mnemo/MainActivity.kt": "Android launcher (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/MnemoApplication.kt": "Android launcher (stays in :app)",
+    "app/src/main/java/com/yahyafati/mnemo/OAuthRedirectActivity.kt": "receives Google's sign-in redirect for Drive sync (stays in :app)",
     "app/src/main/java/com/yahyafati/mnemo/widget/TodayWidget.kt": "home-screen widget: Android only (stays in :app)",
 }
 

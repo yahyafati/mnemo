@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import com.yahyafati.mnemo.core.common.di.dispatcher
 import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
 import com.yahyafati.mnemo.core.data.android.AndroidDeviceDescriber
+import com.yahyafati.mnemo.core.data.android.AndroidOAuthAuthorizer
 import com.yahyafati.mnemo.core.data.android.platformModule
 import com.yahyafati.mnemo.core.data.repository.WorkManagerSyncBackgroundWork
 import com.yahyafati.mnemo.core.data.sync.DeviceDescriber
@@ -35,6 +36,7 @@ import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.android.AndroidSpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.android.PdfBoxAndroidTextExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
+import com.yahyafati.mnemo.core.sync.oauth.OAuthAuthorizer
 import org.koin.androidx.workmanager.dsl.workerOf
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.bind
@@ -53,6 +55,7 @@ val androidDataModule = module {
     single<CoroutineScope>(SyncScope) { CoroutineScope(SupervisorJob() + dispatcher(MnemoDispatchers.Default)) } onClose { it?.cancel() }
     factoryOf(::WorkManagerSyncBackgroundWork) bind SyncBackgroundWork::class
     factory<DeviceDescriber> { AndroidDeviceDescriber(get<Context>()) }
+    factory<OAuthAuthorizer> { AndroidOAuthAuthorizer(get<Context>()) }
 
     // Anki packages are read and written with Android's own SQLite.
     factory<SQLiteDriver> { AndroidSQLiteDriver() }

@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.sync.SyncNotFoundException
 import com.yahyafati.mnemo.core.sync.SyncOfflineException
 import com.yahyafati.mnemo.core.sync.SyncPassphraseException
 import com.yahyafati.mnemo.core.sync.SyncQuotaException
+import com.yahyafati.mnemo.core.sync.SyncSignInCancelledException
 import com.yahyafati.mnemo.core.sync.SyncUnsupportedVersionException
 import java.time.Duration
 import java.time.Instant
@@ -15,7 +16,7 @@ enum class SyncProblem {
     /** The location can't be reached (no network, a drive that isn't connected). Retry later; not an error. */
     Offline,
 
-    /** The location refuses this device: a revoked folder permission, a sign-in that expired. */
+    /** The location refuses this device: a revoked folder permission, a Google sign-in that expired ([SyncRepository.signInToGoogleDrive]). */
     Auth,
 
     /** There is no room left in the location. */
@@ -41,6 +42,9 @@ enum class SyncProblem {
 
     /** Creating the sync data needs an empty location, and this one has files in it. */
     LocationNotEmpty,
+
+    /** The user closed the browser or refused access while signing in. Not a failure: nothing is shown. */
+    SignInCancelled,
 
     /** Anything else; the message says what. */
     Other,
@@ -123,6 +127,7 @@ fun Throwable.syncProblem(): SyncProblem = when (this) {
     is SyncAlreadyExistsException -> SyncProblem.LocationNotEmpty
     is SyncPassphraseException -> if (required) SyncProblem.PassphraseRequired else SyncProblem.PassphraseWrong
     is SyncUnsupportedVersionException -> SyncProblem.UpdateRequired
+    is SyncSignInCancelledException -> SyncProblem.SignInCancelled
     is SyncProblemException -> problem
     else -> SyncProblem.Other
 }

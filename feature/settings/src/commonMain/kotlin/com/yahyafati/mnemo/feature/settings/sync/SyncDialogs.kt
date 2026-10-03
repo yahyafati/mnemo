@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.yahyafati.mnemo.core.data.sync.SyncBackend
 import com.yahyafati.mnemo.core.data.sync.SyncProblem
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -34,6 +35,12 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ok
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_confirm
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_message
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_title
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_title_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_message_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_join_title_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_join_message_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_folder_problem_title_drive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_encrypt_summary_drive
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_delete_confirm
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_delete_message
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_delete_others
@@ -89,15 +96,20 @@ internal class SyncDialogCallbacks(
 
 /** The question or form that is open over the screen, if any. [working] greys its buttons while a call runs. */
 @Composable
-internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncDialogCallbacks) {
+internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBackend?, callbacks: SyncDialogCallbacks) {
     when (dialog) {
         null -> Unit
         is SyncDialog.Create -> NewSyncDataDialog(
-            title = Res.string.feature_settings_sync_create_title,
-            message = stringResource(Res.string.feature_settings_sync_create_message),
+            title = if (dialog.backend.isDrive) Res.string.feature_settings_sync_create_title_drive else Res.string.feature_settings_sync_create_title,
+            message = stringResource(
+                if (dialog.backend.isDrive) Res.string.feature_settings_sync_create_message_drive else Res.string.feature_settings_sync_create_message,
+            ),
             extra = null,
             confirm = Res.string.feature_settings_sync_create_confirm,
+            encryptByDefault = dialog.backend.isDrive,
+            encryptSummary = if (dialog.backend.isDrive) Res.string.feature_settings_sync_encrypt_summary_drive else Res.string.feature_settings_sync_encrypt_summary,
             failure = dialog.failure,
+            backend = dialog.backend,
             working = working,
             onConfirm = callbacks.onCreate,
             onDismiss = callbacks.onDismiss,
@@ -111,19 +123,23 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
                 stringResource(Res.string.feature_settings_sync_upload_others, dialog.otherDevices.joinToString())
             },
             confirm = Res.string.feature_settings_sync_upload_confirm,
+            encryptByDefault = dialog.encryptByDefault,
+            encryptSummary = if (dialog.encryptByDefault) Res.string.feature_settings_sync_encrypt_summary_drive else Res.string.feature_settings_sync_encrypt_summary,
             failure = dialog.failure,
+            backend = backend,
             working = working,
             onConfirm = callbacks.onUploadAsNew,
             onDismiss = callbacks.onDismiss,
         )
         is SyncDialog.Join -> PassphraseDialog(
             icon = MnemoIcons.Sync,
-            title = stringResource(Res.string.feature_settings_sync_join_title),
-            message = stringResource(Res.string.feature_settings_sync_join_message),
+            title = stringResource(if (dialog.backend.isDrive) Res.string.feature_settings_sync_join_title_drive else Res.string.feature_settings_sync_join_title),
+            message = stringResource(if (dialog.backend.isDrive) Res.string.feature_settings_sync_join_message_drive else Res.string.feature_settings_sync_join_message),
             hint = if (dialog.encrypted) stringResource(Res.string.feature_settings_sync_join_encrypted) else null,
             askForPassphrase = dialog.encrypted,
             confirm = stringResource(Res.string.feature_settings_sync_join_confirm),
             failure = dialog.failure,
+            backend = dialog.backend,
             working = working,
             onConfirm = callbacks.onJoin,
             onDismiss = callbacks.onDismiss,
@@ -136,6 +152,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
             askForPassphrase = true,
             confirm = stringResource(Res.string.feature_settings_sync_unlock_confirm),
             failure = dialog.failure,
+            backend = backend,
             working = working,
             onConfirm = { callbacks.onUnlock(it.orEmpty()) },
             onDismiss = callbacks.onDismiss,
@@ -145,6 +162,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
             message = stringResource(Res.string.feature_settings_sync_replace_message),
             confirm = stringResource(Res.string.feature_settings_sync_replace_confirm),
             failure = dialog.failure,
+            backend = dialog.backend,
             working = working,
             destructive = true,
             onConfirm = callbacks.onConfirmReplace,
@@ -155,6 +173,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
             message = stringResource(Res.string.feature_settings_sync_rejoin_message),
             confirm = stringResource(Res.string.feature_settings_sync_replace_confirm),
             failure = dialog.failure,
+            backend = backend,
             working = working,
             destructive = true,
             onConfirm = callbacks.onConfirmRejoin,
@@ -165,6 +184,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
             message = stringResource(Res.string.feature_settings_sync_leave_message),
             confirm = stringResource(Res.string.feature_settings_sync_leave_confirm),
             failure = null,
+            backend = backend,
             working = working,
             destructive = false,
             onConfirm = callbacks.onConfirmLeave,
@@ -176,6 +196,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
                 if (dialog.otherDevices.isEmpty()) "" else "\n\n" + stringResource(Res.string.feature_settings_sync_delete_others, dialog.otherDevices.joinToString()),
             confirm = stringResource(Res.string.feature_settings_sync_delete_confirm),
             failure = dialog.failure,
+            backend = backend,
             working = working,
             destructive = true,
             onConfirm = callbacks.onConfirmDelete,
@@ -187,12 +208,16 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, callbacks: SyncD
             onDismiss = callbacks.onDismiss,
         )
         is SyncDialog.FolderProblem -> Info(
-            title = stringResource(Res.string.feature_settings_sync_folder_problem_title),
-            message = syncProblemText(dialog.problem),
+            title = stringResource(
+                if (dialog.backend.isDrive) Res.string.feature_settings_sync_folder_problem_title_drive else Res.string.feature_settings_sync_folder_problem_title,
+            ),
+            message = syncProblemText(dialog.problem, dialog.backend),
             onDismiss = callbacks.onDismiss,
         )
     }
 }
+
+private val SyncBackend?.isDrive: Boolean get() = this == SyncBackend.GoogleDrive
 
 @Composable
 private fun Confirm(
@@ -200,6 +225,7 @@ private fun Confirm(
     message: String,
     confirm: String,
     failure: SyncProblem?,
+    backend: SyncBackend?,
     working: Boolean,
     destructive: Boolean,
     onConfirm: () -> Unit,
@@ -211,7 +237,7 @@ private fun Confirm(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
                 Text(message)
-                failure?.let { FailureText(it) }
+                failure?.let { FailureText(it, backend) }
                 if (working) Working(stringResource(Res.string.feature_settings_sync_working))
             }
         },
@@ -235,8 +261,8 @@ private fun Info(title: String, message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun FailureText(problem: SyncProblem) {
-    Text(syncProblemText(problem), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+private fun FailureText(problem: SyncProblem, backend: SyncBackend?) {
+    Text(syncProblemText(problem, backend), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
 }
 
 /** Asks for one passphrase (to join or unlock encrypted sync data). Without [askForPassphrase] it is just a question. */
@@ -249,6 +275,7 @@ private fun PassphraseDialog(
     askForPassphrase: Boolean,
     confirm: String,
     failure: SyncProblem?,
+    backend: SyncBackend?,
     working: Boolean,
     onConfirm: (String?) -> Unit,
     onDismiss: () -> Unit,
@@ -264,7 +291,7 @@ private fun PassphraseDialog(
                 Text(message)
                 hint?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 if (askForPassphrase) PassphraseField(passphrase, { passphrase = it }, stringResource(Res.string.feature_settings_sync_passphrase), error = null)
-                failure?.let { FailureText(it) }
+                failure?.let { FailureText(it, backend) }
                 if (working) Working(stringResource(Res.string.feature_settings_sync_working))
             }
         },
@@ -284,12 +311,15 @@ private fun NewSyncDataDialog(
     message: String,
     extra: String?,
     confirm: StringResource,
+    encryptByDefault: Boolean,
+    encryptSummary: StringResource,
     failure: SyncProblem?,
+    backend: SyncBackend?,
     working: Boolean,
     onConfirm: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var encrypt by remember { mutableStateOf(false) }
+    var encrypt by remember { mutableStateOf(encryptByDefault) }
     var passphrase by remember { mutableStateOf("") }
     var repeated by remember { mutableStateOf("") }
     var attempted by remember { mutableStateOf(false) }
@@ -307,7 +337,7 @@ private fun NewSyncDataDialog(
                 extra?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 SwitchRow(
                     title = stringResource(Res.string.feature_settings_sync_encrypt),
-                    summary = stringResource(Res.string.feature_settings_sync_encrypt_summary),
+                    summary = stringResource(encryptSummary),
                     checked = encrypt,
                     onCheckedChange = { encrypt = it },
                     enabled = !working,
@@ -326,7 +356,7 @@ private fun NewSyncDataDialog(
                         error = if (attempted && problem == PassphraseProblem.Mismatch) problemText(problem) else null,
                     )
                 }
-                failure?.let { FailureText(it) }
+                failure?.let { FailureText(it, backend) }
                 if (working) Working(stringResource(Res.string.feature_settings_sync_working))
             }
         },

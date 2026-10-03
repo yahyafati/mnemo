@@ -32,14 +32,7 @@ private const val KEY_PASSWORD = "MNEMO_KEY_PASSWORD"
  * The keystore and its passwords never belong in the repository (see `.gitignore`).
  */
 internal fun Project.configureReleaseSigning(extension: ApplicationExtension) {
-    val local = Properties().apply {
-        val file = rootProject.layout.projectDirectory.file("local.properties").asFile
-        if (file.isFile) file.inputStream().use(::load)
-    }
-
-    fun setting(name: String): String? =
-        providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
-            ?: local.getProperty(name)?.takeIf { it.isNotBlank() }
+    fun setting(name: String): String? = buildSetting(name)
 
     val storeFile = setting(KEYSTORE_FILE)?.let(::file)
     val storePassword = setting(KEYSTORE_PASSWORD)
@@ -57,4 +50,17 @@ internal fun Project.configureReleaseSigning(extension: ApplicationExtension) {
         keyPassword = setting(KEY_PASSWORD) ?: storePassword
     }
     extension.buildTypes.getByName("release").signingConfig = release
+}
+
+/**
+ * A build setting that doesn't belong in the repository: an environment variable first, `local.properties` second, null
+ * when neither has a non-blank value. Signing (above) and the Google client (`GoogleConfig.kt`) use it.
+ */
+internal fun Project.buildSetting(name: String): String? {
+    val local = Properties().apply {
+        val file = rootProject.layout.projectDirectory.file("local.properties").asFile
+        if (file.isFile) file.inputStream().use(::load)
+    }
+    return providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+        ?: local.getProperty(name)?.takeIf { it.isNotBlank() }
 }

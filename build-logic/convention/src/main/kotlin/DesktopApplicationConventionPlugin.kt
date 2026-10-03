@@ -1,4 +1,7 @@
+import com.yahyafati.mnemo.buildlogic.DESKTOP_CLIENT_ID
+import com.yahyafati.mnemo.buildlogic.DESKTOP_CLIENT_SECRET
 import com.yahyafati.mnemo.buildlogic.configureKotlinJvm
+import com.yahyafati.mnemo.buildlogic.googleSetting
 import com.yahyafati.mnemo.buildlogic.libs
 import com.yahyafati.mnemo.buildlogic.library
 import com.yahyafati.mnemo.buildlogic.pluginId
@@ -6,6 +9,8 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.WriteProperties
 import org.gradle.kotlin.dsl.configure
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
@@ -49,6 +54,20 @@ class DesktopApplicationConventionPlugin : Plugin<Project> {
             val copyLicenseTexts = tasks.register<Sync>("copyLicenseTexts") {
                 from(rootProject.layout.projectDirectory.file("LICENSE"), rootProject.layout.projectDirectory.file("NOTICE"))
                 into(appResources.map { it.dir("common") })
+            }
+
+            // The Google client of the Drive sync backend (ADR 0013), from the environment or `local.properties`, as a
+            // resource the app reads. Without it Drive isn't offered; nothing of it is in the repository.
+            val googleDirectory = layout.buildDirectory.dir("generated/google")
+            val googleClientId = googleSetting(DESKTOP_CLIENT_ID).orEmpty()
+            val googleClientSecret = googleSetting(DESKTOP_CLIENT_SECRET).orEmpty()
+            val generateGoogleProperties = tasks.register<WriteProperties>("generateGoogleProperties") {
+                destinationFile.set(googleDirectory.map { it.file("mnemo-google.properties") })
+                property("clientId", googleClientId)
+                property("clientSecret", googleClientSecret)
+            }
+            extensions.getByType<SourceSetContainer>().named("main") {
+                resources.srcDir(generateGoogleProperties.map { googleDirectory })
             }
 
             extensions.configure<ComposeExtension> {

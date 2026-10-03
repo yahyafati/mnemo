@@ -19,6 +19,7 @@ import com.yahyafati.mnemo.core.sync.SyncPassphraseException
 import com.yahyafati.mnemo.core.sync.SyncPaths
 import com.yahyafati.mnemo.core.sync.SyncQuotaException
 import com.yahyafati.mnemo.core.sync.SyncRemote
+import com.yahyafati.mnemo.core.sync.SyncSignInCancelledException
 import com.yahyafati.mnemo.core.sync.SyncStore
 import com.yahyafati.mnemo.core.sync.SyncUnsupportedVersionException
 import com.yahyafati.mnemo.core.sync.store.InMemorySyncStore
@@ -54,6 +55,10 @@ class SyncLifecycleTest : PlatformTest() {
     private val store = InMemorySyncStore()
     private val backend = SyncBackend.Folder("memory://location")
     private val nodes = ArrayList<Node>()
+
+    /** What the stores were asked to give up, and how often the user signed in to Google (S6). */
+    private val released = ArrayList<SyncBackend>()
+    private var googleSignIns = 0
     private val t0 = Instant.parse("2026-03-01T09:00:00Z")
 
     private inner class Node(val name: String, val policy: SyncPolicy = POLICY) {
@@ -85,6 +90,16 @@ class SyncLifecycleTest : PlatformTest() {
                 secrets = secrets,
                 stores = object : SyncStores {
                     override fun open(backend: SyncBackend): SyncStore = store
+
+                    override suspend fun release(backend: SyncBackend) {
+                        released += backend
+                    }
+
+                    override val googleDriveAvailable = true
+
+                    override suspend fun signInToGoogleDrive() {
+                        googleSignIns++
+                    }
                 },
                 backups = backups,
                 directories = directories,
@@ -563,6 +578,83 @@ class SyncLifecycleTest : PlatformTest() {
         assertEquals(last.plus(Duration.ofDays(1)), SyncStatus.Error(folder, SyncProblem.Other, last).attentionFrom())
         // Never synced and failing: nothing to wait for.
         assertEquals(Instant.EPOCH, SyncStatus.WaitingForNetwork(folder, null).attentionFrom())
+    }
+
+    // --- Google Drive (S6) ----------------------------------------------------------------------------------------
+
+    @Test
+    fun googleDriveIsALocationLikeAFolder() = runTest {
+        val drive = SyncBackend.GoogleDrive
+        val a = node("A")
+        val b = node("B")
+        collection(a)
+
+        a.repository.create(drive, "correct horse".toCharArray())
+        b.repository.join(drive, "correct horse".toCharArray())
+        a.note(a.deck("Spanish"), "adios", "goodbye")
+        assertSynced(a.sync())
+        assertSynced(b.sync())
+
+        assertSame(a, b)
+        assertEquals(drive, a.status().backend)
+        assertEquals(drive, b.status().backend)
+        assertTrue(a.repository.isEncrypted())
+    }
+
+    @Test
+    fun theGoogleBackendIsRememberedAcrossARestart() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(SyncBackend.GoogleDrive, null)
+
+        val status = a.newRepository().status.first()
+
+        assertTrue(status is SyncStatus.Idle)
+        assertEquals(SyncBackend.GoogleDrive, status.backend)
+    }
+
+    @Test
+    fun aRefusedGoogleSignInIsAProblemTheUserFixesBySigningInAgain() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(SyncBackend.GoogleDrive, null)
+
+        store.failure = SyncAuthException("Google no longer accepts this sign-in")
+        assertEquals(SyncResult.Failed(SyncProblem.Auth), a.sync())
+        val failed = a.status()
+        assertTrue(failed is SyncStatus.Error && failed.problem == SyncProblem.Auth && failed.backend == SyncBackend.GoogleDrive)
+        assertEquals(Instant.EPOCH, failed.attentionFrom())
+
+        // Signing in again, then a round, mends it: nothing of the collection was touched.
+        store.failure = null
+        a.repository.signInToGoogleDrive()
+        assertSynced(a.sync())
+        assertEquals(1, googleSignIns)
+        assertTrue(a.status() is SyncStatus.Idle)
+    }
+
+    @Test
+    fun stoppingOrDeletingGivesTheGoogleSignInUp() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(SyncBackend.GoogleDrive, null)
+        a.repository.leave()
+        assertEquals(listOf<SyncBackend>(SyncBackend.GoogleDrive), released)
+        assertTrue(a.status() is SyncStatus.Off)
+
+        released.clear()
+        val b = node("B")
+        b.deck("Other")
+        store.paths.forEach(store::delete)
+        b.repository.create(SyncBackend.GoogleDrive, null)
+        b.repository.deleteSyncData()
+        assertEquals(listOf<SyncBackend>(SyncBackend.GoogleDrive), released)
+        assertTrue(store.paths.isEmpty())
+    }
+
+    @Test
+    fun aCancelledSignInIsNotAFailureOfTheLocation() {
+        assertEquals(SyncProblem.SignInCancelled, SyncSignInCancelledException().syncProblem())
     }
 
     private companion object {

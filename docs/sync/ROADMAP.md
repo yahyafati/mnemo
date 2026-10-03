@@ -97,7 +97,7 @@ Owner-only tasks are marked **(owner)**.
 | **S3** | Merge engine | Pack local changes, apply remote ones, rules per table, schedule replay, deck merge; convergence tests | 4–6 days |
 | **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync. **Done** | 3–4 days |
 | **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors. **Done** (hardware pass: S8) | 2–3 days |
-| **S6** | Google Drive | OAuth seam, Drive REST store, tokens | 3–4 days |
+| **S6** | Google Drive | OAuth seam, Drive REST store, tokens. **Done** (real-Google pass: owner, S8) | 3–4 days |
 | **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers | 1–2 days |
 | **S8** | Polish and QA | Two-device runbook on real hardware, large collections, docs, privacy policy, release notes | 2 days |
 
@@ -417,25 +417,44 @@ real hardware (S8's runbook covers it). What was built, and where it differs fro
 
 **Goal:** the same sync for phones, through Drive's REST API.
 
-- [ ] **`OAuthAuthorizer`** seam (`:core:ui` or `:core:data`, `expect`/`actual`): Android opens a Custom
+- [x] **`OAuthAuthorizer`** seam (`:core:ui` or `:core:data`, `expect`/`actual`): Android opens a Custom
       Tab and receives the redirect in an activity declared in `:app`'s manifest (AppAuth or a small
       hand-written one); desktop opens the browser with `LocalUriHandler` and listens on a loopback
       port (see the desktop runtime note above). Both use PKCE and a `state` check.
-- [ ] **Tokens**: the refresh token in `SecretStore`, the access token in memory only; a revoked token
+- [x] **Tokens**: the refresh token in `SecretStore`, the access token in memory only; a revoked token
       becomes the "auth" error and Settings asks to sign in again.
-- [ ] **`GoogleDriveSyncStore`**: the S2 layout as files in the app data folder (or the folder decided
+- [x] **`GoogleDriveSyncStore`**: the S2 layout as files in the app data folder (or the folder decided
       in S0), names stored in each file's `name`, a path → file id cache, resumable upload for files
       over 5 MB, `list` with paging. No redirects followed, as with the AI client.
-- [ ] **Build config**: `MNEMO_GOOGLE_CLIENT_ID` (and the desktop client's values) read like the
+- [x] **Build config**: `MNEMO_GOOGLE_CLIENT_ID` (and the desktop client's values) read like the
       signing settings; without them the Drive option is not shown. Not in the repo.
-- [ ] Licences: AppAuth (if used) in `NOTICE`, `app/config`, `scripts/fdroid/check-foss-deps.py` passes.
-- [ ] Tests on MockWebServer: sign-in code exchange, refresh, list/read/write/delete, paging, a 401
+- [x] Licences: AppAuth (if used) in `NOTICE`, `app/config`, `scripts/fdroid/check-foss-deps.py` passes.
+- [x] Tests on MockWebServer: sign-in code exchange, refresh, list/read/write/delete, paging, a 401
       after refresh, quota full, offline.
 - [ ] Privacy policy and Play's data safety form **(owner)**: what Mnemo sends to Google Drive, that it
       is encrypted, and that the only Google data it reads is its own folder.
 
 **Exit:** a phone and a desktop sync through Drive; signing out and back in works; the FOSS check and
-the exit checks pass.
+the exit checks pass. *Built 2026-10-03; the exit checks pass. **Left for the owner:** the run against real Google (the
+Android spike's custom-scheme redirect, a phone + desktop round trip, revoking and signing in again; steps in
+`docs/sync/google-setup.md`, S8's runbook covers it), the consent screen's verification, and Play's data safety form (the
+privacy policy now describes Drive). What was built, and where it differs from the plan (ADR 0013 "As built (S6)"):*
+
+- *No AppAuth: hand-written PKCE and a custom-scheme redirect (`<package>:/oauth2redirect`) received by `OAuthRedirectActivity`
+  in `:app`, handed on through `OAuthRedirectHub`; no new dependency, so `NOTICE`, `app/config` and the FOSS check are unchanged.
+  The desktop listens on a loopback `ServerSocket`; `jdk.httpserver` is not needed.*
+- *`:core:sync/google`: `GoogleDriveSyncStore`, `GoogleOAuth`, `GoogleSignIn`, `GoogleAccessTokens`, `Pkce`; `:core:data/sync`:
+  `GoogleDriveAccess` (sign-in, refresh token in `SecretStore`, sign-out) behind `SyncStores`, which now also has
+  `googleDriveAvailable`, `signInToGoogleDrive` and a suspending `release` (leaving signs out). `SyncBackend.GoogleDrive`;
+  `SyncRepository.googleDriveAvailable` / `signInToGoogleDrive`; `SyncProblem.SignInCancelled`.*
+- *Scope is `drive.appdata` only (no email): the screen says "Google Drive" without an address. Encryption is on by default for
+  Drive in the create/upload dialogs.*
+- *Settings › Sync offers "Use Google Drive" when the build has a client, with a Cancel while the browser is awaited, and "Sign in
+  to Google" on an auth problem; the Decks banner has Drive wording. Many "folder" strings became neutral.*
+- *Tests: `GoogleDriveSyncStoreTest` (the store contract twice, once with resumable uploads, a fake Drive on MockWebServer),
+  `GoogleOAuthTest`, `GoogleDriveAccessTest`, `DesktopOAuthAuthorizerTest` (a real loopback socket), `AndroidOAuthAuthorizerTest`,
+  Drive cases in `SyncLifecycleTest`, `SyncViewModelTest` and `SyncScreenTest`, two new screenshots.*
+
 
 ## S7 — WebDAV (optional)
 

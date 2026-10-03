@@ -87,6 +87,10 @@ internal class DefaultSyncRepository(
         }
     }
 
+    override val googleDriveAvailable: Boolean get() = stores.googleDriveAvailable
+
+    override suspend fun signInToGoogleDrive() = stores.signInToGoogleDrive()
+
     override suspend fun isEncrypted(): Boolean = configs.read()?.encrypted == true
 
     override suspend fun devices(): List<SyncDeviceSummary> {

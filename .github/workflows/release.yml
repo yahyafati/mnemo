@@ -32,6 +32,8 @@ jobs:
       MNEMO_KEY_ALIAS: ${{ secrets.MNEMO_KEY_ALIAS }}
       MNEMO_KEY_PASSWORD: ${{ secrets.MNEMO_KEY_PASSWORD }}
       MNEMO_CERT_SHA256: ${{ vars.MNEMO_CERT_SHA256 }}
+      # The Android OAuth client of Google Drive sync (docs/sync/google-setup.md). Not a secret; without it the APK has no Drive option.
+      MNEMO_GOOGLE_CLIENT_ID: ${{ vars.MNEMO_GOOGLE_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -109,6 +111,11 @@ jobs:
     name: Installers (${{ matrix.name }})
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
+    env:
+      # The Desktop OAuth client of Google Drive sync (docs/sync/google-setup.md). Google's token endpoint wants its secret,
+      # so it ships inside the app; without both, the installers have no Drive option.
+      MNEMO_GOOGLE_DESKTOP_CLIENT_ID: ${{ vars.MNEMO_GOOGLE_DESKTOP_CLIENT_ID }}
+      MNEMO_GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.MNEMO_GOOGLE_DESKTOP_CLIENT_SECRET }}
     strategy:
       fail-fast: false
       matrix:

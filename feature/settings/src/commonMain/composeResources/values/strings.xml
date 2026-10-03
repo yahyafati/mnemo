@@ -238,19 +238,34 @@
     <!-- Sync (docs/sync/ROADMAP.md S5) -->
     <string name="feature_settings_sync">Sync</string>
     <string name="feature_settings_sync_row">Sync between devices</string>
-    <string name="feature_settings_sync_row_off">Off. Keep your devices in step through a folder you choose.</string>
+    <string name="feature_settings_sync_row_off">Off. Keep your devices in step through storage you own.</string>
     <string name="feature_settings_sync_row_restored">Paused after a restore. Choose what to do.</string>
     <string name="feature_settings_sync_row_idle">On. Last synced %1$s.</string>
     <string name="feature_settings_sync_row_never">On. Not synced yet.</string>
     <string name="feature_settings_sync_row_syncing">Syncing…</string>
-    <string name="feature_settings_sync_row_waiting">On. Waiting to reach the sync folder.</string>
+    <string name="feature_settings_sync_row_waiting">On. Waiting to reach the sync location.</string>
     <string name="feature_settings_sync_row_error">Needs your attention.</string>
-    <string name="feature_settings_sync_intro">Mnemo has no server. Each device writes its changes as files to a folder you choose and reads the other devices' files from it, so the decks, notes and reviews of all your devices end up together, also when you studied offline.</string>
-    <string name="feature_settings_sync_privacy">What goes in the folder: your decks, notes, review history, images and scheduling settings, in files that only Mnemo reads. AI providers, API keys, appearance and the reminder stay on each device. Mnemo never sees the folder; the files go only where you put it.</string>
+    <string name="feature_settings_sync_intro">Mnemo has no server. Each device writes its changes as files to a place you own (a folder you choose or, where this version offers it, your Google Drive) and reads the other devices' files from it, so the decks, notes and reviews of all your devices end up together, also when you studied offline.</string>
+    <string name="feature_settings_sync_privacy">What is stored there: your decks, notes, review history, images and scheduling settings, in files that only Mnemo reads. AI providers, API keys, appearance and the reminder stay on each device. Mnemo has no server and never sees these files; they go only where you put them.</string>
     <string name="feature_settings_sync_use_folder">Use a folder</string>
     <string name="feature_settings_sync_folder_hint_desktop">The folder can be inside Google Drive, Dropbox, Nextcloud or Syncthing: that app then carries the files to your other computers.</string>
     <string name="feature_settings_sync_folder_hint_phone">Pick an empty folder, or make a new one. A sync app such as Syncthing or Nextcloud can carry it to your other devices.</string>
-    <string name="feature_settings_sync_checking">Looking at the folder…</string>
+    <string name="feature_settings_sync_use_drive">Use Google Drive</string>
+    <string name="feature_settings_sync_drive_hint">Mnemo keeps its files in a hidden folder of your Google Drive that only Mnemo can open. It can't see anything else in your Drive. The files count against your Drive storage.</string>
+    <string name="feature_settings_sync_signing_in">Waiting for you in the browser…</string>
+    <string name="feature_settings_sync_sign_in_again">Sign in to Google</string>
+    <string name="feature_settings_sync_location_drive">Google Drive (a hidden folder only Mnemo can open)</string>
+    <string name="feature_settings_sync_problem_auth_drive">Mnemo is no longer signed in to Google, or Google Drive refused access. Sign in again to keep syncing.</string>
+    <string name="feature_settings_sync_problem_quota_drive">Your Google Drive is full. Free up space in Google Drive, then sync again.</string>
+    <string name="feature_settings_sync_problem_gone_drive">Mnemo's sync data is gone from your Google Drive. It may have been removed in Google's settings. Stop syncing and set it up again from a device that has the collection.</string>
+    <string name="feature_settings_sync_problem_cancelled">Sign-in was cancelled.</string>
+    <string name="feature_settings_sync_create_title_drive">Start syncing with Google Drive</string>
+    <string name="feature_settings_sync_create_message_drive">Mnemo puts this device's collection in its hidden folder in your Google Drive. Your other devices join it from there by signing in to the same Google account.</string>
+    <string name="feature_settings_sync_join_title_drive">Join the sync data in Google Drive</string>
+    <string name="feature_settings_sync_join_message_drive">Your Google Drive already holds Mnemo's sync data. Mnemo copies it to this device.</string>
+    <string name="feature_settings_sync_folder_problem_title_drive">Can't use Google Drive</string>
+    <string name="feature_settings_sync_encrypt_summary_drive">Recommended for Google Drive: without one, Google can read your cards. You enter the passphrase on each device, and if you forget it the sync data can't be read.</string>
+    <string name="feature_settings_sync_checking">Looking at the sync location…</string>
     <string name="feature_settings_sync_working">Working…</string>
 
     <string name="feature_settings_sync_status_idle">Up to date</string>
@@ -259,26 +274,26 @@
         <item quantity="other">%1$d changes are waiting to be sent</item>
     </plurals>
     <string name="feature_settings_sync_status_syncing">Syncing…</string>
-    <string name="feature_settings_sync_status_waiting">Can't reach the folder right now. Mnemo will try again.</string>
+    <string name="feature_settings_sync_status_waiting">Can't reach the sync location right now. Mnemo will try again.</string>
     <string name="feature_settings_sync_last">Last synced %1$s</string>
     <string name="feature_settings_sync_last_never">Not synced yet</string>
     <string name="feature_settings_sync_now">Sync now</string>
     <string name="feature_settings_sync_location">Folder: %1$s</string>
     <string name="feature_settings_sync_encrypted">End-to-end encrypted with your passphrase</string>
-    <string name="feature_settings_sync_not_encrypted">Not encrypted: anyone who can open the folder can read the files</string>
+    <string name="feature_settings_sync_not_encrypted">Not encrypted: anyone who can open the sync location can read the files</string>
 
     <string name="feature_settings_sync_devices">Devices</string>
     <string name="feature_settings_sync_devices_loading">Loading…</string>
-    <string name="feature_settings_sync_devices_unavailable">The list isn't available while the folder can't be read.</string>
+    <string name="feature_settings_sync_devices_unavailable">The list isn't available while the sync location can't be read.</string>
     <string name="feature_settings_sync_this_device">%1$s (this device)</string>
     <string name="feature_settings_sync_device_detail">%1$s · seen %2$s</string>
 
     <string name="feature_settings_sync_restored_title">Sync is paused</string>
-    <string name="feature_settings_sync_restored_message">This device's collection was restored from a backup, so it no longer matches the sync data in the folder. Choose which one to keep.</string>
+    <string name="feature_settings_sync_restored_message">This device's collection was restored from a backup, so it no longer matches the sync data. Choose which one to keep.</string>
     <string name="feature_settings_sync_upload">Upload this collection as the new sync data</string>
-    <string name="feature_settings_sync_upload_summary">Replaces the sync data in the folder. Your other devices have to join again.</string>
-    <string name="feature_settings_sync_rejoin">Use the folder's sync data again</string>
-    <string name="feature_settings_sync_rejoin_summary">Replaces this collection with the folder's, which discards the restore. A copy is saved first.</string>
+    <string name="feature_settings_sync_upload_summary">Replaces the sync data. Your other devices have to join again.</string>
+    <string name="feature_settings_sync_rejoin">Use the sync data again</string>
+    <string name="feature_settings_sync_rejoin_summary">Replaces this collection with the sync data, which discards the restore. A copy is saved first.</string>
     <string name="feature_settings_sync_join_again">Join again</string>
     <string name="feature_settings_sync_enter_passphrase">Enter passphrase</string>
 
@@ -286,21 +301,21 @@
     <string name="feature_settings_sync_leave">Stop syncing on this device</string>
     <string name="feature_settings_sync_leave_summary">Your cards stay here. Your other devices keep syncing without this one.</string>
     <string name="feature_settings_sync_delete">Delete the sync data</string>
-    <string name="feature_settings_sync_delete_summary">Removes Mnemo's files from the folder, for every device.</string>
+    <string name="feature_settings_sync_delete_summary">Removes Mnemo's files from the sync location, for every device.</string>
 
-    <string name="feature_settings_sync_problem_offline">Can't reach the sync folder. Mnemo will try again.</string>
+    <string name="feature_settings_sync_problem_offline">Can't reach the sync location. Mnemo will try again.</string>
     <string name="feature_settings_sync_problem_auth">Mnemo can't open the sync folder any more. Stop syncing and set it up again.</string>
-    <string name="feature_settings_sync_problem_quota">There is no room left in the sync folder.</string>
+    <string name="feature_settings_sync_problem_quota">There is no room left in the sync location.</string>
     <string name="feature_settings_sync_problem_passphrase_required">The sync data is encrypted and this device doesn't have its passphrase.</string>
     <string name="feature_settings_sync_problem_passphrase_wrong">That passphrase is wrong.</string>
     <string name="feature_settings_sync_problem_update">The sync data is from a newer version of Mnemo. Update Mnemo on this device to keep syncing.</string>
-    <string name="feature_settings_sync_problem_gone">The folder has no sync data. It may have been deleted, or the folder is a different one.</string>
+    <string name="feature_settings_sync_problem_gone">The sync location has no sync data. It may have been deleted, or the folder is a different one.</string>
     <string name="feature_settings_sync_problem_replaced">Another device started the sync data again. Join it again to keep syncing; a copy of this collection is saved first.</string>
     <string name="feature_settings_sync_problem_must_rejoin">This device was away so long that the sync data it needs has been cleaned up. Join again to keep syncing; a copy of this collection is saved first.</string>
     <string name="feature_settings_sync_problem_not_empty">That folder already has other files in it.</string>
     <string name="feature_settings_sync_problem_other">Syncing stopped because of an unexpected problem. Try Sync now again later.</string>
 
-    <string name="feature_settings_sync_joined">This device now has the collection from the folder.</string>
+    <string name="feature_settings_sync_joined">This device now has the synced collection.</string>
     <string name="feature_settings_sync_joined_backup">A copy of what was here before is saved at %1$s.</string>
 
     <string name="feature_settings_sync_create_title">Start syncing in this folder</string>
@@ -320,7 +335,7 @@
     <string name="feature_settings_sync_join_encrypted">It is encrypted. Enter the passphrase you chose when it was started.</string>
     <string name="feature_settings_sync_join_confirm">Join</string>
     <string name="feature_settings_sync_replace_title">Replace what is on this device?</string>
-    <string name="feature_settings_sync_replace_message">This device has decks and notes of its own. Joining replaces them with the folder's collection. Mnemo saves a copy of them first, in its own storage.</string>
+    <string name="feature_settings_sync_replace_message">This device has decks and notes of its own. Joining replaces them with the synced collection. Mnemo saves a copy of them first, in its own storage.</string>
     <string name="feature_settings_sync_replace_confirm">Replace and join</string>
     <string name="feature_settings_sync_leftovers_title">This folder can't be used</string>
     <string name="feature_settings_sync_leftovers_message">It holds files of an earlier sync that can't be read as sync data any more. Pick an empty folder, or make a new one.</string>
@@ -329,20 +344,20 @@
     <string name="feature_settings_sync_unlock_message">The sync data is encrypted and this device doesn't have its key yet.</string>
     <string name="feature_settings_sync_unlock_confirm">Unlock</string>
     <string name="feature_settings_sync_upload_title">Start the sync data again?</string>
-    <string name="feature_settings_sync_upload_message">The sync data in the folder is emptied and replaced with this collection.</string>
+    <string name="feature_settings_sync_upload_message">The sync data that is there now is emptied and replaced with this collection.</string>
     <string name="feature_settings_sync_upload_others">These devices have to join again: %1$s.</string>
     <string name="feature_settings_sync_upload_others_unknown">Your other devices have to join again.</string>
     <string name="feature_settings_sync_upload_confirm">Replace the sync data</string>
-    <string name="feature_settings_sync_rejoin_title">Use the folder's sync data again?</string>
-    <string name="feature_settings_sync_rejoin_message">This device's collection is replaced with the sync data in the folder. A copy of what is here is saved first.</string>
+    <string name="feature_settings_sync_rejoin_title">Use the sync data again?</string>
+    <string name="feature_settings_sync_rejoin_message">This device's collection is replaced with the sync data. A copy of what is here is saved first.</string>
     <string name="feature_settings_sync_leave_title">Stop syncing on this device?</string>
     <string name="feature_settings_sync_leave_message">Your decks and cards stay here, and your other devices keep syncing without this one. You can join again later.</string>
     <string name="feature_settings_sync_leave_confirm">Stop syncing</string>
     <string name="feature_settings_sync_delete_title">Delete the sync data?</string>
-    <string name="feature_settings_sync_delete_message">Every file Mnemo wrote to the folder is deleted and syncing stops on this device. Your cards stay here, and your other devices find the sync data gone.</string>
+    <string name="feature_settings_sync_delete_message">Every file Mnemo wrote there is deleted and syncing stops on this device. Your cards stay here, and your other devices find the sync data gone.</string>
     <string name="feature_settings_sync_delete_others">Devices that use it: %1$s.</string>
     <string name="feature_settings_sync_delete_confirm">Delete sync data</string>
 
     <string name="feature_settings_privacy_sync_title">Sync</string>
-    <string name="feature_settings_privacy_sync">Off until you turn it on. Then Mnemo writes your decks, notes, review history, images and scheduling settings to the folder you chose, encrypted if you set a passphrase, and reads the other devices' files from it. Mnemo never sees that folder, and AI keys are never synced.</string>
+    <string name="feature_settings_privacy_sync">Off until you turn it on. Then Mnemo writes your decks, notes, review history, images and scheduling settings to the folder you chose or, where this version offers it, to a hidden folder of your Google Drive, encrypted if you set a passphrase, and reads the other devices' files from there. Mnemo has no server and never sees these files, and AI keys are never synced.</string>
 </resources>

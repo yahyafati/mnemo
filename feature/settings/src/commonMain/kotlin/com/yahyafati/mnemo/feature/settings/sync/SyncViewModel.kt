@@ -14,6 +14,7 @@ import com.yahyafati.mnemo.core.data.sync.lastSyncAt
 import com.yahyafati.mnemo.core.data.sync.syncProblem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,14 +51,19 @@ sealed interface SyncDialog {
     /** The folder has files that aren't Mnemo's. */
     data object Leftovers : SyncDialog
 
-    /** The folder couldn't be looked at. */
-    data class FolderProblem(val problem: SyncProblem) : SyncDialog
+    /** The folder (or Google Drive, for [backend]) couldn't be looked at or signed in to. */
+    data class FolderProblem(val problem: SyncProblem, val backend: SyncBackend? = null) : SyncDialog
 
     /** The passphrase of encrypted sync data that this device doesn't have the key to. */
     data class Unlock(override val failure: SyncProblem? = null) : SyncDialog
 
     /** After a restore: start the sync data again from this collection. [otherDevices] are the names that will have to join again. */
-    data class Upload(val otherDevices: List<String>, override val failure: SyncProblem? = null) : SyncDialog
+    data class Upload(
+        val otherDevices: List<String>,
+        override val failure: SyncProblem? = null,
+        /** The location is Google Drive, where encryption is on unless the user switches it off. */
+        val encryptByDefault: Boolean = false,
+    ) : SyncDialog
 
     /** Take the location's data again, replacing this collection (saved first). */
     data class ConfirmRejoin(override val failure: SyncProblem? = null) : SyncDialog
@@ -82,6 +88,10 @@ data class SyncUiState(
     val dialog: SyncDialog? = null,
     /** A set-up step is running: the buttons wait. */
     val working: Boolean = false,
+    /** The step is waiting for the user in the browser (Google sign-in): they can cancel it. */
+    val signingIn: Boolean = false,
+    /** This build can use Google Drive, so the screen offers it. */
+    val googleDriveAvailable: Boolean = false,
     val notice: SyncNotice? = null,
 )
 
@@ -137,28 +147,74 @@ class SyncViewModel(private val repository: SyncRepository) : ViewModel() {
         SyncDevices.Unavailable
     }
 
-    private val controls = combine(dialog, working, notice) { d, w, n -> Triple(d, w, n) }
+    private val signingIn = MutableStateFlow(false)
+    private var signInJob: Job? = null
 
-    val uiState: StateFlow<SyncUiState> = combine(status, repository.pendingChanges, details, controls) { s, pending, (encrypted, devices), (d, w, n) ->
-        SyncUiState(s, pending, encrypted, devices, d, w, n)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncUiState())
+    private class Controls(val dialog: SyncDialog?, val working: Boolean, val signingIn: Boolean, val notice: SyncNotice?)
+
+    private val controls = combine(dialog, working, signingIn, notice, ::Controls)
+
+    val uiState: StateFlow<SyncUiState> = combine(status, repository.pendingChanges, details, controls) { s, pending, (encrypted, devices), c ->
+        SyncUiState(s, pending, encrypted, devices, c.dialog, c.working, c.signingIn, repository.googleDriveAvailable, c.notice)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncUiState(googleDriveAvailable = repository.googleDriveAvailable))
 
     // --- set up ---------------------------------------------------------------------------------------------------
 
     /** The user picked a folder: look at it, then ask the right question. */
     fun onFolderPicked(location: String) {
         val backend = SyncBackend.Folder(location)
-        launchWorking {
-            dialog.value = try {
-                when (val found = repository.inspect(backend)) {
-                    SyncLocation.Empty -> SyncDialog.Create(backend)
-                    is SyncLocation.SyncData -> SyncDialog.Join(backend, found.encrypted)
-                    SyncLocation.Leftovers -> SyncDialog.Leftovers
-                }
+        launchWorking { askAbout(backend) }
+    }
+
+    /** The user chose Google Drive: sign in in the browser, then look at the Drive folder and ask the right question. */
+    fun useGoogleDrive() {
+        if (!repository.googleDriveAvailable) return
+        signIn { askAbout(SyncBackend.GoogleDrive) }
+    }
+
+    /** After [SyncProblem.Auth] on Google Drive: sign in again, and sync. */
+    fun signInAgain() {
+        signIn { repository.syncNow() }
+    }
+
+    /** Stops waiting for the browser. */
+    fun cancelSignIn() {
+        signInJob?.cancel()
+    }
+
+    /** Looks at what [backend] holds and opens the question that fits it. */
+    private suspend fun askAbout(backend: SyncBackend) {
+        dialog.value = try {
+            when (val found = repository.inspect(backend)) {
+                SyncLocation.Empty -> SyncDialog.Create(backend)
+                is SyncLocation.SyncData -> SyncDialog.Join(backend, found.encrypted)
+                SyncLocation.Leftovers -> SyncDialog.Leftovers
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            SyncDialog.FolderProblem(e.syncProblem(), backend)
+        }
+    }
+
+    /** Signs in to Google, then runs [then]. A user who gives up or cancels is not an error; anything else is a dialog. */
+    private fun signIn(then: suspend () -> Unit) {
+        if (working.value) return
+        signInJob = viewModelScope.launch {
+            working.value = true
+            signingIn.value = true
+            try {
+                repository.signInToGoogleDrive()
+                signingIn.value = false
+                then()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                SyncDialog.FolderProblem(e.syncProblem())
+                val problem = e.syncProblem()
+                if (problem != SyncProblem.SignInCancelled) dialog.value = SyncDialog.FolderProblem(problem, SyncBackend.GoogleDrive)
+            } finally {
+                signingIn.value = false
+                working.value = false
             }
         }
     }
@@ -266,7 +322,7 @@ class SyncViewModel(private val repository: SyncRepository) : ViewModel() {
     fun askToUploadAsNew() {
         viewModelScope.launch {
             val others = (uiState.value.devices as? SyncDevices.Loaded)?.devices.orEmpty().filterNot { it.isThisDevice }.map { it.name }
-            dialog.value = SyncDialog.Upload(others)
+            dialog.value = SyncDialog.Upload(others, encryptByDefault = uiState.value.status.backend == SyncBackend.GoogleDrive)
         }
     }
 

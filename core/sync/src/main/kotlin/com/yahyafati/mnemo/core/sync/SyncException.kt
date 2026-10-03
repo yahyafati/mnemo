@@ -25,6 +25,12 @@ class SyncNotFoundException(message: String, cause: Throwable? = null) : SyncExc
 /** [SyncStore.write] was asked to create a file that exists. A name always means one content, so this is final. */
 class SyncAlreadyExistsException(message: String) : SyncException(message)
 
+/**
+ * The user closed the browser or refused access while signing in to a backend (Google Drive). Nothing is wrong with the
+ * location: the caller just doesn't go on.
+ */
+class SyncSignInCancelledException(message: String = "Sign-in was cancelled") : SyncException(message)
+
 /** Any other failure to read or write. */
 class SyncIoException(message: String, cause: Throwable? = null) : SyncException(message, cause)
 

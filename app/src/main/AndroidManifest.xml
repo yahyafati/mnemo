@@ -27,6 +27,23 @@
             </intent-filter>
         </activity>
 
+        <!-- Where Google sends the browser at the end of the sign-in for Drive sync (OAuthRedirectHub, :core:data). -->
+        <activity
+            android:name=".OAuthRedirectActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="${applicationId}" />
+            </intent-filter>
+        </activity>
+
         <!-- Home-screen widget: today's queue (TodayWidget). -->
         <receiver
             android:name=".widget.TodayWidgetProvider"

@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.yahyafati.mnemo.buildlogic.TARGET_SDK
+import com.yahyafati.mnemo.buildlogic.configureGoogleClientAndroid
 import com.yahyafati.mnemo.buildlogic.configureKotlinAndroid
 import com.yahyafati.mnemo.buildlogic.configureReleaseSigning
 import com.yahyafati.mnemo.buildlogic.configureVersioning
@@ -20,6 +21,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 defaultConfig.targetSdk = TARGET_SDK
                 configureVersioning(this)
                 configureReleaseSigning(this)
+                configureGoogleClientAndroid(this)
                 // AGP adds a dependency list, encrypted with a Google key, to the APK signing block.
                 // F-Droid's scanner rejects it (release ROADMAP R7). The bundle keeps its copy for Play.
                 dependenciesInfo {

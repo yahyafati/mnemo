@@ -8,6 +8,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncProblemException
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeSyncRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -153,7 +154,7 @@ class SyncViewModelTest {
     fun aFolderThatCantBeReadSaysWhy() = runWithState {
         repository.readFailure = SyncProblemException(SyncProblem.Auth, "denied")
         viewModel.onFolderPicked(folder.location)
-        assertEquals(SyncDialog.FolderProblem(SyncProblem.Auth), state.dialog)
+        assertEquals(SyncDialog.FolderProblem(SyncProblem.Auth, folder), state.dialog)
         assertFalse(state.working)
     }
 
@@ -290,6 +291,137 @@ class SyncViewModelTest {
     }
 
     // --- passphrases -------------------------------------------------------------------------------------------
+
+    // --- Google Drive (S6) -------------------------------------------------------------------------------------
+
+    private val drive = SyncBackend.GoogleDrive
+
+    @Test
+    fun googleDriveIsOfferedOnlyWhenTheBuildHasAGoogleClient() = runWithState {
+        assertFalse(state.googleDriveAvailable)
+        viewModel.useGoogleDrive()
+        assertTrue(repository.calls.isEmpty())
+    }
+
+    @Test
+    fun anEmptyDriveOffersToStartSyncThereAfterSigningIn() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.location = SyncLocation.Empty
+
+        viewModel.useGoogleDrive()
+
+        assertEquals(listOf("signInToGoogleDrive", "inspect"), repository.calls.map { it.name })
+        assertEquals(drive, repository.calls.last().backend)
+        assertEquals(SyncDialog.Create(drive), state.dialog)
+        assertFalse(state.working)
+        assertFalse(state.signingIn)
+        assertTrue(state.googleDriveAvailable)
+
+        viewModel.create("correct horse")
+
+        assertEquals(drive, repository.calls.last().backend)
+        assertEquals("correct horse", repository.calls.last().passphrase)
+        assertIs<SyncStatus.Idle>(state.status)
+    }
+
+    @Test
+    fun aDriveWithSyncDataOffersToJoinIt() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.location = SyncLocation.SyncData(encrypted = true)
+
+        viewModel.useGoogleDrive()
+
+        assertEquals(SyncDialog.Join(drive, encrypted = true), state.dialog)
+    }
+
+    @Test
+    fun givingUpInTheBrowserIsNotAnError() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.signInFailure = SyncProblemException(SyncProblem.SignInCancelled, "cancelled")
+
+        viewModel.useGoogleDrive()
+
+        assertNull(state.dialog)
+        assertFalse(state.working)
+        // Nothing was looked at: the user never signed in.
+        assertEquals(listOf("signInToGoogleDrive"), repository.calls.map { it.name })
+    }
+
+    @Test
+    fun aSignInThatGoogleRefusesSaysWhy() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.signInFailure = SyncProblemException(SyncProblem.Auth, "refused")
+
+        viewModel.useGoogleDrive()
+
+        assertEquals(SyncDialog.FolderProblem(SyncProblem.Auth, drive), state.dialog)
+        assertFalse(state.working)
+    }
+
+    @Test
+    fun aDriveThatCantBeReadAfterSigningInSaysWhy() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.readFailure = SyncProblemException(SyncProblem.Offline, "no network")
+
+        viewModel.useGoogleDrive()
+
+        assertEquals(SyncDialog.FolderProblem(SyncProblem.Offline, drive), state.dialog)
+    }
+
+    @Test
+    fun theWaitForTheBrowserCanBeCancelled() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.signInWait = CompletableDeferred()
+
+        viewModel.useGoogleDrive()
+
+        assertTrue(state.signingIn)
+        assertTrue(state.working)
+        viewModel.cancelSignIn()
+        assertFalse(state.signingIn)
+        assertFalse(state.working)
+        assertNull(state.dialog)
+        // A second try is possible.
+        repository.signInWait = null
+        viewModel.useGoogleDrive()
+        assertEquals(SyncDialog.Create(drive), state.dialog)
+    }
+
+    @Test
+    fun signingInAgainAfterARefusalSyncsAtOnce() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.statusState.value = SyncStatus.Error(drive, SyncProblem.Auth, Instant.EPOCH)
+
+        viewModel.signInAgain()
+
+        assertEquals(listOf("signInToGoogleDrive"), repository.calls.map { it.name })
+        assertEquals(1, repository.syncs)
+        assertFalse(state.working)
+    }
+
+    @Test
+    fun aFailedSignInAgainKeepsTheProblemAndDoesNotSync() = runWithState {
+        repository.googleDriveAvailable = true
+        repository.statusState.value = SyncStatus.Error(drive, SyncProblem.Auth, Instant.EPOCH)
+        repository.signInFailure = SyncProblemException(SyncProblem.Offline, "no network")
+
+        viewModel.signInAgain()
+
+        assertEquals(0, repository.syncs)
+        assertEquals(SyncDialog.FolderProblem(SyncProblem.Offline, drive), state.dialog)
+    }
+
+    @Test
+    fun startingTheSyncDataAgainOnDriveEncryptsByDefault() = runWithState {
+        repository.statusState.value = SyncStatus.Restored(drive)
+        viewModel.askToUploadAsNew()
+        assertEquals(SyncDialog.Upload(emptyList(), encryptByDefault = true), state.dialog)
+        viewModel.dismissDialog()
+
+        repository.statusState.value = SyncStatus.Restored(folder)
+        viewModel.askToUploadAsNew()
+        assertEquals(SyncDialog.Upload(emptyList(), encryptByDefault = false), state.dialog)
+    }
 
     @Test
     fun aNewPassphraseNeedsEightCharactersAndARepeat() {
