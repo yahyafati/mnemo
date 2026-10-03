@@ -53,6 +53,14 @@ actual fun rememberFolderPicker(onPicked: (String) -> Unit): FolderPicker {
     }
 }
 
+/** A computer has no share sheet (`shareFiles` is off, so nothing offers sharing): Export saves the file instead. */
+@Composable
+actual fun rememberFileSharer(mimeType: String): FileSharer = remember { NoFileSharer }
+
+private object NoFileSharer : FileSharer {
+    override fun share(location: String, title: String) = Unit
+}
+
 private fun CoroutineScope.showDialog(dialog: () -> String?, onChosen: (String) -> Unit) {
     launch {
         val chosen = withContext(Dispatchers.IO) { dialog() }

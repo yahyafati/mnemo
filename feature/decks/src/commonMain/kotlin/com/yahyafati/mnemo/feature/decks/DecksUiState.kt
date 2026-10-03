@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.feature.decks
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
+import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import java.time.Instant
@@ -27,7 +28,17 @@ data class DecksUiState(
     val dialog: DecksDialog? = null,
     val importState: TransferState<ImportSummary> = TransferState.Idle,
     val exportState: TransferState<Unit> = TransferState.Idle,
+    val shareState: ShareState = ShareState.Idle,
 )
+
+/** Getting a deck's package ready for the share sheet; the share sheet itself opens when it's done. */
+sealed interface ShareState {
+    data object Idle : ShareState
+
+    data class Preparing(val progress: Float?) : ShareState
+
+    data class Failed(val error: TransferError) : ShareState
+}
 
 enum class Greeting { Morning, Afternoon, Evening }
 
@@ -105,4 +116,10 @@ sealed interface DecksAction {
 
     /** Hide a finished import or export result. */
     data object DismissTransfer : DecksAction
+
+    /** Package [deckId] and its subdecks as an Anki package and offer it to the share sheet. */
+    data class Share(val deckId: String) : DecksAction
+
+    /** Hide a failed share. */
+    data object DismissShare : DecksAction
 }

@@ -40,6 +40,17 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
+        <!-- Hands a deck's package to the app picked in the share sheet (rememberFileSharer, :core:ui). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_paths" />
+        </provider>
+
         <!-- WorkManager is configured by MnemoApplication (Koin workers), not by its initializer. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

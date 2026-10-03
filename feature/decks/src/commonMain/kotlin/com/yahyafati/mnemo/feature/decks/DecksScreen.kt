@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,12 +44,14 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoChip
 import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.StatTile
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
+import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.RetentionOverview
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.adaptive.readingWidth
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
+import com.yahyafati.mnemo.core.ui.files.rememberFileSharer
 import com.yahyafati.mnemo.core.ui.files.rememberFileSaver
 import com.yahyafati.mnemo.core.ui.permission.AppPermission
 import com.yahyafati.mnemo.core.ui.permission.PermissionRationaleDialog
@@ -85,11 +88,13 @@ import com.yahyafati.mnemo.feature.decks.resources.feature_decks_no_match_title
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_notifications_message
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_notifications_title
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_search
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_share_title
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_stat_days
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_stat_mastered
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_stat_none
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_stat_retained
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_stat_streak
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -118,6 +123,11 @@ internal fun DecksScreen(
     val exportPicker = rememberFileSaver(APKG_MIME) { uri ->
         exportDeckId?.let { viewModel.onAction(DecksAction.Export(it, uri)) }
         exportDeckId = null
+    }
+    val sharer = rememberFileSharer(APKG_MIME)
+    // A package that is ready opens the share sheet, once; leaving the screen first drops it.
+    LaunchedEffect(viewModel, sharer) {
+        viewModel.sharedDeckReady.collect { sharer.share(it.location, getString(Res.string.feature_decks_share_title, it.fileName.removeSuffix(".apkg"))) }
     }
     DecksScreen(
         uiState = uiState,
@@ -184,6 +194,7 @@ internal fun DecksScreen(
         onDelete = { onAction(DecksAction.DeleteDeck(it)) },
         onBrowse = onBrowse,
         onExport = onExportDeck,
+        onShare = if (LocalPlatformCapabilities.current.shareFiles) ({ onAction(DecksAction.Share(it)) }) else null,
     )
     // One column on phones; a grid of deck cards on tablets and unfolded foldables, as in the
     // mockup's desktop layout. Everything but the decks spans the full width.
@@ -203,6 +214,8 @@ internal fun DecksScreen(
                     importState = uiState.importState,
                     exportState = uiState.exportState,
                     onDismiss = { onAction(DecksAction.DismissTransfer) },
+                    shareState = uiState.shareState,
+                    onDismissShare = { onAction(DecksAction.DismissShare) },
                     modifier = Modifier.padding(top = spacing.xs),
                 )
             }

@@ -4,8 +4,8 @@ import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
 
 /**
  * What the desktop app offers at first (desktop ROADMAP, "Not on desktop"): no wallpaper colors,
- * daily reminder, widget, dictation or text-to-speech, and no permissions to ask for at run time;
- * but a keyboard and a mouse (D7).
+ * daily reminder, widget, dictation, text-to-speech or share sheet, and no permissions to ask for
+ * at run time; but a keyboard and a mouse (D7).
  */
 fun desktopPlatformCapabilities() = PlatformCapabilities(
     dynamicColor = false,
@@ -16,5 +16,6 @@ fun desktopPlatformCapabilities() = PlatformCapabilities(
     runtimePermissions = false,
     dynamicColorSetting = false,
     localhostHint = false,
+    shareFiles = false,
     keyboardAndMouse = true,
 )

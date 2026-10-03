@@ -107,7 +107,7 @@ Paste into *App access › Add instructions*:
 
 Category **Reference, News or Educational**. Then, for every question about violence, sexual
 content, language, controlled substances, gambling or fear: **No**. User-generated content shared
-with other users: **No** (cards stay on the device; there is no sharing feature). Location shared:
+with other users: **No** (cards stay on the device; there is no feed or account. A deck's Share action only hands an `.apkg` file to the Android share sheet, and the user picks the recipient). Location shared:
 **No**. Users can purchase digital goods: **No**. Unrestricted internet access: **No**, the app is
 not a browser (it fetches a link only when the user pastes one into Smart Extract, and shows no web
 pages). Expect *Everyone*.

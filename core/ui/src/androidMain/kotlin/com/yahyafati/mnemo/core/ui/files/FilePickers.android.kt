@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.ui.files
 import androidx.compose.runtime.Composable
 import com.yahyafati.mnemo.core.ui.files.android.rememberAndroidFilePicker
 import com.yahyafati.mnemo.core.ui.files.android.rememberAndroidFileSaver
+import com.yahyafati.mnemo.core.ui.files.android.rememberAndroidFileSharer
 import com.yahyafati.mnemo.core.ui.files.android.rememberAndroidFolderPicker
 import com.yahyafati.mnemo.core.ui.files.android.rememberAndroidMediaPicker
 
@@ -21,3 +22,6 @@ actual fun rememberFileSaver(mimeType: String, onSaved: (String) -> Unit): FileS
 @Composable
 actual fun rememberFolderPicker(onPicked: (String) -> Unit): FolderPicker =
     rememberAndroidFolderPicker(onPicked)
+
+@Composable
+actual fun rememberFileSharer(mimeType: String): FileSharer = rememberAndroidFileSharer(mimeType)

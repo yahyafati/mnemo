@@ -13,4 +13,5 @@ fun androidPlatformCapabilities(sdk: Int = Build.VERSION.SDK_INT) = PlatformCapa
     runtimePermissions = true,
     dynamicColorSetting = true,
     localhostHint = true,
+    shareFiles = true,
 )

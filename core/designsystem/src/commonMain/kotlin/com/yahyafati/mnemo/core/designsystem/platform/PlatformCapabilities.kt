@@ -37,6 +37,11 @@ data class PlatformCapabilities(
      */
     val localhostHint: Boolean = true,
     /**
+     * Handing a file to another app through the system share sheet (a deck's package). A computer
+     * has no share sheet: it saves the file with Export instead.
+     */
+    val shareFiles: Boolean = true,
+    /**
      * A computer's keyboard and mouse (desktop ROADMAP D7): screens show the keyboard shortcuts in
      * hints, label icon buttons with hover tooltips, and offer right-click menus and drop targets.
      * The key handlers themselves work everywhere (a tablet with a keyboard uses them too); this

@@ -100,6 +100,10 @@
     <string name="feature_decks_browse_all">Browse all cards</string>
     <string name="feature_decks_browse">Browse cards</string>
     <string name="feature_decks_export">Export (.apkg)</string>
+    <string name="feature_decks_share">Share</string>
+    <string name="feature_decks_sharing">Preparing deck to share…</string>
+    <string name="feature_decks_share_failed">Couldn't prepare the deck</string>
+    <string name="feature_decks_share_title">Share %1$s</string>
     <string name="feature_decks_dismiss">Dismiss</string>
     <string name="feature_decks_importing">Importing Anki deck…</string>
     <string name="feature_decks_notifications_title">Show import progress?</string>

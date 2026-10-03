@@ -23,6 +23,7 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
+import com.yahyafati.mnemo.feature.decks.ShareState
 import com.yahyafati.mnemo.feature.decks.resources.Res
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_dismiss
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_error_corrupt
@@ -41,6 +42,8 @@ import com.yahyafati.mnemo.feature.decks.resources.feature_decks_import_notes
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_import_reviews
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_import_skipped
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_importing
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_share_failed
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sharing
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -54,6 +57,8 @@ internal fun TransferBanner(
     exportState: TransferState<Unit>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    shareState: ShareState = ShareState.Idle,
+    onDismissShare: () -> Unit = {},
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
         when (importState) {
@@ -79,6 +84,14 @@ internal fun TransferBanner(
             is TransferState.Succeeded -> Result(MnemoIcons.CheckCircle, stringResource(Res.string.feature_decks_export_done), null, onDismiss)
             is TransferState.Failed -> Result(
                 MnemoIcons.Close, stringResource(Res.string.feature_decks_export_failed), errorMessage(exportState.error), onDismiss, isError = true,
+            )
+        }
+        // A finished share has no result to show: the share sheet opens instead.
+        when (shareState) {
+            ShareState.Idle -> Unit
+            is ShareState.Preparing -> Progress(stringResource(Res.string.feature_decks_sharing), shareState.progress)
+            is ShareState.Failed -> Result(
+                MnemoIcons.Close, stringResource(Res.string.feature_decks_share_failed), errorMessage(shareState.error), onDismissShare, isError = true,
             )
         }
     }

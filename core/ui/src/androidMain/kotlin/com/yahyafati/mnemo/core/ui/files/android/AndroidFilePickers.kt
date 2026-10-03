@@ -1,12 +1,18 @@
 package com.yahyafati.mnemo.core.ui.files.android
 
+import android.content.ClipData
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
 import com.yahyafati.mnemo.core.ui.files.FilePicker
 import com.yahyafati.mnemo.core.ui.files.FileSaver
+import com.yahyafati.mnemo.core.ui.files.FileSharer
 import com.yahyafati.mnemo.core.ui.files.FolderPicker
+import java.io.File
 
 /** The Storage Access Framework's document picker. */
 @Composable
@@ -54,6 +60,31 @@ fun rememberAndroidFolderPicker(onPicked: (String) -> Unit): FolderPicker {
     return remember(launcher) {
         object : FolderPicker {
             override fun launch() = launcher.launch(null)
+        }
+    }
+}
+
+/**
+ * `ACTION_SEND` through the app's `FileProvider` (declared in `:app`'s manifest, with the cache
+ * folder it may share in `res/xml/share_paths.xml`). The chooser carries the read grant, so only
+ * the app the user picks can open the file.
+ */
+@Composable
+fun rememberAndroidFileSharer(mimeType: String): FileSharer {
+    val context = LocalContext.current
+    return remember(context, mimeType) {
+        object : FileSharer {
+            override fun share(location: String, title: String) {
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(location))
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = mimeType
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_TITLE, title)
+                    clipData = ClipData.newRawUri(title, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(send, title))
+            }
         }
     }
 }

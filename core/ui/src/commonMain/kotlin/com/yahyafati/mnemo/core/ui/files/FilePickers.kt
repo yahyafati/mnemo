@@ -28,6 +28,13 @@ interface FolderPicker {
     fun launch()
 }
 
+/** Hands a file the app wrote to another app, through the system's share sheet. */
+@Stable
+interface FileSharer {
+    /** Opens the share sheet for the file at [location] (an absolute path in the app's cache), titled [title]. */
+    fun share(location: String, title: String)
+}
+
 /**
  * Picks one file of one of [mimeTypes] (a wildcard subtype is allowed). Anki packages have no
  * registered type, so those callers pass the default, which shows every file.
@@ -49,3 +56,10 @@ expect fun rememberFileSaver(mimeType: String, onSaved: (String) -> Unit): FileS
 /** Picks a folder to read and write in. */
 @Composable
 expect fun rememberFolderPicker(onPicked: (String) -> Unit): FolderPicker
+
+/**
+ * Shares files of [mimeType] through the system share sheet. Only offered where
+ * `PlatformCapabilities.shareFiles` is on; where it isn't, sharing does nothing.
+ */
+@Composable
+expect fun rememberFileSharer(mimeType: String): FileSharer

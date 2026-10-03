@@ -20,12 +20,14 @@ import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.CoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
+import com.yahyafati.mnemo.core.data.repository.DeckShareRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultAiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultCardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultCoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultSourceRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultStudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultUserSettingsRepository
+import com.yahyafati.mnemo.core.data.repository.FileDeckShareRepository
 import com.yahyafati.mnemo.core.data.repository.FileMediaRepository
 import com.yahyafati.mnemo.core.data.repository.MediaRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineCardBrowserRepository
@@ -70,6 +72,7 @@ val dataModule = module {
     factory {
         FileMediaRepository(get<AppDirectories>().media, get(), get(), get(), dispatcher(MnemoDispatchers.IO), get<DocumentAccess>())
     } bind MediaRepository::class
+    factory { FileDeckShareRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO)) } bind DeckShareRepository::class
     factoryOf(::OfflineCardBrowserRepository) bind CardBrowserRepository::class
     factory {
         DefaultAiProviderRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.Default))

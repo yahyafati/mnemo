@@ -3,15 +3,18 @@ package com.yahyafati.mnemo.feature.decks
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.model.DeckMaturity
+import com.yahyafati.mnemo.core.data.repository.SharedDeck
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.ImportSummary
 import com.yahyafati.mnemo.core.model.RetrievabilityBucket
+import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.TestClock
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeDeckShareRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository.DeckCounts
 import com.yahyafati.mnemo.core.testing.repository.FakeReviewRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeStatsRepository
@@ -22,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import java.io.IOException
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -35,6 +39,7 @@ class DecksViewModelTest {
     private val clock = TestClock(Instant.parse("2026-01-01T09:00:00Z"))
     private val decks = FakeDeckRepository()
     private val transfers = FakeDataTransferRepository()
+    private val shares = FakeDeckShareRepository()
     private val stats = FakeStatsRepository()
     private val settings = FakeUserSettingsRepository()
     // Lazy: the ViewModel must be created after MainDispatcherRule has set Dispatchers.Main.
@@ -42,6 +47,7 @@ class DecksViewModelTest {
         DecksViewModel(
             deckRepository = decks,
             transferRepository = transfers,
+            deckShareRepository = shares,
             getTodaySummary = GetTodaySummaryUseCase(
                 decks, FakeCardRepository(), FakeReviewRepository(), settings, clock,
             ),
@@ -53,6 +59,14 @@ class DecksViewModelTest {
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.uiState.collect {} }
         block()
+    }
+
+    /** Like [runWithState], with the packages the screen would be handed collected into the list. */
+    private fun runWithShares(block: suspend (ready: List<SharedDeck>) -> Unit) = runTest {
+        val ready = mutableListOf<SharedDeck>()
+        backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.uiState.collect {} }
+        backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.sharedDeckReady.collect { ready += it } }
+        block(ready)
     }
 
     private val state get() = viewModel.uiState.value
@@ -149,6 +163,37 @@ class DecksViewModelTest {
 
         viewModel.onAction(DecksAction.Export("deck-1", "content://docs/deck.apkg"))
         assertEquals(Triple("content://docs/deck.apkg", ExportFormat.Apkg, "deck-1"), transfers.exports.single())
+    }
+
+    @Test
+    fun sharePreparesThePackageAndHandsItToTheScreenOnce() = runWithShares { ready ->
+        val id = decks.saveDeck("Languages::Japanese")
+
+        viewModel.onAction(DecksAction.Share(id))
+
+        assertEquals(listOf(id to "Japanese"), shares.prepared)
+        assertEquals(listOf(SharedDeck("/cache/share/Japanese.apkg", "Japanese.apkg")), ready)
+        assertEquals(ShareState.Idle, state.shareState)
+    }
+
+    @Test
+    fun aFailedShareShowsAnErrorUntilDismissed() = runWithShares { ready ->
+        val id = decks.saveDeck("Biology")
+        shares.failure = IOException("disk full")
+
+        viewModel.onAction(DecksAction.Share(id))
+        assertEquals(ShareState.Failed(TransferError.Storage), state.shareState)
+        assertTrue(ready.isEmpty())
+
+        viewModel.onAction(DecksAction.DismissShare)
+        assertEquals(ShareState.Idle, state.shareState)
+    }
+
+    @Test
+    fun sharingAnUnknownDeckDoesNothing() = runWithState {
+        viewModel.onAction(DecksAction.Share("missing"))
+        assertTrue(shares.prepared.isEmpty())
+        assertEquals(ShareState.Idle, state.shareState)
     }
 
     @Test

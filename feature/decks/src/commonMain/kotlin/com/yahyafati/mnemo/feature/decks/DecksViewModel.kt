@@ -6,6 +6,8 @@ import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.common.time.StudyDay
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
+import com.yahyafati.mnemo.core.data.repository.DeckShareRepository
+import com.yahyafati.mnemo.core.data.repository.SharedDeck
 import com.yahyafati.mnemo.core.domain.DeckNode
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
@@ -13,12 +15,18 @@ import com.yahyafati.mnemo.core.model.DeckSummary
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.RecallTotal
 import com.yahyafati.mnemo.core.model.RetentionOverview
+import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +36,7 @@ import java.time.temporal.ChronoUnit
 class DecksViewModel(
     private val deckRepository: DeckRepository,
     private val transferRepository: DataTransferRepository,
+    private val deckShareRepository: DeckShareRepository,
     getTodaySummary: GetTodaySummaryUseCase,
     getRetentionOverview: GetRetentionOverviewUseCase,
     private val clock: Clock,
@@ -41,13 +50,20 @@ class DecksViewModel(
 
     private val controls = combine(query, filter, expanded, dialog) { q, f, e, d -> Controls(q, f, e, d) }
 
-    private val transfers = combine(transferRepository.importState, transferRepository.exportState, ::Pair)
+    private val share = MutableStateFlow<ShareState>(ShareState.Idle)
+    private var sharing: Job? = null
+    private val sharedDecks = Channel<SharedDeck>(Channel.BUFFERED)
+
+    /** A package that is ready: the screen opens the share sheet for each, once. */
+    val sharedDeckReady: Flow<SharedDeck> = sharedDecks.receiveAsFlow()
+
+    private val transfers = combine(transferRepository.importState, transferRepository.exportState, share) { i, e, s -> Triple(i, e, s) }
 
     private val today = combine(getTodaySummary(), getRetentionOverview(), ::Pair)
 
-    val uiState: StateFlow<DecksUiState> = combine(summaries, today, controls, transfers) { decks, (today, retention), c, (importing, exporting) ->
+    val uiState: StateFlow<DecksUiState> = combine(summaries, today, controls, transfers) { decks, (today, retention), c, (importing, exporting, sharingState) ->
         val state = if (decks == null) DecksUiState(dialog = c.dialog) else buildState(decks, today, retention, c)
-        state.copy(importState = importing, exportState = exporting)
+        state.copy(importState = importing, exportState = exporting, shareState = sharingState)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DecksUiState())
 
     fun onAction(action: DecksAction) {
@@ -95,6 +111,26 @@ class DecksViewModel(
             is DecksAction.Import -> transferRepository.startImport(action.uri)
             is DecksAction.Export -> transferRepository.startExport(action.uri, ExportFormat.Apkg, action.deckId)
             DecksAction.DismissTransfer -> transferRepository.clearFinished()
+            is DecksAction.Share -> share(action.deckId)
+            DecksAction.DismissShare -> if (share.value is ShareState.Failed) share.value = ShareState.Idle
+        }
+    }
+
+    /** One package at a time: another tap while one is being prepared is ignored. */
+    private fun share(deckId: String) {
+        if (sharing?.isActive == true) return
+        val name = summary(deckId)?.deck?.name ?: return
+        share.value = ShareState.Preparing(null)
+        sharing = viewModelScope.launch {
+            try {
+                val shared = deckShareRepository.prepare(deckId, name) { progress -> share.value = ShareState.Preparing(progress) }
+                share.value = ShareState.Idle
+                sharedDecks.send(shared)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                share.value = ShareState.Failed(if (e is java.io.IOException) TransferError.Storage else TransferError.Unknown)
+            }
         }
     }
 

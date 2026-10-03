@@ -83,6 +83,7 @@ import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.Storage
@@ -163,6 +164,7 @@ object MnemoIcons {
     val Json: ImageVector = Icons.Outlined.DataObject
     val Move: ImageVector = Icons.AutoMirrored.Outlined.DriveFileMove
     val Restore: ImageVector = Icons.Outlined.Restore
+    val Share: ImageVector = Icons.Outlined.Share
     val SelectAll: ImageVector = Icons.Outlined.SelectAll
     val Sort: ImageVector = Icons.AutoMirrored.Outlined.Sort
     val Unchecked: ImageVector = Icons.Outlined.CheckBoxOutlineBlank

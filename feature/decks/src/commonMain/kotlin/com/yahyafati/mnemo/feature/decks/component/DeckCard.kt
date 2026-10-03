@@ -47,6 +47,7 @@ import com.yahyafati.mnemo.feature.decks.resources.feature_decks_edit
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_exam_in
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_exam_today
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_export
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_share
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_hours_ago
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_just_now
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_last_review
@@ -78,6 +79,8 @@ internal class DeckCallbacks(
     val onBrowse: (String) -> Unit,
     /** Export as an Anki package: deck id and name (for the file name). */
     val onExport: (String, String) -> Unit,
+    /** Hand the deck to another app through the share sheet. Null where the platform has none. */
+    val onShare: ((String) -> Unit)? = null,
 )
 
 /** A deck in the library list, as in the mockup: labels, name, star, counts and a Review button. */
@@ -152,12 +155,14 @@ private fun deckContextActions(deck: DeckItem, callbacks: DeckCallbacks): List<C
     val addCards = stringResource(Res.string.feature_decks_add_cards)
     val browse = stringResource(Res.string.feature_decks_browse)
     val export = stringResource(Res.string.feature_decks_export)
+    val share = stringResource(Res.string.feature_decks_share)
     val edit = stringResource(Res.string.feature_decks_edit)
     val delete = stringResource(Res.string.feature_decks_delete)
     return buildList {
         if (study) add(ContextAction(primary) { callbacks.onStudy(deck.id) })
         add(ContextAction(addCards) { callbacks.onAddCards(deck.id) })
         add(ContextAction(browse) { callbacks.onBrowse(deck.id) })
+        callbacks.onShare?.let { onShare -> add(ContextAction(share) { onShare(deck.id) }) }
         add(ContextAction(export) { callbacks.onExport(deck.id, deck.name) })
         add(ContextAction(edit) { callbacks.onEdit(deck.id) })
         add(ContextAction(delete) { callbacks.onDelete(deck.id) })
@@ -321,6 +326,16 @@ private fun DeckMenu(deck: DeckItem, callbacks: DeckCallbacks) {
                     callbacks.onBrowse(deck.id)
                 },
             )
+            callbacks.onShare?.let { onShare ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.feature_decks_share)) },
+                    leadingIcon = { Icon(MnemoIcons.Share, null) },
+                    onClick = {
+                        open = false
+                        onShare(deck.id)
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.feature_decks_export)) },
                 leadingIcon = { Icon(MnemoIcons.FileDownload, null) },

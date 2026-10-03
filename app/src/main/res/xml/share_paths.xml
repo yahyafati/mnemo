@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What the FileProvider may hand out: only the share folder of the cache, where DeckShareRepository
+    writes the package being shared. Nothing else in the app's storage is reachable through it.
+-->
+<paths>
+    <cache-path name="shared_decks" path="share/" />
+</paths>
