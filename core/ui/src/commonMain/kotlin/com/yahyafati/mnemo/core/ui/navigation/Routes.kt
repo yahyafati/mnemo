@@ -65,3 +65,7 @@ data object AiProvidersRoute
  */
 @Serializable
 data class AiProviderEditorRoute(val providerId: String? = null, val presetId: String? = null)
+
+/** Settings › Sync: set up, status, devices and leaving (docs/sync/ROADMAP.md S5). */
+@Serializable
+data object SyncRoute

@@ -96,7 +96,7 @@ Owner-only tasks are marked **(owner)**.
 | **S2** | `:core:sync`: format and stores | `SyncStore` interface; change files, compression, encryption; in-memory and folder stores. **Done** | 2–3 days |
 | **S3** | Merge engine | Pack local changes, apply remote ones, rules per table, schedule replay, deck merge; convergence tests | 4–6 days |
 | **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync. **Done** | 3–4 days |
-| **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors | 2–3 days |
+| **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors. **Done** (hardware pass: S8) | 2–3 days |
 | **S6** | Google Drive | OAuth seam, Drive REST store, tokens | 3–4 days |
 | **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers | 1–2 days |
 | **S8** | Polish and QA | Two-device runbook on real hardware, large collections, docs, privacy policy, release notes | 2 days |
@@ -368,20 +368,50 @@ What was built and where it differs from the plan is in ADR 0013 "As built (S4)"
 
 **Goal:** the first release a user can turn on.
 
-- [ ] **Settings › Sync** screen: off / on with the backend's name; "Sync now"; last sync and status;
+- [x] **Settings › Sync** screen: off / on with the backend's name; "Sync now"; last sync and status;
       the devices in the location (from `device.json`: name, platform, last seen); passphrase setup and
       entry; Leave; Delete sync data. Strings in the module's `composeResources`, no phone-only
       wording ("this device" → "this computer/phone" through `PlatformCapabilities` where needed).
-- [ ] **Folder backend**: "Use a folder" with `rememberFolderPicker` and `keepAccess`. On desktop, a hint
+- [x] **Folder backend**: "Use a folder" with `rememberFolderPicker` and `keepAccess`. On desktop, a hint
       that the folder can be inside Google Drive, Dropbox, Nextcloud or Syncthing.
-- [ ] A small status indicator where it helps (proposed: an icon in Settings and an error banner on
+- [x] A small status indicator where it helps (proposed: an icon in Settings and an error banner on
       Decks when sync has failed for more than a day). No indicator while everything works.
-- [ ] Shortcut and menu: "Sync now" in `Shortcuts`, the `?` sheet and `DesktopMenu.kt`.
-- [ ] Roborazzi screenshots for the screen's states; ViewModel tests in `commonTest`.
-- [ ] Privacy policy: what is written to the chosen folder, encryption, and that Mnemo never sees it.
+- [x] Shortcut and menu: "Sync now" in `Shortcuts`, the `?` sheet and `DesktopMenu.kt`.
+- [x] Roborazzi screenshots for the screen's states; ViewModel tests in `commonTest`.
+- [x] Privacy policy: what is written to the chosen folder, encryption, and that Mnemo never sees it.
 
 **Exit:** two real devices (desktop + desktop, or desktop + phone through Syncthing) sync through a
-folder; the exit checks pass.
+folder; the exit checks pass. *Built 2026-10-03; the exit checks pass. **Left for the owner:** the two-device pass on
+real hardware (S8's runbook covers it). What was built, and where it differs from the plan (ADR 0013 "As built (S5)"):*
+
+- *`SyncRoute` (`:core:ui` routes) is a screen of its own, reached from a Sync row in Settings (`SyncSection`), like AI
+  providers. `SyncViewModel` + `SyncScreen` + `SyncDialogs` are in `:feature:settings/sync`. Nothing in the screen is
+  platform-specific except the folder picker (`rememberFolderPicker`) and one hint, gated by the new
+  `PlatformCapabilities.syncAppFolders` (the desktop's "can be inside Google Drive, Dropbox, …").*
+- *`SyncRepository` gained what the screen reads: `inspect(backend)` (empty / sync data, encrypted or not / leftovers),
+  `isEncrypted()` and `devices()` (from each `device.json`; a device that left isn't listed). `Throwable.syncProblem()`
+  (public, `SyncStatus.kt`) is the one mapping from a failure to a `SyncProblem`; `SyncProblem.LocationNotEmpty` is new.
+  A folder store only lists Mnemo's own file names, so a folder with only the user's other files counts as empty and
+  gets Mnemo's files beside them: the create dialog says to use a folder just for this.*
+- *Flow: pick a folder → `inspect` → create (optional passphrase, at least 8 characters, repeated), join (passphrase if
+  encrypted; a second confirmation when it replaces a collection that has data, naming that a copy is saved first; the
+  copy's location is shown afterwards) or "can't use this folder". Status problems have their action: passphrase →
+  unlock, `Replaced`/`MustRejoin` → join again, `Restored` → upload as the new sync data (names the devices that must
+  join again) or use the folder's data again. Leave and Delete sync data ask first. Passphrases are never in the state,
+  saved state or logs.*
+- *Indicators: the Settings row says Off / On with the last time / needs attention (error colour, error icon). The Decks
+  screen shows `SyncBanner` only for `SyncStatus.attentionFrom()`: at once for what only a person can fix (a restore
+  waiting for a choice, a passphrase, joining again, a refused or missing folder, a full one), after a day without a good
+  round for what may mend itself (offline, unexplained). While sync works there is nothing.*
+- *"Sync now": `AppCommand.SyncNow`, `Shortcuts.SyncNow` (⌘⇧S / Ctrl+Shift+S), a row in the `?` sheet and File › Sync now.
+  `MainViewModel.syncNow` shows a snackbar (done / didn't finish) and, with sync off, opens Settings › Sync.*
+- *Not done: changing the folder of a running sync (a refused or deleted folder means Stop syncing, then set it up again,
+  which replaces this collection from the folder after a copy is saved). The privacy policy and the in-app summary now
+  describe sync. Tests: `SyncViewModelTest` (20), `SyncScreenTest` and `SyncScreenshotTest` (Robolectric; dialogs with a
+  text field aren't driven there, see CLAUDE.md), `SyncLifecycleTest` (the new reads and the status rules),
+  `DecksViewModelTest` (the banner), `MainViewModelTest`.*
+
+
 
 ## S6 — Google Drive (`:core:sync`, platform seams)
 

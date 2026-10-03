@@ -62,6 +62,8 @@ import com.yahyafati.mnemo.shell.resources.Res
 import com.yahyafati.mnemo.shell.resources.drop_to_open
 import com.yahyafati.mnemo.shell.resources.message_backup_done
 import com.yahyafati.mnemo.shell.resources.message_export_done
+import com.yahyafati.mnemo.shell.resources.message_sync_done
+import com.yahyafati.mnemo.shell.resources.message_sync_failed
 import com.yahyafati.mnemo.shell.resources.message_transfer_failed
 import com.yahyafati.mnemo.shell.resources.message_unsupported_file
 import org.jetbrains.compose.resources.getString
@@ -164,6 +166,8 @@ private fun Shell(
                         ShellMessage.ExportDone -> Res.string.message_export_done
                         ShellMessage.TransferFailed -> Res.string.message_transfer_failed
                         ShellMessage.UnsupportedFile -> Res.string.message_unsupported_file
+                        ShellMessage.SyncDone -> Res.string.message_sync_done
+                        ShellMessage.SyncFailed -> Res.string.message_sync_failed
                     },
                 ),
             )
@@ -235,6 +239,7 @@ fun globalShortcuts(commands: AppCommands): List<ShortcutBinding> = buildList {
     add(Shortcuts.Settings does { commands.send(AppCommand.OpenSettings) })
     add(Shortcuts.Import does { commands.send(AppCommand.ChooseFileToOpen) })
     add(Shortcuts.ShowShortcuts does { commands.send(AppCommand.ShowShortcuts) })
+    add(Shortcuts.SyncNow does { commands.send(AppCommand.SyncNow) })
 }
 
 /** What the shell does for [command]. */
@@ -261,6 +266,7 @@ private fun perform(
         AppCommand.OpenSettings -> appState.navigateToSettings()
         AppCommand.OpenLicenses -> appState.navController.navigateToLicenses()
         AppCommand.ShowShortcuts -> showShortcuts()
+        AppCommand.SyncNow -> viewModel.syncNow()
         AppCommand.ChooseFileToOpen -> launchers?.openFile?.launch()
         AppCommand.ChooseBackupToRestore -> launchers?.restoreFile?.launch()
         AppCommand.ChooseBackupLocation -> launchers?.backupFile?.launch(backupFileName(Instant.now()))

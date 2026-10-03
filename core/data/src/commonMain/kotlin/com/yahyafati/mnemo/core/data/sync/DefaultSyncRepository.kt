@@ -9,15 +9,13 @@ import com.yahyafati.mnemo.core.security.SecretIds
 import com.yahyafati.mnemo.core.security.SecretStore
 import com.yahyafati.mnemo.core.security.StoredSecret
 import com.yahyafati.mnemo.core.sync.SyncAlreadyExistsException
-import com.yahyafati.mnemo.core.sync.SyncAuthException
+import com.yahyafati.mnemo.core.sync.SyncCorruptException
 import com.yahyafati.mnemo.core.sync.SyncException
 import com.yahyafati.mnemo.core.sync.SyncNotFoundException
-import com.yahyafati.mnemo.core.sync.SyncOfflineException
 import com.yahyafati.mnemo.core.sync.SyncPassphraseException
-import com.yahyafati.mnemo.core.sync.SyncQuotaException
+import com.yahyafati.mnemo.core.sync.SyncPaths
 import com.yahyafati.mnemo.core.sync.SyncRemote
 import com.yahyafati.mnemo.core.sync.SyncStore
-import com.yahyafati.mnemo.core.sync.SyncUnsupportedVersionException
 import com.yahyafati.mnemo.core.sync.format.DeviceInfo
 import com.yahyafati.mnemo.core.sync.format.SyncKey
 import kotlinx.coroutines.CancellationException
@@ -37,8 +35,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-/** A reason to stop that isn't a failure of the location itself. */
-internal class SyncProblemException(val problem: SyncProblem, message: String) : Exception(message)
+/** A reason to stop that isn't a failure of the location itself (also what the fakes throw to stand for any problem). */
+class SyncProblemException(val problem: SyncProblem, message: String) : Exception(message)
 
 /**
  * [SyncRepository] on the merge engine (docs/sync/ROADMAP.md S4). One [Mutex] serializes everything: a round that is
@@ -76,6 +74,39 @@ internal class DefaultSyncRepository(
     }
 
     override val pendingChanges: Flow<Int> = dao.observeChangeCount()
+
+    // --- reading ------------------------------------------------------------------------------------------
+
+    override suspend fun inspect(backend: SyncBackend): SyncLocation = withContext(ioDispatcher) {
+        val store = stores.open(backend)
+        val paths = store.list("")
+        when {
+            paths.isEmpty() -> SyncLocation.Empty
+            SyncPaths.MANIFEST in paths -> SyncLocation.SyncData(encrypted = SyncRemote.readManifest(store).encryption != null)
+            else -> SyncLocation.Leftovers
+        }
+    }
+
+    override suspend fun isEncrypted(): Boolean = configs.read()?.encrypted == true
+
+    override suspend fun devices(): List<SyncDeviceSummary> {
+        val config = configs.read() ?: throw IllegalStateException("There is no sync location")
+        val me = deviceId()
+        val remote = openRemote(config)
+        return withContext(ioDispatcher) {
+            remote.listDevices().mapNotNull { id ->
+                val info = try {
+                    remote.readDevice(id)
+                } catch (_: SyncCorruptException) {
+                    null
+                }
+                // `updatedAt = 0` is how a device that left says so.
+                info?.takeIf { it.updatedAt > 0 }?.let {
+                    SyncDeviceSummary(it.deviceId, it.name, it.platform, it.appVersion, Instant.ofEpochMilli(it.updatedAt), isThisDevice = it.deviceId == me)
+                }
+            }.sortedByDescending { it.lastSeenAt }
+        }
+    }
 
     // --- rounds -------------------------------------------------------------------------------------------
 
@@ -120,7 +151,7 @@ internal class DefaultSyncRepository(
             state.value = SyncStatus.Idle(config.backend, last)
             throw e
         } catch (e: Exception) {
-            val problem = problemOf(e)
+            val problem = e.syncProblem()
             state.value = if (problem == SyncProblem.Offline) {
                 SyncStatus.WaitingForNetwork(config.backend, last)
             } else {
@@ -245,7 +276,7 @@ internal class DefaultSyncRepository(
         withContext(ioDispatcher) {
             val old = try {
                 remote.readDevice(me)
-            } catch (_: com.yahyafati.mnemo.core.sync.SyncCorruptException) {
+            } catch (_: SyncCorruptException) {
                 null
             }
             val description = describer.describe()
@@ -285,7 +316,7 @@ internal class DefaultSyncRepository(
         try {
             engine.sync(remote, describer.describe(), announceSettings = false, includeOwn = true)
         } catch (e: SyncException) {
-            val problem = problemOf(e)
+            val problem = e.syncProblem()
             state.value = if (problem == SyncProblem.Offline) {
                 SyncStatus.WaitingForNetwork(backend, Instant.ofEpochMilli(now))
             } else {
@@ -402,19 +433,8 @@ internal class DefaultSyncRepository(
     /** Every file of the location, the manifest last: a half-done delete is still found and finished by another try. */
     private fun deleteEverything(store: SyncStore) {
         val paths = store.list("")
-        paths.filter { it != com.yahyafati.mnemo.core.sync.SyncPaths.MANIFEST }.forEach(store::delete)
-        if (com.yahyafati.mnemo.core.sync.SyncPaths.MANIFEST in paths) store.delete(com.yahyafati.mnemo.core.sync.SyncPaths.MANIFEST)
-    }
-
-    private fun problemOf(e: Throwable): SyncProblem = when (e) {
-        is SyncOfflineException -> SyncProblem.Offline
-        is SyncAuthException -> SyncProblem.Auth
-        is SyncQuotaException -> SyncProblem.Quota
-        is SyncNotFoundException -> SyncProblem.LocationGone
-        is SyncPassphraseException -> if (e.required) SyncProblem.PassphraseRequired else SyncProblem.PassphraseWrong
-        is SyncUnsupportedVersionException -> SyncProblem.UpdateRequired
-        is SyncProblemException -> e.problem
-        else -> SyncProblem.Other
+        paths.filter { it != SyncPaths.MANIFEST }.forEach(store::delete)
+        if (SyncPaths.MANIFEST in paths) store.delete(SyncPaths.MANIFEST)
     }
 
     private companion object {

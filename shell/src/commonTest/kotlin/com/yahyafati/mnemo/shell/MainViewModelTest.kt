@@ -6,9 +6,14 @@ import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
+import com.yahyafati.mnemo.core.data.sync.SyncBackend
+import com.yahyafati.mnemo.core.data.sync.SyncProblem
+import com.yahyafati.mnemo.core.data.sync.SyncResult
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeReminderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSyncRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import com.yahyafati.mnemo.feature.settings.RestoreStep
 import kotlinx.coroutines.flow.first
@@ -28,8 +33,9 @@ class MainViewModelTest {
 
     private val transfers = FakeDataTransferRepository()
     private val settings = FakeUserSettingsRepository()
+    private val sync = FakeSyncRepository()
     private val viewModel by lazy {
-        MainViewModel(settings, FakeDeckRepository(), FakeReminderRepository(settings), transfers)
+        MainViewModel(settings, FakeDeckRepository(), FakeReminderRepository(settings), transfers, sync)
     }
 
     @Test
@@ -48,6 +54,33 @@ class MainViewModelTest {
         // Anything else is said to be unsupported.
         assertFalse(viewModel.openFile("/home/me/photo.png"))
         assertEquals(ShellMessage.UnsupportedFile, viewModel.messages.first())
+    }
+
+    @Test
+    fun syncNowRunsARoundAndSaysSo() = runTest {
+        sync.statusState.value = SyncStatus.Idle(SyncBackend.Folder("/sync"), null)
+        viewModel.syncNow()
+        assertEquals(ShellMessage.SyncDone, viewModel.messages.first())
+        assertEquals(1, sync.syncs)
+        assertNull(viewModel.destination.value)
+
+        sync.syncResult = SyncResult.Failed(SyncProblem.Offline)
+        viewModel.syncNow()
+        assertEquals(ShellMessage.SyncFailed, viewModel.messages.first())
+    }
+
+    @Test
+    fun syncNowWithSyncOffOpensTheScreenThatSetsItUp() = runTest {
+        viewModel.syncNow()
+        assertEquals(AppDestination.SyncSettings, viewModel.destination.value)
+    }
+
+    @Test
+    fun syncNowDuringARoundSaysNothing() = runTest {
+        sync.syncResult = SyncResult.Busy
+        viewModel.syncNow()
+        assertNull(viewModel.destination.value)
+        assertEquals(1, sync.syncs)
     }
 
     @Test

@@ -41,6 +41,7 @@
     <string name="shortcuts_settings">Settings</string>
     <string name="shortcuts_back">Leave this page (Settings, editor, a session)</string>
     <string name="shortcuts_import">Import a file</string>
+    <string name="shortcuts_sync_now">Sync now</string>
     <string name="shortcuts_show_list">This list</string>
     <string name="shortcuts_reveal">Show the answer</string>
     <string name="shortcuts_rate">Again, Hard, Good, Easy (or pick a choice)</string>
@@ -52,6 +53,8 @@
     <string name="drop_to_open">Drop a deck (.apkg, .colpkg) to import it, or a backup (.zip) to restore it</string>
     <string name="message_backup_done">Backup saved</string>
     <string name="message_export_done">Export finished</string>
+    <string name="message_sync_done">Synced</string>
+    <string name="message_sync_failed">Sync didn't finish. Settings › Sync says why.</string>
     <string name="message_transfer_failed">That didn't work. Settings › Data says what went wrong.</string>
     <string name="message_unsupported_file">Mnemo opens Anki packages (.apkg, .colpkg) and its own backups (.zip).</string>
     <string name="onboarding_study_flip_keys">Read the prompt, recall the answer, then press Space to check.</string>

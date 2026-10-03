@@ -18,6 +18,9 @@ object Shortcuts {
     val Import = Shortcut(Key.O, primary = true)
     val ShowShortcuts = Shortcut.Question
 
+    /** Runs one sync round now (or opens Settings › Sync while sync is off). */
+    val SyncNow = Shortcut(Key.S, primary = true, shift = true)
+
     /** Leaves a full-screen page (the editor, Settings, a study session) for the one before it. */
     val Back = Shortcut(Key.Escape)
 

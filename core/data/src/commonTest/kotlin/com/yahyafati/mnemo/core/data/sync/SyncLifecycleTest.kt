@@ -12,10 +12,15 @@ import com.yahyafati.mnemo.core.database.sync.SyncRows
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.sync.SyncAlreadyExistsException
+import com.yahyafati.mnemo.core.sync.SyncAuthException
+import com.yahyafati.mnemo.core.sync.SyncNotFoundException
+import com.yahyafati.mnemo.core.sync.SyncOfflineException
 import com.yahyafati.mnemo.core.sync.SyncPassphraseException
 import com.yahyafati.mnemo.core.sync.SyncPaths
+import com.yahyafati.mnemo.core.sync.SyncQuotaException
 import com.yahyafati.mnemo.core.sync.SyncRemote
 import com.yahyafati.mnemo.core.sync.SyncStore
+import com.yahyafati.mnemo.core.sync.SyncUnsupportedVersionException
 import com.yahyafati.mnemo.core.sync.store.InMemorySyncStore
 import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.TestAppDirectories
@@ -459,6 +464,105 @@ class SyncLifecycleTest : PlatformTest() {
         assertSynced(a.sync())
         assertSame(a, b)
         assertEquals(3, a.db.queryStrings("SELECT id FROM notes").size)
+    }
+
+    // --- what the Settings screen reads (S5) -----------------------------------------------------------------
+
+    @Test
+    fun aLocationIsInspectedBeforeCreatingOrJoining() = runTest {
+        val a = node("A")
+        val b = node("B")
+        assertEquals(SyncLocation.Empty, b.repository.inspect(backend))
+
+        collection(a)
+        a.repository.create(backend, null)
+        assertEquals(SyncLocation.SyncData(encrypted = false), b.repository.inspect(backend))
+
+        // Inspecting changes nothing.
+        val before = store.paths
+        b.repository.inspect(backend)
+        assertEquals(before, store.paths)
+        assertTrue(b.status() is SyncStatus.Off)
+    }
+
+    @Test
+    fun anEncryptedLocationSaysSoWithoutItsPassphrase() = runTest {
+        val a = node("A")
+        val b = node("B")
+        collection(a)
+        a.repository.create(backend, "correct horse".toCharArray())
+
+        assertEquals(SyncLocation.SyncData(encrypted = true), b.repository.inspect(backend))
+        assertTrue(a.repository.isEncrypted())
+        assertFalse(b.repository.isEncrypted())
+    }
+
+    @Test
+    fun aLocationWithLeftoversIsNotMnemos() = runTest {
+        val a = node("A")
+        store.write("media/${"0".repeat(64)}", byteArrayOf(1))
+
+        assertEquals(SyncLocation.Leftovers, a.repository.inspect(backend))
+    }
+
+    @Test
+    fun theDevicesOfALocationAreListedWithThisOneMarked() = runTest {
+        val a = node("A")
+        val b = node("B")
+        collection(a)
+        a.repository.create(backend, null)
+        b.clock.advanceBy(Duration.ofMinutes(5))
+        b.repository.join(backend, null)
+
+        val seenByB = b.repository.devices()
+
+        assertEquals(setOf("A", "B"), seenByB.map { it.name }.toSet())
+        assertEquals(listOf("B"), seenByB.filter { it.isThisDevice }.map { it.name })
+        // Newest first.
+        assertEquals("B", seenByB.first().name)
+
+        // A device that left is no longer listed.
+        b.repository.leave()
+        assertEquals(listOf("A"), a.repository.devices().map { it.name })
+    }
+
+    @Test
+    fun theDevicesOfNoLocationCannotBeListed() = runTest {
+        val a = node("A")
+        assertFailsWith<IllegalStateException> { a.repository.devices() }
+    }
+
+    @Test
+    fun failuresOfTheLocationComeToTheProblemTheScreenSays() {
+        assertEquals(SyncProblem.Offline, SyncOfflineException("x").syncProblem())
+        assertEquals(SyncProblem.Auth, SyncAuthException("x").syncProblem())
+        assertEquals(SyncProblem.Quota, SyncQuotaException("x").syncProblem())
+        assertEquals(SyncProblem.LocationGone, SyncNotFoundException("x").syncProblem())
+        assertEquals(SyncProblem.LocationNotEmpty, SyncAlreadyExistsException("x").syncProblem())
+        assertEquals(SyncProblem.PassphraseRequired, SyncPassphraseException(required = true).syncProblem())
+        assertEquals(SyncProblem.PassphraseWrong, SyncPassphraseException(required = false).syncProblem())
+        assertEquals(SyncProblem.UpdateRequired, SyncUnsupportedVersionException(9, 1).syncProblem())
+        assertEquals(SyncProblem.Other, java.io.IOException("x").syncProblem())
+    }
+
+    @Test
+    fun aStatusAsksForTheUserOnlyWhenSyncCantMendItself() {
+        val folder = SyncBackend.Folder("/sync")
+        val last = t0
+        // Nothing to say while it works, or is off.
+        assertNull(SyncStatus.Off.attentionFrom())
+        assertNull(SyncStatus.Idle(folder, last).attentionFrom())
+        assertNull(SyncStatus.Syncing(folder, last).attentionFrom())
+        // Only a person can fix these: at once.
+        assertEquals(Instant.EPOCH, SyncStatus.Restored(folder).attentionFrom())
+        for (problem in listOf(SyncProblem.PassphraseRequired, SyncProblem.Replaced, SyncProblem.MustRejoin, SyncProblem.Auth, SyncProblem.LocationGone)) {
+            assertEquals(Instant.EPOCH, SyncStatus.Error(folder, problem, last).attentionFrom(), "$problem")
+        }
+        // These may mend themselves: after a day without a good round.
+        assertEquals(last.plus(Duration.ofDays(1)), SyncStatus.WaitingForNetwork(folder, last).attentionFrom())
+        assertEquals(last.plus(Duration.ofDays(1)), SyncStatus.Error(folder, SyncProblem.Other, last).attentionFrom())
+        // Never synced and failing: nothing to wait for.
+        assertEquals(Instant.EPOCH, SyncStatus.WaitingForNetwork(folder, null).attentionFrom())
     }
 
     private companion object {

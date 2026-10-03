@@ -8,10 +8,12 @@ import com.yahyafati.mnemo.core.ui.navigation.AiProviderEditorRoute
 import com.yahyafati.mnemo.core.ui.navigation.AiProvidersRoute
 import com.yahyafati.mnemo.core.ui.navigation.LicensesRoute
 import com.yahyafati.mnemo.core.ui.navigation.SettingsRoute
+import com.yahyafati.mnemo.core.ui.navigation.SyncRoute
 import com.yahyafati.mnemo.feature.settings.LicensesRoute as LicensesScreenRoute
 import com.yahyafati.mnemo.feature.settings.SettingsScreen
 import com.yahyafati.mnemo.feature.settings.ai.AiProvidersRoute as AiProvidersScreenRoute
 import com.yahyafati.mnemo.feature.settings.ai.ProviderEditorRoute
+import com.yahyafati.mnemo.feature.settings.sync.SyncRoute as SyncScreenRoute
 
 fun NavController.navigateToSettings(navOptions: NavOptions? = null) = navigate(SettingsRoute, navOptions)
 
@@ -25,9 +27,23 @@ fun NavController.navigateToAiProviderEditor(providerId: String? = null, presetI
 /** Settings › About › Open-source licenses. */
 fun NavController.navigateToLicenses(navOptions: NavOptions? = null) = navigate(LicensesRoute, navOptions)
 
-fun NavGraphBuilder.settingsScreen(onBackClick: () -> Unit, onOpenAiProviders: () -> Unit, onOpenLicenses: () -> Unit) {
+/** Settings › Sync. Also the target of the Decks screen's sync banner and of "Sync now" while sync is off. */
+fun NavController.navigateToSync(navOptions: NavOptions? = null) = navigate(SyncRoute, navOptions)
+
+fun NavGraphBuilder.settingsScreen(
+    onBackClick: () -> Unit,
+    onOpenAiProviders: () -> Unit,
+    onOpenSync: () -> Unit,
+    onOpenLicenses: () -> Unit,
+) {
     composable<SettingsRoute> {
-        SettingsScreen(onBackClick = onBackClick, onOpenAiProviders = onOpenAiProviders, onOpenLicenses = onOpenLicenses)
+        SettingsScreen(onBackClick = onBackClick, onOpenAiProviders = onOpenAiProviders, onOpenSync = onOpenSync, onOpenLicenses = onOpenLicenses)
+    }
+}
+
+fun NavGraphBuilder.syncScreen(onBack: () -> Unit) {
+    composable<SyncRoute> {
+        SyncScreenRoute(onBack = onBack)
     }
 }
 

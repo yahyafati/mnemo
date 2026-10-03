@@ -14,8 +14,15 @@ fun NavGraphBuilder.decksScreen(
     onStartDailyMix: () -> Unit,
     onAddCards: (deckId: String) -> Unit,
     onBrowse: (deckId: String?) -> Unit,
+    onOpenSync: () -> Unit,
 ) {
     composable<DecksRoute> {
-        DecksScreen(onStudyDeck = onStudyDeck, onStartDailyMix = onStartDailyMix, onAddCards = onAddCards, onBrowse = onBrowse)
+        DecksScreen(
+            onStudyDeck = onStudyDeck,
+            onStartDailyMix = onStartDailyMix,
+            onAddCards = onAddCards,
+            onBrowse = onBrowse,
+            onOpenSync = onOpenSync,
+        )
     }
 }

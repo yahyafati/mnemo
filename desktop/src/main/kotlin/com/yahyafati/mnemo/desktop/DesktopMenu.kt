@@ -40,6 +40,8 @@ internal fun FrameWindowScope.DesktopMenuBar(commands: AppCommands, onQuit: () -
             Separator()
             Item("Back up…", onClick = { send(AppCommand.ChooseBackupLocation) })
             Item("Restore from backup…", onClick = { send(AppCommand.ChooseBackupToRestore) })
+            Separator()
+            Item("Sync now", onClick = { send(AppCommand.SyncNow) }, shortcut = Shortcuts.SyncNow.toKeyShortcut())
             // macOS has Quit (⌘Q) in the application menu.
             if (!isMac) {
                 Separator()

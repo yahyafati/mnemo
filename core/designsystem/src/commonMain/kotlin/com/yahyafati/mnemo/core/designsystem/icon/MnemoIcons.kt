@@ -9,6 +9,10 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.SyncProblem
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Quiz
@@ -205,6 +209,12 @@ object MnemoIcons {
     val Quiz: ImageVector = Icons.Outlined.Quiz
     val Send: ImageVector = Icons.AutoMirrored.Outlined.Send
     val Speak: ImageVector = Icons.AutoMirrored.Outlined.VolumeUp
+
+    // Sync
+    val Lock: ImageVector = Icons.Outlined.Lock
+    val Phone: ImageVector = Icons.Outlined.Smartphone
+    val Sync: ImageVector = Icons.Outlined.Sync
+    val SyncProblem: ImageVector = Icons.Outlined.SyncProblem
 
     // Analytics
     val FactCheck: ImageVector = Icons.AutoMirrored.Outlined.FactCheck

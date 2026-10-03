@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.designsystem.component.EmptyState
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoButtonStyle
@@ -60,6 +61,7 @@ import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
 import com.yahyafati.mnemo.feature.decks.component.DailyMixCard
 import com.yahyafati.mnemo.feature.decks.component.DeckCallbacks
 import com.yahyafati.mnemo.feature.decks.component.DeckCard
+import com.yahyafati.mnemo.feature.decks.component.SyncBanner
 import com.yahyafati.mnemo.feature.decks.component.TransferBanner
 import com.yahyafati.mnemo.feature.decks.resources.Res
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_browse_all
@@ -110,10 +112,12 @@ internal fun DecksScreen(
     onStartDailyMix: () -> Unit,
     onAddCards: (deckId: String) -> Unit,
     onBrowse: (deckId: String?) -> Unit,
+    onOpenSync: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DecksViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val syncBanner by viewModel.syncBanner.collectAsStateWithLifecycle()
     // .apkg and .colpkg have no registered MIME type, so the picker shows every file.
     val importPicker = rememberFilePicker { viewModel.onAction(DecksAction.Import(it)) }
     // The progress notification needs permission on some platforms; the import runs either way.
@@ -131,6 +135,8 @@ internal fun DecksScreen(
     }
     DecksScreen(
         uiState = uiState,
+        syncBanner = syncBanner,
+        onOpenSync = onOpenSync,
         onAction = viewModel::onAction,
         onStudyDeck = onStudyDeck,
         onStartDailyMix = onStartDailyMix,
@@ -179,6 +185,8 @@ internal fun DecksScreen(
     onImport: () -> Unit,
     onExportDeck: (deckId: String, name: String) -> Unit,
     modifier: Modifier = Modifier,
+    syncBanner: SyncStatus? = null,
+    onOpenSync: () -> Unit = {},
 ) {
     val spacing = MnemoTheme.spacing
     if (uiState.isLoading) {
@@ -209,6 +217,9 @@ internal fun DecksScreen(
             horizontalArrangement = Arrangement.spacedBy(spacing.sm),
         ) {
             item(key = "header", span = FULL_WIDTH) { Header(uiState) }
+            if (syncBanner != null) {
+                item(key = "sync", span = FULL_WIDTH) { SyncBanner(syncBanner, onOpenSync, Modifier.padding(top = spacing.xs)) }
+            }
             item(key = "transfers", span = FULL_WIDTH) {
                 TransferBanner(
                     importState = uiState.importState,

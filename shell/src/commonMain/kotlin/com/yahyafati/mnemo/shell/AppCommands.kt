@@ -30,6 +30,9 @@ sealed interface AppCommand {
 
     data object ShowShortcuts : AppCommand
 
+    /** Syncs now (File › Sync now); with sync off, opens Settings › Sync to set it up. */
+    data object SyncNow : AppCommand
+
     /** Asks for a file (File › Import…) and opens it with [OpenFile]. */
     data object ChooseFileToOpen : AppCommand
 

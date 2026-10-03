@@ -107,10 +107,12 @@ class ShortcutTest {
         assertEquals("Esc", Shortcuts.Back.label(mac = false))
         assertEquals("?", Shortcuts.ShowShortcuts.label(mac = false))
         assertEquals("⌘,", Shortcuts.Settings.label(mac = true))
+        assertEquals("⇧⌘S", Shortcuts.SyncNow.label(mac = true))
+        assertEquals("Ctrl+Shift+S", Shortcuts.SyncNow.label(mac = false))
         // Every shortcut the app has can be printed, on both systems.
         val all = listOf(
             Shortcuts.NewNote, Shortcuts.Search, Shortcuts.Settings, Shortcuts.Import, Shortcuts.ShowShortcuts, Shortcuts.Back,
-            Shortcuts.Undo, Shortcuts.EditNote, Shortcuts.Save, Shortcuts.Cloze,
+            Shortcuts.Undo, Shortcuts.EditNote, Shortcuts.Save, Shortcuts.Cloze, Shortcuts.SyncNow,
         ) + Shortcuts.Tabs + Shortcuts.Reveal + Shortcuts.Answers
         for (shortcut in all) {
             assertTrue(shortcut.label(mac = true).isNotEmpty())

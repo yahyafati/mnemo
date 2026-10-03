@@ -19,7 +19,9 @@ import com.yahyafati.mnemo.feature.settings.navigation.licensesScreen
 import com.yahyafati.mnemo.feature.settings.navigation.navigateToAiProviderEditor
 import com.yahyafati.mnemo.feature.settings.navigation.navigateToAiProviders
 import com.yahyafati.mnemo.feature.settings.navigation.navigateToLicenses
+import com.yahyafati.mnemo.feature.settings.navigation.navigateToSync
 import com.yahyafati.mnemo.feature.settings.navigation.settingsScreen
+import com.yahyafati.mnemo.feature.settings.navigation.syncScreen
 import com.yahyafati.mnemo.feature.study.navigation.navigateToStudySession
 import com.yahyafati.mnemo.feature.study.navigation.studyScreen
 import com.yahyafati.mnemo.feature.study.navigation.studySessionScreen
@@ -44,6 +46,7 @@ fun MnemoNavHost(
             onStartDailyMix = { appState.navigateToTopLevelDestination(TopLevelDestination.Study) },
             onAddCards = { deckId -> navController.navigateToNoteEditor(deckId = deckId) },
             onBrowse = { deckId -> navController.navigateToBrowse(deckId) },
+            onOpenSync = { navController.navigateToSync() },
         )
         studyScreen(
             onEditNote = editNote,
@@ -57,8 +60,10 @@ fun MnemoNavHost(
         settingsScreen(
             onBackClick = navController::popBackStack,
             onOpenAiProviders = { navController.navigateToAiProviders() },
+            onOpenSync = { navController.navigateToSync() },
             onOpenLicenses = { navController.navigateToLicenses() },
         )
+        syncScreen(onBack = navController::popBackStack)
         licensesScreen(loadLibraries = loadLicenses, onBack = navController::popBackStack)
         aiProvidersScreen(
             onBack = navController::popBackStack,

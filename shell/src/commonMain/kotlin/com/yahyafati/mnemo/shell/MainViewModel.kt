@@ -8,6 +8,8 @@ import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
+import com.yahyafati.mnemo.core.data.sync.SyncRepository
+import com.yahyafati.mnemo.core.data.sync.SyncResult
 import com.yahyafati.mnemo.core.model.ExportFormat
 import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TransferState
@@ -39,6 +41,9 @@ sealed interface AppDestination {
 
     /** The editor, adding cards to [deckId]. */
     data class AddCards(val deckId: String) : AppDestination
+
+    /** Settings › Sync: "Sync now" while sync is off. */
+    data object SyncSettings : AppDestination
 }
 
 /** A short note the shell shows after something the user started from the menu or a dropped file. */
@@ -47,6 +52,8 @@ enum class ShellMessage {
     ExportDone,
     TransferFailed,
     UnsupportedFile,
+    SyncDone,
+    SyncFailed,
 }
 
 /** App-wide state: appearance (theme, dynamic color, card text size), onboarding, and where to open. */
@@ -55,6 +62,7 @@ class MainViewModel(
     private val deckRepository: DeckRepository,
     private val reminderRepository: ReminderRepository,
     private val transferRepository: DataTransferRepository,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
     val uiState: StateFlow<MainUiState> = combine(settingsRepository.settings, deckRepository.observeDecks()) { settings, decks ->
         // Someone with decks (an update from before onboarding existed, or a restored backup) skips it.
@@ -142,6 +150,19 @@ class MainViewModel(
 
     fun dismissRestore() {
         _restore.value = null
+    }
+
+    /** Syncs now (the menu, Ctrl+Shift+S). With sync off there is nothing to run: it opens the screen that sets it up. */
+    fun syncNow() {
+        viewModelScope.launch {
+            when (syncRepository.syncNow()) {
+                SyncResult.NotSyncing -> _destination.value = AppDestination.SyncSettings
+                is SyncResult.Done -> _messages.send(ShellMessage.SyncDone)
+                is SyncResult.Failed -> _messages.send(ShellMessage.SyncFailed)
+                // A round is already running: it does what was asked.
+                SyncResult.Busy -> Unit
+            }
+        }
     }
 
     fun backUpTo(location: String) {

@@ -8,6 +8,9 @@ import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.DeckShareRepository
 import com.yahyafati.mnemo.core.data.repository.SharedDeck
+import com.yahyafati.mnemo.core.data.sync.SyncRepository
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.attentionFrom
 import com.yahyafati.mnemo.core.domain.DeckNode
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
@@ -19,6 +22,8 @@ import com.yahyafati.mnemo.core.model.TransferError
 import com.yahyafati.mnemo.core.model.TodaySummary
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -26,13 +31,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DecksViewModel(
     private val deckRepository: DeckRepository,
     private val transferRepository: DataTransferRepository,
@@ -40,7 +50,31 @@ class DecksViewModel(
     getTodaySummary: GetTodaySummaryUseCase,
     getRetentionOverview: GetRetentionOverviewUseCase,
     private val clock: Clock,
+    syncRepository: SyncRepository,
 ) : ViewModel() {
+    /**
+     * The sync status while it needs the user, else null (docs/sync/ROADMAP.md S5): a restore waiting for a choice, a
+     * problem only a person can fix, or a day without a good round. While everything works there is nothing to show.
+     * A status that will deserve a banner only later is shown when its time comes.
+     */
+    val syncBanner: StateFlow<SyncStatus?> = syncRepository.status.flatMapLatest { status ->
+        val from = status.attentionFrom()
+        if (from == null) {
+            flowOf(null)
+        } else {
+            val wait = Duration.between(clock.now(), from)
+            if (wait.isNegative || wait.isZero) {
+                flowOf(status)
+            } else {
+                flow {
+                    emit(null)
+                    delay(wait.toMillis())
+                    emit(status)
+                }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow<DeckFilter>(DeckFilter.All)
     private val expanded = MutableStateFlow(emptySet<String>())

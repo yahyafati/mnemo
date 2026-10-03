@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.settings
 
 import com.yahyafati.mnemo.feature.settings.ai.AiProvidersViewModel
 import com.yahyafati.mnemo.feature.settings.ai.ProviderEditorViewModel
+import com.yahyafati.mnemo.feature.settings.sync.SyncViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -10,4 +11,5 @@ val settingsModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AiProvidersViewModel)
     viewModelOf(::ProviderEditorViewModel)
+    viewModelOf(::SyncViewModel)
 }

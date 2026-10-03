@@ -24,6 +24,7 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.ui.adaptive.LocalWindowLayout
 import com.yahyafati.mnemo.feature.create.navigation.navigateToNoteEditor
+import com.yahyafati.mnemo.feature.settings.navigation.navigateToSync
 import com.yahyafati.mnemo.shell.navigation.MnemoNavHost
 import com.yahyafati.mnemo.shell.navigation.TopLevelDestination
 import com.yahyafati.mnemo.shell.resources.Res
@@ -55,6 +56,7 @@ fun MnemoApp(
             null -> return@LaunchedEffect
             AppDestination.Study -> appState.navigateToTopLevelDestination(TopLevelDestination.Study)
             is AppDestination.AddCards -> appState.navController.navigateToNoteEditor(deckId = destination.deckId)
+            AppDestination.SyncSettings -> appState.navController.navigateToSync()
         }
         onDestinationHandled()
     }

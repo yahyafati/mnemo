@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.TransferState
 import com.yahyafati.mnemo.core.model.UserSettings
@@ -26,11 +27,13 @@ class SettingsCapabilitiesTest {
             MnemoTheme {
                 SettingsScreen(
                     uiState = SettingsUiState.Success(UserSettings()),
+                    syncStatus = SyncStatus.Off,
                     dataState = DataUiState(),
                     aiSummary = AiSummary(0, null),
                     optimizerState = TransferState.Idle,
                     optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
                     onOpenAiProviders = {},
+                    onOpenSync = {},
                     onOpenLicenses = {},
                     dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
                     callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),

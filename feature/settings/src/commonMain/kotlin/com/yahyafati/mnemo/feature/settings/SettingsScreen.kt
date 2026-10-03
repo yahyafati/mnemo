@@ -43,6 +43,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.lastSyncAt
 import com.yahyafati.mnemo.core.designsystem.component.MnemoIconButton
 import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
@@ -81,6 +83,15 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_reviews_p
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_scheduling
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_steps_error
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_steps_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_off
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_restored
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_idle
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_never
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_syncing
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_waiting
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_row_error
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme_dark
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_theme_light
@@ -110,6 +121,7 @@ internal class SettingsCallbacks(
 internal fun SettingsScreen(
     onBackClick: () -> Unit,
     onOpenAiProviders: () -> Unit,
+    onOpenSync: () -> Unit,
     onOpenLicenses: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = koinViewModel(),
@@ -118,8 +130,10 @@ internal fun SettingsScreen(
     val dataState by viewModel.dataState.collectAsStateWithLifecycle()
     val aiSummary by viewModel.aiSummary.collectAsStateWithLifecycle()
     val optimizerState by viewModel.optimizerState.collectAsStateWithLifecycle()
+    val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
     SettingsScreen(
         uiState = uiState,
+        syncStatus = syncStatus,
         dataState = dataState,
         aiSummary = aiSummary,
         optimizerState = optimizerState,
@@ -129,6 +143,7 @@ internal fun SettingsScreen(
             onDismiss = viewModel::dismissOptimization,
         ),
         onOpenAiProviders = onOpenAiProviders,
+        onOpenSync = onOpenSync,
         onOpenLicenses = onOpenLicenses,
         dataCallbacks = DataCallbacks(
             onBackUp = viewModel::backUpTo,
@@ -160,11 +175,13 @@ internal fun SettingsScreen(
 @Composable
 internal fun SettingsScreen(
     uiState: SettingsUiState,
+    syncStatus: SyncStatus,
     dataState: DataUiState,
     aiSummary: AiSummary,
     optimizerState: TransferState<FsrsOptimizationOutcome>,
     optimizerCallbacks: OptimizerCallbacks,
     onOpenAiProviders: () -> Unit,
+    onOpenSync: () -> Unit,
     onOpenLicenses: () -> Unit,
     dataCallbacks: DataCallbacks,
     callbacks: SettingsCallbacks,
@@ -203,6 +220,7 @@ internal fun SettingsScreen(
                         if (LocalPlatformCapabilities.current.reminders) ReminderSection(settings.reminder, callbacks.onReminder)
                         AppearanceSection(settings, callbacks)
                         AiSection(aiSummary, onOpenAiProviders)
+                        SyncSection(syncStatus, onOpenSync)
                         DataSection(settings.backup, dataState, dataCallbacks)
                         AboutSection(onOpenLicenses)
                     }
@@ -325,6 +343,37 @@ private fun AiSection(summary: AiSummary, onOpen: () -> Unit) {
     }
 }
 
+/** Settings › Sync: one row that opens the Sync screen. It says only what matters: off, on, or needing the user. */
+@Composable
+private fun SyncSection(status: SyncStatus, onOpen: () -> Unit) {
+    val needsUser = status is SyncStatus.Restored || status is SyncStatus.Error
+    Section(stringResource(Res.string.feature_settings_sync), if (needsUser) MnemoIcons.SyncProblem else MnemoIcons.Sync) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpen),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.feature_settings_sync_row), style = MaterialTheme.typography.titleSmall)
+                Hint(
+                    text = when (status) {
+                        SyncStatus.Off -> stringResource(Res.string.feature_settings_sync_row_off)
+                        is SyncStatus.Restored -> stringResource(Res.string.feature_settings_sync_row_restored)
+                        is SyncStatus.Idle -> status.lastSyncAt?.let { stringResource(Res.string.feature_settings_sync_row_idle, formatted(it)) }
+                            ?: stringResource(Res.string.feature_settings_sync_row_never)
+                        is SyncStatus.Syncing -> stringResource(Res.string.feature_settings_sync_row_syncing)
+                        is SyncStatus.WaitingForNetwork -> stringResource(Res.string.feature_settings_sync_row_waiting)
+                        is SyncStatus.Error -> stringResource(Res.string.feature_settings_sync_row_error)
+                    },
+                    color = if (needsUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(MnemoIcons.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 @Composable
 internal fun Section(title: String, icon: ImageVector, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
@@ -427,11 +476,13 @@ private fun SettingsScreenPreview() {
     MnemoTheme {
         SettingsScreen(
             uiState = SettingsUiState.Success(UserSettings()),
+            syncStatus = SyncStatus.Off,
             dataState = DataUiState(),
             aiSummary = AiSummary(2, "OpenAI"),
             optimizerState = TransferState.Idle,
             optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
             onOpenAiProviders = {},
+            onOpenSync = {},
             onOpenLicenses = {},
             dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
             callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),

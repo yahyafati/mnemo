@@ -18,4 +18,5 @@ fun desktopPlatformCapabilities() = PlatformCapabilities(
     localhostHint = false,
     shareFiles = false,
     keyboardAndMouse = true,
+    syncAppFolders = true,
 )

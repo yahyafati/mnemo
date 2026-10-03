@@ -9,6 +9,8 @@ import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
+import com.yahyafati.mnemo.core.data.sync.SyncRepository
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.ExportFormat
@@ -57,7 +59,12 @@ class SettingsViewModel(
     aiProviderRepository: AiProviderRepository,
     private val optimizationRepository: FsrsOptimizationRepository,
     private val reminderRepository: ReminderRepository,
+    syncRepository: SyncRepository,
 ) : ViewModel() {
+    /** The Sync row in Settings: whether it is on and whether it needs the user. */
+    val syncStatus: StateFlow<SyncStatus> = syncRepository.status
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncStatus.Off)
+
     /** The FSRS optimizer's latest run (Scheduling › FSRS parameters). */
     val optimizerState: StateFlow<TransferState<FsrsOptimizationOutcome>> = optimizationRepository.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TransferState.Idle)

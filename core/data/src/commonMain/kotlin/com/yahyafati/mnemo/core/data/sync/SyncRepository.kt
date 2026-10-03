@@ -17,6 +17,21 @@ interface SyncRepository {
     /** How many local changes wait to be sent (0 while sync is off). */
     val pendingChanges: Flow<Int>
 
+    /**
+     * Looks at what a location holds, to decide between [create] and [join] (and to refuse one with other files in it).
+     * Reads only. A failure of the location is a `SyncException`.
+     */
+    suspend fun inspect(backend: SyncBackend): SyncLocation
+
+    /** Whether the sync data this device remembers is encrypted; false when there is none. Reads nothing remote. */
+    suspend fun isEncrypted(): Boolean
+
+    /**
+     * The devices that sync with the remembered location (this one included), newest first. Reads the location, so it
+     * can fail: a `SyncException`, or `IllegalStateException` when there is no location. A device that left is not listed.
+     */
+    suspend fun devices(): List<SyncDeviceSummary>
+
     /** Syncs once, now. Does nothing if sync is off or a round is already running. */
     suspend fun syncNow(): SyncResult
 

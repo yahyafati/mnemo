@@ -141,4 +141,16 @@
     <string name="feature_decks_error_corrupt">The file is damaged and can't be read.</string>
     <string name="feature_decks_error_storage">The file couldn't be read or written. Check storage space and try again.</string>
     <string name="feature_decks_error_unknown">Something went wrong. Try again.</string>
+
+    <!-- Sync banner (docs/sync/ROADMAP.md S5) -->
+    <string name="feature_decks_sync_title">Sync needs your attention</string>
+    <string name="feature_decks_sync_open">Open</string>
+    <string name="feature_decks_sync_restored">Sync is paused after a restore. Choose which collection to keep.</string>
+    <string name="feature_decks_sync_passphrase">The sync data is encrypted and this device needs its passphrase.</string>
+    <string name="feature_decks_sync_rejoin">This device has to join the sync data again.</string>
+    <string name="feature_decks_sync_update">The sync data needs a newer version of Mnemo on this device.</string>
+    <string name="feature_decks_sync_gone">The sync folder has no sync data any more.</string>
+    <string name="feature_decks_sync_auth">Mnemo can't open the sync folder any more.</string>
+    <string name="feature_decks_sync_quota">There is no room left in the sync folder.</string>
+    <string name="feature_decks_sync_stalled">Sync hasn't worked for a day. Check the sync folder.</string>
 </resources>

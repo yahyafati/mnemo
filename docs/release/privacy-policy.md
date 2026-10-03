@@ -1,6 +1,6 @@
 # Mnemo privacy policy
 
-_Last updated: 29 September 2026_
+_Last updated: 3 October 2026_
 
 Mnemo is a flashcard app that works on your device. This policy describes what it does with
 your data. The same text, shortened, is in the app under Settings › About › Privacy policy.
@@ -49,6 +49,25 @@ and sends nothing.
 Links you open in Smart Extract are fetched directly from the website. Dictation uses Android's
 speech recognizer, which works on the device where your device supports it.
 
+## Optional sync between your devices
+
+Sync is off until you turn it on (Settings › Sync). Mnemo has no server, so it syncs only through a
+**folder you choose**, which can be inside a cloud-drive or sync app such as Google Drive for Desktop,
+Dropbox, Nextcloud or Syncthing. Once it is on, Mnemo writes these to that folder, as files only Mnemo
+reads: your decks, notes, review history, images, saved AI answers and scheduling settings, the name,
+platform and app version of each device that syncs, and the time it last synced. Other devices read
+those files and add their own.
+
+- **Not synced:** AI providers and their keys, appearance, the reminder, backup settings.
+- **Encryption:** you can protect the files with a passphrase. They are then encrypted on your device
+  (AES-256-GCM, key derived from the passphrase) before they are written, and the passphrase is needed
+  on every device. Without a passphrase, anyone who can open the folder can read them. If you forget the
+  passphrase the sync data can't be read; leave and start again from a device that has the collection.
+- **Who sees it:** Mnemo never receives the folder or the passphrase. What the cloud-drive or sync app
+  does with the files is governed by its own privacy policy.
+- **Stopping:** "Stop syncing on this device" keeps your collection and leaves the folder as it is;
+  "Delete the sync data" removes Mnemo's files from the folder.
+
 ## API keys
 
 Keys you enter are encrypted with a key held by the Android Keystore, stored outside every backed
@@ -58,7 +77,7 @@ up location, never exported, never shown in full after saving, and never written
 
 | Permission | Why |
 |---|---|
-| Internet | Only for AI providers and links you open in Smart Extract. Everything else works offline. |
+| Internet | Only for AI providers and links you open in Smart Extract. Everything else works offline. (A sync folder is reached through your files, not through Mnemo's own network access.) |
 | Notifications | The daily study reminder (if you turn it on) and progress of long imports, exports and backups. |
 | Microphone | Only while you dictate in Smart Extract. |
 | Foreground service (data sync) | Keeps a long import, export or backup running if you leave the app. |

@@ -39,6 +39,7 @@ import com.yahyafati.mnemo.shell.resources.shortcuts_reveal
 import com.yahyafati.mnemo.shell.resources.shortcuts_save_note
 import com.yahyafati.mnemo.shell.resources.shortcuts_settings
 import com.yahyafati.mnemo.shell.resources.shortcuts_show_list
+import com.yahyafati.mnemo.shell.resources.shortcuts_sync_now
 import com.yahyafati.mnemo.shell.resources.shortcuts_tabs
 import com.yahyafati.mnemo.shell.resources.shortcuts_title
 import com.yahyafati.mnemo.shell.resources.shortcuts_undo
@@ -63,6 +64,7 @@ private val shortcutGroups: List<ShortcutGroup> = listOf(
             ShortcutRow(Res.string.shortcuts_settings, listOf(Shortcuts.Settings.label())),
             ShortcutRow(Res.string.shortcuts_back, listOf(Shortcuts.Back.label())),
             ShortcutRow(Res.string.shortcuts_import, listOf(Shortcuts.Import.label())),
+            ShortcutRow(Res.string.shortcuts_sync_now, listOf(Shortcuts.SyncNow.label())),
             ShortcutRow(Res.string.shortcuts_show_list, listOf(Shortcuts.ShowShortcuts.label())),
         ),
     ),

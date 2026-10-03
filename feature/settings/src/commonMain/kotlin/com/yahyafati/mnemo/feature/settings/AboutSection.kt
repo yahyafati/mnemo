@@ -51,6 +51,8 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_o
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_permissions
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_permissions_title
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_summary
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_sync
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_sync_title
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_telemetry
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_privacy_telemetry_title
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_releases
@@ -148,6 +150,7 @@ private fun PrivacyPolicyDialog(onDismiss: () -> Unit, onReadOnline: () -> Unit)
                     Res.string.feature_settings_privacy_local_title to Res.string.feature_settings_privacy_local,
                     Res.string.feature_settings_privacy_telemetry_title to Res.string.feature_settings_privacy_telemetry,
                     Res.string.feature_settings_privacy_ai_title to Res.string.feature_settings_privacy_ai,
+                    Res.string.feature_settings_privacy_sync_title to Res.string.feature_settings_privacy_sync,
                     Res.string.feature_settings_privacy_keys_title to Res.string.feature_settings_privacy_keys,
                     Res.string.feature_settings_privacy_permissions_title to Res.string.feature_settings_privacy_permissions,
                 ).forEach { (title, body) ->

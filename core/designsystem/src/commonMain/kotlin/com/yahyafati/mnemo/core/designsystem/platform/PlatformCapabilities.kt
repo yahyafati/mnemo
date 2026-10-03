@@ -49,6 +49,12 @@ data class PlatformCapabilities(
      * baseline and has no pointer.
      */
     val keyboardAndMouse: Boolean = false,
+    /**
+     * A folder that a sync app (Google Drive for Desktop, Dropbox, Nextcloud, Syncthing) keeps in step with the cloud is
+     * an ordinary place on this platform, so Settings › Sync says so. A phone's folder picker reaches those apps'
+     * folders unreliably, so it doesn't promise it. Off by default, like [keyboardAndMouse].
+     */
+    val syncAppFolders: Boolean = false,
 )
 
 /**

@@ -1,5 +1,8 @@
 package com.yahyafati.mnemo.feature.decks
 
+import com.yahyafati.mnemo.core.data.sync.SyncBackend
+import com.yahyafati.mnemo.core.data.sync.SyncProblem
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.model.DeckMaturity
@@ -18,14 +21,19 @@ import com.yahyafati.mnemo.core.testing.repository.FakeDeckShareRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository.DeckCounts
 import com.yahyafati.mnemo.core.testing.repository.FakeReviewRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeStatsRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSyncRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import com.yahyafati.mnemo.core.ui.deck.DeckDraft
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import java.io.IOException
+import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -42,6 +50,7 @@ class DecksViewModelTest {
     private val shares = FakeDeckShareRepository()
     private val stats = FakeStatsRepository()
     private val settings = FakeUserSettingsRepository()
+    private val sync = FakeSyncRepository()
     // Lazy: the ViewModel must be created after MainDispatcherRule has set Dispatchers.Main.
     private val viewModel by lazy {
         DecksViewModel(
@@ -53,6 +62,7 @@ class DecksViewModelTest {
             ),
             getRetentionOverview = GetRetentionOverviewUseCase(stats, settings, clock),
             clock = clock,
+            syncRepository = sync,
         )
     }
 
@@ -214,5 +224,68 @@ class DecksViewModelTest {
         assertEquals(0.95, languages.recall!!, 1e-9)
         assertEquals(0.9, languages.children.single().recall!!, 1e-9)
         assertNull(state.decks.single { it.name == "Biology" }.recall)
+    }
+
+    // --- the sync banner (docs/sync/ROADMAP.md S5) ---------------------------------------------------------------
+
+    private val syncFolder = SyncBackend.Folder("/sync")
+
+    private fun runWithBanner(block: suspend TestScope.() -> Unit) = runTest {
+        backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.syncBanner.collect {} }
+        block()
+    }
+
+    @Test
+    fun nothingShowsWhileSyncIsOffOrWorks() = runWithBanner {
+        assertNull(viewModel.syncBanner.value)
+        sync.statusState.value = SyncStatus.Idle(syncFolder, clock.now())
+        assertNull(viewModel.syncBanner.value)
+        sync.statusState.value = SyncStatus.Syncing(syncFolder, null)
+        assertNull(viewModel.syncBanner.value)
+    }
+
+    @Test
+    fun whatOnlyAPersonCanFixShowsAtOnce() = runWithBanner {
+        val needs = listOf(
+            SyncStatus.Restored(syncFolder),
+            SyncStatus.Error(syncFolder, SyncProblem.PassphraseRequired, clock.now()),
+            SyncStatus.Error(syncFolder, SyncProblem.MustRejoin, clock.now()),
+        )
+        for (status in needs) {
+            sync.statusState.value = status
+            assertEquals(status, viewModel.syncBanner.value)
+        }
+        sync.statusState.value = SyncStatus.Idle(syncFolder, clock.now())
+        assertNull(viewModel.syncBanner.value)
+    }
+
+    @Test
+    fun aStalledSyncShowsAfterADayWithoutAGoodRound() = runWithBanner {
+        val status = SyncStatus.WaitingForNetwork(syncFolder, clock.now().minus(Duration.ofHours(2)))
+        sync.statusState.value = status
+        assertNull(viewModel.syncBanner.value)
+
+        advanceTimeBy(Duration.ofHours(21).toMillis())
+        runCurrent()
+        assertNull(viewModel.syncBanner.value)
+
+        advanceTimeBy(Duration.ofHours(2).toMillis())
+        runCurrent()
+        assertEquals(status, viewModel.syncBanner.value)
+
+        // A good round takes it away.
+        sync.statusState.value = SyncStatus.Idle(syncFolder, clock.now())
+        assertNull(viewModel.syncBanner.value)
+    }
+
+    @Test
+    fun aStatusThatChangesBeforeTheDayIsUpNeverShowsTheOldOne() = runWithBanner {
+        sync.statusState.value = SyncStatus.WaitingForNetwork(syncFolder, clock.now().minus(Duration.ofHours(2)))
+        sync.statusState.value = SyncStatus.Idle(syncFolder, clock.now())
+
+        advanceTimeBy(Duration.ofDays(2).toMillis())
+        runCurrent()
+
+        assertNull(viewModel.syncBanner.value)
     }
 }

@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.feature.settings
 
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.yahyafati.mnemo.core.data.sync.SyncStatus
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.TransferState
@@ -21,11 +22,13 @@ class SettingsScreenshotTest {
         MnemoTheme {
             SettingsScreen(
                 uiState = SettingsUiState.Success(UserSettings(reminder = ReminderSettings(enabled = true))),
+                syncStatus = SyncStatus.Off,
                 dataState = DataUiState(),
                 aiSummary = AiSummary(2, "OpenAI"),
                 optimizerState = TransferState.Idle,
                 optimizerCallbacks = OptimizerCallbacks({}, {}, {}),
                 onOpenAiProviders = {},
+                onOpenSync = {},
                 onOpenLicenses = {},
                 dataCallbacks = DataCallbacks({}, {}, {}, {}, { _, _ -> }, { _, _ -> }, {}),
                 callbacks = SettingsCallbacks({}, {}, {}, { true }, { true }, {}, {}, {}),

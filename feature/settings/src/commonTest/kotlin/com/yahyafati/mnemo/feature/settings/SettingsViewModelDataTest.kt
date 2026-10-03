@@ -13,6 +13,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDataTransferRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeFsrsOptimizationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeReminderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSyncRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -34,7 +35,7 @@ class SettingsViewModelDataTest {
     private val settings = FakeUserSettingsRepository()
     private val optimization = FakeFsrsOptimizationRepository()
     private val reminders by lazy { FakeReminderRepository(settings) }
-    private val viewModel by lazy { SettingsViewModel(settings, transfers, FakeAiProviderRepository(), optimization, reminders) }
+    private val viewModel by lazy { SettingsViewModel(settings, transfers, FakeAiProviderRepository(), optimization, reminders, FakeSyncRepository()) }
 
     private fun runWithState(block: suspend () -> Unit) = runTest {
         backgroundScope.launch(mainDispatcherRule.testDispatcher) { viewModel.dataState.collect {} }
