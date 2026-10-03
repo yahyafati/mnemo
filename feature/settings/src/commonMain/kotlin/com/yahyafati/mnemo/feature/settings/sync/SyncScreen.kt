@@ -104,6 +104,11 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_prob
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_quota_drive
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_gone_drive
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_cancelled
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_enter_password
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_problem_auth_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_location_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_use_webdav
 import java.net.URLDecoder
 import java.time.Instant
 import org.jetbrains.compose.resources.StringResource
@@ -115,6 +120,8 @@ import org.koin.compose.viewmodel.koinViewModel
 internal class SyncCallbacks(
     val onFolderPicked: (String) -> Unit = {},
     val onUseGoogleDrive: () -> Unit = {},
+    val onUseWebDav: () -> Unit = {},
+    val onAskForWebDavPassword: () -> Unit = {},
     val onCancelSignIn: () -> Unit = {},
     val onSignInAgain: () -> Unit = {},
     val onSyncNow: () -> Unit = {},
@@ -136,6 +143,8 @@ fun SyncRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: Sync
         callbacks = SyncCallbacks(
             onFolderPicked = viewModel::onFolderPicked,
             onUseGoogleDrive = viewModel::useGoogleDrive,
+            onUseWebDav = viewModel::useWebDav,
+            onAskForWebDavPassword = viewModel::askForWebDavPassword,
             onCancelSignIn = viewModel::cancelSignIn,
             onSignInAgain = viewModel::signInAgain,
             onSyncNow = viewModel::syncNow,
@@ -146,6 +155,8 @@ fun SyncRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: Sync
             onAskToUploadAsNew = viewModel::askToUploadAsNew,
             onDismissNotice = viewModel::dismissNotice,
             dialogs = SyncDialogCallbacks(
+                onWebDavTest = viewModel::testWebDav,
+                onWebDavConnect = viewModel::connectWebDav,
                 onCreate = viewModel::create,
                 onJoin = viewModel::join,
                 onConfirmReplace = viewModel::confirmReplace,
@@ -239,6 +250,14 @@ private fun SetUp(state: SyncUiState, callbacks: SyncCallbacks) {
             )
             Hint(stringResource(Res.string.feature_settings_sync_drive_hint))
         }
+        MnemoButton(
+            text = stringResource(Res.string.feature_settings_sync_use_webdav),
+            onClick = callbacks.onUseWebDav,
+            enabled = !state.working,
+            style = MnemoButtonStyle.Secondary,
+            leadingIcon = MnemoIcons.Cloud,
+        )
+        Hint(stringResource(Res.string.feature_settings_sync_webdav_hint))
         if (state.signingIn) {
             Working(stringResource(Res.string.feature_settings_sync_signing_in))
             TextButton(onClick = callbacks.onCancelSignIn) { Text(stringResource(Res.string.feature_settings_cancel)) }
@@ -336,12 +355,18 @@ private fun Problem(problem: SyncProblem, backend: SyncBackend, callbacks: SyncC
                     onClick = callbacks.onAskForPassphrase,
                     leadingIcon = MnemoIcons.Key,
                 )
-                SyncProblem.Auth -> if (backend == SyncBackend.GoogleDrive) {
-                    MnemoButton(
+                SyncProblem.Auth -> when (backend) {
+                    SyncBackend.GoogleDrive -> MnemoButton(
                         text = stringResource(Res.string.feature_settings_sync_sign_in_again),
                         onClick = callbacks.onSignInAgain,
                         leadingIcon = MnemoIcons.Key,
                     )
+                    is SyncBackend.WebDav -> MnemoButton(
+                        text = stringResource(Res.string.feature_settings_sync_enter_password),
+                        onClick = callbacks.onAskForWebDavPassword,
+                        leadingIcon = MnemoIcons.Key,
+                    )
+                    is SyncBackend.Folder -> Unit
                 }
                 SyncProblem.Replaced, SyncProblem.MustRejoin -> MnemoButton(
                     text = stringResource(Res.string.feature_settings_sync_join_again),
@@ -457,7 +482,11 @@ internal fun Working(text: String) {
 internal fun syncProblemText(problem: SyncProblem, backend: SyncBackend? = null): String = stringResource(
     when (problem) {
         SyncProblem.Offline -> Res.string.feature_settings_sync_problem_offline
-        SyncProblem.Auth -> if (backend == SyncBackend.GoogleDrive) Res.string.feature_settings_sync_problem_auth_drive else Res.string.feature_settings_sync_problem_auth
+        SyncProblem.Auth -> when (backend) {
+            SyncBackend.GoogleDrive -> Res.string.feature_settings_sync_problem_auth_drive
+            is SyncBackend.WebDav -> Res.string.feature_settings_sync_problem_auth_webdav
+            else -> Res.string.feature_settings_sync_problem_auth
+        }
         SyncProblem.Quota -> if (backend == SyncBackend.GoogleDrive) Res.string.feature_settings_sync_problem_quota_drive else Res.string.feature_settings_sync_problem_quota
         SyncProblem.PassphraseRequired -> Res.string.feature_settings_sync_problem_passphrase_required
         SyncProblem.PassphraseWrong -> Res.string.feature_settings_sync_problem_passphrase_wrong
@@ -482,13 +511,14 @@ internal fun folderLabel(location: String): String =
         location
     }
 
-/** Where the sync data is: "Folder: Documents/Mnemo" or Google Drive. */
+/** Where the sync data is: "Folder: Documents/Mnemo", Google Drive or a WebDAV server. */
 @Composable
 private fun LocationHint(backend: SyncBackend) {
     Hint(
         when (backend) {
             is SyncBackend.Folder -> stringResource(Res.string.feature_settings_sync_location, folderLabel(backend.location))
             SyncBackend.GoogleDrive -> stringResource(Res.string.feature_settings_sync_location_drive)
+            is SyncBackend.WebDav -> stringResource(Res.string.feature_settings_sync_location_webdav, backend.url, backend.username)
         },
     )
 }

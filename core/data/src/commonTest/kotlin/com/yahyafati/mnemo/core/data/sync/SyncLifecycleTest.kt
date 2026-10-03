@@ -59,6 +59,7 @@ class SyncLifecycleTest : PlatformTest() {
     /** What the stores were asked to give up, and how often the user signed in to Google (S6). */
     private val released = ArrayList<SyncBackend>()
     private var googleSignIns = 0
+    private val webDavConnects = ArrayList<String>()
     private val t0 = Instant.parse("2026-03-01T09:00:00Z")
 
     private inner class Node(val name: String, val policy: SyncPolicy = POLICY) {
@@ -99,6 +100,11 @@ class SyncLifecycleTest : PlatformTest() {
 
                     override suspend fun signInToGoogleDrive() {
                         googleSignIns++
+                    }
+
+                    override suspend fun connectWebDav(url: String, username: String, password: String): SyncBackend.WebDav {
+                        webDavConnects += "$url|$username|$password"
+                        return SyncBackend.WebDav(url, username)
                     }
                 },
                 backups = backups,
@@ -649,6 +655,76 @@ class SyncLifecycleTest : PlatformTest() {
         b.repository.create(SyncBackend.GoogleDrive, null)
         b.repository.deleteSyncData()
         assertEquals(listOf<SyncBackend>(SyncBackend.GoogleDrive), released)
+        assertTrue(store.paths.isEmpty())
+    }
+
+    // --- WebDAV (S7) ----------------------------------------------------------------------------------------------
+
+    private val dav = SyncBackend.WebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo/", "alice")
+
+    @Test
+    fun webDavIsALocationLikeAFolderAndIsRememberedAcrossARestart() = runTest {
+        val a = node("A")
+        val b = node("B")
+        collection(a)
+
+        a.repository.create(dav, "correct horse".toCharArray())
+        b.repository.join(dav, "correct horse".toCharArray())
+        a.note(a.deck("Spanish"), "adios", "goodbye")
+        assertSynced(a.sync())
+        assertSynced(b.sync())
+
+        assertSame(a, b)
+        assertEquals(dav, b.status().backend)
+        val restarted = a.newRepository().status.first()
+        assertTrue(restarted is SyncStatus.Idle)
+        assertEquals(dav, restarted.backend)
+    }
+
+    @Test
+    fun aRefusedPasswordIsAProblemTheUserFixesWithANewPassword() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(dav, null)
+
+        store.failure = SyncAuthException("The server no longer accepts this password")
+        assertEquals(SyncResult.Failed(SyncProblem.Auth), a.sync())
+        val failed = a.status()
+        assertTrue(failed is SyncStatus.Error && failed.problem == SyncProblem.Auth && failed.backend == dav)
+        assertEquals(Instant.EPOCH, failed.attentionFrom())
+
+        // The new password is checked against the remembered address and user; a round then mends it.
+        store.failure = null
+        a.repository.updateWebDavPassword("new-app-password")
+        assertEquals(listOf("${dav.url}|alice|new-app-password"), webDavConnects)
+        assertSynced(a.sync())
+        assertTrue(a.status() is SyncStatus.Idle)
+    }
+
+    @Test
+    fun updatingThePasswordNeedsAWebDavLocation() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(SyncBackend.Folder("/x"), null)
+        assertFailsWith<IllegalStateException> { a.repository.updateWebDavPassword("x") }
+    }
+
+    @Test
+    fun stoppingGivesThePasswordUpAndDeletingTheSyncDataToo() = runTest {
+        val a = node("A")
+        collection(a)
+        a.repository.create(dav, null)
+        a.repository.leave()
+        assertEquals(listOf<SyncBackend>(dav), released)
+        assertTrue(a.status() is SyncStatus.Off)
+
+        released.clear()
+        val b = node("B")
+        b.deck("Other")
+        store.paths.forEach(store::delete)
+        b.repository.create(dav, null)
+        b.repository.deleteSyncData()
+        assertEquals(listOf<SyncBackend>(dav), released)
         assertTrue(store.paths.isEmpty())
     }
 

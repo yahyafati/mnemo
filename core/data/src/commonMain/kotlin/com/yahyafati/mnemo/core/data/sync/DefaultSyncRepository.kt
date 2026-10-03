@@ -91,6 +91,15 @@ internal class DefaultSyncRepository(
 
     override suspend fun signInToGoogleDrive() = stores.signInToGoogleDrive()
 
+    override suspend fun testWebDav(url: String, username: String, password: String) = stores.testWebDav(url, username, password)
+
+    override suspend fun connectWebDav(url: String, username: String, password: String) = stores.connectWebDav(url, username, password)
+
+    override suspend fun updateWebDavPassword(password: String) {
+        val backend = configs.read()?.backend as? SyncBackend.WebDav ?: throw IllegalStateException("This device doesn't sync through WebDAV")
+        stores.connectWebDav(backend.url, backend.username, password)
+    }
+
     override suspend fun isEncrypted(): Boolean = configs.read()?.encrypted == true
 
     override suspend fun devices(): List<SyncDeviceSummary> {
@@ -309,7 +318,7 @@ internal class DefaultSyncRepository(
             throw e
         }
         stores.retain(backend)
-        previous?.takeIf { it.backend != backend }?.let { stores.release(it.backend) }
+        previous?.takeIf { it.backend != backend && !it.backend.sharesAccessWith(backend) }?.let { stores.release(it.backend) }
         saveKey(remote)
         val config = SyncConfig(backend, remote.manifest.collectionId, remote.isEncrypted, lastSyncAt = now, lastMaintenanceAt = now)
         configs.write(config)

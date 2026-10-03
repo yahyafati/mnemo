@@ -105,7 +105,7 @@ class GoogleDriveAccessTest : PlatformTest() {
         val access = access(client = null)
         assertFalse(access.isAvailable)
         assertFailsWith<SyncAuthException> { access.openStore() }
-        assertFalse(DocumentSyncStores(com.yahyafati.mnemo.core.testing.platform.FakeDocumentAccess(), access).googleDriveAvailable)
+        assertFalse(DocumentSyncStores(com.yahyafati.mnemo.core.testing.platform.FakeDocumentAccess(), access, WebDavAccess(secrets, OkHttpClient(), Dispatchers.Unconfined)).googleDriveAvailable)
     }
 
     @Test

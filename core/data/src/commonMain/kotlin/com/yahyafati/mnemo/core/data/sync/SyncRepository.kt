@@ -33,6 +33,21 @@ interface SyncRepository {
      */
     suspend fun signInToGoogleDrive()
 
+    /**
+     * "Test connection" for a WebDAV server (S7): reaches [url] with these credentials and says whether the folder is
+     * there. It changes and keeps nothing. Failures are `SyncException`s ([SyncProblem.Offline], [SyncProblem.Auth], ...).
+     */
+    suspend fun testWebDav(url: String, username: String, password: String): WebDavTestResult
+
+    /**
+     * Sets up a WebDAV location: checks the credentials, makes the folder if it isn't there, keeps the password (never in
+     * the sync config) and returns the [SyncBackend] to [inspect], [create] or [join]. Failures are `SyncException`s and keep nothing.
+     */
+    suspend fun connectWebDav(url: String, username: String, password: String): SyncBackend.WebDav
+
+    /** After [SyncProblem.Auth] on WebDAV: checks and keeps a new password for the location this device syncs with. */
+    suspend fun updateWebDavPassword(password: String)
+
     /** Whether the sync data this device remembers is encrypted; false when there is none. Reads nothing remote. */
     suspend fun isEncrypted(): Boolean
 

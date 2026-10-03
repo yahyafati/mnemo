@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncRepository
 import com.yahyafati.mnemo.core.data.sync.SyncResult
 import com.yahyafati.mnemo.core.data.sync.SyncReplacesLocalDataException
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.WebDavTestResult
 import com.yahyafati.mnemo.core.data.sync.backend
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,6 +84,41 @@ class FakeSyncRepository(initial: SyncStatus = SyncStatus.Off) : SyncRepository 
             signInFailure = null
             throw it
         }
+    }
+
+    /** What [testWebDav] answers. */
+    var webDavTestResult: WebDavTestResult = WebDavTestResult.FolderFound
+
+    /** Thrown once by the next [testWebDav], [connectWebDav] or [updateWebDavPassword]. */
+    var webDavFailure: Exception? = null
+
+    /** The WebDAV calls in order: "test", "connect" or "updatePassword", with what they were given. */
+    class WebDavCall(val name: String, val url: String?, val username: String?, val password: String)
+
+    val webDavCalls = mutableListOf<WebDavCall>()
+
+    private fun failWebDav() {
+        webDavFailure?.let {
+            webDavFailure = null
+            throw it
+        }
+    }
+
+    override suspend fun testWebDav(url: String, username: String, password: String): WebDavTestResult {
+        webDavCalls += WebDavCall("test", url, username, password)
+        failWebDav()
+        return webDavTestResult
+    }
+
+    override suspend fun connectWebDav(url: String, username: String, password: String): SyncBackend.WebDav {
+        webDavCalls += WebDavCall("connect", url, username, password)
+        failWebDav()
+        return SyncBackend.WebDav(if (url.endsWith("/")) url else "$url/", username.trim())
+    }
+
+    override suspend fun updateWebDavPassword(password: String) {
+        webDavCalls += WebDavCall("updatePassword", null, null, password)
+        failWebDav()
     }
 
     override suspend fun isEncrypted(): Boolean = encrypted

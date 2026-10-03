@@ -153,6 +153,7 @@
     <string name="feature_decks_sync_auth">Mnemo can't open the sync folder any more.</string>
     <string name="feature_decks_sync_quota">There is no room left in the sync location.</string>
     <string name="feature_decks_sync_auth_drive">Mnemo is no longer signed in to Google Drive.</string>
+    <string name="feature_decks_sync_auth_webdav">The WebDAV server no longer accepts Mnemo's password.</string>
     <string name="feature_decks_sync_quota_drive">Your Google Drive is full.</string>
     <string name="feature_decks_sync_gone_drive">Mnemo's sync data is gone from your Google Drive.</string>
     <string name="feature_decks_sync_stalled">Sync hasn't worked for a day. Check your connection and the sync location.</string>

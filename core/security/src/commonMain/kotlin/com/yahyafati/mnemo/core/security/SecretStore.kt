@@ -113,6 +113,9 @@ object SecretIds {
     /** The refresh token of the Google account that holds the Drive sync location (docs/sync/ROADMAP.md S6). */
     const val GOOGLE_REFRESH_TOKEN = "sync.google.refresh"
 
+    /** The (app) password of the WebDAV account that holds the sync location (docs/sync/ROADMAP.md S7). */
+    const val WEBDAV_PASSWORD = "sync.webdav.password"
+
     /** Ids that belong to something other than a provider. */
-    val RESERVED: Set<String> = setOf(SYNC_KEY, GOOGLE_REFRESH_TOKEN)
+    val RESERVED: Set<String> = setOf(SYNC_KEY, GOOGLE_REFRESH_TOKEN, WEBDAV_PASSWORD)
 }

@@ -53,5 +53,15 @@ class SyncScreenshotTest {
     )
 
     @Test
+    fun onWithWebDavNeedsThePasswordAgain() = shot(
+        "sync_webdav_auth",
+        SyncUiState(
+            status = SyncStatus.Error(SyncBackend.WebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo/", "alice"), SyncProblem.Auth, seen),
+            encrypted = true,
+            devices = SyncDevices.Unavailable,
+        ),
+    )
+
+    @Test
     fun restored() = shot("sync_restored", SyncUiState(status = SyncStatus.Restored(folder), devices = devices))
 }

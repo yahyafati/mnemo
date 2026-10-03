@@ -98,7 +98,7 @@ Owner-only tasks are marked **(owner)**.
 | **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync. **Done** | 3–4 days |
 | **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors. **Done** (hardware pass: S8) | 2–3 days |
 | **S6** | Google Drive | OAuth seam, Drive REST store, tokens. **Done** (real-Google pass: owner, S8) | 3–4 days |
-| **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers | 1–2 days |
+| **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers. **Done** (real-server pass: owner, S8) | 1–2 days |
 | **S8** | Polish and QA | Two-device runbook on real hardware, large collections, docs, privacy policy, release notes | 2 days |
 
 ```
@@ -461,14 +461,27 @@ privacy policy now describes Drive). What was built, and where it differs from t
 **Goal:** Nextcloud and other self-hosted storage, for users who want neither a folder sync tool nor
 Google.
 
-- [ ] **`WebDavSyncStore`** over OkHttp: `PROPFIND` (depth 1) to list, `GET`, `PUT` with
+- [x] **`WebDavSyncStore`** over OkHttp: `PROPFIND` (depth 1) to list, `GET`, `PUT` with
       `If-None-Match: *` for new files, `DELETE`, `MKCOL`. Basic auth with an app password in
       `SecretStore`. HTTPS only, except a local address with the same rule as AI providers
       (`AiEndpoint.check`).
-- [ ] Settings: server URL, user, app password, a "Test connection" like the AI providers'.
-- [ ] Tests on MockWebServer with recorded Nextcloud responses.
+- [x] Settings: server URL, user, app password, a "Test connection" like the AI providers'.
+- [x] Tests on MockWebServer with recorded Nextcloud responses (answers shaped like SabreDAV's, written by hand: no
+      real server was available).
 
-**Exit:** sync through a Nextcloud test account works **(owner: check on a real server)**.
+**Exit:** sync through a Nextcloud test account works **(owner: check on a real server)**. *Built 2026-10-03; the exit checks
+pass. **Left for the owner:** the run against a real Nextcloud (steps in S8's runbook), and Play's data safety form (the privacy
+policy now describes WebDAV). What was built, and where it differs from the plan (ADR 0013 "As built (S7)"):*
+
+- *`:core:sync/webdav`: `WebDavSyncStore` (flat layout in the one folder the user names, `If-None-Match: *` as the claim on a new
+  name, no redirects followed, retries on `429`/`5xx`), `WebDavUrl` (the address rule) and `WebDavMultistatus` (reads a `207` with
+  strict patterns instead of an XML parser). `:core:sync` now depends on `:core:model` for `AiEndpoint`.*
+- *`:core:data/sync`: `SyncBackend.WebDav(url, username)`; the password is `SecretIds.WEBDAV_PASSWORD` (reserved), handled by
+  `WebDavAccess` behind `SyncStores` (`testWebDav`, `connectWebDav`, release on leave/delete). `SyncRepository` gained `testWebDav`,
+  `connectWebDav` and `updateWebDavPassword`; `SyncBackend.sharesAccessWith` keeps a join from forgetting the password it just set.*
+- *Settings › Sync: "Use a WebDAV server" (always offered: no build setting), a form with Test connection and Continue, the
+  location line, "Enter password" after an auth problem, encryption on by default; WebDAV wording in the Decks banner.*
+- *The store never creates the folder while syncing (a deleted one is "gone"); only set-up makes it, one level deep.*
 
 ## S8 — Polish and QA
 

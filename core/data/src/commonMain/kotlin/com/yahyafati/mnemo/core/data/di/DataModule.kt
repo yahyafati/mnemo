@@ -54,6 +54,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncMaintenance
 import com.yahyafati.mnemo.core.data.sync.SyncRepository
 import com.yahyafati.mnemo.core.data.sync.SyncSnapshots
 import com.yahyafati.mnemo.core.data.sync.SyncStores
+import com.yahyafati.mnemo.core.data.sync.WebDavAccess
 import com.yahyafati.mnemo.core.data.sync.SyncClock
 import com.yahyafati.mnemo.core.data.sync.SyncEngine
 import com.yahyafati.mnemo.core.data.sync.SyncMediaFiles
@@ -120,7 +121,8 @@ val dataModule = module {
     // A launcher with a Google client binds `GoogleClientConfigSource` after this (later modules win); `OAuthAuthorizer` is the platform's.
     factory<GoogleClientConfigSource> { NoGoogleClient }
     single { GoogleDriveAccess(get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
-    factory<SyncStores> { DocumentSyncStores(get<DocumentAccess>(), get()) }
+    single { WebDavAccess(get(), get(), dispatcher(MnemoDispatchers.IO)) }
+    factory<SyncStores> { DocumentSyncStores(get<DocumentAccess>(), get(), get()) }
     // Single: it holds the status screens observe and the mutex that keeps two rounds apart.
     single<SyncRepository> {
         DefaultSyncRepository(

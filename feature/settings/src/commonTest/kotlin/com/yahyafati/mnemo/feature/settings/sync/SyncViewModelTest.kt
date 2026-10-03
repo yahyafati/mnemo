@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncLocation
 import com.yahyafati.mnemo.core.data.sync.SyncProblem
 import com.yahyafati.mnemo.core.data.sync.SyncProblemException
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.WebDavTestResult
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeSyncRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -421,6 +422,128 @@ class SyncViewModelTest {
         repository.statusState.value = SyncStatus.Restored(folder)
         viewModel.askToUploadAsNew()
         assertEquals(SyncDialog.Upload(emptyList(), encryptByDefault = false), state.dialog)
+    }
+
+    // --- WebDAV (S7) ----------------------------------------------------------------------------------------------
+
+    private val dav = SyncBackend.WebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo/", "alice")
+
+    @Test
+    fun theWebDavFormOpensEmptyAndTestingReportsWithoutSettingAnythingUp() = runWithState {
+        viewModel.useWebDav()
+        assertEquals(SyncDialog.WebDavSetup(), state.dialog)
+
+        repository.webDavTestResult = WebDavTestResult.FolderWillBeCreated
+        viewModel.testWebDav("https://cloud.example.org/dav", "alice", "pw")
+
+        assertEquals(WebDavTest.FolderWillBeCreated, (state.dialog as SyncDialog.WebDavSetup).test)
+        assertEquals(listOf("test"), repository.webDavCalls.map { it.name })
+        // Nothing was looked at or set up, and what was typed stays in the form for "Continue".
+        assertTrue(repository.calls.isEmpty())
+        assertEquals("https://cloud.example.org/dav", (state.dialog as SyncDialog.WebDavSetup).url)
+        assertFalse(state.working)
+    }
+
+    @Test
+    fun aTestThatFailsSaysWhyInTheForm() = runWithState {
+        viewModel.useWebDav()
+        repository.webDavFailure = SyncProblemException(SyncProblem.Auth, "401")
+
+        viewModel.testWebDav("https://cloud.example.org/dav", "alice", "wrong")
+
+        assertEquals(WebDavTest.Failed(SyncProblem.Auth), (state.dialog as SyncDialog.WebDavSetup).test)
+    }
+
+    @Test
+    fun continuingConnectsThenLooksAtTheFolderLikeAnyOther() = runWithState {
+        repository.location = SyncLocation.Empty
+        viewModel.useWebDav()
+
+        viewModel.connectWebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo", " alice ", "pw")
+
+        assertEquals(listOf("connect"), repository.webDavCalls.map { it.name })
+        assertEquals(SyncDialog.Create(dav), state.dialog)
+        assertEquals(dav, repository.calls.single { it.name == "inspect" }.backend)
+
+        repository.location = SyncLocation.SyncData(encrypted = true)
+        viewModel.dismissDialog()
+        viewModel.useWebDav()
+        viewModel.connectWebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo", "alice", "pw")
+        assertEquals(SyncDialog.Join(dav, encrypted = true), state.dialog)
+    }
+
+    @Test
+    fun aRefusedPasswordKeepsTheFormOpenAndSetsNothingUp() = runWithState {
+        viewModel.useWebDav()
+        repository.webDavFailure = SyncProblemException(SyncProblem.Auth, "401")
+
+        viewModel.connectWebDav("https://cloud.example.org/dav", "alice", "wrong")
+
+        assertEquals(
+            SyncDialog.WebDavSetup(url = "https://cloud.example.org/dav", username = "alice", failure = SyncProblem.Auth),
+            state.dialog,
+        )
+        assertTrue(repository.calls.isEmpty())
+        assertIs<SyncStatus.Off>(state.status)
+    }
+
+    @Test
+    fun aFolderThatCantBeReadAfterConnectingSaysWhy() = runWithState {
+        viewModel.useWebDav()
+        repository.readFailure = SyncProblemException(SyncProblem.Offline, "no network")
+
+        viewModel.connectWebDav("https://cloud.example.org/dav", "alice", "pw")
+
+        assertEquals(SyncDialog.FolderProblem(SyncProblem.Offline, SyncBackend.WebDav("https://cloud.example.org/dav/", "alice")), state.dialog)
+    }
+
+    @Test
+    fun theFormIsRefusedWhenItWasNeverOpened() = runWithState {
+        viewModel.connectWebDav("https://cloud.example.org/dav", "alice", "pw")
+        viewModel.testWebDav("https://cloud.example.org/dav", "alice", "pw")
+        assertTrue(repository.webDavCalls.isEmpty())
+        assertNull(state.dialog)
+    }
+
+    @Test
+    fun aRefusedPasswordAfterwardsIsEnteredAgainForTheSameServerAndSyncs() = runWithState {
+        repository.statusState.value = SyncStatus.Error(dav, SyncProblem.Auth, Instant.EPOCH)
+
+        viewModel.askForWebDavPassword()
+        assertEquals(SyncDialog.WebDavSetup(dav.url, "alice", reconnect = true), state.dialog)
+
+        viewModel.connectWebDav(dav.url, "alice", "new-password")
+
+        assertEquals(listOf("updatePassword"), repository.webDavCalls.map { it.name })
+        assertEquals("new-password", repository.webDavCalls.single().password)
+        assertNull(state.dialog)
+        assertEquals(1, repository.syncs)
+    }
+
+    @Test
+    fun aNewPasswordThatIsRefusedKeepsTheFormAndDoesNotSync() = runWithState {
+        repository.statusState.value = SyncStatus.Error(dav, SyncProblem.Auth, Instant.EPOCH)
+        viewModel.askForWebDavPassword()
+        repository.webDavFailure = SyncProblemException(SyncProblem.Auth, "401")
+
+        viewModel.connectWebDav(dav.url, "alice", "still-wrong")
+
+        assertEquals(SyncDialog.WebDavSetup(dav.url, "alice", reconnect = true, failure = SyncProblem.Auth), state.dialog)
+        assertEquals(0, repository.syncs)
+    }
+
+    @Test
+    fun askingForAWebDavPasswordOnAnotherLocationDoesNothing() = runWithState {
+        repository.statusState.value = SyncStatus.Error(folder, SyncProblem.Auth, Instant.EPOCH)
+        viewModel.askForWebDavPassword()
+        assertNull(state.dialog)
+    }
+
+    @Test
+    fun startingTheSyncDataAgainOnWebDavEncryptsByDefault() = runWithState {
+        repository.statusState.value = SyncStatus.Restored(dav)
+        viewModel.askToUploadAsNew()
+        assertEquals(SyncDialog.Upload(emptyList(), encryptByDefault = true), state.dialog)
     }
 
     @Test

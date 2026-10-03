@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.settings.sync
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.data.sync.SyncBackend
 import com.yahyafati.mnemo.core.data.sync.SyncProblem
+import com.yahyafati.mnemo.core.data.sync.WebDavAddress
+import com.yahyafati.mnemo.core.model.AiEndpoint
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.feature.settings.SwitchRow
@@ -78,11 +81,36 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_uplo
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_upload_others_unknown
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_upload_title
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_working
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_title_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_create_message_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_join_title_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_join_message_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_folder_problem_title_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_encrypt_summary_webdav
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_title
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_reconnect_title
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_message
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_reconnect_message
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_url
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_url_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_user
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_password
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_url_invalid
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_url_insecure
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_test
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_continue
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_test_found
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_test_create
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_test_failed
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_failure_auth
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_sync_webdav_failure_gone
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** What the dialogs of the Sync screen do. A passphrase is a string only for as long as the dialog is open. */
 internal class SyncDialogCallbacks(
+    val onWebDavTest: (url: String, username: String, password: String) -> Unit = { _, _, _ -> },
+    val onWebDavConnect: (url: String, username: String, password: String) -> Unit = { _, _, _ -> },
     val onCreate: (passphrase: String?) -> Unit = {},
     val onJoin: (passphrase: String?) -> Unit = {},
     val onConfirmReplace: () -> Unit = {},
@@ -100,14 +128,22 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBac
     when (dialog) {
         null -> Unit
         is SyncDialog.Create -> NewSyncDataDialog(
-            title = if (dialog.backend.isDrive) Res.string.feature_settings_sync_create_title_drive else Res.string.feature_settings_sync_create_title,
+            title = dialog.backend.pick(
+                folder = Res.string.feature_settings_sync_create_title,
+                drive = Res.string.feature_settings_sync_create_title_drive,
+                webDav = Res.string.feature_settings_sync_create_title_webdav,
+            ),
             message = stringResource(
-                if (dialog.backend.isDrive) Res.string.feature_settings_sync_create_message_drive else Res.string.feature_settings_sync_create_message,
+                dialog.backend.pick(
+                    folder = Res.string.feature_settings_sync_create_message,
+                    drive = Res.string.feature_settings_sync_create_message_drive,
+                    webDav = Res.string.feature_settings_sync_create_message_webdav,
+                ),
             ),
             extra = null,
             confirm = Res.string.feature_settings_sync_create_confirm,
-            encryptByDefault = dialog.backend.isDrive,
-            encryptSummary = if (dialog.backend.isDrive) Res.string.feature_settings_sync_encrypt_summary_drive else Res.string.feature_settings_sync_encrypt_summary,
+            encryptByDefault = dialog.backend.isCloud,
+            encryptSummary = dialog.backend.encryptSummary(),
             failure = dialog.failure,
             backend = dialog.backend,
             working = working,
@@ -124,7 +160,7 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBac
             },
             confirm = Res.string.feature_settings_sync_upload_confirm,
             encryptByDefault = dialog.encryptByDefault,
-            encryptSummary = if (dialog.encryptByDefault) Res.string.feature_settings_sync_encrypt_summary_drive else Res.string.feature_settings_sync_encrypt_summary,
+            encryptSummary = if (dialog.encryptByDefault) backend.encryptSummary() else Res.string.feature_settings_sync_encrypt_summary,
             failure = dialog.failure,
             backend = backend,
             working = working,
@@ -133,8 +169,20 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBac
         )
         is SyncDialog.Join -> PassphraseDialog(
             icon = MnemoIcons.Sync,
-            title = stringResource(if (dialog.backend.isDrive) Res.string.feature_settings_sync_join_title_drive else Res.string.feature_settings_sync_join_title),
-            message = stringResource(if (dialog.backend.isDrive) Res.string.feature_settings_sync_join_message_drive else Res.string.feature_settings_sync_join_message),
+            title = stringResource(
+                dialog.backend.pick(
+                    folder = Res.string.feature_settings_sync_join_title,
+                    drive = Res.string.feature_settings_sync_join_title_drive,
+                    webDav = Res.string.feature_settings_sync_join_title_webdav,
+                ),
+            ),
+            message = stringResource(
+                dialog.backend.pick(
+                    folder = Res.string.feature_settings_sync_join_message,
+                    drive = Res.string.feature_settings_sync_join_message_drive,
+                    webDav = Res.string.feature_settings_sync_join_message_webdav,
+                ),
+            ),
             hint = if (dialog.encrypted) stringResource(Res.string.feature_settings_sync_join_encrypted) else null,
             askForPassphrase = dialog.encrypted,
             confirm = stringResource(Res.string.feature_settings_sync_join_confirm),
@@ -207,9 +255,14 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBac
             message = stringResource(Res.string.feature_settings_sync_leftovers_message),
             onDismiss = callbacks.onDismiss,
         )
+        is SyncDialog.WebDavSetup -> WebDavDialog(dialog, working, callbacks)
         is SyncDialog.FolderProblem -> Info(
             title = stringResource(
-                if (dialog.backend.isDrive) Res.string.feature_settings_sync_folder_problem_title_drive else Res.string.feature_settings_sync_folder_problem_title,
+                dialog.backend.pick(
+                    folder = Res.string.feature_settings_sync_folder_problem_title,
+                    drive = Res.string.feature_settings_sync_folder_problem_title_drive,
+                    webDav = Res.string.feature_settings_sync_folder_problem_title_webdav,
+                ),
             ),
             message = syncProblemText(dialog.problem, dialog.backend),
             onDismiss = callbacks.onDismiss,
@@ -217,7 +270,18 @@ internal fun SyncDialogs(dialog: SyncDialog?, working: Boolean, backend: SyncBac
     }
 }
 
-private val SyncBackend?.isDrive: Boolean get() = this == SyncBackend.GoogleDrive
+/** The text that fits the kind of location: a folder, Google Drive or a WebDAV server. A location not chosen yet counts as a folder. */
+private fun <T> SyncBackend?.pick(folder: T, drive: T, webDav: T): T = when (this) {
+    SyncBackend.GoogleDrive -> drive
+    is SyncBackend.WebDav -> webDav
+    else -> folder
+}
+
+private fun SyncBackend?.encryptSummary(): StringResource = pick(
+    folder = Res.string.feature_settings_sync_encrypt_summary,
+    drive = Res.string.feature_settings_sync_encrypt_summary_drive,
+    webDav = Res.string.feature_settings_sync_encrypt_summary_webdav,
+)
 
 @Composable
 private fun Confirm(
@@ -399,4 +463,98 @@ private fun PassphraseField(value: String, onValueChange: (String) -> Unit, labe
         },
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * The form for a WebDAV server: address, user name and app password. "Test connection" reports without keeping anything;
+ * "Continue" checks, keeps the password and moves on to what the folder holds. Asked again after a refused password
+ * ([SyncDialog.WebDavSetup.reconnect]) the address and user are fixed and only the password is typed.
+ */
+@Composable
+private fun WebDavDialog(dialog: SyncDialog.WebDavSetup, working: Boolean, callbacks: SyncDialogCallbacks) {
+    var url by remember { mutableStateOf(dialog.url) }
+    var user by remember { mutableStateOf(dialog.username) }
+    // Deliberately `remember`, not `rememberSaveable`: a password must not end up in saved state.
+    var password by remember { mutableStateOf("") }
+    val check = if (url.isBlank()) null else WebDavAddress.check(url)
+    val urlError = when (check) {
+        null, AiEndpoint.Check.Ok -> null
+        AiEndpoint.Check.Invalid -> stringResource(Res.string.feature_settings_sync_webdav_url_invalid)
+        is AiEndpoint.Check.Insecure -> stringResource(Res.string.feature_settings_sync_webdav_url_insecure)
+    }
+    val complete = check == AiEndpoint.Check.Ok && user.isNotBlank() && password.isNotEmpty()
+    AlertDialog(
+        onDismissRequest = { if (!working) callbacks.onDismiss() },
+        icon = { Icon(MnemoIcons.Cloud, null) },
+        title = {
+            Text(stringResource(if (dialog.reconnect) Res.string.feature_settings_sync_webdav_reconnect_title else Res.string.feature_settings_sync_webdav_title))
+        },
+        text = {
+            Column(
+                Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm),
+            ) {
+                Text(stringResource(if (dialog.reconnect) Res.string.feature_settings_sync_webdav_reconnect_message else Res.string.feature_settings_sync_webdav_message))
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(Res.string.feature_settings_sync_webdav_url)) },
+                    placeholder = { Text(stringResource(Res.string.feature_settings_sync_webdav_url_hint)) },
+                    singleLine = true,
+                    readOnly = dialog.reconnect,
+                    enabled = !dialog.reconnect,
+                    isError = urlError != null,
+                    supportingText = urlError?.let { { Text(it) } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = user,
+                    onValueChange = { user = it },
+                    label = { Text(stringResource(Res.string.feature_settings_sync_webdav_user)) },
+                    singleLine = true,
+                    readOnly = dialog.reconnect,
+                    enabled = !dialog.reconnect,
+                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                PassphraseField(password, { password = it }, stringResource(Res.string.feature_settings_sync_webdav_password), error = null)
+                when (val test = dialog.test) {
+                    null -> Unit
+                    WebDavTest.FolderFound -> Text(stringResource(Res.string.feature_settings_sync_webdav_test_found), style = MaterialTheme.typography.bodySmall)
+                    WebDavTest.FolderWillBeCreated -> Text(stringResource(Res.string.feature_settings_sync_webdav_test_create), style = MaterialTheme.typography.bodySmall)
+                    is WebDavTest.Failed -> Text(
+                        stringResource(Res.string.feature_settings_sync_webdav_test_failed, webDavProblemText(test.problem)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                dialog.failure?.let { Text(webDavProblemText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                if (working) Working(stringResource(Res.string.feature_settings_sync_working))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { callbacks.onWebDavConnect(url, user, password) }, enabled = !working && complete) {
+                Text(stringResource(Res.string.feature_settings_sync_webdav_continue))
+            }
+        },
+        dismissButton = {
+            Row {
+                if (!dialog.reconnect) {
+                    TextButton(onClick = { callbacks.onWebDavTest(url, user, password) }, enabled = !working && complete) {
+                        Text(stringResource(Res.string.feature_settings_sync_webdav_test))
+                    }
+                }
+                TextButton(onClick = callbacks.onDismiss, enabled = !working) { Text(stringResource(Res.string.feature_settings_cancel)) }
+            }
+        },
+    )
+}
+
+/** What went wrong with a WebDAV form's account or folder, in its own words; everything else is the general wording. */
+@Composable
+private fun webDavProblemText(problem: SyncProblem): String = when (problem) {
+    SyncProblem.Auth -> stringResource(Res.string.feature_settings_sync_webdav_failure_auth)
+    SyncProblem.LocationGone -> stringResource(Res.string.feature_settings_sync_webdav_failure_gone)
+    else -> syncProblemText(problem)
 }

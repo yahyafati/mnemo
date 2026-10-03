@@ -53,8 +53,8 @@ speech recognizer, which works on the device where your device supports it.
 
 Sync is off until you turn it on (Settings › Sync). Mnemo has no server, so it syncs only through
 storage you own: a **folder you choose**, which can be inside a cloud-drive or sync app such as Google
-Drive for Desktop, Dropbox, Nextcloud or Syncthing, or, in builds that offer it, **your Google Drive**
-(below). Once it is on, Mnemo writes these to that place, as files only Mnemo reads: your decks, notes, review history, images, saved AI answers and scheduling settings, the name,
+Drive for Desktop, Dropbox, Nextcloud or Syncthing, **a WebDAV server** such as Nextcloud, or, in builds that offer it,
+**your Google Drive** (both below). Once it is on, Mnemo writes these to that place, as files only Mnemo reads: your decks, notes, review history, images, saved AI answers and scheduling settings, the name,
 platform and app version of each device that syncs, and the time it last synced. Other devices read
 those files and add their own.
 
@@ -72,10 +72,16 @@ those files and add their own.
   Sync (Stop syncing), and revoke Mnemo's access at any time in your Google Account's "Third-party apps
   with account access" page. Files are encrypted with your passphrase if you set one (recommended for
   Drive: without one Google can read them).
+- **WebDAV:** if you choose it, you enter the address of a folder on your server, a user name and a password
+  (use an app password, not your account's). Mnemo sends its files, and the requests that list, read and delete them,
+  to that address only, over HTTPS (plain HTTP is accepted only for a server on your own network). The password is
+  kept on your device only, in encrypted storage that no backup or export contains, and is sent only to that
+  server. Mnemo makes the folder if it is not there and otherwise touches nothing outside it. Files are encrypted with
+  your passphrase if you set one (recommended: without one, whoever runs the server can read them).
 - **Who sees it:** Mnemo never receives the folder, the files or the passphrase. What the cloud-drive,
   sync app or Google does with the files is governed by its own privacy policy.
 - **Stopping:** "Stop syncing on this device" keeps your collection and leaves the files as they are
-  (and signs out of Google); "Delete the sync data" removes Mnemo's files from the folder or the Drive folder.
+  (and signs out of Google or forgets the WebDAV password); "Delete the sync data" removes Mnemo's files from the folder, the Drive folder or the WebDAV folder.
 
 ## API keys
 
@@ -86,7 +92,7 @@ up location, never exported, never shown in full after saving, and never written
 
 | Permission | Why |
 |---|---|
-| Internet | Only for AI providers, links you open in Smart Extract, and Google Drive sync if you turn it on. Everything else works offline. (A sync folder is reached through your files, not through Mnemo's own network access.) |
+| Internet | Only for AI providers, links you open in Smart Extract, Google Drive sync and WebDAV sync if you turn them on. Everything else works offline. (A sync folder is reached through your files, not through Mnemo's own network access.) |
 | Notifications | The daily study reminder (if you turn it on) and progress of long imports, exports and backups. |
 | Microphone | Only while you dictate in Smart Extract. |
 | Foreground service (data sync) | Keeps a long import, export or backup running if you leave the app. |

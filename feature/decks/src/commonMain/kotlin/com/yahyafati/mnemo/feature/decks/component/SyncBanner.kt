@@ -24,6 +24,7 @@ import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.feature.decks.resources.Res
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_auth
+import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_auth_webdav
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_auth_drive
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_gone_drive
 import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_quota_drive
@@ -54,7 +55,11 @@ internal fun SyncBanner(status: SyncStatus, onOpen: () -> Unit, modifier: Modifi
                 SyncProblem.Replaced, SyncProblem.MustRejoin -> Res.string.feature_decks_sync_rejoin
                 SyncProblem.UpdateRequired -> Res.string.feature_decks_sync_update
                 SyncProblem.LocationGone -> if (drive) Res.string.feature_decks_sync_gone_drive else Res.string.feature_decks_sync_gone
-                SyncProblem.Auth -> if (drive) Res.string.feature_decks_sync_auth_drive else Res.string.feature_decks_sync_auth
+                SyncProblem.Auth -> when {
+                    drive -> Res.string.feature_decks_sync_auth_drive
+                    status.backend is SyncBackend.WebDav -> Res.string.feature_decks_sync_auth_webdav
+                    else -> Res.string.feature_decks_sync_auth
+                }
                 SyncProblem.Quota -> if (drive) Res.string.feature_decks_sync_quota_drive else Res.string.feature_decks_sync_quota
                 SyncProblem.Offline, SyncProblem.LocationNotEmpty, SyncProblem.SignInCancelled, SyncProblem.Other -> Res.string.feature_decks_sync_stalled
             }

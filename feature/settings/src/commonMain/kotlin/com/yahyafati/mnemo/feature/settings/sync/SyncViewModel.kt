@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.data.sync.SyncProblem
 import com.yahyafati.mnemo.core.data.sync.SyncReplacesLocalDataException
 import com.yahyafati.mnemo.core.data.sync.SyncRepository
 import com.yahyafati.mnemo.core.data.sync.SyncStatus
+import com.yahyafati.mnemo.core.data.sync.WebDavTestResult
 import com.yahyafati.mnemo.core.data.sync.backend
 import com.yahyafati.mnemo.core.data.sync.lastSyncAt
 import com.yahyafati.mnemo.core.data.sync.syncProblem
@@ -51,7 +52,19 @@ sealed interface SyncDialog {
     /** The folder has files that aren't Mnemo's. */
     data object Leftovers : SyncDialog
 
-    /** The folder (or Google Drive, for [backend]) couldn't be looked at or signed in to. */
+    /**
+     * The form for a WebDAV server: [url] and [username] are what the fields start with (the saved ones when the password is
+     * asked for again, [reconnect]); [test] is the answer to "Test connection". The password is never here.
+     */
+    data class WebDavSetup(
+        val url: String = "",
+        val username: String = "",
+        val reconnect: Boolean = false,
+        val test: WebDavTest? = null,
+        override val failure: SyncProblem? = null,
+    ) : SyncDialog
+
+    /** The folder (or Google Drive, or a WebDAV server, for [backend]) couldn't be looked at or signed in to. */
     data class FolderProblem(val problem: SyncProblem, val backend: SyncBackend? = null) : SyncDialog
 
     /** The passphrase of encrypted sync data that this device doesn't have the key to. */
@@ -72,6 +85,17 @@ sealed interface SyncDialog {
 
     /** Deletes the sync data for every device. */
     data class ConfirmDelete(val otherDevices: List<String>, override val failure: SyncProblem? = null) : SyncDialog
+}
+
+/** What "Test connection" found out about a WebDAV server. */
+sealed interface WebDavTest {
+    /** The server answered, the credentials work and the folder is there. */
+    data object FolderFound : WebDavTest
+
+    /** The same, but the folder is made when sync is set up. */
+    data object FolderWillBeCreated : WebDavTest
+
+    data class Failed(val problem: SyncProblem) : WebDavTest
 }
 
 /** Something that happened that the screen keeps saying until it is dismissed. */
@@ -170,6 +194,65 @@ class SyncViewModel(private val repository: SyncRepository) : ViewModel() {
     fun useGoogleDrive() {
         if (!repository.googleDriveAvailable) return
         signIn { askAbout(SyncBackend.GoogleDrive) }
+    }
+
+    /** The user chose a WebDAV server: ask for its address and account. */
+    fun useWebDav() {
+        dialog.value = SyncDialog.WebDavSetup()
+    }
+
+    /** "Test connection": reaches the server with what was typed and says what it found. Nothing is kept or changed. */
+    fun testWebDav(url: String, username: String, password: String) {
+        val open = dialog.value as? SyncDialog.WebDavSetup ?: return
+        launchWorking {
+            val result = try {
+                when (repository.testWebDav(url, username, password)) {
+                    WebDavTestResult.FolderFound -> WebDavTest.FolderFound
+                    WebDavTestResult.FolderWillBeCreated -> WebDavTest.FolderWillBeCreated
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                WebDavTest.Failed(e.syncProblem())
+            }
+            dialog.value = open.copy(url = url, username = username, test = result, failure = null)
+        }
+    }
+
+    /** "Continue": checks the account, makes the folder if needed and keeps the password; then looks at the folder like for any other. */
+    fun connectWebDav(url: String, username: String, password: String) {
+        val open = dialog.value as? SyncDialog.WebDavSetup ?: return
+        if (open.reconnect) return updateWebDavPassword(password)
+        launchWorking {
+            try {
+                askAbout(repository.connectWebDav(url, username, password))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                dialog.value = open.copy(url = url, username = username, test = null, failure = e.syncProblem())
+            }
+        }
+    }
+
+    /** After [SyncProblem.Auth] on WebDAV: ask for the password again, for the address and user this device already has. */
+    fun askForWebDavPassword() {
+        val backend = uiState.value.status.backend as? SyncBackend.WebDav ?: return
+        dialog.value = SyncDialog.WebDavSetup(backend.url, backend.username, reconnect = true)
+    }
+
+    private fun updateWebDavPassword(password: String) {
+        val open = dialog.value as? SyncDialog.WebDavSetup ?: return
+        launchWorking {
+            try {
+                repository.updateWebDavPassword(password)
+                dialog.value = null
+                repository.syncNow()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                dialog.value = open.copy(test = null, failure = e.syncProblem())
+            }
+        }
     }
 
     /** After [SyncProblem.Auth] on Google Drive: sign in again, and sync. */
@@ -322,7 +405,7 @@ class SyncViewModel(private val repository: SyncRepository) : ViewModel() {
     fun askToUploadAsNew() {
         viewModelScope.launch {
             val others = (uiState.value.devices as? SyncDevices.Loaded)?.devices.orEmpty().filterNot { it.isThisDevice }.map { it.name }
-            dialog.value = SyncDialog.Upload(others, encryptByDefault = uiState.value.status.backend == SyncBackend.GoogleDrive)
+            dialog.value = SyncDialog.Upload(others, encryptByDefault = uiState.value.status.backend.isCloud)
         }
     }
 
@@ -397,3 +480,6 @@ class SyncViewModel(private val repository: SyncRepository) : ViewModel() {
         }
     }
 }
+
+/** Google Drive and WebDAV servers belong to someone else (Google, whoever runs the server): sync data there is encrypted unless the user opts out. */
+internal val SyncBackend?.isCloud: Boolean get() = this == SyncBackend.GoogleDrive || this is SyncBackend.WebDav

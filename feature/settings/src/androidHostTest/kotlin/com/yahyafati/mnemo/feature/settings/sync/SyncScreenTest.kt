@@ -257,6 +257,57 @@ class SyncScreenTest {
         composeRule.onNodeWithText("Sign in again to keep syncing", substring = true).assertIsDisplayed()
     }
 
+    // --- WebDAV (S7) -------------------------------------------------------------------------------------------
+
+    private val dav = SyncBackend.WebDav("https://cloud.example.org/remote.php/dav/files/alice/Mnemo/", "alice")
+
+    @Test
+    fun webDavIsOfferedWhateverTheBuildAndSaysWhatItIsFor() {
+        var chosen = 0
+        show(SyncUiState(googleDriveAvailable = false), SyncCallbacks(onUseWebDav = { chosen++ }))
+        composeRule.onNodeWithText("Nextcloud, ownCloud or any other WebDAV server", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Use a WebDAV server").performClick()
+        assertEquals(1, chosen)
+    }
+
+    @Test
+    fun whileASetUpStepRunsTheWebDavButtonWaits() {
+        show(SyncUiState(working = true))
+        composeRule.onNodeWithText("Use a WebDAV server").assertIsNotEnabled()
+    }
+
+    @Test
+    fun webDavShowsItsAddressAndUserAsTheLocation() {
+        show(SyncUiState(status = SyncStatus.Idle(dav, null), encrypted = true, devices = devices))
+        composeRule.onNodeWithText("WebDAV: ${dav.url} (user alice)").assertIsDisplayed()
+        composeRule.onNodeWithText("Folder:", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aRefusedWebDavPasswordCanBeEnteredAgain() {
+        var asked = 0
+        show(
+            SyncUiState(status = SyncStatus.Error(dav, SyncProblem.Auth, null)),
+            SyncCallbacks(onAskForWebDavPassword = { asked++ }),
+        )
+        composeRule.onNodeWithText("no longer accepts the user name or password", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Enter password").performClick()
+        assertEquals(1, asked)
+        composeRule.onNodeWithText("Sign in to Google").assertDoesNotExist()
+    }
+
+    @Test
+    fun aRefusedFolderAndDriveOfferNoPasswordEntry() {
+        show(SyncUiState(status = SyncStatus.Error(folder, SyncProblem.Auth, null)))
+        composeRule.onNodeWithText("Enter password").assertDoesNotExist()
+    }
+
+    @Test
+    fun aWebDavServerThatCantBeUsedHasItsOwnTitle() {
+        show(SyncUiState(dialog = SyncDialog.FolderProblem(SyncProblem.Auth, dav)))
+        composeRule.onNodeWithText("Can't use this WebDAV server").assertIsDisplayed()
+    }
+
     @Test
     fun aSafAndAPathAreShownReadably() {
         assertEquals("Documents/Mnemo", folderLabel("content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FMnemo"))
