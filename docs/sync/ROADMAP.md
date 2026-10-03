@@ -118,7 +118,8 @@ can turn sync on; S6 and S7 are only new backends.
 - [ ] **(owner)** Confirm or change the proposed defaults above, especially: no merging of unrelated
       collections in v1, which settings sync, encryption on by default for cloud backends, and whether
       Drive is wanted at all or the folder backend is enough for the first release.
-- [ ] **Spike: Google OAuth on both platforms** (half a day, throwaway code, outside `main`):
+- [ ] **Spike: Google OAuth on both platforms** (half a day, throwaway code, outside `main`). Desk research
+      is done and recorded in ADR 0013 ("Google Drive"); the hands-on part waits for the owner's Cloud project:
   - Android: an Android OAuth client is tied to the package name **and the signing certificate's
     SHA-1**. Find out which client type works for the owner-signed sideload/Play APK **and** for an
     F-Droid build (F-Droid signs with its own key unless the build is reproducible and published with
@@ -133,7 +134,7 @@ can turn sync on; S6 and S7 are only new backends.
       take weeks.
 - [ ] **(owner)** Decide F-Droid's treatment: the Drive backend shown with the `NonFreeNet`
       anti-feature in the recipe, or hidden in F-Droid builds.
-- [ ] **ADR 0013 "Sync"** (`docs/adr/0013-sync.md`), recording at least:
+- [x] **ADR 0013 "Sync"** (`docs/adr/0013-sync.md`, written 2026-10-03, status Proposed), recording at least:
   - Why there is no server and no database-file copy, and the remote layout (S2).
   - The logical clock, the per-field rule, the replay rule and the delete rule (S3), with an example
     of each.
@@ -142,7 +143,10 @@ can turn sync on; S6 and S7 are only new backends.
   - Encryption: key derivation, what is encrypted (contents, not file names), passphrase loss.
   - Backends: the `SyncStore` contract, and the Google scopes and client id handling.
 
-**Exit:** ADR written (**owner: review it**); the spike's answers recorded in the ADR.
+**Exit:** ADR written (**owner: review it**); the spike's answers recorded in the ADR. *Status 2026-10-03: ADR
+written with the desk-research answers; open are the owner's confirmation, the Cloud project, F-Droid's
+treatment and the hands-on spike (listed under "Still open" in the ADR). S1 and S2 can start once the owner
+has confirmed the defaults; S6 needs the spike.*
 
 ## S1 — Schema v6: recording changes (`:core:database`, `:core:data`)
 
