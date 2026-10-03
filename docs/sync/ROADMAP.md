@@ -249,15 +249,15 @@ The file format is recorded in ADR 0013 ("As built (S2)").*
 
 **Goal:** turn the outbox into change files, apply other devices' files, and converge.
 
-- [ ] **Packing**: read the outbox in `seq` order, coalesce changes to the same row, read the current
+- [x] **Packing**: read the outbox in `seq` order, coalesce changes to the same row, read the current
       values of the changed fields, stamp each with `SyncClock.now()`, write the file, then clear the
       packed outbox rows and record the per-field clocks locally (`sync_field_clocks`: table, row,
       field, clock). The file is written before the outbox is cleared, so a crash re-sends rather than
       loses.
-- [ ] **Applying**: list every other device's files after the last seq applied from it, read them in
+- [x] **Applying**: list every other device's files after the last seq applied from it, read them in
       clock order, and apply them in **one transaction** with `applying = 1`. Applying is idempotent:
       a file applied twice changes nothing. Room's flows refresh the UI by themselves.
-- [ ] **Rules per table** (all deterministic; ties broken by device id):
+- [x] **Rules per table** (all deterministic; ties broken by device id):
 
   | Data | Rule |
   |---|---|
@@ -271,14 +271,14 @@ The file format is recorded in ADR 0013 ("As built (S2)").*
   | `ai_answers` | Last writer by clock per `(noteId, kind)`. |
   | Scheduling settings | One record, last writer by clock, stored in a change file as a pseudo-table. Fitted FSRS weights travel with it. |
 
-- [ ] **Replay seam**: `:core:data` defines `ScheduleReplayer` and `:core:domain` binds it to
+- [x] **Replay seam**: `:core:data` defines `ScheduleReplayer` and `:core:domain` binds it to
       `StudyScheduler` in `domainModule` (or the model ↔ FSRS mapping moves down so `:core:data` can
       call it; pick one in the ADR).
-- [ ] **Convergence test** (`commonTest`, both targets): two and three in-memory databases with an
+- [x] **Convergence test** (`commonTest`, both targets): two and three in-memory databases with an
       `InMemorySyncStore`, random sequences of edits, reviews, undos, deletes and deck creations on each
       device, synced in random orders. After everyone has synced, every database must hold the same
       rows (compare a canonical dump), and no review created on any device is missing.
-- [ ] Scenario tests, one each:
+- [x] Scenario tests, one each:
   1. The same card reviewed on both devices offline: both reviews kept, schedule equals the replay.
   2. Front edited on A, back on B: both edits kept.
   3. The same field edited on both: the later clock wins on both devices.
@@ -290,7 +290,36 @@ The file format is recorded in ADR 0013 ("As built (S2)").*
   9. 12,000 cards imported on A (`scripts/qa/make-large-apkg.py`): B applies them in reasonable time
      (record the number; the target is decided after measuring).
 
-**Exit:** the convergence and scenario tests pass on both targets; no UI yet.
+**Exit:** the convergence and scenario tests pass on both targets; no UI yet. *Done 2026-10-03. What was built, and
+where it differs from the plan (ADR 0013 "As built (S3)" has the detail):*
+
+- *Schema v7 (`Migration6To7`, fixture `mnemo-v7.db`): `sync_field_clocks` (the stamp of every field this device has
+  written or applied; `*` stands for a whole row stamped at its insert; a row with a `value` is a change that arrived
+  before its row; `base` is the baseline hash of a note's field text) and `sync_seqs` (the newest file applied from each
+  device, and the late ones it is still waiting for). Both are local, empty until sync is on.*
+- *`SyncEngine.sync(remote, device, announceSettings)` is the whole round: pack, read and apply, pack the merge's own
+  result, write `device.json`, fetch media. It does not decide when to run or take a lock: that is S4's
+  `SyncRepository`. The code is in `:core:data/sync`: `SyncPacker`, `SyncApplier`, `CardReconciler`, `SyncFixups`,
+  `SchedulingSettings`, `SyncMediaFiles`; the raw row access is `SyncRows` in `:core:database/sync`.*
+- *A change is stamped when it is packed; one clock value per run. `updatedAt` is stamped like any field (not "the
+  latest"): a device that edits a row after seeing a newer `updatedAt` writes an older one. A write that changes
+  only `updatedAt` is not a change to sync, so `updatedAt` can differ between devices after such a write.*
+- *A note's `fields` merge by position (scenario 2 needs it), with a hash of each text as the baseline that tells an
+  edit made here from one that arrived. Deleted decks that others added work to are recovered as
+  `<name> (recovered)` (the owner's proposal in the ADR); cards of a deleted note are deleted with it.*
+- *The replay is a function of the logs (`CardReconciler`) and its outcome is an ordinary local write, so it travels.
+  Known limit: a device answers on top of an answer that another device undoes before syncing. Every log is kept and the
+  devices agree, but the schedule keeps the answer that was given on top of the undone one.*
+- *The scenario tests are `SyncMergeTest` (19, the nine scenarios and more), the convergence test is
+  `SyncConvergenceTest` (random edits, reviews, undos, deletes, deck creations, settings, clock jumps and files that
+  reach a device late, 2 and 3 devices; `MNEMO_SYNC_SEEDS=250` runs 250 seeds of each). Scenario 9, 12,000 cards:
+  see the ADR for the measured time.*
+- *For S4: `SyncEngine` needs `sync_state.enabled = 1` and a `SyncRemote`; leaving or joining another location must call
+  `SyncDao.clearFieldClocks()` and `clearSeqs()` (and decide about the outbox). `DeviceInfo.applied` is the newest
+  number applied per device; a device may still wait for a few older ones (`sync_seqs.gaps`), so compaction must not
+  delete a file because its number is below `applied`. The first sync of a device that joins must not announce its
+  settings; the one that creates the location must (`announceSettings`).*
+
 
 ## S4 — Lifecycle (`:core:data/sync`)
 

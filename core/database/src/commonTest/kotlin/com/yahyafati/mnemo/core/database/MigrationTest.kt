@@ -5,11 +5,14 @@ import androidx.room.useWriterConnection
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
+import com.yahyafati.mnemo.core.database.entity.SyncFieldClockEntity
+import com.yahyafati.mnemo.core.database.entity.SyncSeqEntity
 import com.yahyafati.mnemo.core.database.migration.Migration1To2
 import com.yahyafati.mnemo.core.database.migration.Migration2To3
 import com.yahyafati.mnemo.core.database.migration.Migration3To4
 import com.yahyafati.mnemo.core.database.migration.Migration4To5
 import com.yahyafati.mnemo.core.database.migration.Migration5To6
+import com.yahyafati.mnemo.core.database.migration.Migration6To7
 import com.yahyafati.mnemo.core.database.sync.SYNCED_TABLES
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
@@ -173,6 +176,32 @@ class MigrationTest : MigrationTestBase() {
     }
 
     @Test
+    fun migrate6To7() = runTest {
+        createDatabase(6).use { connection ->
+            connection.insertDeck()
+            connection.execSQL("INSERT INTO sync_state (id, deviceId, clock, enabled, applying) VALUES (1, 'device-a', 77, 1, 0)")
+        }
+
+        val migrated = migrate(7, Migration6To7)
+        // The merge engine's bookkeeping starts empty; what was there stays.
+        assertEquals(listOf("0"), migrated.queryStrings("SELECT COUNT(*) FROM sync_field_clocks"))
+        assertEquals(listOf("0"), migrated.queryStrings("SELECT COUNT(*) FROM sync_seqs"))
+        assertEquals(listOf("device-a|77|1"), migrated.queryStrings("SELECT deviceId || '|' || clock || '|' || enabled FROM sync_state"))
+        assertEquals(listOf("Biology"), migrated.queryStrings("SELECT name FROM decks"))
+        migrated.close()
+
+        val database = open()
+        try {
+            database.syncDao().putFieldClocks(listOf(SyncFieldClockEntity("decks", "d1", "name", 5, "device-a")))
+            database.syncDao().putSeqs(listOf(SyncSeqEntity("device-a", 3)))
+            assertEquals(listOf("name"), database.syncDao().getFieldClocks("decks", "d1").map { it.field })
+            assertEquals(3, database.syncDao().getSeqs().single().seq)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun aMigratedAndANewDatabaseHaveTheSameTriggers() = runTest {
         createDatabase(5).close()
         val migrated = migrate(6, Migration5To6).run { queryStrings("SELECT name || ': ' || sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name").also { close() } }
@@ -225,6 +254,6 @@ class MigrationTest : MigrationTestBase() {
     )
 
     private companion object {
-        const val LATEST = 6
+        const val LATEST = 7
     }
 }

@@ -23,7 +23,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun everyVersionMigratesToTheCurrentOne() = runTest {
-        for (version in 1..6) {
+        for (version in 1..7) {
             val db = openFixture(version)
             try {
                 assertEquals("Biology", db.deckDao().getDeck("d1")?.name, "v$version deck")
@@ -33,7 +33,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
                 // Version 4 seeded the two card types the older databases lack.
                 val types = db.noteDao().getNoteTypes().map { it.id }
                 assertTrue(NoteType.TypeIn.id in types && NoteType.MultipleChoice.id in types, "v$version types")
-                assertEquals(6, DatabaseSnapshot(db).version(), "v$version schema version")
+                assertEquals(7, DatabaseSnapshot(db).version(), "v$version schema version")
                 // Every version gets a device identity, with sync off.
                 val state = assertNotNull(db.syncDao().getState(), "v$version sync state")
                 assertTrue(state.deviceId.isNotBlank() && !state.enabled, "v$version sync state")
@@ -46,7 +46,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun aCurrentDatabaseKeepsItsRowsAndAcceptsWrites() = runTest {
-        val db = openFixture(6)
+        val db = openFixture(7)
         try {
             assertEquals(listOf("bio", "cells::organelles"), db.noteDao().getNote("n1")?.tags)
             assertEquals("Starts with M", db.noteDao().getNote("n1")?.hint)

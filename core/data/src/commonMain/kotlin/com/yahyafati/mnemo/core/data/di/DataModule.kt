@@ -42,7 +42,10 @@ import com.yahyafati.mnemo.core.data.repository.StatsRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.data.scheduling.FsrsOptimization
+import com.yahyafati.mnemo.core.data.sync.RepositorySyncMediaFiles
 import com.yahyafati.mnemo.core.data.sync.SyncClock
+import com.yahyafati.mnemo.core.data.sync.SyncEngine
+import com.yahyafati.mnemo.core.data.sync.SyncMediaFiles
 import com.yahyafati.mnemo.core.data.transfer.AnkiExporter
 import com.yahyafati.mnemo.core.data.transfer.AnkiImporter
 import com.yahyafati.mnemo.core.data.transfer.JsonExporter
@@ -94,6 +97,9 @@ val dataModule = module {
 
     factoryOf(::ProviderConfigs)
     factoryOf(::SyncClock)
+    factoryOf(::RepositorySyncMediaFiles) bind SyncMediaFiles::class
+    // Needs a `ScheduleReplayer`, which `:core:domain` binds.
+    factory { SyncEngine(get(), get(), get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
     factory { FsrsOptimization(get(), get(), get(), dispatcher(MnemoDispatchers.Default)) }
     factory { BackupManager(get<AppDirectories>(), get<DocumentAccess>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
     factoryOf(::ImportJob)

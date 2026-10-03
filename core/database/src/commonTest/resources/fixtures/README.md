@@ -1,6 +1,6 @@
 # Fixture databases
 
-`mnemo-v<N>.db` are real Mnemo databases of schema version N (1 to 6), created by the Android build
+`mnemo-v<N>.db` are real Mnemo databases of schema version N (1 to 7), created by the Android build
 (Room on Robolectric, with the framework's SQLite, so they carry Android's `android_metadata`
 table) and filled with a little data: a deck "Biology" with a note and a card, plus whatever the
 version added (media at v2, hint and Anki fields at v4, a saved AI answer at v5 …).
@@ -18,3 +18,6 @@ hash of `schemas/…/5.json` in `room_master_table`, `user_version` 5 and one ro
 `mnemo-v6.db` is `mnemo-v5.db` opened once by the current build (Migration5To6 ran: the sync tables, the
 five snapshot columns on `review_logs`, the 14 sync triggers and a `sync_state` row with a random device
 id), checkpointed and copied. The device id in it is just a UUID; every copy of this file shares it.
+
+`mnemo-v7.db` is `mnemo-v6.db` with `Migration6To7`'s SQL applied by hand (the two sync bookkeeping tables, both
+empty), the identity hash of `schemas/…/7.json` in `room_master_table` and `user_version` 7.

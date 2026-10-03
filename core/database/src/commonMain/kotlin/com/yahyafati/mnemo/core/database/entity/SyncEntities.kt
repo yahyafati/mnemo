@@ -46,3 +46,40 @@ data class SyncChangeEntity(
         const val ALL_FIELDS = "*"
     }
 }
+
+/**
+ * The newest stamp of a field, for the per-field last-writer-wins merge (docs/sync/ROADMAP.md S3, ADR 0013).
+ * [field] is a column name, `schedule` for a card's eight schedule columns (they merge as one unit), or `*`
+ * for "every field of the row, stamped when it was created", which keeps a 12,000-card import to one row per
+ * row instead of one per column. The stamp is ([clock], [device]); the device id breaks ties.
+ *
+ * A note's `fields` merge by position: `fields#0`, `fields#1` … are stamps of the single fields, and their [base] is a
+ * hash of the text as of the last sync, which is how an edit made here is told from one that arrived.
+ *
+ * A row with a [value] is a change that arrived for a row this device doesn't have yet; it is applied when the
+ * row's insert arrives. The scheduling settings are one pseudo-row (`settings`/`scheduling`/`record`) whose
+ * [value] is the last record synced, which is how a local change is noticed. Never synced itself.
+ */
+@Entity(tableName = "sync_field_clocks", primaryKeys = ["tbl", "rowId", "field"])
+data class SyncFieldClockEntity(
+    val tbl: String,
+    val rowId: String,
+    val field: String,
+    val clock: Long,
+    val device: String,
+    val value: String? = null,
+    val base: String? = null,
+)
+
+/**
+ * The newest change file of each device: applied from the others, written by this one (its own `deviceId`).
+ * A folder that a sync tool fills can deliver a device's files out of order, so [gaps] lists the numbers below
+ * [seq] that were missing when a newer file was applied (comma-separated, a window of recent ones), and are applied
+ * if they turn up. Never synced.
+ */
+@Entity(tableName = "sync_seqs")
+data class SyncSeqEntity(
+    @PrimaryKey val deviceId: String,
+    val seq: Long,
+    val gaps: String = "",
+)

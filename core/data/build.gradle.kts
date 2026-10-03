@@ -21,6 +21,7 @@ kotlin {
             implementation(projects.core.ingest)
             implementation(projects.core.scheduler)
             implementation(projects.core.security)
+            implementation(projects.core.sync)
             implementation(libs.koin.core)
             implementation(libs.kotlinx.serialization.json)
         }

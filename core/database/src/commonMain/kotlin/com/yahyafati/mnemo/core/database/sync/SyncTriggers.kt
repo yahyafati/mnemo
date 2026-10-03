@@ -11,7 +11,7 @@ import com.yahyafati.mnemo.core.database.entity.SyncStateEntity
  * compares the lists with the real tables, so a column added to an entity without being listed here
  * fails a test instead of silently never syncing.
  */
-internal class SyncedTable(
+class SyncedTable(
     val name: String,
     val keyColumns: List<String>,
     val columns: List<String>,
@@ -21,7 +21,7 @@ internal class SyncedTable(
  * The tables that sync (ADR 0013). AI providers, models, routes and usage never do (keys stay on the
  * device), and neither do the sync tables themselves.
  */
-internal val SYNCED_TABLES: List<SyncedTable> = listOf(
+val SYNCED_TABLES: List<SyncedTable> = listOf(
     SyncedTable("decks", listOf("id"), listOf("parentId", "name", "description", "category", "starred", "deletedAt", "examDate")),
     SyncedTable("note_types", listOf("id"), listOf("name", "kind", "fields", "deletedAt")),
     SyncedTable(

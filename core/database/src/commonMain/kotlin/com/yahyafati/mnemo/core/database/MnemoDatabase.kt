@@ -17,6 +17,7 @@ import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
 import com.yahyafati.mnemo.core.database.dao.StatsDao
 import com.yahyafati.mnemo.core.database.dao.SyncDao
+import com.yahyafati.mnemo.core.database.dao.SyncMergeDao
 import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
 import com.yahyafati.mnemo.core.database.entity.AiModelEntity
 import com.yahyafati.mnemo.core.database.entity.AiProviderEntity
@@ -29,6 +30,8 @@ import com.yahyafati.mnemo.core.database.entity.NoteEntity
 import com.yahyafati.mnemo.core.database.entity.NoteTypeEntity
 import com.yahyafati.mnemo.core.database.entity.ReviewLogEntity
 import com.yahyafati.mnemo.core.database.entity.SyncChangeEntity
+import com.yahyafati.mnemo.core.database.entity.SyncFieldClockEntity
+import com.yahyafati.mnemo.core.database.entity.SyncSeqEntity
 import com.yahyafati.mnemo.core.database.entity.SyncStateEntity
 import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
 import com.yahyafati.mnemo.core.database.sync.SyncTriggers
@@ -57,8 +60,10 @@ import kotlinx.serialization.json.Json
         AiAnswerEntity::class,
         SyncStateEntity::class,
         SyncChangeEntity::class,
+        SyncFieldClockEntity::class,
+        SyncSeqEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -81,6 +86,8 @@ abstract class MnemoDatabase : RoomDatabase() {
     abstract fun aiAnswerDao(): AiAnswerDao
 
     abstract fun syncDao(): SyncDao
+
+    abstract fun syncMergeDao(): SyncMergeDao
 
     companion object {
         const val NAME = "mnemo.db"

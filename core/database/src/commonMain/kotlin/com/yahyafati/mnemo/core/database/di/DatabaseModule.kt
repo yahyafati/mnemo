@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.database.DatabaseSnapshot
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.database.TransactionRunner
+import com.yahyafati.mnemo.core.database.sync.SyncRows
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.scope.Scope
 import org.koin.dsl.bind
@@ -27,6 +28,8 @@ val databaseModule = module {
     factory { get<MnemoDatabase>().statsDao() }
     factory { get<MnemoDatabase>().aiAnswerDao() }
     factory { get<MnemoDatabase>().syncDao() }
+    factory { get<MnemoDatabase>().syncMergeDao() }
+    factory { SyncRows(get<MnemoDatabase>()) }
 
     factoryOf(::RoomTransactionRunner) bind TransactionRunner::class
     factoryOf(::DatabaseSnapshot)

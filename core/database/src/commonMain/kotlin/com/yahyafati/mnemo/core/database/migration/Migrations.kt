@@ -20,6 +20,7 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     Migration3To4,
     Migration4To5,
     Migration5To6,
+    Migration6To7,
 )
 
 /** Phase 2: content-addressed media, and Anki guids on notes for duplicate-free imports. */
@@ -114,5 +115,19 @@ internal object Migration5To6 : Migration(5, 6) {
         )
         ensureSyncState(connection)
         SyncTriggers.create(connection)
+    }
+}
+
+/**
+ * The merge engine's bookkeeping (docs/sync/ROADMAP.md S3): the stamp of every field this device has written or
+ * applied, and the newest change file of each device. Empty, and unused, until sync is turned on.
+ */
+internal object Migration6To7 : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `sync_field_clocks` (`tbl` TEXT NOT NULL, `rowId` TEXT NOT NULL, `field` TEXT NOT NULL, " +
+                "`clock` INTEGER NOT NULL, `device` TEXT NOT NULL, `value` TEXT, `base` TEXT, PRIMARY KEY(`tbl`, `rowId`, `field`))",
+        )
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `sync_seqs` (`deviceId` TEXT NOT NULL, `seq` INTEGER NOT NULL, `gaps` TEXT NOT NULL, PRIMARY KEY(`deviceId`))")
     }
 }

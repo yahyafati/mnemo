@@ -17,6 +17,10 @@ interface ReviewLogDao {
     @Query("SELECT * FROM review_logs WHERE cardId IN (:cardIds) AND deletedAt IS NULL ORDER BY reviewedAt")
     suspend fun getForCards(cardIds: List<String>): List<ReviewLogEntity>
 
+    /** A card's answers that were not undone, in the order they were given (the sync merge replays them). */
+    @Query("SELECT * FROM review_logs WHERE cardId = :cardId AND deletedAt IS NULL ORDER BY reviewedAt, id")
+    suspend fun getLiveForCard(cardId: String): List<ReviewLogEntity>
+
     /**
      * Undo: an undone answer never happened, so every other query skips it. It is a soft delete,
      * not a `DELETE`, because a deleted row would leave nothing to tell the other devices.
