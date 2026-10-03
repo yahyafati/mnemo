@@ -28,7 +28,7 @@ internal class OfflineReviewRepository(
 
     override suspend fun undoAnswer(previous: Card, logId: String) = transaction {
         cardDao.update(previous.toEntity())
-        reviewLogDao.delete(logId)
+        reviewLogDao.softDelete(logId, clock.now().toEpochMilli())
     }
 
     override suspend fun getTodayCounts(): DailyReviewCounts =

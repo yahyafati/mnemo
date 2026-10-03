@@ -26,6 +26,7 @@ val databaseModule = module {
     factory { get<MnemoDatabase>().aiProviderDao() }
     factory { get<MnemoDatabase>().statsDao() }
     factory { get<MnemoDatabase>().aiAnswerDao() }
+    factory { get<MnemoDatabase>().syncDao() }
 
     factoryOf(::RoomTransactionRunner) bind TransactionRunner::class
     factoryOf(::DatabaseSnapshot)

@@ -81,6 +81,20 @@ class OfflineStatsRepositoryTest : PlatformTest() {
     }
 
     @Test
+    fun undoneReviewsAreLeftOutOfEveryStatistic() = runTest {
+        val card = newCard()
+        val kept = answer(card, local(today, 5))
+        val log = ReviewLog("undone", card.id, Rating.Again, CardState.Review, local(today, 6), 0, 10, 4_000, 10.0, 5.0)
+        reviews.recordAnswer(kept.copy(lapses = 1), log)
+        assertEquals(listOf(DailyReviews(today, 2)), stats.observeDailyReviews(today).first())
+
+        reviews.undoAnswer(kept, log.id)
+        assertEquals(listOf(DailyReviews(today, 1)), stats.observeDailyReviews(today).first())
+        assertEquals(ReviewPassCounts(1, 1), stats.observePassCounts(StudyDay.start(today, zone), clock.now()).first())
+        assertEquals(1, reviews.getTodayCounts().total)
+    }
+
+    @Test
     fun passCountsUseTheWindow() = runTest {
         val card = newCard()
         answer(card, local(today, 5), Rating.Again)

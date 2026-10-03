@@ -19,4 +19,14 @@ data class ReviewLog(
     val durationMs: Long,
     val stabilityAfter: Double,
     val difficultyAfter: Double,
+    /**
+     * The schedule this answer produced, so that a replay (sync) can start from any review. All null for
+     * reviews imported from Anki and for those made before schema v6; otherwise all set, except [stepAfter],
+     * which a card in the Review state does not have.
+     */
+    val stateAfter: CardState? = null,
+    val stepAfter: Int? = null,
+    val dueAfter: Instant? = null,
+    val repsAfter: Int? = null,
+    val lapsesAfter: Int? = null,
 )

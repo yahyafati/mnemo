@@ -78,7 +78,7 @@ class BackupTest : PlatformTest() {
         val empty = open()
         assertTrue(empty.deckDao().getDecks().isEmpty())
         val info = manager(empty).stage(backup.toByteArray().inputStream())
-        assertEquals(5, info.schemaVersion)
+        assertEquals(6, info.schemaVersion)
         empty.close()
         db = null
 
@@ -133,6 +133,61 @@ class BackupTest : PlatformTest() {
         val restored = providers(open()).getProvider("p")!!
         assertEquals("OpenAI", restored.name)
         assertFalse(restored.hasApiKey)
+    }
+
+    /** A backup made on another device must not make this one pose as it in the sync location. */
+    @Test
+    fun aRestoreKeepsThisDevicesSyncIdentityAndTurnsSyncOff() = runTest {
+        val otherDevice = TestAppDirectories()
+        try {
+            val source = fileDatabase(otherDevice.databaseFile(MnemoDatabase.NAME))
+            source.syncDao().setEnabled(true)
+            val sourceId = source.syncDao().getState()!!.deviceId
+            val backup = ByteArrayOutputStream()
+            BackupManager(otherDevice, FakeDocumentAccess(), DatabaseSnapshot(source), media(source), clock, Dispatchers.Unconfined)
+                .write(backup, tmp.newFolder())
+            source.close()
+
+            val own = open()
+            val ownId = own.syncDao().getState()!!.deviceId
+            own.syncDao().setEnabled(true)
+            manager(own).stage(backup.toByteArray().inputStream())
+            own.close()
+            db = null
+            assertTrue(sourceId != ownId)
+
+            assertTrue(PendingRestore.applyIfPresent(directories))
+            val restored = open()
+            val state = restored.syncDao().getState()!!
+            assertEquals(ownId, state.deviceId)
+            assertFalse(state.enabled)
+        } finally {
+            otherDevice.delete()
+        }
+    }
+
+    /** A fresh install has no identity to keep: it must not take the backup's. */
+    @Test
+    fun aRestoreOnAFreshInstallDoesNotTakeTheBackupsDeviceId() = runTest {
+        val source = open()
+        val sourceId = source.syncDao().getState()!!.deviceId
+        val backup = ByteArrayOutputStream()
+        manager(source).write(backup, tmp.newFolder())
+        source.close()
+        db = null
+
+        DatabaseSnapshot.files(directories).forEach { it.delete() }
+        directories.restoreStaging.mkdirs()
+        val empty = open()
+        manager(empty).stage(backup.toByteArray().inputStream())
+        empty.close()
+        db = null
+        DatabaseSnapshot.files(directories).forEach { it.delete() }
+
+        assertTrue(PendingRestore.applyIfPresent(directories))
+        val restored = open()
+        val id = restored.syncDao().getState()!!.deviceId
+        assertTrue(id.isNotBlank() && id != sourceId)
     }
 
     private fun ByteArray.isIn(content: ByteArray): Boolean =

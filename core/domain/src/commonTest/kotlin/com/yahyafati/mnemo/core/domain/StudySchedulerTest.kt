@@ -24,6 +24,24 @@ class StudySchedulerTest {
     }
 
     @Test
+    fun `the log holds the schedule the answer produced`() {
+        for (state in CardState.entries) {
+            val card = studyCard("c-$state", state, due = T0).card
+            for (rating in Rating.entries) {
+                val answer = scheduler.answer(card, rating, T0)
+                val log = answer.log
+                assertEquals(answer.card.state, log.stateAfter, "$state $rating state")
+                assertEquals(answer.card.step, log.stepAfter, "$state $rating step")
+                assertEquals(answer.card.due, log.dueAfter, "$state $rating due")
+                assertEquals(answer.card.reps, log.repsAfter, "$state $rating reps")
+                assertEquals(answer.card.lapses, log.lapsesAfter, "$state $rating lapses")
+                assertEquals(answer.card.stability, log.stabilityAfter, "$state $rating stability")
+                assertEquals(answer.card.difficulty, log.difficultyAfter, "$state $rating difficulty")
+            }
+        }
+    }
+
+    @Test
     fun `new card follows the learning steps`() {
         val card = studyCard("n").card
         val preview = scheduler.preview(card, T0)

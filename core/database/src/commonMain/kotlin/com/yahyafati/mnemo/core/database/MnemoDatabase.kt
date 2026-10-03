@@ -16,6 +16,7 @@ import com.yahyafati.mnemo.core.database.dao.MediaDao
 import com.yahyafati.mnemo.core.database.dao.NoteDao
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
 import com.yahyafati.mnemo.core.database.dao.StatsDao
+import com.yahyafati.mnemo.core.database.dao.SyncDao
 import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
 import com.yahyafati.mnemo.core.database.entity.AiModelEntity
 import com.yahyafati.mnemo.core.database.entity.AiProviderEntity
@@ -27,7 +28,11 @@ import com.yahyafati.mnemo.core.database.entity.MediaEntity
 import com.yahyafati.mnemo.core.database.entity.NoteEntity
 import com.yahyafati.mnemo.core.database.entity.NoteTypeEntity
 import com.yahyafati.mnemo.core.database.entity.ReviewLogEntity
+import com.yahyafati.mnemo.core.database.entity.SyncChangeEntity
+import com.yahyafati.mnemo.core.database.entity.SyncStateEntity
 import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
+import com.yahyafati.mnemo.core.database.sync.SyncTriggers
+import com.yahyafati.mnemo.core.database.sync.ensureSyncState
 import com.yahyafati.mnemo.core.model.NoteType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
@@ -50,8 +55,10 @@ import kotlinx.serialization.json.Json
         AiTaskRouteEntity::class,
         AiUsageEntity::class,
         AiAnswerEntity::class,
+        SyncStateEntity::class,
+        SyncChangeEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -73,6 +80,8 @@ abstract class MnemoDatabase : RoomDatabase() {
 
     abstract fun aiAnswerDao(): AiAnswerDao
 
+    abstract fun syncDao(): SyncDao
+
     companion object {
         const val NAME = "mnemo.db"
 
@@ -86,6 +95,7 @@ abstract class MnemoDatabase : RoomDatabase() {
                 .setQueryCoroutineContext(Dispatchers.IO)
                 .addMigrations(*ALL_MIGRATIONS)
                 .addCallback(SeedBuiltInNoteTypes)
+                .addCallback(SyncSetup)
                 .build()
     }
 }
@@ -100,6 +110,20 @@ expect object MnemoDatabaseConstructor : RoomDatabaseConstructor<MnemoDatabase> 
 internal object SeedBuiltInNoteTypes : RoomDatabase.Callback() {
     override fun onCreate(connection: SQLiteConnection) {
         insertBuiltInNoteTypes(connection, NoteType.BuiltIns)
+    }
+}
+
+/**
+ * Sync's part of a new database: the triggers that fill the outbox (a migrated database gets them from
+ * `Migration5To6`), and the device identity, which every open checks for.
+ */
+internal object SyncSetup : RoomDatabase.Callback() {
+    override fun onCreate(connection: SQLiteConnection) {
+        SyncTriggers.create(connection)
+    }
+
+    override fun onOpen(connection: SQLiteConnection) {
+        ensureSyncState(connection)
     }
 }
 

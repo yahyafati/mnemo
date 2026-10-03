@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -22,7 +23,7 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun everyVersionMigratesToTheCurrentOne() = runTest {
-        for (version in 1..5) {
+        for (version in 1..6) {
             val db = openFixture(version)
             try {
                 assertEquals("Biology", db.deckDao().getDeck("d1")?.name, "v$version deck")
@@ -32,7 +33,10 @@ class FixtureDatabasesTest : MigrationTestBase() {
                 // Version 4 seeded the two card types the older databases lack.
                 val types = db.noteDao().getNoteTypes().map { it.id }
                 assertTrue(NoteType.TypeIn.id in types && NoteType.MultipleChoice.id in types, "v$version types")
-                assertEquals(5, DatabaseSnapshot(db).version(), "v$version schema version")
+                assertEquals(6, DatabaseSnapshot(db).version(), "v$version schema version")
+                // Every version gets a device identity, with sync off.
+                val state = assertNotNull(db.syncDao().getState(), "v$version sync state")
+                assertTrue(state.deviceId.isNotBlank() && !state.enabled, "v$version sync state")
             } finally {
                 db.close()
                 databaseFile.delete()
@@ -42,11 +46,12 @@ class FixtureDatabasesTest : MigrationTestBase() {
 
     @Test
     fun aCurrentDatabaseKeepsItsRowsAndAcceptsWrites() = runTest {
-        val db = openFixture(5)
+        val db = openFixture(6)
         try {
             assertEquals(listOf("bio", "cells::organelles"), db.noteDao().getNote("n1")?.tags)
             assertEquals("Starts with M", db.noteDao().getNote("n1")?.hint)
             assertEquals(1, db.reviewLogDao().getForCards(listOf("c1")).size)
+            assertNull(db.reviewLogDao().getForCards(listOf("c1")).single().stateAfter)
             assertEquals(listOf("Mitochondria make ATP."), db.aiAnswerDao().getForNote("n1").map { it.text })
             db.deckDao().getDeck("d1")!!.let { db.deckDao().upsert(it.copy(name = "Cells")) }
         } finally {

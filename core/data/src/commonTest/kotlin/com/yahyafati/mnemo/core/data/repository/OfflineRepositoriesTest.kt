@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.core.data.repository
 
+import com.yahyafati.mnemo.core.data.sync.queryStrings
 import com.yahyafati.mnemo.core.database.MnemoDatabase
 import com.yahyafati.mnemo.core.database.RoomTransactionRunner
 import com.yahyafati.mnemo.core.model.CardState
@@ -127,6 +128,9 @@ class OfflineRepositoriesTest : PlatformTest() {
         reviews.undoAnswer(card, log.id)
         assertEquals(CardState.New, cards.getCard(card.id)?.state)
         assertEquals(0, reviews.getTodayCounts().total)
+        // Undo is a soft delete: the row stays so the undo can sync, and every query skips it.
+        assertEquals(emptyList(), db.reviewLogDao().getForCards(listOf(card.id)))
+        assertEquals(listOf(clock.now().toEpochMilli().toString()), db.queryStrings("SELECT deletedAt FROM review_logs WHERE id = 'log'"))
     }
 
     @Test

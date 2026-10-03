@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.database
 
 import androidx.room.useReaderConnection
+import androidx.room.useWriterConnection
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import com.yahyafati.mnemo.core.database.entity.AiAnswerEntity
@@ -8,13 +9,18 @@ import com.yahyafati.mnemo.core.database.migration.Migration1To2
 import com.yahyafati.mnemo.core.database.migration.Migration2To3
 import com.yahyafati.mnemo.core.database.migration.Migration3To4
 import com.yahyafati.mnemo.core.database.migration.Migration4To5
+import com.yahyafati.mnemo.core.database.migration.Migration5To6
+import com.yahyafati.mnemo.core.database.sync.SYNCED_TABLES
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Migrations against the exported schemas in `core/database/schemas/`, on both targets. Each
@@ -129,12 +135,96 @@ class MigrationTest : MigrationTestBase() {
         }
     }
 
+    @Test
+    fun migrate5To6() = runTest {
+        createDatabase(5).use { db ->
+            db.insertDeck()
+            db.execSQL(
+                "INSERT INTO review_logs (id, cardId, rating, stateBefore, reviewedAt, elapsedDays, scheduledDays, durationMs, " +
+                    "stabilityAfter, difficultyAfter, createdAt, updatedAt, deletedAt) " +
+                    "VALUES ('r1', 'c1', 3, 0, 1000, 0, 1, 3000, 2.3, 5.0, 1000, 1000, NULL)",
+            )
+        }
+
+        val migrated = migrate(6, Migration5To6)
+        val deviceId = migrated.queryStrings("SELECT deviceId FROM sync_state").single()
+        assertTrue(deviceId.isNotBlank())
+        assertEquals(listOf("0"), migrated.queryStrings("SELECT enabled + applying + clock FROM sync_state"))
+        assertEquals(SYNCED_TABLES.size * 2, migrated.queryStrings("SELECT name FROM sqlite_master WHERE type = 'trigger'").size)
+        migrated.close()
+
+        // Existing reviews survive without a snapshot of the schedule they produced; sync is off, so
+        // writes are not recorded until it is turned on.
+        val database = open()
+        try {
+            val log = database.reviewLogDao().getForCards(listOf("c1")).single()
+            assertNull(log.stateAfter)
+            assertNull(log.dueAfter)
+            assertEquals(deviceId, database.syncDao().getState()?.deviceId)
+            database.deckDao().upsert(database.deckDao().getDeck("d1")!!.copy(name = "Cells"))
+            assertEquals(0, database.syncDao().countChanges())
+
+            database.syncDao().setEnabled(true)
+            database.deckDao().upsert(database.deckDao().getDeck("d1")!!.copy(name = "Biology"))
+            assertEquals(listOf("name"), database.syncDao().getChanges(10).map { it.fields })
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun aMigratedAndANewDatabaseHaveTheSameTriggers() = runTest {
+        createDatabase(5).close()
+        val migrated = migrate(6, Migration5To6).run { queryStrings("SELECT name || ': ' || sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name").also { close() } }
+
+        val created = inMemoryDatabase()
+        try {
+            val fresh = created.useReaderConnection { connection ->
+                connection.usePrepared("SELECT name || ': ' || sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name") { statement ->
+                    buildList { while (statement.step()) add(statement.getText(0)) }
+                }
+            }
+            assertEquals(SYNCED_TABLES.size * 2, fresh.size)
+            assertEquals(fresh, migrated)
+        } finally {
+            created.close()
+        }
+    }
+
+    @Test
+    fun openingAddsTheDeviceRowIfItIsMissing() = runTest {
+        createDatabase(LATEST).close()
+        val first = open()
+        val original = try {
+            first.syncDao().getState()!!.deviceId.also {
+                first.useWriterConnection { connection -> connection.usePrepared("DELETE FROM sync_state") { it.step() } }
+                assertNull(first.syncDao().getState())
+            }
+        } finally {
+            first.close()
+        }
+
+        val second = open()
+        try {
+            val state = second.syncDao().getState()!!
+            assertTrue(state.deviceId.isNotBlank())
+            assertNotEquals(original, state.deviceId)
+            assertFalse(state.enabled)
+        } finally {
+            second.close()
+        }
+    }
+
+    private fun SQLiteConnection.queryStrings(sql: String): List<String> = prepare(sql).use { statement ->
+        buildList { while (statement.step()) add(statement.getText(0)) }
+    }
+
     private fun SQLiteConnection.insertDeck() = execSQL(
         "INSERT INTO decks (id, parentId, name, description, category, starred, createdAt, updatedAt, deletedAt) " +
             "VALUES ('d1', NULL, 'Biology', '', NULL, 0, 1, 1, NULL)",
     )
 
     private companion object {
-        const val LATEST = 5
+        const val LATEST = 6
     }
 }

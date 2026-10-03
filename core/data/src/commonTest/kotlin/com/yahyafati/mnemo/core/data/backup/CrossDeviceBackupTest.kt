@@ -55,6 +55,9 @@ class CrossDeviceBackupTest : PlatformTest() {
         val restored = open()
         try {
             SampleCollection.assertRestored(directories, restored)
+            // A backup from before sync gets an identity when it is migrated, with sync off.
+            val sync = checkNotNull(restored.syncDao().getState())
+            assertTrue(sync.deviceId.isNotBlank() && !sync.enabled)
         } finally {
             restored.close()
             directories.delete()

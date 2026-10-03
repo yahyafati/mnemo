@@ -61,6 +61,11 @@ class StudyScheduler(settings: UserSettings) {
             durationMs = durationMs,
             stabilityAfter = checkNotNull(next.stability),
             difficultyAfter = checkNotNull(next.difficulty),
+            stateAfter = updated.state,
+            stepAfter = updated.step,
+            dueAfter = updated.due,
+            repsAfter = updated.reps,
+            lapsesAfter = updated.lapses,
         )
         return CardAnswer(previous = card, card = updated, log = log)
     }

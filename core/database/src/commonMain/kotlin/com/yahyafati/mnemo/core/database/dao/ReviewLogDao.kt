@@ -17,9 +17,12 @@ interface ReviewLogDao {
     @Query("SELECT * FROM review_logs WHERE cardId IN (:cardIds) AND deletedAt IS NULL ORDER BY reviewedAt")
     suspend fun getForCards(cardIds: List<String>): List<ReviewLogEntity>
 
-    /** Undo removes the row outright: an undone answer never happened. */
-    @Query("DELETE FROM review_logs WHERE id = :id")
-    suspend fun delete(id: String)
+    /**
+     * Undo: an undone answer never happened, so every other query skips it. It is a soft delete,
+     * not a `DELETE`, because a deleted row would leave nothing to tell the other devices.
+     */
+    @Query("UPDATE review_logs SET deletedAt = :now, updatedAt = :now WHERE id = :id")
+    suspend fun softDelete(id: String, now: Long)
 
     /** What was studied since [dayStart], for the daily limits and the header. */
     @Query(

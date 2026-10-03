@@ -154,14 +154,14 @@ screen verification. S1 and S2 can start.*
 **Goal:** every local change is recorded so it can be sent, without any repository having to remember
 to do it. No behaviour changes for the user.
 
-- [ ] **Device id and clock state**: a `sync_state` single-row table (device id, a random UUID made on
+- [x] **Device id and clock state**: a `sync_state` single-row table (device id, a random UUID made on
       first open; the last logical clock value; an `applying` flag, see below). It is not copied by a
       backup **restore** (`PendingRestore` keeps the restoring device's id), so a backup restored on a
       second device does not pose as the first.
-- [ ] **`SyncClock`** (hybrid logical clock, `:core:data`): `now()` = max(wall clock, last + 1),
+- [x] **`SyncClock`** (hybrid logical clock, `:core:data`): `now()` = max(wall clock, last + 1),
       `observe(remote)` moves it past a remote value. Repositories keep writing `updatedAt` from
       `Clock`; the clock value is attached when changes are packed (S3).
-- [ ] **Change outbox**: a `sync_changes` table (`seq` autoincrement, `tbl`, `rowId`, `fields`: the
+- [x] **Change outbox**: a `sync_changes` table (`seq` autoincrement, `tbl`, `rowId`, `fields`: the
       changed column names, `at`), filled by **SQLite triggers** `AFTER INSERT` / `AFTER UPDATE` on
       every synced table (decks, note types, notes, cards, review logs, media, `ai_answers`). An update
       trigger records only columns whose value changed (`NEW.x IS NOT OLD.x`). Triggers are skipped
@@ -173,17 +173,27 @@ to do it. No behaviour changes for the user.
     have the same triggers.
   - The outbox only grows while sync is on: with sync off, the triggers are still there but a cheap
     `WHEN` on `sync_state.enabled` skips them.
-- [ ] **Full review snapshots**: `review_logs` gains `stateAfter`, `stepAfter`, `dueAfter` (nullable
+- [x] **Full review snapshots**: `review_logs` gains `stateAfter`, `stepAfter`, `dueAfter` (nullable
       for old rows), written by `StudyScheduler.answer`'s log. Anki-imported reviews leave them null.
-- [ ] **Undo as a soft delete**: `undoAnswer` sets the log's `deletedAt` instead of `DELETE`. Check
+      Also `repsAfter` and `lapsesAfter`: the fuzz seed is `card.id.hashCode() * 31 + reps`, so a replay
+      that starts from a snapshot needs the count of reviews (and a card's lapses) at that point, and
+      neither can be derived from the logs of an imported card.
+- [x] **Undo as a soft delete**: `undoAnswer` sets the log's `deletedAt` instead of `DELETE`. Check
       every query on `review_logs` filters `deletedAt IS NULL` (stats, today's counts, the optimizer,
       the forgetting curve, Anki export); `ReviewLogDao.delete` is removed.
-- [ ] Migration 5 → 6 in `Migrations.kt`, a `MigrationTest` case, a v6 fixture database for
+- [x] Migration 5 → 6 in `Migrations.kt`, a `MigrationTest` case, a v6 fixture database for
       `FixtureDatabasesTest`, `core/database/schemas/6.json`.
-- [ ] Tests: every repository write lands in the outbox with the right fields; undo leaves a deleted
+- [x] Tests: every repository write lands in the outbox with the right fields; undo leaves a deleted
       log and the right outbox rows; `applying = 1` records nothing; stats ignore undone reviews.
 
-**Exit:** v6 on both platforms; the outbox is filled correctly; nothing visible changes.
+**Exit:** v6 on both platforms; the outbox is filled correctly; nothing visible changes. *Done 2026-10-03.
+Notes for S3: `fields` is `*` for an insert and the changed column names, comma-separated, otherwise
+(`createdAt`/`updatedAt` are never listed; `at` is the row's `updatedAt`); a composite key
+(`ai_answers`) is `noteId/kind`. `SyncTriggers`' table list is guarded by a test that compares it with the
+real columns. `SyncSetup.onOpen` re-creates a missing `sync_state` row, and `PendingRestore` (now with a
+SQLite driver parameter, defaulting to the platform's) keeps this device's id and sets `enabled = 0`;
+a restore on a device with no database, or of a backup from before v6, gets a new id. The restored
+outbox is not cleared (S4's restore flow resets the location instead).*
 
 ## S2 — `:core:sync`: format and stores (new JVM module)
 

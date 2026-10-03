@@ -23,5 +23,14 @@ data class ReviewLogEntity(
     val difficultyAfter: Double,
     val createdAt: Long,
     val updatedAt: Long,
+    /** Set by Undo: an undone answer never happened, but it is kept so the undo can sync. */
     val deletedAt: Long? = null,
+    // The schedule this answer produced, so a replay (sync, S3) can start from any review. Null for
+    // reviews imported from Anki and for rows made before schema v6.
+    /** `CardState.value` after the answer. */
+    val stateAfter: Int? = null,
+    val stepAfter: Int? = null,
+    val dueAfter: Long? = null,
+    val repsAfter: Int? = null,
+    val lapsesAfter: Int? = null,
 )

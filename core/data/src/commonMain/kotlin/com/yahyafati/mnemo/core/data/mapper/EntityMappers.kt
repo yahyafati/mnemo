@@ -125,6 +125,11 @@ internal fun ReviewLog.toEntity() = ReviewLogEntity(
     difficultyAfter = difficultyAfter,
     createdAt = reviewedAt.toEpochMilli(),
     updatedAt = reviewedAt.toEpochMilli(),
+    stateAfter = stateAfter?.value,
+    stepAfter = stepAfter,
+    dueAfter = dueAfter?.toEpochMilli(),
+    repsAfter = repsAfter,
+    lapsesAfter = lapsesAfter,
 )
 
 internal fun ReviewLogEntity.toModel() = ReviewLog(
@@ -138,6 +143,11 @@ internal fun ReviewLogEntity.toModel() = ReviewLog(
     durationMs = durationMs,
     stabilityAfter = stabilityAfter,
     difficultyAfter = difficultyAfter,
+    stateAfter = stateAfter?.let(CardState::fromValue),
+    stepAfter = stepAfter,
+    dueAfter = dueAfter?.toInstant(),
+    repsAfter = repsAfter,
+    lapsesAfter = lapsesAfter,
 )
 
 internal fun ReviewCounts.toModel() = DailyReviewCounts(newStudied, reviewsDone, total)

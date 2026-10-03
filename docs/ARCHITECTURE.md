@@ -443,7 +443,7 @@ Books (EPUB, ADR 0011) enter before step 1: `SourceRepository.readBook` → `Epu
 ## 6. Data layer details
 
 - **Room** with KSP, on its multiplatform driver API (`SQLiteConnection`, `RoomRawQuery`, `useWriterConnection { immediateTransaction { … } }`): the same entities, DAOs and migrations build the Android database (framework SQLite driver) and the desktop one (bundled SQLite driver, same file format). Schemas are exported to `core/database/schemas/` and committed. Every schema change gets a migration, a `MigrationTest` case (it runs on both targets) and a fixture database of the new version in `core/database/src/commonTest/resources/fixtures`. Destructive migration is never allowed.
-- **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Nothing is needed for sync today, but this keeps it possible later.
+- **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Sync (`docs/sync/ROADMAP.md`, ADR 0013) builds on this: triggers record every local change in an outbox while it is on, and review logs are never hard-deleted (Undo is a soft delete).
 - **Indices** on `Card(due, state, deckId)`, `ReviewLog(cardId, reviewedAt)`, and `Note(deckId)` keep the queue and stats queries fast.
 - **Stats** are computed with SQL aggregates in `StatsDao`, not by loading rows into memory. Retrievability, which needs `pow`, comes from per-deck buckets of `elapsed days / stability` (ADR 0007).
 - **Media** is content-addressed (`sha256`) and garbage-collected by a worker when no note references it.

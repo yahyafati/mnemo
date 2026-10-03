@@ -4,6 +4,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import com.yahyafati.mnemo.core.database.insertBuiltInNoteTypes
+import com.yahyafati.mnemo.core.database.sync.SyncTriggers
+import com.yahyafati.mnemo.core.database.sync.ensureSyncState
 import com.yahyafati.mnemo.core.model.NoteType
 
 /**
@@ -17,6 +19,7 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     Migration2To3,
     Migration3To4,
     Migration4To5,
+    Migration5To6,
 )
 
 /** Phase 2: content-addressed media, and Anki guids on notes for duplicate-free imports. */
@@ -86,5 +89,30 @@ internal object Migration4To5 : Migration(4, 5) {
                 "`providerName` TEXT NOT NULL, `modelId` TEXT NOT NULL, `fieldsHash` INTEGER NOT NULL, " +
                 "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `deletedAt` INTEGER, PRIMARY KEY(`noteId`, `kind`))",
         )
+    }
+}
+
+/**
+ * Sync (docs/sync/ROADMAP.md S1, ADR 0013): this device's identity and the outbox that triggers fill
+ * while sync is on, plus the schedule that each review produced (null for the old ones) so a replay can
+ * start from any review. Sync is off, so nothing changes for the user.
+ */
+internal object Migration5To6 : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE `review_logs` ADD COLUMN `stateAfter` INTEGER")
+        connection.execSQL("ALTER TABLE `review_logs` ADD COLUMN `stepAfter` INTEGER")
+        connection.execSQL("ALTER TABLE `review_logs` ADD COLUMN `dueAfter` INTEGER")
+        connection.execSQL("ALTER TABLE `review_logs` ADD COLUMN `repsAfter` INTEGER")
+        connection.execSQL("ALTER TABLE `review_logs` ADD COLUMN `lapsesAfter` INTEGER")
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `sync_state` (`id` INTEGER NOT NULL, `deviceId` TEXT NOT NULL, `clock` INTEGER NOT NULL, " +
+                "`enabled` INTEGER NOT NULL, `applying` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        )
+        connection.execSQL(
+            "CREATE TABLE IF NOT EXISTS `sync_changes` (`seq` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tbl` TEXT NOT NULL, " +
+                "`rowId` TEXT NOT NULL, `fields` TEXT NOT NULL, `at` INTEGER NOT NULL)",
+        )
+        ensureSyncState(connection)
+        SyncTriggers.create(connection)
     }
 }
