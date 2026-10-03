@@ -24,7 +24,7 @@ arguments for the list). The rest needs a person looking at the screen or listen
 
 ```bash
 ./gradlew assembleDebug testDebugUnitTest lint                                      # exit check, first
-./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
+./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test :core:sync:test
 ./gradlew bundleRelease                                                              # signed, see signing.md
 python3 scripts/check-16kb-alignment.py app/build/outputs/bundle/release/app-release.aab
 bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab \

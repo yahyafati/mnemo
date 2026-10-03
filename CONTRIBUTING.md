@@ -56,7 +56,7 @@ Every pull request must pass CI:
 
 ```bash
 ./gradlew assembleDebug testDebugUnitTest lint
-./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
+./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test :core:sync:test
 ```
 
 Desktop changes (`desktop/`) are checked with `./gradlew :desktop:test`; CI runs it on Linux, Windows

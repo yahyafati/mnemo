@@ -28,7 +28,7 @@ jobs:
       - name: Phase exit check
         run: ./gradlew assembleDebug testDebugUnitTest testAndroidHostTest lint
       - name: JVM module tests
-        run: ./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
+        run: ./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test :core:sync:test
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@v4

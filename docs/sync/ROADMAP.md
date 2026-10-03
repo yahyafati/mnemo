@@ -48,7 +48,7 @@ Owner-only tasks are marked **(owner)**.
 | Media | Content-addressed files in `filesDir/media/<sha256>` (`MediaRepository`); garbage collection **soft-deletes** rows (`MediaDao`, `UPDATE media SET deletedAt`) and keeps files younger than a day | Media files never change, so they sync as files named by hash without merging. Remote clean-up is S4. |
 | Backup | `BackupManager`: a zip with `manifest.json`, `database/`, `preferences/`, `media/`; `writeToFolder` keeps the newest N in a `DocumentAccess` folder | The "back up first" step before a device is replaced (S4) calls it. A backup is not a sync format: it is a whole-collection copy. |
 | Restore | `PendingRestore.applyIfPresent` swaps the database files at startup, before Koin builds the database | A restored collection is a different history: S4 turns sync off after a restore and asks what to do. |
-| Folders | `DocumentAccess`: `createInFolder`, `listFolder`, `openInput`, `openOutput`, `delete`, `keepAccess` (`:core:common`); `rememberFolderPicker` (`:core:ui`) | Enough for the folder backend: there is no rename and no "create if absent", which the format (S2) does not need. On Android, Google Drive's own document provider is slow and unreliable for listing folders, so the phone needs the REST backend for Drive. |
+| Folders | `DocumentAccess`: `createInFolder`, `listFolder`, `openInput`, `openOutput`, `delete`, `keepAccess` (`:core:common`); `rememberFolderPicker` (`:core:ui`) | Enough for the folder backend: there is no rename, no "create if absent" and no subfolders, so the folder store (S2) flattens the layout into one folder and relies on the file checksum instead of a rename. On Android, Google Drive's own document provider is slow and unreliable for listing folders, so the phone needs the REST backend for Drive. |
 | Background work | WorkManager workers in `:core:data/androidMain/work` (`workerOf`, `KoinWorkerFactory`); on desktop `TransferQueue`s in an application scope, with daily backup and weekly cleanup checked at start and hourly (`DesktopDataTransferRepository`) | `SyncWorker` and the desktop sync timer follow the same patterns. |
 | Settings | `UserSettings` (`:core:model`, DataStore): scheduling fields, appearance, `backup`, `fsrsWeights`, `reminder`, `autoPlayAudio`, `onboardingCompleted` | Only the scheduling fields sync (proposed defaults). |
 | Secrets | `SecretStore` (`:core:security`): AES-GCM, Keystore key on Android, OS keychain on desktop | Holds the OAuth refresh token, WebDAV password and sync passphrase key. Never in Room, logs or backups. |
@@ -93,7 +93,7 @@ Owner-only tasks are marked **(owner)**.
 |---|---|---|---|
 | **S0** | Decisions, ADR, Google spike | ADR 0013; the open questions answered; a Google Cloud project | 1–2 days |
 | **S1** | Schema v6: recording changes | Device id, change outbox filled by triggers, logical clock, full review snapshots, Undo as a soft delete | 2–3 days |
-| **S2** | `:core:sync`: format and stores | `SyncStore` interface; change files, compression, encryption; in-memory and folder stores | 2–3 days |
+| **S2** | `:core:sync`: format and stores | `SyncStore` interface; change files, compression, encryption; in-memory and folder stores. **Done** | 2–3 days |
 | **S3** | Merge engine | Pack local changes, apply remote ones, rules per table, schedule replay, deck merge; convergence tests | 4–6 days |
 | **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync | 3–4 days |
 | **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors | 2–3 days |
@@ -215,25 +215,35 @@ Only one device writes each file under `devices/`; snapshot and media names are 
 content-addressed, so the same name always means the same contents. `sync.json` is written once by the
 device that creates the location.
 
-- [ ] **`SyncStore`** interface: `list(prefix)`, `read(path)`, `write(path, bytes)` (new files only),
+- [x] **`SyncStore`** interface: `list(prefix)`, `read(path)`, `write(path, bytes)` (new files only),
       `overwrite(path, bytes)` (only for the device's own `device.json`), `delete(path)`; failures are
       `IOException` subclasses that separate "offline", "auth", "quota" and "not found".
-- [ ] **Change file format**: a header (format version, device id, seq, clock range) and the changes:
+- [x] **Change file format**: a header (format version, device id, seq, clock range) and the changes:
       `table`, `id`, `clock`, `fields` (name → value as JSON), or a delete. kotlinx.serialization JSON,
       zstd-compressed, then encrypted. Files are capped (about 2 MB compressed) so a big Anki import
-      becomes several files.
-- [ ] **Encryption**: PBKDF2-HMAC-SHA256 (high iteration count, salt in `sync.json`) → AES-256-GCM per
+      becomes several files. (`format/Changes.kt`, `ChangeSplitter`; the envelope is `format/FileCodec.kt`.)
+- [x] **Encryption**: PBKDF2-HMAC-SHA256 (high iteration count, salt in `sync.json`) → AES-256-GCM per
       file, with a check value in `sync.json` so a wrong passphrase fails at once, not with a
       corrupted file. File names are not encrypted (they hold ids and numbers, not content).
-- [ ] **`InMemorySyncStore`** (in `:core:testing`, or `testFixtures`) and **`FolderSyncStore`** on
+- [x] **`InMemorySyncStore`** (in the module's main source, see the exit note) and **`FolderSyncStore`** on
       `DocumentAccess` (works with a plain directory in tests through `FakeDocumentAccess`, a `File`
       folder on desktop, a SAF tree on Android). A half-written file (crash during a write) is written
       under a temporary name and renamed, or detected by its length and checksum and ignored.
-- [ ] Tests: round trip of every change type; a wrong passphrase; a newer format version is refused;
+- [x] Tests: round trip of every change type; a wrong passphrase; a newer format version is refused;
       a truncated file is ignored, not applied.
 
 **Exit:** `:core:sync:test` passes; the module is in `settings.gradle.kts` and has no Android or Room
-dependency.
+dependency. *Done 2026-10-03. Notes for S3–S6: the module depends on `:core:common` only (for
+`DocumentAccess`), and `SyncRemote` is the API the merge engine uses (`create` / `open` / `openWithKey`,
+`writeChanges(deviceId, firstSeq, changes)` which returns the seqs it used, `listChangeSeqs`, `readChanges`,
+devices, snapshots, media), not `SyncStore`. A change file that throws `SyncCorruptException` is skipped, and if it
+is `maybeIncomplete` the engine stops at it for that device and retries next time instead of moving on. `DocumentAccess`
+has no subfolders, so the folder store flattens the layout (`/` → `__`) and `SyncPaths.isValid` forbids `__`; a
+Drive store keeps flat names too. `InMemorySyncStore` is in the module's main source (see ADR 0013); the folder
+store's tests use a real temporary directory through a test `DocumentAccess`, since `:core:testing` can't be a
+dependency. An unreadable `device.json` is `SyncCorruptException`: compaction (S4) must treat it as "unknown", never
+"applied everything". `SyncRemote.create` deletes a failed create's `sync.json` only when it doesn't parse.
+The file format is recorded in ADR 0013 ("As built (S2)").*
 
 ## S3 — Merge engine (`:core:data/sync`)
 

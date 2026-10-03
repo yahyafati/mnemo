@@ -68,9 +68,9 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
                           │
                      :core:data
      ┌──────────┬─────────┼──────────┬──────────┬──────────┐
- :core:     :core:     :core:ai   :core:anki  :core:     :core:
- database   datastore      │          │       ingest     security
-     └──────────┴─────────┼──────────┴──────────┘
+ :core:     :core:     :core:ai   :core:anki  :core:     :core:     :core:sync
+ database   datastore      │          │       ingest     security      │
+     └──────────┴─────────┼──────────┴──────────┴──────────┘
                           │
       :core:model   :core:scheduler   :core:common      (pure JVM)
 ```
@@ -99,6 +99,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:ingest` | KMP lib | Source extraction: PDF → text (PdfBox-Android, Apache PDFBox on the desktop), URL → Markdown (OkHttp + jsoup; site extractors such as Wikipedia's REST API, else a scored generic one), speech → text (on-device `SpeechRecognizer`, Android only), chunking. No DI library: `:core:data` builds its classes |
 | `:core:security` | KMP lib | Encryption for API keys (`SecretCipher`: Android Keystore, or on the desktop the OS keychain with a key-file fallback) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
+| `:core:sync` | JVM lib | The sync format and its stores (ADR 0013): the remote layout, change files (zstd, AES-256-GCM), `SyncStore` with a folder and an in-memory implementation, `SyncRemote`. Knows nothing about Room or the collection; `:core:data` will drive it (S3). Depends on `:core:common` |
 | `:core:model` | JVM lib | Plain domain types: `Deck`, `Note`, `Card`, `Rating`, `AiProvider`, …, plus the card Markdown parser and its HTML renderer (shared by `:core:ui` and `:core:anki`) |
 | `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin), and the platform seams of §4.3 (`AppDirectories`, `DocumentAccess`) |
 | `:core:testing` | KMP lib | Fakes (repositories, clock), test dispatchers, `PlatformTest` (Robolectric on Android, plain JUnit on desktop), `inMemoryDatabase()`, `TestAppDirectories` |
@@ -107,7 +108,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 
 1. `feature → core` only. **No `feature → feature` dependencies.** Features navigate to each other through route types declared in `:core:ui/navigation`.
 2. `:core:model`, `:core:scheduler`, and `:core:common` depend on nothing but the Kotlin stdlib, coroutines, and kotlinx.serialization.
-3. Only `:core:data` depends on `:core:database`, `:core:ai`, `:core:anki`, `:core:ingest`, and `:core:security`. Features never see Room or HTTP.
+3. Only `:core:data` depends on `:core:database`, `:core:ai`, `:core:anki`, `:core:ingest`, `:core:security`, and `:core:sync`. Features never see Room or HTTP.
 4. Only `:shell` knows every feature, and only the launchers (`:app`, `:desktop`) wire the dependency graph together.
 
 ## 4. Folder structure

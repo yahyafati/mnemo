@@ -78,7 +78,7 @@ lives. To build one yourself, on the system it is for (JDK 21 to run Gradle):
 The JVM-only modules use `test` instead of `testDebugUnitTest`:
 
 ```bash
-./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
+./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test :core:sync:test
 ```
 
 Release signing is optional and described in [docs/release/signing.md](docs/release/signing.md).

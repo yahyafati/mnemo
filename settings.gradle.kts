@@ -40,6 +40,7 @@ include(":core:ingest")
 include(":core:model")
 include(":core:scheduler")
 include(":core:security")
+include(":core:sync")
 include(":core:testing")
 include(":core:ui")
 

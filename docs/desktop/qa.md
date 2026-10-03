@@ -46,7 +46,7 @@ leave it open). If either is red, fix that first: it is a P0 for this pass.
 
 ```bash
 ./gradlew assembleDebug testDebugUnitTest testAndroidHostTest lint verifyRoborazziAndroidHostTest
-./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test
+./gradlew :core:ai:test :core:anki:test :core:model:test :core:scheduler:test :core:common:test :core:sync:test
 ./gradlew desktopTest :desktop:test
 ./gradlew verifyRoborazziDesktop          # macOS arm64 only: the baselines are recorded there
 python3 scripts/desktop/check-android-imports.py
