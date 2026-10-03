@@ -16,7 +16,7 @@ sync is "Later"); the architecture rules are [../ARCHITECTURE.md](../ARCHITECTUR
 the related work is the desktop app ([../desktop/ROADMAP.md](../desktop/ROADMAP.md)), backup and restore
 (`BackupManager`) and the licence rules (ADR 0009). Read those first.
 
-**Proposed defaults (2026-10-03, not yet confirmed by the owner; settle them in S0):**
+**Defaults (proposed 2026-10-03, confirmed by the owner the same day; ADR 0013):**
 
 | Question | Proposed default |
 |---|---|
@@ -115,11 +115,13 @@ can turn sync on; S6 and S7 are only new backends.
 
 **Goal:** confirm the defaults, and find out early whether Google's rules allow the Drive plan.
 
-- [ ] **(owner)** Confirm or change the proposed defaults above, especially: no merging of unrelated
+- [x] **(owner)** Confirm or change the proposed defaults above (confirmed 2026-10-03), especially: no merging of unrelated
       collections in v1, which settings sync, encryption on by default for cloud backends, and whether
       Drive is wanted at all or the folder backend is enough for the first release.
-- [ ] **Spike: Google OAuth on both platforms** (half a day, throwaway code, outside `main`). Desk research
-      is done and recorded in ADR 0013 ("Google Drive"); the hands-on part waits for the owner's Cloud project:
+- [ ] **Spike: Google OAuth on both platforms** (half a day, throwaway code, outside `main`). The desktop
+      half has run (2026-10-03: the Desktop client needs its secret at the token endpoint, so it is build config;
+      `drive.appdata` create/list/read/delete and revocation work). The Android half (AppAuth, custom scheme,
+      on a device) is S6's first task. Details in ADR 0013:
   - Android: an Android OAuth client is tied to the package name **and the signing certificate's
     SHA-1**. Find out which client type works for the owner-signed sideload/Play APK **and** for an
     F-Droid build (F-Droid signs with its own key unless the build is reproducible and published with
@@ -129,10 +131,10 @@ can turn sync on; S6 and S7 are only new backends.
     accepts it without a client secret, or whether the (non-secret) secret ships in the build.
   - Check `drive.appdata` against `drive.file` today: verification requirements, whether the user can
     see and delete the data, and the quota it counts against. Record the choice.
-- [ ] **(owner)** Create the Google Cloud project, the OAuth consent screen (app name, the privacy
+- [x] **(owner)** Create the Google Cloud project (project, consent screen and the Desktop and Android clients exist; verification of the consent screen is still to be started), the OAuth consent screen (app name, the privacy
       policy and home page from `scripts/pages`), and the client ids. Start verification early: it can
       take weeks.
-- [ ] **(owner)** Decide F-Droid's treatment: the Drive backend shown with the `NonFreeNet`
+- [x] **(owner)** Decide F-Droid's treatment (decided 2026-10-03: hidden in F-Droid builds): the Drive backend shown with the `NonFreeNet`
       anti-feature in the recipe, or hidden in F-Droid builds.
 - [x] **ADR 0013 "Sync"** (`docs/adr/0013-sync.md`, written 2026-10-03, status Proposed), recording at least:
   - Why there is no server and no database-file copy, and the remote layout (S2).
@@ -143,10 +145,9 @@ can turn sync on; S6 and S7 are only new backends.
   - Encryption: key derivation, what is encrypted (contents, not file names), passphrase loss.
   - Backends: the `SyncStore` contract, and the Google scopes and client id handling.
 
-**Exit:** ADR written (**owner: review it**); the spike's answers recorded in the ADR. *Status 2026-10-03: ADR
-written with the desk-research answers; open are the owner's confirmation, the Cloud project, F-Droid's
-treatment and the hands-on spike (listed under "Still open" in the ADR). S1 and S2 can start once the owner
-has confirmed the defaults; S6 needs the spike.*
+**Exit:** ADR written (**owner: review it**); the spike's answers recorded in the ADR. *Status 2026-10-03: ADR 0013 is Accepted, the defaults are confirmed, F-Droid's treatment is decided and the
+desktop half of the spike has run. Left: the Android half of the spike (S6's first task) and the owner's consent
+screen verification. S1 and S2 can start.*
 
 ## S1 — Schema v6: recording changes (`:core:database`, `:core:data`)
 
