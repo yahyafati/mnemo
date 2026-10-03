@@ -27,6 +27,7 @@ import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
 import com.yahyafati.mnemo.core.model.KeyProtection
+import com.yahyafati.mnemo.core.security.SecretIds
 import com.yahyafati.mnemo.core.security.SecretStore
 import com.yahyafati.mnemo.core.security.StoredSecret
 import kotlinx.coroutines.CoroutineDispatcher
@@ -284,7 +285,7 @@ internal class DefaultAiProviderRepository(
         dao.insertUsage(AiUsageEntity(UUID.randomUUID().toString(), providerId, task?.name, modelId, requests, promptTokens, completionTokens, now, now))
     }
 
-    override suspend fun pruneOrphanedKeys() = secrets.retainOnly(dao.getProviders().map { it.id }.toSet())
+    override suspend fun pruneOrphanedKeys() = secrets.retainOnly(dao.getProviders().map { it.id }.toSet() + SecretIds.RESERVED)
 
     private fun resolve(
         task: AiTask,

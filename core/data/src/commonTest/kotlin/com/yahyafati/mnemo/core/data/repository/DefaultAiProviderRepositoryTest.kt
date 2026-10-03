@@ -209,10 +209,13 @@ class DefaultAiProviderRepositoryTest : PlatformTest() {
     @Test
     fun orphanedKeysArePruned() = runTest {
         secrets.put("gone", "sk-left-behind")
+        secrets.put(com.yahyafati.mnemo.core.security.SecretIds.SYNC_KEY, "00ff")
         repository.saveProvider(draft("kept", key = ApiKeyChange.Set("sk-kept-12345")))
         repository.pruneOrphanedKeys()
         assertFalse(secrets.contains("gone"))
         assertTrue(secrets.contains("kept"))
+        // The sync location's key isn't a provider's, and pruning must not make the user type the passphrase again.
+        assertTrue(secrets.contains(com.yahyafati.mnemo.core.security.SecretIds.SYNC_KEY))
     }
 
     @Test

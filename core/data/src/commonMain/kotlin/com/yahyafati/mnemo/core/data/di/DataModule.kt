@@ -42,7 +42,15 @@ import com.yahyafati.mnemo.core.data.repository.StatsRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.data.scheduling.FsrsOptimization
+import com.yahyafati.mnemo.core.data.sync.DefaultSyncRepository
+import com.yahyafati.mnemo.core.data.sync.DocumentSyncStores
 import com.yahyafati.mnemo.core.data.sync.RepositorySyncMediaFiles
+import com.yahyafati.mnemo.core.data.sync.SyncAutomation
+import com.yahyafati.mnemo.core.data.sync.SyncConfigStore
+import com.yahyafati.mnemo.core.data.sync.SyncMaintenance
+import com.yahyafati.mnemo.core.data.sync.SyncRepository
+import com.yahyafati.mnemo.core.data.sync.SyncSnapshots
+import com.yahyafati.mnemo.core.data.sync.SyncStores
 import com.yahyafati.mnemo.core.data.sync.SyncClock
 import com.yahyafati.mnemo.core.data.sync.SyncEngine
 import com.yahyafati.mnemo.core.data.sync.SyncMediaFiles
@@ -61,6 +69,9 @@ import org.koin.core.module.Module
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.util.concurrent.TimeUnit
+
+/** The scope sync's automation runs in; each platform module provides it. */
+val SyncScope = org.koin.core.qualifier.named("sync")
 
 /**
  * Repositories, the transfer code, and the AI and ingest clients. Bindings are per request
@@ -100,6 +111,18 @@ val dataModule = module {
     factoryOf(::RepositorySyncMediaFiles) bind SyncMediaFiles::class
     // Needs a `ScheduleReplayer`, which `:core:domain` binds.
     factory { SyncEngine(get(), get(), get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
+    factory { SyncSnapshots(get(), get(), get(), get()) }
+    factory { SyncMaintenance(get(), get(), get()) }
+    factory { SyncConfigStore(get(), dispatcher(MnemoDispatchers.IO)) }
+    factory<SyncStores> { DocumentSyncStores(get<DocumentAccess>()) }
+    // Single: it holds the status screens observe and the mutex that keeps two rounds apart.
+    single<SyncRepository> {
+        DefaultSyncRepository(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            dispatcher(MnemoDispatchers.IO),
+        )
+    }
+    single { SyncAutomation(get(), get(), get(SyncScope)) }
     factory { FsrsOptimization(get(), get(), get(), dispatcher(MnemoDispatchers.Default)) }
     factory { BackupManager(get<AppDirectories>(), get<DocumentAccess>(), get(), get(), get(), dispatcher(MnemoDispatchers.IO)) }
     factoryOf(::ImportJob)

@@ -11,6 +11,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 
 /**
@@ -70,6 +72,36 @@ class SyncRows(private val database: MnemoDatabase) {
         }
     }
 
+    /** A row read by [page]: its key as a row id and its other columns, which is what [insert] takes. */
+    class Row(val id: String, val values: JsonObject)
+
+    /** Up to [limit] rows of [table] stored after [after] (start with 0), and the cursor for the next page. */
+    suspend fun page(table: String, after: Long, limit: Int): Pair<List<Row>, Long> {
+        val info = info(table)
+        val sql = "SELECT rowid AS `$CURSOR`, * FROM ${info.name} WHERE rowid > ? ORDER BY rowid LIMIT ?"
+        return database.useWriterConnection { connection ->
+            connection.usePrepared(sql) { statement ->
+                statement.bindLong(1, after)
+                statement.bindLong(2, limit.toLong())
+                val rows = ArrayList<Row>()
+                var last = after
+                while (statement.step()) {
+                    val json = statement.toJson()
+                    last = json.getValue(CURSOR).jsonPrimitive.long
+                    val id = info.keyColumns.joinToString("/") { json.getValue(it).jsonPrimitive.content }
+                    rows += Row(id, JsonObject(json.filterKeys { it != CURSOR && it !in info.keyColumns }))
+                }
+                rows to last
+            }
+        }
+    }
+
+    /** Removes every row of [table], with no trace in the outbox if `applying` is set: a join replaces the collection. */
+    suspend fun deleteAll(table: String) {
+        val info = info(table)
+        database.useWriterConnection { connection -> connection.usePrepared("DELETE FROM ${info.name}") { it.step() } }
+    }
+
     private fun info(table: String): SyncedTable =
         SYNCED_TABLES.firstOrNull { it.name == table } ?: throw IllegalArgumentException("$table doesn't sync")
 
@@ -121,5 +153,6 @@ class SyncRows(private val database: MnemoDatabase) {
 
     private companion object {
         val TIMESTAMPS = listOf("createdAt", "updatedAt")
+        const val CURSOR = "_sync_rowid"
     }
 }

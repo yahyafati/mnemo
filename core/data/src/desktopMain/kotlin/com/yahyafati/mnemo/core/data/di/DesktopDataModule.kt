@@ -16,6 +16,11 @@ import com.yahyafati.mnemo.core.data.desktop.ProcessAppRestarter
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
+import com.yahyafati.mnemo.core.data.desktop.DesktopDeviceDescriber
+import com.yahyafati.mnemo.core.data.desktop.DesktopSyncBackgroundWork
+import com.yahyafati.mnemo.core.data.sync.DeviceDescriber
+import com.yahyafati.mnemo.core.data.sync.SyncBackgroundWork
+import com.yahyafati.mnemo.core.data.sync.SyncRepository
 import com.yahyafati.mnemo.core.database.di.databaseModule
 import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
@@ -53,6 +58,11 @@ val desktopDataModule = module {
     }
     single<FsrsOptimizationRepository> { DesktopFsrsOptimizationRepository(get(JobScope), get()) }
     factoryOf(::DesktopReminderRepository) bind ReminderRepository::class
+
+    single<CoroutineScope>(SyncScope) { CoroutineScope(SupervisorJob() + dispatcher(MnemoDispatchers.Default)) } onClose { it?.cancel() }
+    // No WorkManager here: while the app is open the timer is the periodic sync; the launcher can bind its version.
+    single<SyncBackgroundWork> { DesktopSyncBackgroundWork(get(SyncScope), lazy { get<SyncRepository>() }) }
+    factory<DeviceDescriber> { DesktopDeviceDescriber() }
 
     factory<SQLiteDriver> { BundledSQLiteDriver() }
 

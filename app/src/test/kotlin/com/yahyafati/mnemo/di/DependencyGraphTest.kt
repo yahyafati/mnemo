@@ -106,6 +106,7 @@ class DependencyGraphTest {
             "MediaCleanupWorker",
             "OptimizeFsrsWorker",
             "ReminderWorker",
+            "SyncWorker",
         ).map { "com.yahyafati.mnemo.core.data.work.$it" }
     }
 }

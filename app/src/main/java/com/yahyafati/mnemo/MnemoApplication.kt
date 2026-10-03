@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.data.android.AndroidAppDirectories
 import com.yahyafati.mnemo.core.data.backup.PendingRestore
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
+import com.yahyafati.mnemo.core.data.sync.SyncAutomation
 import com.yahyafati.mnemo.di.mnemoModules
 import com.yahyafati.mnemo.widget.TodayWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ class MnemoApplication : Application(), Configuration.Provider {
     private val transferRepository: DataTransferRepository by inject()
     private val reminderRepository: ReminderRepository by inject()
     private val widgetUpdater: TodayWidgetUpdater by inject()
+    private val syncAutomation: SyncAutomation by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -37,6 +39,7 @@ class MnemoApplication : Application(), Configuration.Provider {
         // After an update, a restore or a time-zone change the next reminder is recomputed.
         scope.launch { reminderRepository.reschedule() }
         widgetUpdater.start(scope)
+        syncAutomation.start()
     }
 
     /** Workers get their dependencies from Koin (`workModule` in `:core:data`). */

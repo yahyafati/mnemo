@@ -59,15 +59,22 @@ internal class SyncEngine(
     /**
      * Syncs once with [remote]. Sync must be on ([com.yahyafati.mnemo.core.database.dao.SyncDao.setEnabled]), or local
      * changes aren't recorded. [announceSettings] is for the device that creates the location: it sends its scheduling
-     * settings even though they haven't changed, which is how the others get them.
+     * settings even though they haven't changed, which is how the others get them. [includeOwn] also reads this
+     * device's own change files after its recorded position: a device that joined again loaded a snapshot that may
+     * be older than its last files, which the others have applied.
      */
-    suspend fun sync(remote: SyncRemote, device: DeviceDescription, announceSettings: Boolean = false): SyncReport {
+    suspend fun sync(
+        remote: SyncRemote,
+        device: DeviceDescription,
+        announceSettings: Boolean = false,
+        includeOwn: Boolean = false,
+    ): SyncReport {
         val state = checkNotNull(dao.getState()) { "The sync_state row is missing" }
         check(state.enabled) { "Sync is off" }
         val me = state.deviceId
 
         val sentFirst = packer.pack(remote, me, announceSettings)
-        val (files, blocked) = read(remote, me)
+        val (files, blocked) = read(remote, me, includeOwn)
         val applied = applier.apply(files)
         // The merge may have changed rows (a deck merge, a replayed schedule): send them now rather than next time.
         val sentAfter = packer.pack(remote, me, announceSettings = false)
@@ -91,13 +98,13 @@ internal class SyncEngine(
      * files stay in order, and a change that was made after seeing another is applied after it (the first change
      * of an edit's file is later than the file that made the row).
      */
-    private suspend fun read(remote: SyncRemote, me: String): Pair<ReceivedFiles, List<String>> = withContext(ioDispatcher) {
+    private suspend fun read(remote: SyncRemote, me: String, includeOwn: Boolean): Pair<ReceivedFiles, List<String>> = withContext(ioDispatcher) {
         val seen = dao.getSeqs().associateBy { it.deviceId }
         val files = ArrayList<Received>()
         val present = HashMap<String, Set<Long>>()
         val blocked = ArrayList<String>()
         for (device in remote.listDevices()) {
-            if (device == me) continue
+            if (device == me && !includeOwn) continue
             val position = seen[device]
             val late = position?.gaps?.split(',')?.mapNotNull { it.toLongOrNull() }.orEmpty().toSet()
             val listed = remote.listChangeSeqs(device)
@@ -120,7 +127,16 @@ internal class SyncEngine(
     }
 
     private suspend fun writeDevice(remote: SyncRemote, me: String, device: DeviceDescription) {
-        val seqs = dao.getSeqs().associate { it.deviceId to it.seq }
+        val rows = dao.getSeqs()
+        val seqs = rows.associate { it.deviceId to it.seq }
+        // The snapshot this device wrote last is in its device.json (S4); a round must not drop it.
+        val previous = withContext(ioDispatcher) {
+            try {
+                remote.readDevice(me)
+            } catch (_: SyncCorruptException) {
+                null
+            }
+        }
         val info = DeviceInfo(
             deviceId = me,
             name = device.name,
@@ -129,6 +145,8 @@ internal class SyncEngine(
             lastSeq = seqs[me] ?: 0,
             applied = seqs - me,
             updatedAt = clock.now().toEpochMilli(),
+            gaps = rows.filter { it.deviceId != me && it.gaps.isNotBlank() }.associate { it.deviceId to SnapshotHead.parseGaps(it.gaps) },
+            snapshot = previous?.snapshot,
         )
         withContext(ioDispatcher) { remote.writeDevice(info) }
     }

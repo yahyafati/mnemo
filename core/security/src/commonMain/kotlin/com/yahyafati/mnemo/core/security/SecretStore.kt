@@ -101,3 +101,15 @@ class FileSecretStore internal constructor(
     private fun name(id: String): String =
         MessageDigest.getInstance("SHA-256").digest(id.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 }
+
+/**
+ * Secrets that aren't an AI provider's key. Their ids can't be a provider id (a UUID), and clearing the keys of
+ * deleted providers must leave them alone.
+ */
+object SecretIds {
+    /** The key the sync location's files are encrypted with (hex), kept so a device needn't ask for the passphrase again. */
+    const val SYNC_KEY = "sync.key"
+
+    /** Ids that belong to something other than a provider. */
+    val RESERVED: Set<String> = setOf(SYNC_KEY)
+}

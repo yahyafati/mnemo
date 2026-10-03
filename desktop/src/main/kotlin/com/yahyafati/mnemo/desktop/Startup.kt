@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.data.desktop.DesktopAppDirectories
 import com.yahyafati.mnemo.core.data.desktop.ProcessAppRestarter
 import com.yahyafati.mnemo.core.data.desktop.SingleInstanceLock
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
+import com.yahyafati.mnemo.core.data.sync.SyncAutomation
 import kotlinx.coroutines.runBlocking
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
@@ -41,6 +42,7 @@ fun openCollection(
     PendingRestore.applyIfPresent(directories)
     val koin = startKoin { modules(modules) }.koin
     runBlocking { koin.get<DataTransferRepository>().scheduleMaintenance() }
+    koin.get<SyncAutomation>().start()
     return CollectionSession(koin, lock)
 }
 

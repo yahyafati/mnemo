@@ -54,4 +54,8 @@ interface SyncMergeDao {
     /** Live media rows, to see which files this device is missing. */
     @Query("SELECT id FROM media WHERE deletedAt IS NULL")
     suspend fun getLiveMediaIds(): List<String>
+
+    /** Live decks and notes: whether a collection holds anything a join would replace. */
+    @Query("SELECT (SELECT COUNT(*) FROM decks WHERE deletedAt IS NULL) + (SELECT COUNT(*) FROM notes WHERE deletedAt IS NULL)")
+    suspend fun countLiveDecksAndNotes(): Int
 }

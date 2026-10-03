@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.database.dao
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 import com.yahyafati.mnemo.core.database.entity.SyncChangeEntity
 import com.yahyafati.mnemo.core.database.entity.SyncFieldClockEntity
 import com.yahyafati.mnemo.core.database.entity.SyncSeqEntity
@@ -46,6 +47,10 @@ interface SyncDao {
     @Query("SELECT COUNT(*) FROM sync_changes")
     suspend fun countChanges(): Int
 
+    /** How many changes wait to be sent; the automatic sync runs a little after this goes up. */
+    @Query("SELECT COUNT(*) FROM sync_changes")
+    fun observeChangeCount(): Flow<Int>
+
     /** Clears the changes that were sent. */
     @Query("DELETE FROM sync_changes WHERE seq <= :seq")
     suspend fun deleteChangesUpTo(seq: Long)
@@ -75,9 +80,17 @@ interface SyncDao {
     @Upsert
     suspend fun putSeqs(seqs: List<SyncSeqEntity>)
 
-    /** Forgets everything about the sync location: for leaving it, or joining another (S4). The outbox stays. */
+    /** Every stamp except the scheduling settings' pseudo-row, a page at a time in key order, for a snapshot. */
+    @Query("SELECT * FROM sync_field_clocks WHERE tbl != :excludedTable ORDER BY tbl, rowId, field LIMIT :limit OFFSET :offset")
+    suspend fun getFieldClocksPage(excludedTable: String, limit: Int, offset: Int): List<SyncFieldClockEntity>
+
+    /** Forgets everything about the sync location: for leaving it, or joining another (S4). */
     @Query("DELETE FROM sync_field_clocks")
     suspend fun clearFieldClocks()
+
+    /** Drops the unsent changes: leaving or joining replaces what they were about. */
+    @Query("DELETE FROM sync_changes")
+    suspend fun clearChanges()
 
     @Query("DELETE FROM sync_seqs")
     suspend fun clearSeqs()

@@ -95,7 +95,7 @@ Owner-only tasks are marked **(owner)**.
 | **S1** | Schema v6: recording changes | Device id, change outbox filled by triggers, logical clock, full review snapshots, Undo as a soft delete | 2–3 days |
 | **S2** | `:core:sync`: format and stores | `SyncStore` interface; change files, compression, encryption; in-memory and folder stores. **Done** | 2–3 days |
 | **S3** | Merge engine | Pack local changes, apply remote ones, rules per table, schedule replay, deck merge; convergence tests | 4–6 days |
-| **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync | 3–4 days |
+| **S4** | Lifecycle | Create, join, leave; snapshots and compaction; restore; background sync. **Done** | 3–4 days |
 | **S5** | Settings › Sync + folder backend | First usable sync (desktop folder, Android folder); status and errors | 2–3 days |
 | **S6** | Google Drive | OAuth seam, Drive REST store, tokens | 3–4 days |
 | **S7** | WebDAV (optional) | Nextcloud and other WebDAV servers | 1–2 days |
@@ -325,31 +325,44 @@ where it differs from the plan (ADR 0013 "As built (S3)" has the detail):*
 
 **Goal:** the steps around merging: starting, joining, leaving, staying small, and running by itself.
 
-- [ ] **`SyncRepository`**: `status: Flow<SyncStatus>` (off, idle with last sync time, syncing,
+- [x] **`SyncRepository`**: `status: Flow<SyncStatus>` (off, idle with last sync time, syncing,
       waiting for network, error with a reason), `syncNow()`, `create(backend)`, `join(backend)`,
       `leave()`.
-- [ ] **Create**: on an empty location, write `sync.json` and a snapshot of this collection. Refuse a
+- [x] **Create**: on an empty location, write `sync.json` and a snapshot of this collection. Refuse a
       location that already has `sync.json` (that's Join).
-- [ ] **Join**: an empty collection downloads the newest snapshot, then the change files after it. A
+- [x] **Join**: an empty collection downloads the newest snapshot, then the change files after it. A
       collection with data asks first, makes a backup with `BackupManager`, then replaces itself.
-- [ ] **Leave**: turns sync off on this device, keeps the collection. "Delete sync data" (remove the
+- [x] **Leave**: turns sync off on this device, keeps the collection. "Delete sync data" (remove the
       location's files) is a separate, confirmed action.
-- [ ] **Snapshots and compaction**: a device writes a snapshot when its files since the last snapshot
+- [x] **Snapshots and compaction**: a device writes a snapshot when its files since the last snapshot
       pass a threshold. Change files older than the newest snapshot are deleted only once every device
       whose `device.json` was updated in the last 90 days has applied them; a device away longer must
       join again (it is told so). Remote media not referenced by the newest snapshot and older than 30
       days is deleted at the same time.
-- [ ] **Restore**: after `PendingRestore` applies a backup, sync is off, and Settings asks: upload this
+- [x] **Restore**: after `PendingRestore` applies a backup, sync is off, and Settings asks: upload this
       collection as the new sync data (the location is reset, after a confirmation that names the
       other devices), or join the sync data again (the restore is discarded).
-- [ ] **Running by itself**: `SyncWorker` (Android, unique periodic work with a network constraint,
+- [x] **Running by itself**: `SyncWorker` (Android, unique periodic work with a network constraint,
       plus one-off work after a session and after edits, debounced; add it to `DependencyGraphTest`'s
       list) and a desktop timer in `desktopDataModule` (at start, hourly, after edits). Never two syncs
       at once (a `Mutex` in `SyncRepository`).
-- [ ] Tests: create and join; join with data takes a backup first; compaction keeps everything a
+- [x] Tests: create and join; join with data takes a backup first; compaction keeps everything a
       recent device needs; a device away too long is told to rejoin; restore turns sync off.
 
-**Exit:** a full lifecycle runs in tests on both targets with the in-memory and folder stores.
+**Exit:** a full lifecycle runs in tests on both targets with the in-memory and folder stores. *Done 2026-10-03
+(`SyncLifecycleTest` runs on both targets against the in-memory store; the folder store has its own tests in `:core:sync`).
+What was built and where it differs from the plan is in ADR 0013 "As built (S4)". For S5:*
+
+- *`SyncRepository` (`:core:data/sync`) has what the screen needs: `status` (`Off`, `Restored`, `Idle`, `Syncing`,
+  `WaitingForNetwork`, `Error(problem)`), `pendingChanges`, `create`, `join` (throws `SyncReplacesLocalDataException` until
+  `replaceLocalData = true`, and returns where the old collection was saved), `rejoin`, `uploadAsNew`, `unlock`, `leave`,
+  `deleteSyncData`. `FakeSyncRepository` is in `:core:testing`. Failures of the location are `SyncException`s from those calls.*
+- *The device list (name, platform, last seen) isn't in the repository yet: read each `device.json` through `SyncRemote.readDevice`.*
+- *Join made one choice the plan left open: the collection it replaces is saved to the app's own files
+  (`<files>/sync-backups/`), not asked for. The screen should say where (`JoinResult.safetyBackup`).*
+- *Snapshots are written and cleaned up only while syncing is on and at most hourly; the numbers are `SyncPolicy`.*
+
+
 
 ## S5 — Settings › Sync and the folder backend (`:feature:settings`)
 

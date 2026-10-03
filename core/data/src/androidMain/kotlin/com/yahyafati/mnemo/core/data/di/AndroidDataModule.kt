@@ -4,7 +4,18 @@ import android.content.Context
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.work.WorkManager
+import com.yahyafati.mnemo.core.common.di.dispatcher
+import com.yahyafati.mnemo.core.common.dispatchers.MnemoDispatchers
+import com.yahyafati.mnemo.core.data.android.AndroidDeviceDescriber
 import com.yahyafati.mnemo.core.data.android.platformModule
+import com.yahyafati.mnemo.core.data.repository.WorkManagerSyncBackgroundWork
+import com.yahyafati.mnemo.core.data.sync.DeviceDescriber
+import com.yahyafati.mnemo.core.data.sync.SyncBackgroundWork
+import com.yahyafati.mnemo.core.data.work.SyncWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.koin.dsl.onClose
 import com.yahyafati.mnemo.core.data.repository.DataTransferRepository
 import com.yahyafati.mnemo.core.data.repository.FsrsOptimizationRepository
 import com.yahyafati.mnemo.core.data.repository.ReminderRepository
@@ -39,6 +50,10 @@ val androidDataModule = module {
     // Replaced in app tests, which initialize a test WorkManager.
     single { WorkManager.getInstance(get<Context>()) }
 
+    single<CoroutineScope>(SyncScope) { CoroutineScope(SupervisorJob() + dispatcher(MnemoDispatchers.Default)) } onClose { it?.cancel() }
+    factoryOf(::WorkManagerSyncBackgroundWork) bind SyncBackgroundWork::class
+    factory<DeviceDescriber> { AndroidDeviceDescriber(get<Context>()) }
+
     // Anki packages are read and written with Android's own SQLite.
     factory<SQLiteDriver> { AndroidSQLiteDriver() }
 
@@ -54,6 +69,7 @@ val workModule = module {
     workerOf(::MediaCleanupWorker)
     workerOf(::OptimizeFsrsWorker)
     workerOf(::ReminderWorker)
+    workerOf(::SyncWorker)
 }
 
 actual val dataLayerModules = listOf(platformModule, databaseModule, dataStoreModule, securityModule, dataModule, androidDataModule, workModule)
