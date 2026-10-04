@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.ingest
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
+import com.yahyafati.mnemo.core.model.PdfOutlineItem
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceText
@@ -56,4 +57,29 @@ internal fun pdfSourceResult(rawText: String, cut: Boolean, title: String?, file
             truncated = cut || text.length > PdfTextExtractor.MAX_CHARS,
         ),
     )
+}
+
+/** A bookmark as a PDF library reports it: [page] is 1-based, null when it leads nowhere. */
+internal class RawBookmark(val title: String?, val level: Int, val page: Int?)
+
+/**
+ * The bookmarks a picker can use (docs/pdf/ROADMAP.md, P2): in order, with a title and a page the PDF has, no deeper
+ * than [PdfOutlineItem.MAX_LEVEL] and no more than [PdfOutlineItem.MAX_ITEMS]. A bookmark that leads nowhere is
+ * dropped; the ones under it keep their own level.
+ */
+internal fun pdfOutline(raw: List<RawBookmark>, pageCount: Int): List<PdfOutlineItem> = raw.mapNotNull { bookmark ->
+    val title = bookmark.title?.replace(Regex("\\s+"), " ")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+    val page = bookmark.page?.takeIf { it in 1..pageCount } ?: return@mapNotNull null
+    PdfOutlineItem(title, bookmark.level, page).takeIf { it.level in 1..PdfOutlineItem.MAX_LEVEL }
+}.take(PdfOutlineItem.MAX_ITEMS)
+
+/**
+ * The page labels worth showing: null when the PDF has none, they don't cover every page, or each is just its
+ * position (`1`, `2`, `3`…), which the page number already says.
+ */
+internal fun pdfLabels(raw: List<String?>?, pageCount: Int): List<String>? {
+    if (raw == null || raw.size != pageCount) return null
+    val labels = raw.map { it.orEmpty() }
+    if (labels.all { it.isBlank() } || labels.withIndex().all { (index, label) -> label == (index + 1).toString() }) return null
+    return labels
 }

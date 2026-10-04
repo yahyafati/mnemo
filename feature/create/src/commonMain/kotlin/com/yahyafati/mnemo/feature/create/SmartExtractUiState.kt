@@ -111,7 +111,20 @@ data class PdfSummary(
     val error: PdfPagesError? = null,
     /** Asking the user to discard their edits to the text before the chosen pages replace it. */
     val replaceConfirmation: Boolean = false,
+    /** The printed page numbers, as `i–xii, 1–600`, when they differ from the positions (P2). */
+    val printedPages: String? = null,
+    /** The bookmarks to choose chapters from; the Chapters button needs two or more (P2). */
+    val chapters: List<PdfChapterOption> = emptyList(),
+    /** The chapters whose pages are all in [pages]; what the picker shows ticked. */
+    val selectedChapters: Set<Int> = emptySet(),
+    val showChapters: Boolean = false,
 )
+
+/**
+ * A bookmark in the chapter picker. [page] is its position in the file, the number the Pages field takes, and
+ * [printedPage] the label printed on it when the PDF has labels; [pages] is how many pages it runs for.
+ */
+data class PdfChapterOption(val id: Int, val title: String, val level: Int, val page: Int, val printedPage: String?, val pages: Int)
 
 sealed interface PdfPagesError {
     /** The field isn't a page range, or names a page the PDF doesn't have. */
@@ -222,6 +235,18 @@ sealed interface SmartExtractAction {
     data object ConfirmPdfReplace : SmartExtractAction
 
     data object CancelPdfReplace : SmartExtractAction
+
+    /** Opens the open PDF's chapter picker. */
+    data object ShowPdfChapters : SmartExtractAction
+
+    /** Ticks or unticks a chapter: its pages are added to the Pages field or taken out of it. */
+    data class TogglePdfChapter(val id: Int) : SmartExtractAction
+
+    /** Closes the picker and leaves the field as it is. */
+    data object DismissPdfChapters : SmartExtractAction
+
+    /** Closes the picker and reads the pages in the field into the box. */
+    data object ApplyPdfChapters : SmartExtractAction
 
     /** An EPUB picked: read it, then choose a chapter. */
     data class EpubPicked(val uri: String) : SmartExtractAction

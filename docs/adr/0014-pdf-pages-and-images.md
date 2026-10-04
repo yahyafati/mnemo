@@ -214,3 +214,29 @@ Not done in P0, and still open:
   box (text, queue, book, sections) survives process death, so restoring only the handle would give a Pages field
   over an empty box. It lives in the ViewModel and is closed when another source replaces it (a link only once it
   was read) or the text is cleared; a copy left by a closed screen is removed by the one-day clean-up.
+
+## As built (P2, 2026-10-04)
+
+- **`PdfInfo`** gained `outline: List<PdfOutlineItem(title, level, page)>` and `labels: List<String>?`. Both readers
+  walk `PDDocumentOutline` in document order (pre-order, so the list is the bookmarks as the user would scan them),
+  find each page with `findDestinationPage` and read `PDPageLabels`; the shared rules are in `:core:ingest`
+  (`pdfOutline`, `pdfLabels`): a bookmark with no title or no page the PDF has is dropped (the ones under it keep
+  their own level), levels deeper than `PdfOutlineItem.MAX_LEVEL` (3) are not walked, at most `MAX_ITEMS` (2,000)
+  are read (a guard against a looping or hostile outline), and labels are null when they are missing, don't cover
+  every page, are all blank, or are just the positions. A PDF whose outline or labels throw is opened without them:
+  they are a convenience and never fail `inspect`.
+- **`PdfInfo.chapterPages(index)`** is the chapter rule: from the bookmark's page up to the page before the next
+  bookmark **in the list** at the same or a higher level, to the last page for the last one, and never fewer than
+  its own page (an outline that isn't in page order gives a one-page chapter, not a backwards range).
+- **`PageLabels`** (`:core:model`) turns labels into the count line's `i–xii, 1–600`: a label continues a run when it
+  is the next number after the same prefix (`A-1`, `A-2`) or the next well-formed Roman numeral in the same case;
+  blank labels are left out; at most four runs are shown, then `…`.
+- **The picker** is a dialog in the section picker's style. The Pages field stays the one thing that decides: the
+  ticks are *derived* from it (a chapter is ticked when all its pages are in the field; an empty or unreadable field
+  ticks nothing, because empty means every page), so there is no second selection to keep in step, and the dialog
+  being modal means the field can't be edited by hand while it is open. Ticking adds a chapter's pages
+  to the field (`PageRanges.plus`), unticking takes them out (`minus`), so unticking a sub-chapter of a ticked part
+  leaves the part unticked. A selection over 300 pages shows the same "choose 300 pages or fewer" error. The
+  dialog's **Read pages** button closes it and reads the field (with the same "Replace your changes?" question);
+  **Done** closes it and only keeps the field. The Chapters button is shown for two or more bookmarks.
+

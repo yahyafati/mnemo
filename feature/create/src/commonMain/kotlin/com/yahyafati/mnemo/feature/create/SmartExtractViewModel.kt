@@ -22,6 +22,7 @@ import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.PageLabels
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PageRangesResult
 import com.yahyafati.mnemo.core.model.PdfHandle
@@ -197,6 +198,17 @@ class SmartExtractViewModel(
             SmartExtractAction.ApplyPdfPages -> applyPdfPages(confirmed = false)
             SmartExtractAction.ConfirmPdfReplace -> applyPdfPages(confirmed = true)
             SmartExtractAction.CancelPdfReplace -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(replaceConfirmation = false)) } ?: state }
+            SmartExtractAction.ShowPdfChapters -> pdf?.let { handle ->
+                _uiState.update { state ->
+                    state.pdf?.let { state.copy(pdf = it.copy(showChapters = true, selectedChapters = chaptersIn(it.pages, handle.info))) } ?: state
+                }
+            }
+            is SmartExtractAction.TogglePdfChapter -> pdf?.let { toggleChapter(it, action.id) }
+            SmartExtractAction.DismissPdfChapters -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(showChapters = false)) } ?: state }
+            SmartExtractAction.ApplyPdfChapters -> {
+                _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(showChapters = false)) } ?: state }
+                applyPdfPages(confirmed = false)
+            }
             is SmartExtractAction.EpubPicked -> readBook(action.uri)
             is SmartExtractAction.SelectChapter -> {
                 endBatch()
@@ -354,7 +366,7 @@ class SmartExtractViewModel(
                     pdfText = null
                     val count = handle.info.pageCount
                     val field = if (count > PdfInfo.MAX_PAGES) "1-${PdfInfo.MAX_PAGES}" else ""
-                    _uiState.update { it.copy(pdf = PdfSummary(title = handle.info.title, pageCount = count, pages = field)) }
+                    _uiState.update { it.copy(pdf = PdfSummary(title = handle.info.title, pageCount = count, pages = field, printedPages = handle.info.labels?.let { PageLabels.summary(it) }, chapters = chapterOptions(handle.info))) }
                     loadPdfPages(handle, choosePages(field, count).first)
                 }
                 is PdfOpenResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = opened.problem) }
@@ -398,6 +410,35 @@ class SmartExtractViewModel(
                 }
             }
             is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
+        }
+    }
+
+    /** The bookmarks as picker rows; none when there are fewer than two, as one bookmark is no choice. */
+    private fun chapterOptions(info: PdfInfo): List<PdfChapterOption> {
+        if (info.outline.size < 2) return emptyList()
+        return info.outline.mapIndexed { index, item ->
+            val range = info.chapterPages(index)
+            PdfChapterOption(index, item.title, item.level, range.first, info.label(range.first), range.last - range.first + 1)
+        }
+    }
+
+    /** The chapters whose pages are all among the ones [field] names; a blank or unreadable field has none ticked. */
+    private fun chaptersIn(field: String, info: PdfInfo): Set<Int> {
+        val chosen = (PageRanges.parse(field, info.pageCount) as? PageRangesResult.Valid)?.ranges ?: return emptySet()
+        return info.outline.indices.filterTo(mutableSetOf()) { chosen.containsAll(PageRanges.of(info.chapterPages(it))) }
+    }
+
+    /** Ticking adds the chapter's pages to the field, unticking takes them out; the field stays the one thing that decides. */
+    private fun toggleChapter(handle: PdfHandle, id: Int) {
+        val info = handle.info
+        if (id !in info.outline.indices) return
+        _uiState.update { state ->
+            val summary = state.pdf ?: return@update state
+            val chosen = (PageRanges.parse(summary.pages, info.pageCount) as? PageRangesResult.Valid)?.ranges ?: PageRanges.Empty
+            val chapter = PageRanges.of(info.chapterPages(id))
+            val next = if (id in summary.selectedChapters) chosen - chapter else chosen + chapter
+            val field = next.format()
+            state.copy(pdf = summary.copy(pages = field, error = choosePages(field, info.pageCount).second, selectedChapters = chaptersIn(field, info)))
         }
     }
 

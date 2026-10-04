@@ -97,6 +97,12 @@ class CreateScreenshotTest {
     }
 
     @Test
+    fun pdfChaptersLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_chapters_light.png") { PdfChapters(dark = false) }
+
+    @Test
+    fun pdfChaptersDark() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_chapters_dark.png") { PdfChapters(dark = true) }
+
+    @Test
     fun bookImportDrm() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_drm.png") {
         MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
     }
@@ -116,11 +122,39 @@ class CreateScreenshotTest {
                     sourceKind = SourceKind.Pdf,
                     text = text,
                     title = "Cell biology",
-                    pdf = PdfSummary(title = "Cell biology", pageCount = 612, pages = if (error == null) "1-300" else "1-400", error = error),
+                    pdf = PdfSummary(
+                        title = "Cell biology",
+                        pageCount = 612,
+                        pages = if (error == null) "1-300" else "1-400",
+                        error = error,
+                        printedPages = "i–xii, 1–600",
+                        chapters = pdfChapters(),
+                    ),
                 ),
                 onAction = {},
                 onSetUpAi = {},
             )
+        }
+    }
+
+    private fun pdfChapters() = listOf(
+        PdfChapterOption(0, "Preface", 1, 13, "ii", 1),
+        PdfChapterOption(1, "Part I: Foundations", 1, 14, "1", 140),
+        PdfChapterOption(2, "Chapter 1: Cells", 2, 14, "1", 62),
+        PdfChapterOption(3, "Chapter 2: Tissues", 2, 76, "63", 78),
+        PdfChapterOption(4, "Part II: Systems", 1, 154, "141", 460),
+    )
+
+    /** The list inside Smart Extract's chapter dialog for a textbook: parts, chapters under them, two ticked. */
+    @androidx.compose.runtime.Composable
+    private fun PdfChapters(dark: Boolean) {
+        MnemoTheme(darkTheme = dark) {
+            androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh) {
+                androidx.compose.foundation.layout.Column(Modifier.padding(24.dp)) {
+                    androidx.compose.material3.Text("Chapters", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+                    PdfChapterList(pdfChapters(), selected = setOf(2, 3), onToggle = {})
+                }
+            }
         }
     }
 

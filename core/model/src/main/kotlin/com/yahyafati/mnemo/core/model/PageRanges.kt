@@ -29,6 +29,33 @@ class PageRanges private constructor(val runs: List<IntRange>) {
         return PageRanges(kept)
     }
 
+    /** Whether every page of [other] is in this set. */
+    fun containsAll(other: PageRanges): Boolean = other.runs.all { run -> runs.any { run.first >= it.first && run.last <= it.last } }
+
+    /** These pages and those of [other]. */
+    operator fun plus(other: PageRanges): PageRanges = merge(runs + other.runs)
+
+    /** These pages without those of [other]. */
+    operator fun minus(other: PageRanges): PageRanges {
+        val kept = runs.flatMap { run ->
+            var pieces = listOf(run)
+            for (cut in other.runs) {
+                pieces = pieces.flatMap { piece ->
+                    if (cut.last < piece.first || cut.first > piece.last) {
+                        listOf(piece)
+                    } else {
+                        listOfNotNull(
+                            (piece.first until cut.first).takeIf { !it.isEmpty() },
+                            (cut.last + 1..piece.last).takeIf { !it.isEmpty() },
+                        )
+                    }
+                }
+            }
+            pieces
+        }
+        return PageRanges(kept)
+    }
+
     /** The shortest way to write these pages that [parse] reads back: `1-10, 14, 20-25`. */
     fun format(): String = runs.joinToString(", ") { if (it.first == it.last) "${it.first}" else "${it.first}-${it.last}" }
 
@@ -48,6 +75,9 @@ class PageRanges private constructor(val runs: List<IntRange>) {
         fun of(pages: Collection<Int>): PageRanges = merge(pages.filter { it >= 1 }.distinct().sorted().map { it..it })
 
         fun of(vararg pages: Int): PageRanges = of(pages.toList())
+
+        /** The pages of [range], or none for an empty or non-positive one. */
+        fun of(range: IntRange): PageRanges = if (range.isEmpty() || range.last < 1) Empty else PageRanges(listOf(maxOf(range.first, 1)..range.last))
 
         /** Sorted runs from [ranges], joined where they overlap or touch. */
         private fun merge(ranges: List<IntRange>): PageRanges {

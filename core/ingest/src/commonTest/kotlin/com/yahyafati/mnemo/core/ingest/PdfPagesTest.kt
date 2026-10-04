@@ -1,6 +1,8 @@
 package com.yahyafati.mnemo.core.ingest
 
+import com.yahyafati.mnemo.core.model.PageLabels
 import com.yahyafati.mnemo.core.model.PdfInfoResult
+import com.yahyafati.mnemo.core.model.PdfOutlineItem
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import kotlin.test.Test
@@ -110,5 +112,66 @@ class PdfPagesTest : PlatformTest() {
         val text = assertIs<SourceResult.Success>(pdf.extract(fixture("mixed.pdf").inputStream(), listOf(2, 3, 4), "mixed")).source.text
         assertTrue("page 3 of the mixed fixture" in text)
         assertFalse("page 1 of the mixed fixture" in text)
+    }
+
+    private fun info(name: String) = assertIs<PdfInfoResult.Success>(pdf.inspect(fixture(name).inputStream(), name)).info
+
+    @Test
+    fun theOutlineKeepsThreeLevelsAndDropsBookmarksWithoutAPage() {
+        val outline = info("outline.pdf").outline
+        assertEquals(
+            listOf(
+                PdfOutlineItem("Contents", 1, 1),
+                PdfOutlineItem("Preface", 1, 2),
+                PdfOutlineItem("Part I: Foundations", 1, 3),
+                PdfOutlineItem("Chapter 1: Cells", 2, 3),
+                PdfOutlineItem("1.1 Membranes", 3, 3),
+                PdfOutlineItem("1.2 Organelles", 3, 4),
+                // "1.2.1 Mitochondria" is a fourth level.
+                PdfOutlineItem("Chapter 2: Tissues", 2, 6),
+                PdfOutlineItem("2.1 Epithelium", 3, 6),
+                PdfOutlineItem("2.2 Connective tissue", 3, 7),
+                PdfOutlineItem("Part II: Systems", 1, 8),
+                PdfOutlineItem("Chapter 3: Circulation", 2, 8),
+                PdfOutlineItem("Chapter 4: Respiration", 2, 10),
+                PdfOutlineItem("4.1 Gas exchange", 3, 11),
+                PdfOutlineItem("Appendix", 1, 12),
+                // "Errata (no destination)" opens nowhere.
+            ),
+            outline,
+        )
+    }
+
+    @Test
+    fun pageLabelsAreTheOnesPrintedOnThePages() {
+        val info = info("outline.pdf")
+        assertEquals(listOf("i", "ii") + (1..10).map { it.toString() }, info.labels)
+        assertEquals("i–ii, 1–10", PageLabels.summary(info.labels!!))
+        assertEquals("5", info.label(7))
+    }
+
+    @Test
+    fun aPdfWithoutOutlineOrLabelsHasNeither() {
+        val plain = info("scanned.pdf")
+        assertEquals(emptyList(), plain.outline)
+        assertEquals(null, plain.labels)
+        val made = assertIs<PdfInfoResult.Success>(pdf.inspect(makePdf("a", "b").inputStream(), "made")).info
+        assertEquals(emptyList(), made.outline)
+        assertEquals(null, made.labels)
+    }
+
+    @Test
+    fun chaptersRunToTheNextBookmarkAtTheSameOrAHigherLevel() {
+        val info = info("outline.pdf")
+        fun pages(title: String) = info.chapterPages(info.outline.indexOfFirst { it.title == title })
+        assertEquals(1..1, pages("Contents"))
+        assertEquals(3..7, pages("Part I: Foundations"))
+        assertEquals(3..5, pages("Chapter 1: Cells"))
+        assertEquals(3..3, pages("1.1 Membranes"))
+        assertEquals(4..5, pages("1.2 Organelles")) // up to the next chapter, a higher level
+        assertEquals(6..7, pages("Chapter 2: Tissues"))
+        assertEquals(8..9, pages("Chapter 3: Circulation"))
+        assertEquals(10..11, pages("Chapter 4: Respiration"))
+        assertEquals(12..12, pages("Appendix")) // the last one runs to the end
     }
 }

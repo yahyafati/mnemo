@@ -101,4 +101,20 @@ class PageRangesTest {
         val ranges = pages("2-4, 9")
         assertEquals(listOf(false, true, true, true, false, true), listOf(1, 2, 4, 3, 5, 9).map { it in ranges })
     }
+
+    @Test
+    fun setsAddSubtractAndCompare() {
+        val ranges = pages("2-9, 20")
+        assertEquals("2-9, 12-15, 20", (ranges + PageRanges.of(12..15)).format())
+        assertEquals("2-15, 20", (ranges + PageRanges.of(10..15)).format()) // touching runs join
+        assertEquals("2-3, 8-9, 20", (ranges - PageRanges.of(4..7)).format())
+        assertEquals("3-9", (ranges - PageRanges.of(2) - PageRanges.of(20)).format())
+        assertEquals(ranges, ranges - PageRanges.of(30..40))
+        assertEquals(PageRanges.Empty, ranges - PageRanges.all(600))
+        assertEquals("2-3, 5-9, 20", (ranges - PageRanges.of(1..1) - PageRanges.of(4)).format())
+        assertEquals(true, ranges.containsAll(PageRanges.of(3..5)))
+        assertEquals(false, ranges.containsAll(PageRanges.of(8..10)))
+        assertEquals(true, ranges.containsAll(PageRanges.Empty))
+        assertEquals(PageRanges.Empty, PageRanges.of(5..4))
+    }
 }

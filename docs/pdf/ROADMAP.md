@@ -175,20 +175,23 @@ handle is kept in the ViewModel, not in `SavedStateHandle`, as the ADR explains.
 
 **Goal:** a book-like PDF can be chosen by chapter.
 
-- [ ] `PdfInfo` gains `outline: List<PdfOutlineItem(title, level, page)>` (bookmarks with a page destination,
+- [x] `PdfInfo` gains `outline: List<PdfOutlineItem(title, level, page)>` (bookmarks with a page destination,
       depth limited to 3, items without a page dropped) and `labels: List<String>?` (the page label of each page, or
       null when the PDF defines none or they equal the positions). PDFBox and PdfBox-Android both read both
       (`PDDocumentOutline`, `PDPageLabels`).
-- [ ] A **Chapters** button next to the Pages field when the outline has two or more items: a checklist in the
+- [x] A **Chapters** button next to the Pages field when the outline has two or more items: a checklist in the
       section picker's style (title, printed page, page count of the chapter = until the next item at the same or a
       higher level). Ticking chapters writes their pages into the field; editing the field by hand unticks what no
       longer matches. Default: nothing ticked (the field decides).
-- [ ] Page labels: the page count line shows "612 pages (printed i–xii, 1–600)" when they differ; the chapter
+- [x] Page labels: the page count line shows "612 pages (printed i–xii, 1–600)" when they differ; the chapter
       picker shows the printed page.
-- [ ] Tests: outline and labels from `outline.pdf` on both targets; chapter → range mapping (nested items, last
+- [x] Tests: outline and labels from `outline.pdf` on both targets; chapter → range mapping (nested items, last
       chapter to the end); the ViewModel's two-way sync; a screenshot of the picker.
 
-**Exit:** a textbook PDF's chapter 7 is two taps.
+*Status: done (ADR 0014, "As built (P2)"). Open: a look at the picker on a real phone and on the desktop, and
+`outline.pdf`-style bookmarks from real textbooks (named destinations, bookmarks that are actions).*
+
+**Exit:** a textbook PDF's chapter 7 is two taps (Chapters, the chapter) and a third to read it.
 
 ## P3 — Rendering pages
 

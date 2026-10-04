@@ -5,12 +5,17 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
+import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineNode
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import com.yahyafati.mnemo.core.ingest.PdfSelection
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
+import com.yahyafati.mnemo.core.ingest.RawBookmark
+import com.yahyafati.mnemo.core.ingest.pdfLabels
+import com.yahyafati.mnemo.core.ingest.pdfOutline
 import com.yahyafati.mnemo.core.ingest.pdfSourceResult
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
+import com.yahyafati.mnemo.core.model.PdfOutlineItem
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import java.io.IOException
@@ -26,7 +31,8 @@ class PdfBoxAndroidTextExtractor(private val context: Context) : PdfTextExtracto
     ) {
         open(input) { document ->
             val title = document.documentInformation?.title?.trim()?.takeIf { it.isNotEmpty() } ?: fileName
-            PdfInfoResult.Success(PdfInfo(document.numberOfPages, title))
+            val pageCount = document.numberOfPages
+            PdfInfoResult.Success(PdfInfo(pageCount, title, pdfOutline(bookmarks(document), pageCount), pdfLabels(pageLabels(document), pageCount)))
         }
     }
 
@@ -46,6 +52,37 @@ class PdfBoxAndroidTextExtractor(private val context: Context) : PdfTextExtracto
             }
             pdfSourceResult(text, selection.cut, document.documentInformation?.title, fileName)
         }
+    }
+
+    /** The bookmarks in document order, with the page each opens; a PDF whose outline can't be read has none. */
+    private fun bookmarks(document: PDDocument): List<RawBookmark> = try {
+        val found = mutableListOf<RawBookmark>()
+        fun walk(node: PDOutlineNode, level: Int) {
+            for (item in node.children()) {
+                if (found.size >= PdfOutlineItem.MAX_ITEMS) return
+                val page = try {
+                    item.findDestinationPage(document)?.let { document.pages.indexOf(it) + 1 }?.takeIf { it > 0 }
+                } catch (e: IOException) {
+                    null
+                }
+                found += RawBookmark(item.title, level, page)
+                if (level < PdfOutlineItem.MAX_LEVEL) walk(item, level + 1)
+            }
+        }
+        document.documentCatalog.documentOutline?.let { walk(it, 1) }
+        found
+    } catch (e: IOException) {
+        emptyList()
+    } catch (e: RuntimeException) {
+        emptyList()
+    }
+
+    private fun pageLabels(document: PDDocument): List<String?>? = try {
+        document.documentCatalog.pageLabels?.labelsByPageIndices?.toList()
+    } catch (e: IOException) {
+        null
+    } catch (e: RuntimeException) {
+        null
     }
 
     private inline fun <T> open(input: InputStream, block: (PDDocument) -> T): T {

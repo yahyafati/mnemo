@@ -179,6 +179,11 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_link_read
 import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail_printed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_pages
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_all
@@ -187,6 +192,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hin
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_malformed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_out_of_range
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_printed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_read
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_reversed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_too_many
@@ -422,6 +428,15 @@ internal fun SmartExtractScreen(
                     Text(stringResource(Res.string.feature_create_sections_replace_keep))
                 }
             },
+        )
+    }
+    uiState.pdf?.takeIf { it.showChapters }?.let { pdf ->
+        PdfChaptersDialog(
+            pdf = pdf,
+            reading = uiState.reading,
+            onToggle = { onAction(SmartExtractAction.TogglePdfChapter(it)) },
+            onRead = { onAction(SmartExtractAction.ApplyPdfChapters) },
+            onDismiss = { onAction(SmartExtractAction.DismissPdfChapters) },
         )
     }
     if (uiState.pdf?.replaceConfirmation == true) {
@@ -699,7 +714,8 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
 /** The open PDF: its page count and the Pages field that chooses which pages the box holds. */
 @Composable
 private fun PdfPages(pdf: PdfSummary, reading: Boolean, onAction: (SmartExtractAction) -> Unit) {
-    val count = pluralStringResource(Res.plurals.feature_create_pdf_pages, pdf.pageCount, pdf.pageCount)
+    val pageCount = pluralStringResource(Res.plurals.feature_create_pdf_pages, pdf.pageCount, pdf.pageCount)
+    val count = pdf.printedPages?.let { stringResource(Res.string.feature_create_pdf_pages_printed, pageCount, it) } ?: pageCount
     Text(
         text = pdf.title?.let { stringResource(Res.string.feature_create_pdf_summary, it, count) } ?: count,
         style = MaterialTheme.typography.labelMedium,
@@ -739,6 +755,76 @@ private fun PdfPages(pdf: PdfSummary, reading: Boolean, onAction: (SmartExtractA
             enabled = !reading && pdf.error == null,
             modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
         )
+    }
+    if (pdf.chapters.isNotEmpty()) {
+        MnemoButton(
+            text = stringResource(Res.string.feature_create_pdf_chapters),
+            onClick = { onAction(SmartExtractAction.ShowPdfChapters) },
+            style = MnemoButtonStyle.Secondary,
+            enabled = !reading,
+        )
+    }
+}
+
+/** The open PDF's bookmarks: tick the chapters whose pages go in the Pages field, then read them. */
+@Composable
+private fun PdfChaptersDialog(pdf: PdfSummary, reading: Boolean, onToggle: (Int) -> Unit, onRead: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.feature_create_pdf_chapters_title)) },
+        text = {
+            Column {
+                Text(
+                    text = pdf.error?.let { pdfPagesErrorText(it, pdf.pageCount) }
+                        ?: stringResource(Res.string.feature_create_pdf_chapters_pages, pdf.pages.ifBlank { stringResource(Res.string.feature_create_pdf_pages_all) }),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (pdf.error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = MnemoTheme.spacing.sm),
+                )
+                PdfChapterList(pdf.chapters, pdf.selectedChapters, onToggle)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onRead, enabled = !reading && pdf.error == null) {
+                Text(stringResource(Res.string.feature_create_pdf_pages_read))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_sections_done)) } },
+    )
+}
+
+/** A textbook can have hundreds of bookmarks, so the list is lazy. A sub-chapter is indented under its parent. */
+@Composable
+internal fun PdfChapterList(chapters: List<PdfChapterOption>, selected: Set<Int>, onToggle: (Int) -> Unit, modifier: Modifier = Modifier) {
+    LazyColumn(modifier.fillMaxWidth()) {
+        items(chapters, key = { it.id }, contentType = { "chapter" }) { chapter ->
+            PdfChapterRow(chapter, checked = chapter.id in selected, onToggle = { onToggle(chapter.id) })
+        }
+    }
+}
+
+/** One bookmark: the whole row toggles it, and reads as "title, page, pages" to a screen reader. */
+@Composable
+private fun PdfChapterRow(chapter: PdfChapterOption, checked: Boolean, onToggle: () -> Unit) {
+    val length = pluralStringResource(Res.plurals.feature_create_pdf_pages, chapter.pages, chapter.pages)
+    val detail = if (chapter.printedPage != null && chapter.printedPage != chapter.page.toString()) {
+        stringResource(Res.string.feature_create_pdf_chapter_detail_printed, chapter.printedPage, chapter.page, length)
+    } else {
+        stringResource(Res.string.feature_create_pdf_chapter_detail, chapter.page, length)
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+            .clickCursor()
+            .padding(start = MnemoTheme.spacing.md * (chapter.level - 1).coerceIn(0, 4), top = MnemoTheme.spacing.sm, bottom = MnemoTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Column(Modifier.padding(start = MnemoTheme.spacing.md)) {
+            Text(chapter.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

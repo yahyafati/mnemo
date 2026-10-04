@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfOutlineItem
 import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
@@ -263,5 +264,154 @@ class SmartExtractPdfTest : PlatformTest() {
         assertEquals(12, vm.state.pdf?.pageCount)
         assertEquals("Text of 1-12.", vm.state.text)
         assertIs<PdfSummary>(vm.state.pdf)
+    }
+
+    /** 40 pages: four of front matter (i–iv), then pages 1–36; two parts of two chapters each, after a preface. */
+    private fun textbook(): PdfHandle {
+        val outline = listOf(
+            PdfOutlineItem("Preface", 1, 3),
+            PdfOutlineItem("Part I", 1, 5),
+            PdfOutlineItem("Chapter 1", 2, 5),
+            PdfOutlineItem("Chapter 2", 2, 15),
+            PdfOutlineItem("Part II", 1, 25),
+            PdfOutlineItem("Chapter 3", 2, 25),
+            PdfOutlineItem("Chapter 4", 2, 35),
+        )
+        val labels = listOf("i", "ii", "iii", "iv") + (1..36).map { it.toString() }
+        return PdfHandle("book", PdfInfo(40, "Textbook", outline, labels))
+    }
+
+    private fun SmartExtractViewModel.tick(id: Int) = onAction(SmartExtractAction.TogglePdfChapter(id))
+
+    @Test
+    fun theChaptersButtonNeedsTwoBookmarks() = runTest {
+        assertTrue(viewModel().open().state.pdf?.chapters.orEmpty().isEmpty())
+        val single = PdfHandle("one", PdfInfo(10, "One", listOf(PdfOutlineItem("Only", 1, 1))))
+        assertTrue(viewModel().open(opened = single).state.pdf?.chapters.orEmpty().isEmpty())
+
+        val pdf = assertNotNull(viewModel().open(opened = textbook()).state.pdf)
+        assertEquals(7, pdf.chapters.size)
+        assertEquals("i–iv, 1–36", pdf.printedPages)
+        // Part I runs to the page before Part II; Chapter 4 to the end; the printed page is the label.
+        assertEquals(PdfChapterOption(1, "Part I", 1, 5, "1", 20), pdf.chapters[1])
+        assertEquals(PdfChapterOption(6, "Chapter 4", 2, 35, "31", 6), pdf.chapters[6])
+        assertNull(viewModel().open().state.pdf?.printedPages)
+    }
+
+    @Test
+    fun tickingChaptersWritesTheirPagesIntoTheFieldWithoutReading() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        val reads = sources.pdfReads.size
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        assertTrue(vm.state.pdf?.showChapters == true)
+        assertEquals(emptySet(), vm.state.pdf?.selectedChapters) // an empty field is "all pages", not every chapter ticked
+
+        vm.tick(2) // Chapter 1: 5-14
+        assertEquals("5-14", vm.state.pdf?.pages)
+        vm.tick(5) // Chapter 3: 25-34
+        assertEquals("5-14, 25-34", vm.state.pdf?.pages)
+        assertEquals(setOf(2, 5), vm.state.pdf?.selectedChapters)
+        vm.tick(3) // Chapter 2: joins Chapter 1 and runs on to 24
+        assertEquals("5-34", vm.state.pdf?.pages)
+        // Now Part I (5-24) and Part II's first chapter are inside it, but not Part II whole (25-40).
+        assertEquals(setOf(1, 2, 3, 5), vm.state.pdf?.selectedChapters)
+        assertEquals(reads, sources.pdfReads.size)
+        assertEquals("Text of 1-40.", vm.state.text)
+    }
+
+    @Test
+    fun unTickingTakesTheChaptersPagesOutAndUntickstheOnesItBroke() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        vm.tick(1) // Part I: 5-24
+        assertEquals("5-24", vm.state.pdf?.pages)
+        assertEquals(setOf(1, 2, 3), vm.state.pdf?.selectedChapters)
+
+        vm.tick(2) // untick Chapter 1
+        assertEquals("15-24", vm.state.pdf?.pages)
+        assertEquals(setOf(3), vm.state.pdf?.selectedChapters) // Part I is no longer whole
+        vm.tick(3)
+        assertEquals("", vm.state.pdf?.pages)
+        assertEquals(emptySet(), vm.state.pdf?.selectedChapters)
+    }
+
+    @Test
+    fun theFieldTypedByHandDecidesWhatIsTickedWhenThePickerOpens() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        vm.onAction(SmartExtractAction.PdfPagesChanged("5-14, 20-40"))
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        // Chapter 1 (5-14), Chapter 3 (25-34), Chapter 4 (35-40) and Part II (25-40) lie inside; Chapter 2 (15-24) doesn't.
+        assertEquals(setOf(2, 4, 5, 6), vm.state.pdf?.selectedChapters)
+
+        vm.onAction(SmartExtractAction.DismissPdfChapters)
+        vm.onAction(SmartExtractAction.PdfPagesChanged("5-13"))
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        assertEquals(emptySet(), vm.state.pdf?.selectedChapters)
+
+        // A field that can't be read ticks nothing, and a tick replaces it.
+        vm.onAction(SmartExtractAction.DismissPdfChapters)
+        vm.onAction(SmartExtractAction.PdfPagesChanged("5-x"))
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        assertEquals(emptySet(), vm.state.pdf?.selectedChapters)
+        vm.tick(6)
+        assertEquals("35-40", vm.state.pdf?.pages)
+        assertNull(vm.state.pdf?.error)
+    }
+
+    @Test
+    fun tooManyChaptersShowTheLimitAndReadNothing() = runTest {
+        val outline = listOf(PdfOutlineItem("Part A", 1, 1), PdfOutlineItem("Part B", 1, 301))
+        val vm = viewModel().open(opened = PdfHandle("big", PdfInfo(600, "Big", outline)))
+        // A long PDF starts with 1-300 in the field, which is Part A: ticked at once.
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        assertEquals(setOf(0), vm.state.pdf?.selectedChapters)
+        vm.tick(1)
+        assertEquals("1-600", vm.state.pdf?.pages)
+        assertEquals(PdfPagesError.TooMany(selected = 600, limit = 300), vm.state.pdf?.error)
+
+        val reads = sources.pdfReads.size
+        vm.onAction(SmartExtractAction.ApplyPdfChapters)
+        assertEquals(reads, sources.pdfReads.size)
+        assertFalse(vm.state.pdf?.showChapters == true)
+    }
+
+    @Test
+    fun readingFromThePickerReadsTheChosenChapters() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        vm.tick(6) // Chapter 4: 35-40
+        vm.onAction(SmartExtractAction.ApplyPdfChapters)
+
+        assertFalse(vm.state.pdf?.showChapters == true)
+        assertEquals(PageRanges.of((35..40).toList()), vm.lastRead)
+        assertEquals("Text of 35-40.", vm.state.text)
+    }
+
+    @Test
+    fun readingFromThePickerStillAsksBeforeReplacingEditedText() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        vm.onAction(SmartExtractAction.TextChanged("My own notes."))
+        val reads = sources.pdfReads.size
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        vm.tick(2)
+        vm.onAction(SmartExtractAction.ApplyPdfChapters)
+
+        assertTrue(vm.state.pdf?.replaceConfirmation == true)
+        assertEquals("My own notes.", vm.state.text)
+        assertEquals(reads, sources.pdfReads.size)
+        vm.onAction(SmartExtractAction.ConfirmPdfReplace)
+        assertEquals("Text of 5-14.", vm.state.text)
+    }
+
+    @Test
+    fun dismissingThePickerKeepsTheFieldAndTheBox() = runTest {
+        val vm = viewModel().open(opened = textbook())
+        vm.onAction(SmartExtractAction.ShowPdfChapters)
+        vm.tick(2)
+        vm.onAction(SmartExtractAction.DismissPdfChapters)
+
+        assertFalse(vm.state.pdf?.showChapters == true)
+        assertEquals("5-14", vm.state.pdf?.pages)
+        assertEquals("Text of 1-40.", vm.state.text)
     }
 }

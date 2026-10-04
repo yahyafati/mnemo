@@ -88,15 +88,48 @@ sealed interface SourceResult {
     data class Failure(val problem: SourceProblem, val detail: String? = null) : SourceResult
 }
 
-/** What a PDF is before any of its text is read (docs/pdf/ROADMAP.md, P1). */
+/** What a PDF is before any of its text is read (docs/pdf/ROADMAP.md, P1 and P2). */
 data class PdfInfo(
     val pageCount: Int,
     /** The document's own title, or its file name when it has none. */
     val title: String? = null,
+    /** Its bookmarks that lead to a page, in document order, [PdfOutlineItem.MAX_LEVEL] levels deep at most. */
+    val outline: List<PdfOutlineItem> = emptyList(),
+    /**
+     * The printed label of each page (`i`, `ii`, `1`, `2`…), or null when the PDF has none or they are just the
+     * positions. When set it has [pageCount] entries.
+     */
+    val labels: List<String>? = null,
 ) {
+    /**
+     * The pages of the [index]th outline item: from its page up to the page before the next item at the same or a
+     * higher level, or to the last page for the last of them. Always at least its own page.
+     */
+    fun chapterPages(index: Int): IntRange {
+        val item = outline[index]
+        val start = item.page.coerceIn(1, pageCount)
+        val next = (index + 1 until outline.size).firstOrNull { outline[it].level <= item.level }
+        val end = if (next == null) pageCount else outline[next].page - 1
+        return start..end.coerceIn(start, pageCount)
+    }
+
+    /** The label printed on [page] (1-based), or null when the PDF has no labels. */
+    fun label(page: Int): String? = labels?.getOrNull(page - 1)?.takeIf { it.isNotBlank() }
+
     companion object {
         /** The most pages one read takes. The selection is limited, not the PDF: any pages of it can be chosen. */
         const val MAX_PAGES = 300
+    }
+}
+
+/** A bookmark of a PDF: [level] 1 is a top-level one, and [page] the 1-based position of the page it opens. */
+data class PdfOutlineItem(val title: String, val level: Int, val page: Int) {
+    companion object {
+        /** Deeper bookmarks are left out: a textbook's parts, chapters and sections are as fine as a picker needs. */
+        const val MAX_LEVEL = 3
+
+        /** A safety limit on a hostile or broken outline. */
+        const val MAX_ITEMS = 2_000
     }
 }
 
