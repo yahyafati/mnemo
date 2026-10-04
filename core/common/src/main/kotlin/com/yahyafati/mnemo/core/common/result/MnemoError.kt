@@ -15,6 +15,14 @@ sealed interface MnemoError {
         override val cause: Throwable? = null
     }
 
+    /**
+     * The server refused a request that carried images: the model doesn't read them, or not these
+     * ones. Never retried without the images (ADR 0014). [detail] is the server's own words.
+     */
+    data class ImagesNotAccepted(val detail: String? = null) : MnemoError {
+        override val cause: Throwable? = null
+    }
+
     /** Input (a file, a model response …) could not be parsed. */
     data class Parse(val message: String, override val cause: Throwable? = null) : MnemoError
 

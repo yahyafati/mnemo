@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.ui.resources.Res
 import com.yahyafati.mnemo.core.ui.resources.core_ui_ai_problem_bad_request
+import com.yahyafati.mnemo.core.ui.resources.core_ui_ai_problem_images_not_accepted
 import com.yahyafati.mnemo.core.ui.resources.core_ui_ai_problem_insecure
 import com.yahyafati.mnemo.core.ui.resources.core_ui_ai_problem_invalid
 import com.yahyafati.mnemo.core.ui.resources.core_ui_ai_problem_key_unavailable
@@ -30,6 +31,7 @@ fun aiFailureText(failure: AiFailure): String {
             AiProblem.InsecureUrl -> Res.string.core_ui_ai_problem_insecure
             AiProblem.KeyUnavailable -> Res.string.core_ui_ai_problem_key_unavailable
             AiProblem.InvalidResponse -> Res.string.core_ui_ai_problem_invalid
+            AiProblem.ImagesNotAccepted -> Res.string.core_ui_ai_problem_images_not_accepted
             AiProblem.Unknown -> Res.string.core_ui_ai_problem_unknown
         },
     )

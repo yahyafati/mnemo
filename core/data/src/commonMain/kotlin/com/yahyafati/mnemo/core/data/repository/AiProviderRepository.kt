@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.flow.Flow
 
@@ -74,6 +75,14 @@ interface AiProviderRepository {
      * cost are logged either way.
      */
     suspend fun testConnection(draft: AiProviderDraft): AiConnectionReport
+
+    /**
+     * "Check images" (ADR 0014): sends a small picture of a number to [AiProviderDraft.defaultModel]
+     * and asks for it. [ImageCheck.vision] says what to save as the model's vision capability, or is
+     * null when nothing was proved. The tokens are logged like a connection test's. Nothing the user
+     * wrote leaves the device: the picture is part of the app.
+     */
+    suspend fun checkImages(draft: AiProviderDraft): ImageCheck
 
     /** Overrides what [modelId] supports; later tests leave it alone. */
     suspend fun setCapabilities(providerId: String, modelId: String, capabilities: AiCapabilities)

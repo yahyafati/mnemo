@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
@@ -53,6 +54,7 @@ class UserPreferencesDataSource(
             ),
             autoPlayAudio = prefs[Keys.AutoPlayAudio] ?: defaults.autoPlayAudio,
             onboardingCompleted = prefs[Keys.OnboardingCompleted] ?: defaults.onboardingCompleted,
+            imageDisclosureProviders = prefs[Keys.ImageDisclosureProviders] ?: defaults.imageDisclosureProviders,
         )
     }
 
@@ -64,6 +66,10 @@ class UserPreferencesDataSource(
     suspend fun setAutoPlayAudio(value: Boolean) = edit { it[Keys.AutoPlayAudio] = value }
 
     suspend fun setOnboardingCompleted(value: Boolean) = edit { it[Keys.OnboardingCompleted] = value }
+
+    suspend fun acceptImageDisclosure(providerId: String) = edit {
+        it[Keys.ImageDisclosureProviders] = (it[Keys.ImageDisclosureProviders] ?: emptySet()) + providerId
+    }
 
     suspend fun setDesiredRetention(value: Double) = edit { it[Keys.DesiredRetention] = value }
 
@@ -144,6 +150,7 @@ class UserPreferencesDataSource(
         val ReminderMinute = intPreferencesKey("reminder_minute_of_day")
         val AutoPlayAudio = booleanPreferencesKey("auto_play_audio")
         val OnboardingCompleted = booleanPreferencesKey("onboarding_completed")
+        val ImageDisclosureProviders = stringSetPreferencesKey("image_disclosure_providers")
     }
 
     private companion object {

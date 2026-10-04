@@ -59,6 +59,9 @@ class UserPreferencesDataSourceTest {
         source.setReminder(ReminderSettings(enabled = true, time = LocalTime.of(7, 45)))
         source.setAutoPlayAudio(false)
         source.setOnboardingCompleted(true)
+        source.acceptImageDisclosure("provider-a")
+        source.acceptImageDisclosure("provider-b")
+        source.acceptImageDisclosure("provider-a")
 
         assertEquals(
             UserSettings(
@@ -75,6 +78,7 @@ class UserPreferencesDataSourceTest {
                 reminder = ReminderSettings(enabled = true, time = LocalTime.of(7, 45)),
                 autoPlayAudio = false,
                 onboardingCompleted = true,
+                imageDisclosureProviders = setOf("provider-a", "provider-b"),
             ),
             source.settings.first(),
         )

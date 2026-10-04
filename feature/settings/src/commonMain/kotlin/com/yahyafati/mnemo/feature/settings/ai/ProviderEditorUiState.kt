@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.model.AiModel
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiProviderPreset
 import com.yahyafati.mnemo.core.model.AiProviderPresets
+import com.yahyafati.mnemo.core.model.ImageCheck
 
 data class HeaderField(val name: String = "", val value: String = "") {
     val isBlank: Boolean get() = name.isBlank() && value.isBlank()
@@ -40,6 +41,9 @@ data class ProviderEditorUiState(
     /** The last test of the current settings; cleared when the URL, key or headers change. */
     val report: AiConnectionReport? = null,
     val testing: Boolean = false,
+    /** What "Check images" found for the current model; cleared when the model or the connection changes. */
+    val imageCheck: ImageCheck? = null,
+    val checkingImages: Boolean = false,
     val disclosureAccepted: Boolean = false,
     val showDisclosure: Boolean = false,
     /** Capabilities the user set for the default model, saved with the provider. */
@@ -86,6 +90,9 @@ data class ProviderEditorUiState(
 
     val canTest: Boolean get() = !loading && !testing && urlCheck == AiEndpoint.Check.Ok && headersValid && timeout != null
 
+    /** Needs the first-request notice accepted (a test has) and a model to ask. */
+    val canCheckImages: Boolean get() = canTest && !checkingImages && disclosureAccepted && defaultModel.isNotBlank()
+
     val canSave: Boolean get() = !loading && !saving && urlCheck == AiEndpoint.Check.Ok && headersValid && timeout != null
 }
 
@@ -124,6 +131,8 @@ sealed interface ProviderEditorAction {
     data class Capabilities(val value: AiCapabilities) : ProviderEditorAction
 
     data object Test : ProviderEditorAction
+
+    data object CheckImages : ProviderEditorAction
 
     data object AcceptDisclosure : ProviderEditorAction
 

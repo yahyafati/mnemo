@@ -34,6 +34,8 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_e
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_explain_hint
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_extract
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_extract_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_readpages
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_readpages_hint
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_rewrite
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_task_rewrite_hint
 import org.jetbrains.compose.resources.stringResource
@@ -105,6 +107,7 @@ internal fun taskLabel(task: AiTask): String = stringResource(
         AiTask.CoAuthor -> Res.string.feature_settings_ai_task_coauthor
         AiTask.Explain -> Res.string.feature_settings_ai_task_explain
         AiTask.Rewrite -> Res.string.feature_settings_ai_task_rewrite
+        AiTask.ReadPages -> Res.string.feature_settings_ai_task_readpages
     },
 )
 
@@ -115,6 +118,7 @@ internal fun taskHint(task: AiTask): String = stringResource(
         AiTask.CoAuthor -> Res.string.feature_settings_ai_task_coauthor_hint
         AiTask.Explain -> Res.string.feature_settings_ai_task_explain_hint
         AiTask.Rewrite -> Res.string.feature_settings_ai_task_rewrite_hint
+        AiTask.ReadPages -> Res.string.feature_settings_ai_task_readpages_hint
     },
 )
 

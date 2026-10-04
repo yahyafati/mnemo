@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.TestAppDirectories
@@ -226,5 +227,82 @@ class DefaultAiProviderRepositoryTest : PlatformTest() {
         assertNull(repository.getProvider("b")!!.disclosureAcceptedAt)
         repository.acceptDisclosure("b")
         assertEquals(clock.now(), repository.getProvider("b")!!.disclosureAcceptedAt)
+    }
+
+    @Test
+    fun readingPagesUsesTheExtractRouteUntilItHasItsOwn() = runTest {
+        assertNull(repository.routeFor(AiTask.ReadPages))
+
+        repository.saveProvider(draft("a", model = "a-model"))
+        repository.saveProvider(draft("b", model = "b-model"))
+        // Nothing chosen anywhere: the default provider, like every task.
+        assertEquals("a", repository.routeFor(AiTask.ReadPages)!!.provider.id)
+
+        // Smart Extract has a route: reading pages follows it, under its own task name.
+        repository.setRoute(AiTask.Extract, "b", "b-vision")
+        val followed = repository.routeFor(AiTask.ReadPages)!!
+        assertEquals(Triple(AiTask.ReadPages, "b", "b-vision"), Triple(followed.task, followed.provider.id, followed.modelId))
+        assertTrue(followed.usesDefault)
+        assertEquals("b-vision", repository.observeEffectiveRoutes().first()[AiTask.ReadPages]!!.modelId)
+
+        // Its own route wins, and is not "default".
+        repository.setRoute(AiTask.ReadPages, "a", "a-vision")
+        val own = repository.routeFor(AiTask.ReadPages)!!
+        assertEquals("a" to "a-vision", own.provider.id to own.modelId)
+        assertFalse(own.usesDefault)
+        // The other tasks are untouched by it.
+        assertEquals("b-vision", repository.routeFor(AiTask.Extract)!!.modelId)
+
+        // A provider that is switched off falls back to the Extract route again.
+        repository.setEnabled("a", false)
+        assertEquals("b-vision", repository.routeFor(AiTask.ReadPages)!!.modelId)
+    }
+
+    @Test
+    fun aRouteWrittenByANewerVersionIsIgnored() = runTest {
+        repository.saveProvider(draft("a", model = "a-model"))
+        db.aiProviderDao().upsertRoute(
+            com.yahyafati.mnemo.core.database.entity.AiTaskRouteEntity("FutureTask", "a", null, 1, 1),
+        )
+        assertEquals(emptyList(), repository.observeRoutes().first())
+    }
+
+    @Test
+    fun checkingImagesReportsWhatTheModelDidAndLogsTheTokens() = runTest {
+        repository.saveProvider(draft("p", key = ApiKeyChange.Set("sk-1234567890")))
+
+        server.enqueue(json("""{"choices":[{"message":{"content":"52"}}],"usage":{"prompt_tokens":300,"completion_tokens":1}}"""))
+        val reads = repository.checkImages(draft("p", model = "vl-model"))
+        assertEquals(ImageCheck.Reads, reads)
+        assertEquals(true, reads.vision)
+        val request = server.takeRequest()
+        assertEquals("Bearer sk-1234567890", request.headers["Authorization"])
+        assertTrue("image_url" in request.body!!.utf8() && "\"vl-model\"" in request.body!!.utf8())
+        // Logged with the connection tests (no task), under the provider.
+        assertEquals(listOf(null to 301L), repository.observeUsage().first().map { it.task to it.totalTokens })
+
+        server.enqueue(json("""{"choices":[{"message":{"content":"Sorry, I only read text."}}]}"""))
+        assertEquals(false, repository.checkImages(draft("p", model = "text-model")).vision)
+
+        server.enqueue(json("""{"error":{"message":"image input is not supported by this model"}}""", code = 400))
+        val refused = assertIs<ImageCheck.Refused>(repository.checkImages(draft("p", model = "text-model")))
+        assertEquals(AiProblem.ImagesNotAccepted, refused.failure.problem)
+        assertEquals(false, refused.vision)
+
+        // A wrong key proves nothing about vision: nothing to save.
+        server.enqueue(json("""{"error":{"message":"bad key"}}""", code = 401))
+        val inconclusive = assertIs<ImageCheck.Inconclusive>(repository.checkImages(draft("p", model = "vl-model")))
+        assertEquals(AiProblem.Unauthorized, inconclusive.failure.problem)
+        assertNull(inconclusive.vision)
+    }
+
+    @Test
+    fun checkingImagesNeedsAModelAndAReadableKey() = runTest {
+        assertIs<ImageCheck.Inconclusive>(repository.checkImages(draft("p", model = null)))
+        repository.saveProvider(draft("p", key = ApiKeyChange.Set("sk-1234567890")))
+        cipher.keyLost = true
+        val check = assertIs<ImageCheck.Inconclusive>(repository.checkImages(draft("p")))
+        assertEquals(AiProblem.KeyUnavailable, check.failure.problem)
+        assertEquals(0, server.requestCount)
     }
 }

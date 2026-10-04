@@ -113,6 +113,10 @@
     <string name="feature_settings_ai_task_explain_hint">Explanations and examples while studying</string>
     <string name="feature_settings_ai_task_rewrite">Rewrite</string>
     <string name="feature_settings_ai_task_rewrite_hint">Rewrites a card while studying</string>
+    <string name="feature_settings_ai_task_readpages">Read PDF pages</string>
+    <string name="feature_settings_ai_task_readpages_hint">Scanned PDF pages and page images. Needs a model that reads images; uses the Smart Extract model unless you choose another.</string>
+    <string name="feature_settings_ai_route_no_vision">No model reads images yet. Open a provider, choose its model and use Check images.</string>
+    <string name="feature_settings_ai_route_not_vision">%1$s isn't marked as reading images. Use Check images on its provider's page, or choose another model.</string>
     <string name="feature_settings_ai_route_default">Default provider</string>
     <string name="feature_settings_ai_route_default_now">Default (%1$s)</string>
     <string name="feature_settings_ai_route_model_default">Provider's default model</string>
@@ -173,6 +177,13 @@
     <string name="feature_settings_ai_cap_json">Structured JSON output</string>
     <string name="feature_settings_ai_cap_vision">Images (vision)</string>
     <string name="feature_settings_ai_cap_streaming">Streaming</string>
+    <string name="feature_settings_ai_check_images">Check images</string>
+    <string name="feature_settings_ai_check_images_running">Checking…</string>
+    <string name="feature_settings_ai_check_images_hint">Sends a small picture of a number (nothing of yours) and asks the model to read it.</string>
+    <string name="feature_settings_ai_check_images_reads">The model read the picture. Reading images is switched on; it is saved with the provider.</string>
+    <string name="feature_settings_ai_check_images_misread">The model didn't read the picture (it said: %1$s). Reading images is switched off.</string>
+    <string name="feature_settings_ai_check_images_refused">The server refused the picture (%1$s). Reading images is switched off.</string>
+    <string name="feature_settings_ai_check_images_inconclusive">Couldn't check: %1$s</string>
     <string name="feature_settings_ai_test">Test connection</string>
     <string name="feature_settings_ai_testing">Testing…</string>
     <string name="feature_settings_ai_test_what">your API key (if any) and a one-word test message</string>

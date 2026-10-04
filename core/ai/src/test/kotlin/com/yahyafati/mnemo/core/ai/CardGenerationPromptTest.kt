@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class CardGenerationPromptTest {
     private fun user(source: String) =
-        CardGenerationPrompt(source = source, options = ExtractOptions(), targetCards = 3).messages().last().content.orEmpty()
+        CardGenerationPrompt(source = source, options = ExtractOptions(), targetCards = 3).messages().last().text.orEmpty()
 
     @Test
     fun theSourceIsFencedOnce() {

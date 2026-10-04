@@ -69,6 +69,7 @@ internal fun MnemoError.toAiFailure(): AiFailure = when (this) {
         detail = listOfNotNull("HTTP $code", body).joinToString(": "),
     )
     is MnemoError.Network -> AiFailure(AiProblem.Unreachable, cause?.message)
+    is MnemoError.ImagesNotAccepted -> AiFailure(AiProblem.ImagesNotAccepted, detail)
     is MnemoError.Blocked -> AiFailure(AiProblem.InsecureUrl, reason)
     is MnemoError.Parse -> AiFailure(AiProblem.InvalidResponse, message)
     else -> AiFailure(AiProblem.Unknown, cause?.message)

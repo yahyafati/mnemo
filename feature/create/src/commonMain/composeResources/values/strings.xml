@@ -159,6 +159,7 @@
     <string name="feature_create_generating_part">Writing cards… part %1$d of %2$d</string>
     <string name="feature_create_failed">Generation stopped: %1$s. The cards below are kept.</string>
     <string name="feature_create_retry">Retry</string>
+    <string name="feature_create_disclosure_images">images of the PDF pages you picked, with everything on them</string>
     <string name="feature_create_disclosure_content">the source text you entered (and the fronts of cards already in the review queue)</string>
 
     <string name="feature_create_queue">Review queue</string>

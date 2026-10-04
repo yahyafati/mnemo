@@ -277,3 +277,42 @@ Not done in P0, and still open:
 - **A P1 fix on the way:** `closePdf` built the page folder from the raw handle id; it now uses the same
   letters-digits-and-`-` filter as the copy, so a forged handle can't delete outside `cache/pdf/` (a test pins it).
 
+## As built (P4, 2026-10-04)
+
+- **The message.** `ChatMessage.content` is `MessageContent?`: `Text` (a value class, written as a JSON string, so a
+  text-only request is exactly what it always was) or `Parts(ContentPart.Text | ContentPart.Image(dataUrl))`, written
+  as the OpenAI array (`image_url` with a `data:` URL). `ChatMessage.user(text, images)` puts the text first, then the
+  images in the order given, and with no images is the plain text message. `ChatMessage.text` reads either form;
+  replies are read from a string or from an array of parts (their text is kept). **The golden test**
+  (`RequestGoldenTest`, ten request shapes: Smart Extract with and without schema or stream and with its repair turn,
+  Co-Author chat and suggestions, the three study-time requests, the probe) was recorded from the code *before* the
+  change and passes unchanged.
+- **Refusals.** `ChatTextRunner` checks a failed request that carried images and got no text: status 400, 415 or 422
+  and a body that talks about images, vision, modalities or "a valid string" (how servers without vision complain about a
+  content list) becomes `MnemoError.ImagesNotAccepted(detail)`, mapped to `AiProblem.ImagesNotAccepted` and worded in
+  `aiFailureText`. No extra request is made to find out. It is decided before the schema/stream relaxation, so such a
+  refusal is not first retried without the schema. A 401, 429, 5xx or a 400 that doesn't mention images stays an
+  ordinary error, and so does any failure of a request without images. A known limit: a 400 body that names both
+  images and the schema is read as the images' fault.
+- **Check images.** `ConnectionProbe.checkImages(config, model)` sends `probe/number.png` (96 × 64, "52", drawn from a
+  5 × 7 pixel font by `core/ai/fixtures/make_probe_image.py` so it is identical everywhere) with "Reply with only the
+  number in the image." and up to 200 tokens (one `max_completion_tokens` retry, like the probe). The digits of the
+  answer equal the number → `Reads`; another answer → `Misread`; the refusal above → `Refused`; an empty answer (a
+  reasoning model that spent its budget thinking), a key or a network error → `Inconclusive`, which saves nothing. The
+  provider screen gets the button under the model's capability rows (enabled with a model, a connection that can be
+  tested and the first-request notice accepted); `Reads` / `Misread` / `Refused` set the vision capability as a user
+  override, saved with the provider like any capability the user changes. A result is dropped if the model or the
+  connection changes meanwhile. Its tokens are logged as a connection test's (no task).
+- **`AiTask.ReadPages`** ("Read PDF pages"): with no route of its own it resolves to the Extract route (the chosen one
+  if there is one, else the default provider), reported as `usesDefault`; its own route wins when the provider is
+  enabled. Routes are stored by task name and an unknown name is ignored, so older and newer versions read each
+  other's settings. Settings › AI providers lists it, offers only models with vision in its model menu (and keeps
+  an already chosen one), and says when no model reads images or when the route's model isn't marked as reading them.
+  The callers (P5) still check `capabilities.vision`.
+- **The image notice.** `UserSettings.imageDisclosureProviders` (a string set in DataStore, no schema change),
+  `UserSettingsRepository.acceptImageDisclosure`, and the wording `feature_create_disclosure_images` ("images of the
+  PDF pages you picked, with everything on them"; used by the existing `AiDisclosureDialog`). The order is
+  `pendingDisclosures(textAccepted, sendsImages, imagesAccepted)`: the text notice first, then the images, never the
+  images' for a request without images. Accepted ids of deleted providers stay in the set; they are a few bytes.
+  **Not wired to a screen yet**: nothing sends images until P5, which calls it from Smart Extract's ViewModel.
+

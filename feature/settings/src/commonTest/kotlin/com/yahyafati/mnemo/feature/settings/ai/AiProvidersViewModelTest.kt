@@ -70,6 +70,21 @@ class AiProvidersViewModelTest {
     }
 
     @Test
+    fun readingPagesFollowsSmartExtractUntilItIsRouted() = runWithState {
+        repository.addProvider(provider("a", 0))
+        repository.addProvider(provider("b", 1))
+        assertEquals("a", viewModel.uiState.value.effective[AiTask.ReadPages]?.provider?.id)
+
+        viewModel.onAction(AiProvidersAction.SetRoute(AiTask.Extract, "b", "b-big"))
+        assertEquals("b-big", viewModel.uiState.value.effective[AiTask.ReadPages]?.modelId)
+        assertNull(viewModel.uiState.value.routes[AiTask.ReadPages])
+
+        viewModel.onAction(AiProvidersAction.SetRoute(AiTask.ReadPages, "a", "a-vision"))
+        assertEquals("a-vision", viewModel.uiState.value.effective[AiTask.ReadPages]?.modelId)
+        assertEquals("b-big", viewModel.uiState.value.effective[AiTask.Extract]?.modelId)
+    }
+
+    @Test
     fun orphanedKeysArePrunedOnOpen() = runTest {
         repository.keys["gone"] = "sk-x"
         AiProvidersViewModel(repository)

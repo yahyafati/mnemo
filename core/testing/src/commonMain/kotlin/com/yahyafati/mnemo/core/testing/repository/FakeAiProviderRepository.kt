@@ -14,6 +14,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.model.KeyProtection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,10 @@ class FakeAiProviderRepository : AiProviderRepository {
     var nextReport: AiConnectionReport = AiConnectionReport(emptyList(), null, null, null, null)
     val tested = mutableListOf<AiProviderDraft>()
     val savedReports = mutableListOf<AiConnectionReport?>()
+
+    /** What [checkImages] answers, and the drafts it was asked about. */
+    var nextImageCheck: ImageCheck = ImageCheck.Reads
+    val imageChecked = mutableListOf<AiProviderDraft>()
     var failKeyStorage = false
 
     /** Adds [provider] directly, as if it had been saved earlier. */
@@ -124,6 +129,11 @@ class FakeAiProviderRepository : AiProviderRepository {
         return nextReport
     }
 
+    override suspend fun checkImages(draft: AiProviderDraft): ImageCheck {
+        imageChecked += draft
+        return nextImageCheck
+    }
+
     override suspend fun setCapabilities(providerId: String, modelId: String, capabilities: AiCapabilities) = models.update { all ->
         val list = all[providerId].orEmpty()
         val updated = list.filterNot { it.id == modelId } +
@@ -139,10 +149,15 @@ class FakeAiProviderRepository : AiProviderRepository {
     }
 
     private fun resolve(task: AiTask, providers: List<AiProvider>, routes: List<AiTaskRoute>): AiRoute? {
-        val route = routes.firstOrNull { it.task == task }
-        val own = route?.let { r -> providers.firstOrNull { it.id == r.providerId && it.enabled } }
-        val ownModel = own?.let { route.modelId ?: it.defaultModel }
-        if (own != null && ownModel != null) return AiRoute(task, own, ownModel, AiCapabilities(), usesDefault = false)
+        fun chosen(of: AiTask): AiRoute? {
+            val route = routes.firstOrNull { it.task == of } ?: return null
+            val provider = providers.firstOrNull { it.id == route.providerId && it.enabled } ?: return null
+            val model = route.modelId ?: provider.defaultModel ?: return null
+            return AiRoute(task, provider, model, AiCapabilities(), usesDefault = false)
+        }
+        chosen(task)?.let { return it }
+        // Same as the real repository: reading pages uses the Smart Extract route until it has its own.
+        if (task == AiTask.ReadPages) chosen(AiTask.Extract)?.let { return it.copy(usesDefault = true) }
         val default = providers.firstOrNull { it.isUsable } ?: return null
         return AiRoute(task, default, default.defaultModel!!, AiCapabilities(), usesDefault = true)
     }

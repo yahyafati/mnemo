@@ -42,4 +42,7 @@ class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserS
     override suspend fun setAutoPlayAudio(value: Boolean) = settings.update { it.copy(autoPlayAudio = value) }
 
     override suspend fun setOnboardingCompleted(value: Boolean) = settings.update { it.copy(onboardingCompleted = value) }
+
+    override suspend fun acceptImageDisclosure(providerId: String) =
+        settings.update { it.copy(imageDisclosureProviders = it.imageDisclosureProviders + providerId) }
 }

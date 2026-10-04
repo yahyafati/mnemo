@@ -79,6 +79,13 @@ enum class AiTask {
 
     /** "Rewrite this card". */
     Rewrite,
+
+    /**
+     * Reading PDF pages as images (ADR 0014): transcribing scanned pages, and the page images sent
+     * for card generation. Needs a model with [AiCapabilities.vision]; without a route of its own it
+     * uses the [Extract] route.
+     */
+    ReadPages,
 }
 
 /** The user's choice for a task. A null [modelId] means the provider's default model. */
@@ -141,6 +148,9 @@ enum class AiProblem {
     /** The answer wasn't what the OpenAI-compatible API describes. */
     InvalidResponse,
 
+    /** A request with images was refused: the model doesn't read them (ADR 0014). Never retried without them. */
+    ImagesNotAccepted,
+
     Unknown,
 }
 
@@ -161,4 +171,50 @@ data class AiConnectionReport(
     val capabilities: AiCapabilities?,
 ) {
     val ok: Boolean get() = testedModel != null && completionFailure == null
+}
+
+/**
+ * What "Check images" found out about a model (ADR 0014): a small picture of a number is sent, and
+ * the model is asked to read it. It costs a request, so it is a button of its own and not part of
+ * the connection test.
+ */
+sealed interface ImageCheck {
+    /** The model read the number: it sees images. */
+    data object Reads : ImageCheck
+
+    /** The server took the image but the reply wasn't the number ([answer]): it doesn't really see it. */
+    data class Misread(val answer: String) : ImageCheck
+
+    /** The server refused the image. */
+    data class Refused(val failure: AiFailure) : ImageCheck
+
+    /** Nothing was learned about vision: the key, the network or the reply failed. */
+    data class Inconclusive(val failure: AiFailure) : ImageCheck
+
+    /** What to save as [AiCapabilities.vision]: null when the check proved nothing either way. */
+    val vision: Boolean?
+        get() = when (this) {
+            Reads -> true
+            is Misread, is Refused -> false
+            is Inconclusive -> null
+        }
+}
+
+/** The notices a request needs before it is sent, in the order they are shown (ADR 0014). */
+enum class DisclosureStep {
+    /** What the text of the request contains: the provider's first-request notice. */
+    Text,
+
+    /** That page images, with everything on them, are sent: asked once per provider, after [Text]. */
+    Images,
+}
+
+/**
+ * The notices still to show, in order. [textAccepted] is the provider's first-request notice
+ * ([AiProvider.disclosureAcceptedAt]); [imagesAccepted] is [UserSettings.hasAcceptedImages].
+ * A request without images only ever needs [DisclosureStep.Text].
+ */
+fun pendingDisclosures(textAccepted: Boolean, sendsImages: Boolean, imagesAccepted: Boolean): List<DisclosureStep> = buildList {
+    if (!textAccepted) add(DisclosureStep.Text)
+    if (sendsImages && !imagesAccepted) add(DisclosureStep.Images)
 }

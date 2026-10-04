@@ -57,6 +57,7 @@ import com.yahyafati.mnemo.core.model.AiConnectionReport
 import com.yahyafati.mnemo.core.model.AiEndpoint
 import com.yahyafati.mnemo.core.model.AiModel
 import com.yahyafati.mnemo.core.model.AiProviderPresets
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.scroll.ScrollbarBox
@@ -109,6 +110,13 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_new
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_save
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_save_failed
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_start_from
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_hint
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_inconclusive
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_misread
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_reads
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_refused
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_check_images_running
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_test
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_test_failure
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_test_models
@@ -412,7 +420,32 @@ private fun ModelSection(uiState: ProviderEditorUiState, onAction: (ProviderEdit
             CheckRow(stringResource(Res.string.feature_settings_ai_cap_json), current.jsonOutput) { set(current.copy(jsonOutput = it)) }
             CheckRow(stringResource(Res.string.feature_settings_ai_cap_vision), current.vision) { set(current.copy(vision = it)) }
             CheckRow(stringResource(Res.string.feature_settings_ai_cap_streaming), current.streaming) { set(current.copy(streaming = it)) }
+            ImageCheckRow(uiState, onAction)
         }
+    }
+}
+
+/** "Check images": a button of its own, because it costs a request (ADR 0014). */
+@Composable
+private fun ImageCheckRow(uiState: ProviderEditorUiState, onAction: (ProviderEditorAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
+        MnemoButton(
+            text = stringResource(if (uiState.checkingImages) Res.string.feature_settings_ai_check_images_running else Res.string.feature_settings_ai_check_images),
+            onClick = { onAction(ProviderEditorAction.CheckImages) },
+            enabled = uiState.canCheckImages,
+            style = MnemoButtonStyle.Text,
+            leadingIcon = MnemoIcons.Image,
+        )
+        if (uiState.checkingImages) LinearProgressIndicator(Modifier.fillMaxWidth())
+        val result = uiState.imageCheck?.takeUnless { uiState.checkingImages }
+        val text = when (result) {
+            null -> stringResource(Res.string.feature_settings_ai_check_images_hint)
+            ImageCheck.Reads -> stringResource(Res.string.feature_settings_ai_check_images_reads)
+            is ImageCheck.Misread -> stringResource(Res.string.feature_settings_ai_check_images_misread, result.answer)
+            is ImageCheck.Refused -> stringResource(Res.string.feature_settings_ai_check_images_refused, aiFailureText(result.failure))
+            is ImageCheck.Inconclusive -> stringResource(Res.string.feature_settings_ai_check_images_inconclusive, aiFailureText(result.failure))
+        }
+        Hint(text)
     }
 }
 

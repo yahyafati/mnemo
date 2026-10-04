@@ -28,7 +28,14 @@ data class UserSettings(
     val autoPlayAudio: Boolean = true,
     /** The first-run introduction was finished or skipped. */
     val onboardingCompleted: Boolean = false,
-)
+    /**
+     * Ids of the AI providers the user accepted sending page images to (ADR 0014). Separate from
+     * [AiProvider.disclosureAcceptedAt]: an image carries everything on the page, not only the text.
+     */
+    val imageDisclosureProviders: Set<String> = emptySet(),
+) {
+    fun hasAcceptedImages(providerId: String): Boolean = providerId in imageDisclosureProviders
+}
 
 /** The daily study reminder (Settings › Reminders). */
 data class ReminderSettings(

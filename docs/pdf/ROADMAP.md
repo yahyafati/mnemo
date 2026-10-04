@@ -236,27 +236,31 @@ on a phone or emulator.*
 
 **Goal:** `:core:ai` can send images, and the app knows which models take them.
 
-- [ ] `ChatMessage.content` becomes `MessageContent` (sealed: `Text(String)`, `Parts(List<ContentPart>)`;
+- [x] `ChatMessage.content` becomes `MessageContent` (sealed: `Text(String)`, `Parts(List<ContentPart>)`;
       `ContentPart.Text(text)`, `ContentPart.Image(dataUrl)`) with a custom serializer: `Text` is written as a JSON
       string, `Parts` as the OpenAI array (`{"type":"image_url","image_url":{"url":"data:image/jpeg;base64,…"}}`).
       `ChatMessage.system/user(String)` keep working; `ChatMessage.user(text, images)` is new. A **golden test** checks
       that every existing request type serialises byte for byte as before. Responses still read `content` as a string.
-- [ ] `ChatTextRunner`: images are never dropped. A 400/415/422 for a request with images whose body mentions images
+- [x] `ChatTextRunner`: images are never dropped. A 400/415/422 for a request with images whose body mentions images
       or vision, or a 400 on such a request that the same request without images doesn't get (don't send it: decide by
       the message) → `AiFailure.ImagesNotAccepted`. Add its text everywhere `AiFailure` is shown.
-- [ ] `ConnectionProbe`: **Check images**, a separate button on the provider screen for the chosen model: a 96 × 64
+- [x] `ConnectionProbe`: **Check images**, a separate button on the provider screen for the chosen model: a 96 × 64
       PNG of a printed number (generated at build time and kept in `:core:ai`'s resources), "Reply with only the
       number in the image." A right answer sets `vision = true`; a wrong answer or `ImagesNotAccepted` sets it false.
       Not part of the ordinary connection test (it costs tokens).
-- [ ] `AiTask.ReadPages` ("Read PDF pages"), routed like the others and defaulting to Extract's route; Settings ›
+- [x] `AiTask.ReadPages` ("Read PDF pages"), routed like the others and defaulting to Extract's route; Settings ›
       AI providers' per-task routing lists it and shows only models with `vision` as its choices (with a hint when
       there are none). Check how routes are stored (a new enum value must not break reading old settings).
-- [ ] Image disclosure: `UserSettings.imageDisclosureProviders: Set<String>`; `AiDisclosureDialog` takes the
+- [x] Image disclosure: `UserSettings.imageDisclosureProviders: Set<String>`; `AiDisclosureDialog` takes the
       wording; `feature_create_disclosure_images` "images of the PDF pages you picked, with everything on them". It is
       asked before the first image request to a provider, after (or together with) the text disclosure.
-- [ ] Tests (`:core:ai`, MockWebServer): the golden serialisation, a request with two images, streaming with images,
+- [x] Tests (`:core:ai`, MockWebServer): the golden serialisation, a request with two images, streaming with images,
       `ImagesNotAccepted` mapping, the probe (right, wrong, rejected). `:core:data`: routing for `ReadPages`. A
       ViewModel test for the disclosure order.
+
+*Status: done (ADR 0014, "As built (P4)"). Open: Check images against a real hosted and a real local vision model
+(the first **(owner)** measurements will do it); the disclosure order is a tested model function, and its ViewModel
+wiring comes with the first screen that sends images (P5).*
 
 **Exit:** a test sends page images to a mock server and reads the reply; nothing in the UI sends images yet.
 

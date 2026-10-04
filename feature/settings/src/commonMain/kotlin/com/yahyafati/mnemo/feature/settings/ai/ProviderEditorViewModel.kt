@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.common.result.MnemoResult
 import com.yahyafati.mnemo.core.data.repository.AiProviderDraft
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.ApiKeyChange
+import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiProviderPresets
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,12 +78,13 @@ class ProviderEditorViewModel(
                 s.copy(headers = s.headers.filterIndexed { i, _ -> i != action.index })
             }
             // A different model keeps the report (its model list is still right) but not a capability override.
-            is ProviderEditorAction.DefaultModel -> _uiState.update { it.copy(defaultModel = action.value, capabilityOverride = null) }
+            is ProviderEditorAction.DefaultModel -> _uiState.update { it.copy(defaultModel = action.value, capabilityOverride = null, imageCheck = null) }
             is ProviderEditorAction.Timeout -> _uiState.update { it.copy(timeoutSeconds = action.value.filter(Char::isDigit).take(4)) }
             is ProviderEditorAction.Local -> changeConnection { it.copy(isLocal = action.value) }
             is ProviderEditorAction.Enabled -> _uiState.update { it.copy(enabled = action.value) }
             is ProviderEditorAction.Capabilities -> _uiState.update { it.copy(capabilityOverride = action.value) }
             ProviderEditorAction.Test -> test()
+            ProviderEditorAction.CheckImages -> checkImages()
             ProviderEditorAction.AcceptDisclosure -> acceptDisclosure()
             ProviderEditorAction.DismissDisclosure -> _uiState.update { it.copy(showDisclosure = false) }
             ProviderEditorAction.Save -> save()
@@ -95,7 +97,7 @@ class ProviderEditorViewModel(
 
     /** Where and how to connect changed: the last test no longer describes it. */
     private fun changeConnection(change: (ProviderEditorUiState) -> ProviderEditorUiState) =
-        _uiState.update { change(it).copy(report = null) }
+        _uiState.update { change(it).copy(report = null, imageCheck = null) }
 
     private fun choosePreset(presetId: String) {
         val preset = AiProviderPresets.byId(presetId) ?: return
@@ -129,6 +131,27 @@ class ProviderEditorViewModel(
                     report = report,
                     // A server with one model (typical for Ollama) fills in the model by itself.
                     defaultModel = s.defaultModel.ifBlank { report.testedModel.orEmpty() },
+                )
+            }
+        }
+    }
+
+    private fun checkImages() {
+        val state = _uiState.value
+        if (!state.canCheckImages) return
+        val model = state.defaultModel.trim()
+        _uiState.update { it.copy(checkingImages = true, imageCheck = null) }
+        viewModelScope.launch {
+            val result = repository.checkImages(draft(state))
+            _uiState.update { s ->
+                // The model or the connection changed while it ran: the answer is about something else now.
+                if (s.defaultModel.trim() != model) return@update s.copy(checkingImages = false)
+                val vision = result.vision
+                s.copy(
+                    checkingImages = false,
+                    imageCheck = result,
+                    // What the check proved is saved with the provider, like any capability the user sets.
+                    capabilityOverride = if (vision != null) (s.capabilities ?: AiCapabilities()).copy(vision = vision) else s.capabilityOverride,
                 )
             }
         }

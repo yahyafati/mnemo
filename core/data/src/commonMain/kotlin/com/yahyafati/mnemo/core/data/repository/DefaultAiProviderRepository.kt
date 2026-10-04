@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.data.repository
 
 import com.yahyafati.mnemo.core.ai.client.ProviderConfig
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
+import com.yahyafati.mnemo.core.ai.probe.ImageProbeOutcome
 import com.yahyafati.mnemo.core.ai.probe.ModelHeuristics
 import com.yahyafati.mnemo.core.common.result.MnemoError
 import com.yahyafati.mnemo.core.common.result.MnemoResult
@@ -26,6 +27,7 @@ import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
 import com.yahyafati.mnemo.core.model.AiUsageTotal
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.model.KeyProtection
 import com.yahyafati.mnemo.core.security.SecretIds
 import com.yahyafati.mnemo.core.security.SecretStore
@@ -225,7 +227,8 @@ internal class DefaultAiProviderRepository(
 
     override suspend fun acceptDisclosure(providerId: String) = dao.acceptDisclosure(providerId, clock.now().toEpochMilli())
 
-    override suspend fun testConnection(draft: AiProviderDraft): AiConnectionReport {
+    /** The request settings of [draft] as entered, or null when its stored key can't be read. */
+    private suspend fun configFor(draft: AiProviderDraft): ProviderConfig? {
         val key = when (val change = draft.apiKey) {
             is ApiKeyChange.Set -> change.value.trim().ifEmpty { null }
             ApiKeyChange.Remove -> null
@@ -233,21 +236,25 @@ internal class DefaultAiProviderRepository(
                 is StoredSecret.Present -> stored.value
                 StoredSecret.Missing -> null
                 // Sending the request without the key would only fail less clearly.
-                StoredSecret.Unreadable -> return AiConnectionReport(
-                    models = emptyList(),
-                    modelsFailure = AiFailure(AiProblem.KeyUnavailable),
-                    testedModel = draft.defaultModel,
-                    completionFailure = AiFailure(AiProblem.KeyUnavailable),
-                    capabilities = null,
-                )
+                StoredSecret.Unreadable -> return null
             }
         }
-        val config = ProviderConfig(
+        return ProviderConfig(
             baseUrl = AiEndpoint.normalize(draft.baseUrl),
             apiKey = key,
             headers = draft.headers.entries.associate { (k, v) -> k.trim() to v.trim() },
             timeout = Duration.ofSeconds(draft.timeoutSeconds.coerceIn(AiProvider.MIN_TIMEOUT_SECONDS, AiProvider.MAX_TIMEOUT_SECONDS).toLong()),
             isLocal = draft.isLocal,
+        )
+    }
+
+    override suspend fun testConnection(draft: AiProviderDraft): AiConnectionReport {
+        val config = configFor(draft) ?: return AiConnectionReport(
+            models = emptyList(),
+            modelsFailure = AiFailure(AiProblem.KeyUnavailable),
+            testedModel = draft.defaultModel,
+            completionFailure = AiFailure(AiProblem.KeyUnavailable),
+            capabilities = null,
         )
         // Parsing a long model list (OpenRouter has hundreds) stays off the main thread.
         val result = withContext(defaultDispatcher) { probe.run(config, draft.defaultModel) }
@@ -264,6 +271,20 @@ internal class DefaultAiProviderRepository(
             completionFailure = (result.completion as? MnemoResult.Failure)?.error?.toAiFailure(),
             capabilities = (result.completion as? MnemoResult.Success)?.data,
         )
+    }
+
+    override suspend fun checkImages(draft: AiProviderDraft): ImageCheck {
+        val model = draft.defaultModel?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return ImageCheck.Inconclusive(AiFailure(AiProblem.NotFound, "No model chosen"))
+        val config = configFor(draft) ?: return ImageCheck.Inconclusive(AiFailure(AiProblem.KeyUnavailable))
+        val result = withContext(defaultDispatcher) { probe.checkImages(config, model) }
+        recordUsage(draft.id, task = null, model, result.usage.promptTokens, result.usage.completionTokens, result.requests)
+        return when (val outcome = result.outcome) {
+            ImageProbeOutcome.Reads -> ImageCheck.Reads
+            is ImageProbeOutcome.Misread -> ImageCheck.Misread(outcome.answer)
+            is ImageProbeOutcome.Refused -> ImageCheck.Refused(outcome.error.toAiFailure())
+            is ImageProbeOutcome.Failed -> ImageCheck.Inconclusive(outcome.error.toAiFailure())
+        }
     }
 
     override suspend fun setCapabilities(providerId: String, modelId: String, capabilities: AiCapabilities) {
@@ -296,10 +317,18 @@ internal class DefaultAiProviderRepository(
         fun capabilities(providerId: String, modelId: String) =
             models[providerId]?.firstOrNull { it.id == modelId }?.capabilities ?: AiCapabilities(vision = ModelHeuristics.supportsVision(modelId))
 
-        val route = routes.firstOrNull { it.task == task }
-        val own = route?.let { r -> providers.firstOrNull { it.id == r.providerId && it.enabled } }
-        val ownModel = own?.let { route.modelId ?: it.defaultModel }?.takeIf { it.isNotBlank() }
-        if (own != null && ownModel != null) return AiRoute(task, own, ownModel, capabilities(own.id, ownModel), usesDefault = false)
+        /** The route the user chose for [of], if its provider is enabled and a model is known. */
+        fun chosen(of: AiTask): AiRoute? {
+            val route = routes.firstOrNull { it.task == of } ?: return null
+            val provider = providers.firstOrNull { it.id == route.providerId && it.enabled } ?: return null
+            val model = (route.modelId ?: provider.defaultModel)?.takeIf { it.isNotBlank() } ?: return null
+            return AiRoute(task, provider, model, capabilities(provider.id, model), usesDefault = false)
+        }
+
+        chosen(task)?.let { return it }
+        // Reading pages has no route of its own until the user makes one: it uses what Smart Extract
+        // uses, which may itself be a chosen route (ADR 0014).
+        if (task == AiTask.ReadPages) chosen(AiTask.Extract)?.let { return it.copy(usesDefault = true) }
 
         val default = providers.firstOrNull { it.isUsable } ?: return null
         val model = default.defaultModel!!

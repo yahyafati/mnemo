@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.ai.generate
 
 import com.yahyafati.mnemo.core.ai.client.ChatStreamEvent
+import com.yahyafati.mnemo.core.ai.client.ImageRejection
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.client.ProviderConfig
 import com.yahyafati.mnemo.core.ai.dto.ChatMessage
@@ -69,6 +70,7 @@ sealed interface TextEvent {
  */
 class ChatTextRunner(private val client: OpenAiCompatibleClient) {
     fun run(config: ProviderConfig, model: String, messages: List<ChatMessage>, initial: RequestMode): Flow<TextEvent> = flow {
+        val hasImages = messages.any { it.content?.hasImages == true }
         var mode = initial
         var usage = Usage()
         var requests = 0
@@ -114,13 +116,15 @@ class ChatTextRunner(private val client: OpenAiCompatibleClient) {
                     is MnemoResult.Failure -> failure = result.error
                 }
             }
-            val error = failure
-            val relaxed = error?.takeIf { !sent && requests < MAX_REQUESTS }?.let(mode::relaxedFor)
+            val failed = failure
+            // Images can't be dropped like a schema can: say so instead of asking again without them.
+            val rejected = failed?.takeIf { !sent && hasImages }?.let(ImageRejection::from)
+            val relaxed = failed?.takeIf { rejected == null && !sent && requests < MAX_REQUESTS }?.let(mode::relaxedFor)
             if (relaxed != null) {
                 mode = relaxed
                 continue
             }
-            emit(TextEvent.End(usage, requests, error))
+            emit(TextEvent.End(usage, requests, rejected ?: failed))
             return@flow
         }
     }

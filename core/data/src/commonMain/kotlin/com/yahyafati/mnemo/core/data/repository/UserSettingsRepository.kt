@@ -42,4 +42,7 @@ interface UserSettingsRepository {
     suspend fun setAutoPlayAudio(value: Boolean)
 
     suspend fun setOnboardingCompleted(value: Boolean)
+
+    /** The user accepted sending page images to [providerId] (ADR 0014); asked once per provider. */
+    suspend fun acceptImageDisclosure(providerId: String)
 }

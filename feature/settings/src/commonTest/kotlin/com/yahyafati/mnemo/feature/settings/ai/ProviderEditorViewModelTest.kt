@@ -6,7 +6,10 @@ import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiConnectionReport
 import com.yahyafati.mnemo.core.model.AiEndpoint
 import com.yahyafati.mnemo.core.model.AiModel
+import com.yahyafati.mnemo.core.model.AiFailure
+import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
+import com.yahyafati.mnemo.core.model.ImageCheck
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import kotlinx.coroutines.flow.first
@@ -217,5 +220,89 @@ class ProviderEditorViewModelTest {
         vm.onAction(ProviderEditorAction.Test)
         vm.onAction(ProviderEditorAction.AcceptDisclosure)
         assertEquals(ApiKeyChange.Set("sk-typed"), repository.tested.single().apiKey)
+    }
+
+    private fun viewModelReadyToCheck(): ProviderEditorViewModel {
+        repository.nextReport = working
+        val vm = viewModel("presetId" to "openai")
+        vm.onAction(ProviderEditorAction.Test)
+        vm.onAction(ProviderEditorAction.AcceptDisclosure)
+        return vm
+    }
+
+    @Test
+    fun checkingImagesNeedsAModelAndAnAcceptedNotice() = runTest {
+        val vm = viewModel("presetId" to "openai")
+        // Nothing to ask yet: no model, and the first-request notice not accepted.
+        assertFalse(vm.uiState.value.canCheckImages)
+        vm.onAction(ProviderEditorAction.CheckImages)
+        assertTrue(repository.imageChecked.isEmpty())
+
+        val ready = viewModelReadyToCheck()
+        assertTrue(ready.uiState.value.canCheckImages)
+    }
+
+    @Test
+    fun aCheckThatReadsTheImageSwitchesVisionOnAndSavesItWithTheProvider() = runTest {
+        val vm = viewModelReadyToCheck()
+        assertEquals(false, vm.uiState.value.capabilities?.vision)
+
+        repository.nextImageCheck = ImageCheck.Reads
+        vm.onAction(ProviderEditorAction.CheckImages)
+
+        assertEquals("llama3.2", repository.imageChecked.single().defaultModel)
+        val state = vm.uiState.value
+        assertEquals(ImageCheck.Reads, state.imageCheck)
+        assertFalse(state.checkingImages)
+        // The other capabilities stay as the test found them.
+        assertEquals(AiCapabilities(jsonOutput = true, vision = true, streaming = true), state.capabilities)
+
+        vm.onAction(ProviderEditorAction.Save)
+        val provider = repository.observeProviders().first().single()
+        val model = repository.observeModels(provider.id).first().single()
+        assertTrue(model.capabilities.vision)
+        assertTrue(model.capabilitiesSetByUser)
+    }
+
+    @Test
+    fun aMisreadOrARefusalSwitchesVisionOff() = runTest {
+        val vm = viewModelReadyToCheck()
+        vm.onAction(ProviderEditorAction.Capabilities(AiCapabilities(jsonOutput = true, vision = true, streaming = true)))
+
+        repository.nextImageCheck = ImageCheck.Misread("I see nothing")
+        vm.onAction(ProviderEditorAction.CheckImages)
+        assertEquals(false, vm.uiState.value.capabilities?.vision)
+
+        vm.onAction(ProviderEditorAction.Capabilities(AiCapabilities(vision = true)))
+        repository.nextImageCheck = ImageCheck.Refused(AiFailure(AiProblem.ImagesNotAccepted))
+        vm.onAction(ProviderEditorAction.CheckImages)
+        assertEquals(false, vm.uiState.value.capabilities?.vision)
+    }
+
+    @Test
+    fun aCheckThatProvedNothingLeavesTheCapabilitiesAlone() = runTest {
+        val vm = viewModelReadyToCheck()
+        vm.onAction(ProviderEditorAction.Capabilities(AiCapabilities(vision = true)))
+
+        repository.nextImageCheck = ImageCheck.Inconclusive(AiFailure(AiProblem.Unauthorized))
+        vm.onAction(ProviderEditorAction.CheckImages)
+
+        assertEquals(true, vm.uiState.value.capabilities?.vision)
+        assertEquals(ImageCheck.Inconclusive(AiFailure(AiProblem.Unauthorized)), vm.uiState.value.imageCheck)
+    }
+
+    @Test
+    fun theCheckIsForgottenWhenTheModelOrTheConnectionChanges() = runTest {
+        val vm = viewModelReadyToCheck()
+        vm.onAction(ProviderEditorAction.CheckImages)
+        assertEquals(ImageCheck.Reads, vm.uiState.value.imageCheck)
+
+        vm.onAction(ProviderEditorAction.DefaultModel("gpt-4.1"))
+        assertNull(vm.uiState.value.imageCheck)
+
+        vm.onAction(ProviderEditorAction.CheckImages)
+        assertEquals(ImageCheck.Reads, vm.uiState.value.imageCheck)
+        vm.onAction(ProviderEditorAction.ApiKey("sk-other"))
+        assertNull(vm.uiState.value.imageCheck)
     }
 }

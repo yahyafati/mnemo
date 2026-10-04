@@ -70,7 +70,9 @@ import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_default_now
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_model
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_model_default
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_no_vision
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_none
+import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_not_vision
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_provider
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_route_unavailable
 import com.yahyafati.mnemo.feature.settings.resources.feature_settings_ai_routing
@@ -299,6 +301,11 @@ private fun TaskRouteRow(
     Column(Modifier.padding(vertical = MnemoTheme.spacing.xs), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
         Text(label, style = MaterialTheme.typography.titleSmall)
         Hint(taskHint(task))
+        // Reading pages only makes sense with a model that reads images (ADR 0014).
+        val needsVision = task == AiTask.ReadPages
+        if (needsVision && models.values.none { list -> list.any { it.capabilities.vision } }) {
+            Hint(stringResource(Res.string.feature_settings_ai_route_no_vision))
+        }
         DropdownField(
             label = stringResource(Res.string.feature_settings_ai_route_provider, label),
             value = chosen?.name ?: defaultLabel,
@@ -313,9 +320,14 @@ private fun TaskRouteRow(
                 label = stringResource(Res.string.feature_settings_ai_route_model, label),
                 value = route.modelId ?: providerDefault,
                 options = listOf(DropdownOption(providerDefault) { onAction(AiProvidersAction.SetRoute(task, chosen.id, null)) }) +
-                    models[chosen.id].orEmpty().map { m -> DropdownOption(m.id) { onAction(AiProvidersAction.SetRoute(task, chosen.id, m.id)) } },
+                    models[chosen.id].orEmpty()
+                        .filter { m -> !needsVision || m.capabilities.vision || m.id == route.modelId }
+                        .map { m -> DropdownOption(m.id) { onAction(AiProvidersAction.SetRoute(task, chosen.id, m.id)) } },
             )
             if (effective?.usesDefault != false) Hint(stringResource(Res.string.feature_settings_ai_route_unavailable))
+        }
+        if (needsVision && effective != null && !effective.capabilities.vision) {
+            Hint(stringResource(Res.string.feature_settings_ai_route_not_vision, effective.modelId))
         }
     }
 }

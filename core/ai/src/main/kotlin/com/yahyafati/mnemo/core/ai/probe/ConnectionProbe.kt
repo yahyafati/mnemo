@@ -1,10 +1,12 @@
 package com.yahyafati.mnemo.core.ai.probe
 
 import com.yahyafati.mnemo.core.ai.client.ChatStreamEvent
+import com.yahyafati.mnemo.core.ai.client.ImageRejection
 import com.yahyafati.mnemo.core.ai.client.OpenAiCompatibleClient
 import com.yahyafati.mnemo.core.ai.client.ProviderConfig
 import com.yahyafati.mnemo.core.ai.dto.ChatMessage
 import com.yahyafati.mnemo.core.ai.dto.ChatRequest
+import com.yahyafati.mnemo.core.ai.dto.ContentPart
 import com.yahyafati.mnemo.core.ai.dto.ModelInfo
 import com.yahyafati.mnemo.core.ai.dto.ResponseFormat
 import com.yahyafati.mnemo.core.ai.dto.Usage
@@ -26,8 +28,9 @@ import kotlinx.serialization.json.putJsonObject
  * - **JSON output**: a second one-token request with a `json_schema` `response_format`. Accepted
  *   means supported. (A server that silently ignores the field looks supported too; Phase 4 parses
  *   tolerantly either way.)
- * - **Vision**: not worth an image upload. It comes from the models list where the provider
- *   describes it (OpenRouter), otherwise from the model's name. The user can correct it.
+ * - **Vision**: not worth an image upload here. It comes from the models list where the provider
+ *   describes it (OpenRouter), otherwise from the model's name. The user can correct it, or run
+ *   [checkImages], which is a button of its own because it costs tokens.
  */
 class ConnectionProbe(private val client: OpenAiCompatibleClient) {
     suspend fun run(config: ProviderConfig, model: String?): ProbeResult {
@@ -77,6 +80,50 @@ class ConnectionProbe(private val client: OpenAiCompatibleClient) {
         return ProbeResult(models, modelId, MnemoResult.Success(capabilities), requests, usage)
     }
 
+    /**
+     * "Check images" (ADR 0014): sends a 96 × 64 picture of a number and asks for it. A right answer
+     * means the model sees images; a different one, or the server refusing the image, means it
+     * doesn't. Anything else (key, network, an empty reply: reasoning models sometimes spend the
+     * whole budget thinking) proves nothing and is reported as inconclusive.
+     */
+    suspend fun checkImages(config: ProviderConfig, model: String): ImageProbeResult {
+        var requests = 0
+        var limit = TokenLimit.MaxTokens
+        while (true) {
+            requests++
+            val request = ChatRequest(
+                model = model,
+                messages = listOf(ChatMessage.user(IMAGE_PROMPT, listOf(ContentPart.Image.of(numberImage(), "image/png")))),
+                maxTokens = IMAGE_PROBE_TOKENS.takeIf { limit == TokenLimit.MaxTokens },
+                maxCompletionTokens = IMAGE_PROBE_TOKENS.takeIf { limit == TokenLimit.MaxCompletionTokens },
+            )
+            when (val result = client.complete(config, request)) {
+                is MnemoResult.Success -> {
+                    val usage = result.data.usage ?: Usage()
+                    val answer = result.data.text?.trim().orEmpty()
+                    val outcome = when {
+                        answer.isEmpty() -> ImageProbeOutcome.Failed(MnemoError.Parse("The model sent no answer"))
+                        answer.filter(Char::isDigit) == IMAGE_PROBE_NUMBER -> ImageProbeOutcome.Reads
+                        else -> ImageProbeOutcome.Misread(answer.take(MAX_ANSWER_CHARS))
+                    }
+                    return ImageProbeResult(outcome, requests, usage)
+                }
+                is MnemoResult.Failure -> {
+                    val error = result.error
+                    if (limit == TokenLimit.MaxTokens && error.mentions("max_completion_tokens")) {
+                        limit = TokenLimit.MaxCompletionTokens
+                        continue
+                    }
+                    val refused = ImageRejection.from(error)
+                    return ImageProbeResult(if (refused != null) ImageProbeOutcome.Refused(refused) else ImageProbeOutcome.Failed(error), requests, Usage())
+                }
+            }
+        }
+    }
+
+    private fun numberImage(): ByteArray =
+        checkNotNull(ConnectionProbe::class.java.getResourceAsStream(IMAGE_RESOURCE)) { "Missing $IMAGE_RESOURCE" }.use { it.readBytes() }
+
     private suspend fun streamOnce(config: ProviderConfig, model: String, limit: TokenLimit): Outcome {
         var chunks = 0
         var last: Outcome? = null
@@ -116,6 +163,15 @@ class ConnectionProbe(private val client: OpenAiCompatibleClient) {
         /** "One-token completion": as cheap as a request gets. */
         const val PROBE_TOKENS = 1
 
+        /** Room for a short answer; a model that is going to read the image says the number at once. */
+        const val IMAGE_PROBE_TOKENS = 200
+        const val MAX_ANSWER_CHARS = 80
+        const val IMAGE_PROMPT = "Reply with only the number in the image."
+
+        /** What `probe/number.png` shows (see `core/ai/fixtures/make_probe_image.py`). */
+        const val IMAGE_PROBE_NUMBER = "52"
+        const val IMAGE_RESOURCE = "/probe/number.png"
+
         val PROBE_SCHEMA = ResponseFormat.jsonSchema(
             name = "probe",
             schema = buildJsonObject {
@@ -140,3 +196,16 @@ data class ProbeResult(
     val usage: Usage,
 )
 
+
+/** What [ConnectionProbe.checkImages] found, with what the check cost. */
+data class ImageProbeResult(val outcome: ImageProbeOutcome, val requests: Int, val usage: Usage)
+
+sealed interface ImageProbeOutcome {
+    data object Reads : ImageProbeOutcome
+
+    data class Misread(val answer: String) : ImageProbeOutcome
+
+    data class Refused(val error: MnemoError.ImagesNotAccepted) : ImageProbeOutcome
+
+    data class Failed(val error: MnemoError) : ImageProbeOutcome
+}

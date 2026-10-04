@@ -27,18 +27,18 @@ class CoAuthorPromptTest {
         val messages = CoAuthorChatPrompt(context, history).messages()
         val system = messages.first()
         assertEquals("system", system.role)
-        assertTrue("<deck>\n- [basic] What do mitochondria make? | ATP\n- [cloze] The {{c1::nucleus}} holds DNA.\n</deck>" in system.content!!)
-        assertTrue("(2 of its 40 cards shown)" in system.content!!)
+        assertTrue("<deck>\n- [basic] What do mitochondria make? | ATP\n- [cloze] The {{c1::nucleus}} holds DNA.\n</deck>" in system.text!!)
+        assertTrue("(2 of its 40 cards shown)" in system.text!!)
         assertEquals(1 + CoAuthorChatPrompt.MAX_TURNS, messages.size)
-        assertEquals("turn 20", messages.last().content)
+        assertEquals("turn 20", messages.last().text)
         assertEquals("assistant", messages.last().role)
     }
 
     @Test
     fun suggestionsAskForTheCardFormatAndTheFocus() {
         val messages = CoAuthorSuggestPrompt(context, focus = "enzymes", count = 5).messages()
-        assertTrue("\"cards\"" in messages.first().content!!)
-        val user = messages.last().content!!
+        assertTrue("\"cards\"" in messages.first().text!!)
+        val user = messages.last().text!!
         assertTrue(user.startsWith("Suggest 5 new cards for this deck. Focus on: enzymes."))
         assertTrue("<deck>" in user)
     }
@@ -46,6 +46,6 @@ class CoAuthorPromptTest {
     @Test
     fun rewritesOfWeakCardsMentionTheirLapses() {
         val prompt = StudyAssistPrompt(AssistRequest.Rewrite, NoteKind.Basic, listOf("Q", "A"), weakness = StudyAssistPrompt.Weakness(9, 20))
-        assertTrue("forgotten this card 9 times in 20 reviews" in prompt.messages().last().content!!)
+        assertTrue("forgotten this card 9 times in 20 reviews" in prompt.messages().last().text!!)
     }
 }

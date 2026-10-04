@@ -42,4 +42,6 @@ internal class DefaultUserSettingsRepository(
     override suspend fun setAutoPlayAudio(value: Boolean) = dataSource.setAutoPlayAudio(value)
 
     override suspend fun setOnboardingCompleted(value: Boolean) = dataSource.setOnboardingCompleted(value)
+
+    override suspend fun acceptImageDisclosure(providerId: String) = dataSource.acceptImageDisclosure(providerId)
 }
