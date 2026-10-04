@@ -232,6 +232,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_disambiguation
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_blank_page
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_epub
@@ -1382,6 +1383,7 @@ private fun sourceProblemText(problem: SourceProblem): String = stringResource(
         SourceProblem.FileUnavailable -> Res.string.feature_create_source_unavailable
         SourceProblem.NotAnArticle -> Res.string.feature_create_source_not_an_article
         SourceProblem.Drm -> Res.string.feature_create_source_drm
+        SourceProblem.BlankPage -> Res.string.feature_create_source_blank_page
     },
 )
 

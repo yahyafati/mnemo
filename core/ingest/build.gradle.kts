@@ -32,4 +32,6 @@ dependencies {
     // (ADR 0006). Excluded on the dependency, so the exclusion reaches the apps.
     "androidMainImplementation"(libs.pdfbox.android) { exclude(group = "org.bouncycastle") }
     "desktopMainImplementation"(libs.apache.pdfbox) { exclude(group = "org.bouncycastle") }
+    // Registers itself with ImageIO; without it a JBIG2 scan renders as a white page (ADR 0014, "As built (P0)").
+    "desktopMainImplementation"(libs.apache.pdfbox.jbig2)
 }

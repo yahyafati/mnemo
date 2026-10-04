@@ -503,6 +503,7 @@ internal fun bookProblemText(problem: SourceProblem): String = stringResource(
         SourceProblem.NotAnArticle,
         SourceProblem.Unreachable,
         SourceProblem.HttpError,
+        SourceProblem.BlankPage,
         -> Res.string.feature_create_book_unsupported
     },
 )

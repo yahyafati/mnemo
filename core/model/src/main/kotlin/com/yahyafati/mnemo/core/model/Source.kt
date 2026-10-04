@@ -80,6 +80,12 @@ enum class SourceProblem {
 
     /** A book protected by DRM: Mnemo only reads DRM-free books and never tries to get around the protection. */
     Drm,
+
+    /**
+     * A PDF page that rendered with nothing on it: an image the renderer can't decode (JPEG 2000 on the desktop, JBIG2
+     * without its plugin) comes out white and throws nothing, so a blank page is reported rather than sent on.
+     */
+    BlankPage,
 }
 
 sealed interface SourceResult {
@@ -208,4 +214,26 @@ enum class DictationProblem {
 
     /** The recognizer is busy or failed. */
     RecognizerError,
+}
+
+/** How large a rendered PDF page is (docs/pdf/ROADMAP.md, P3): the token knob for pages sent to a vision model. */
+enum class PdfQuality(val longEdge: Int) {
+    /** 1,568 px on the long side: legible body text and small print on a page of the usual size. */
+    Standard(1_568),
+
+    /** 2,048 px: for dense pages, small type and formulas, at about 1.7 times the tokens. */
+    High(2_048),
+    ;
+
+    companion object {
+        /** The long side of a thumbnail in a page grid. */
+        const val THUMBNAIL_EDGE = 320
+    }
+}
+
+sealed interface PdfPageResult {
+    /** A JPEG file in the cache, for as long as the PDF stays open. Don't keep the path. */
+    data class Success(val file: java.io.File) : PdfPageResult
+
+    data class Failure(val problem: SourceProblem, val detail: String? = null) : PdfPageResult
 }

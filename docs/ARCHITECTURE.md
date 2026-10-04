@@ -96,7 +96,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:datastore` | KMP lib | Preferences DataStore for user settings |
 | `:core:ai` | JVM lib | OpenAI-compatible HTTP client, SSE streaming, connection probe, prompt templates, JSON schema, tolerant incremental card parser (ADR 0006) |
 | `:core:anki` | JVM lib | `.apkg`/`.colpkg` reader (all three Anki formats) and writer (zip + SQLite via the `androidx.sqlite` driver API, zstd), HTML ↔ Markdown, mapped to Mnemo models (ADR 0003). Depends on `:core:model` and `:core:scheduler` (FSRS replay) |
-| `:core:ingest` | KMP lib | Source extraction: PDF → text (PdfBox-Android, Apache PDFBox on the desktop), URL → Markdown (OkHttp + jsoup; site extractors such as Wikipedia's REST API, else a scored generic one), speech → text (on-device `SpeechRecognizer`, Android only), chunking. No DI library: `:core:data` builds its classes |
+| `:core:ingest` | KMP lib | Source extraction: PDF → text (PdfBox-Android, Apache PDFBox on the desktop) and PDF page → JPEG (`PdfPageRenderer`: Android `PdfRenderer`, PDFBox on the desktop), URL → Markdown (OkHttp + jsoup; site extractors such as Wikipedia's REST API, else a scored generic one), speech → text (on-device `SpeechRecognizer`, Android only), chunking. No DI library: `:core:data` builds its classes |
 | `:core:security` | KMP lib | Encryption for API keys (`SecretCipher`: Android Keystore, or on the desktop the OS keychain with a key-file fallback) and their store outside the database (`SecretStore`, ADR 0005) |
 | `:core:scheduler` | JVM lib | FSRS algorithm (scheduling, retrievability, parameter optimizer) |
 | `:core:sync` | JVM lib | The sync format and its stores (ADR 0013): the remote layout, change files (zstd, AES-256-GCM), `SyncStore` with a folder, an in-memory, a Google Drive (REST over OkHttp, with its OAuth client and PKCE sign-in) and a WebDAV (`PROPFIND`/`PUT`/`MKCOL` over OkHttp, Basic auth) implementation, `SyncRemote`. With `:core:ai` and `:core:ingest` it is one of the places that talks to the network. Knows nothing about Room or the collection; `:core:data/sync` drives it (the merge engine, S3). Depends on `:core:common` and, for WebDAV's address rule (`AiEndpoint`), `:core:model` |
@@ -235,6 +235,7 @@ mnemo/
 │   │
 │   ├── ingest/src/main/kotlin/com/yahyafati/mnemo/core/ingest/
 │   │   ├── PdfTextExtractor.kt                          # PdfBox text layer (page selection, page count), no OCR
+│   │   ├── PdfPageRenderer.kt                           # a page as JPEG; shared size/ink rules (P3)
 │   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
 │   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
 │   │   ├── GenericExtractor.kt  ContentFinder.kt        # jsoup page → main element (scored) → Markdown
@@ -362,6 +363,7 @@ The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code wi
 | The user's picked files | `DocumentAccess` (`:core:common`) | `AndroidDocumentAccess`: content URIs, document trees | `DesktopDocumentAccess`: paths and `file:` URIs |
 | Long transfers | `ImportJob`, `ExportJob`, `BackupJob` (`:core:data/job`): plain suspend functions with a progress callback | `ImportWorker`, `ExportWorker`, `BackupWorker` only adapt them to WorkManager (input, foreground notification, retry) | `TransferQueue`s in an application scope (`DesktopDataTransferRepository`, `DesktopFsrsOptimizationRepository`); media cleanup and the automatic backup are checked at start and then hourly |
 | PDF text | `PdfTextExtractor` (`:core:ingest`) | `PdfBoxAndroidTextExtractor` | `PdfBoxTextExtractor` (Apache PDFBox 3) |
+| PDF page images | `PdfPageRenderer` (`:core:ingest`) | `AndroidPdfPageRenderer` (`PdfRenderer`) | `PdfBoxPageRenderer` (PDFBox `PDFRenderer` + `jbig2-imageio`) |
 | Dictation | `SpeechTranscriber` (`:core:ingest`), with `isAvailable()` | `AndroidSpeechTranscriber` | `NoSpeechTranscriber` (not available) |
 | What the platform offers | `PlatformCapabilities` + `LocalPlatformCapabilities` (`:core:designsystem`): dynamic color, reminders, widget, dictation, text-to-speech, run-time permissions | `androidPlatformCapabilities()` | most are off |
 | File dialogs | `rememberFilePicker`, `rememberMediaPicker`, `rememberFileSaver`, `rememberFolderPicker` (`:core:ui/files`) | Storage Access Framework contracts | AWT `FileDialog` (Swing `JFileChooser` for a folder off macOS) |
@@ -483,7 +485,7 @@ Theme decisions:
 | Background | WorkManager |
 | Serialization | kotlinx.serialization (DTOs, routes, JSON fields) |
 | Markdown / math | A Compose Markdown renderer, plus KaTeX/MathJax in a lightweight WebView only for cards that contain math |
-| PDF | Android `PdfRenderer` for previews; a PDF text-extraction library (e.g. PdfBox-Android) for text |
+| PDF | Android `PdfRenderer` for page images (`AndroidPdfPageRenderer`; PDFBox on the desktop); a PDF text-extraction library (e.g. PdfBox-Android) for text |
 | Charts | Custom Compose `Canvas` charts (forgetting curve, heatmap), with no heavy chart dependency |
 | Testing | JUnit, Turbine, kotlinx-coroutines-test, OkHttp MockWebServer, Room `MigrationTestHelper`, Compose UI test, Roborazzi (screenshot tests against the design) |
 

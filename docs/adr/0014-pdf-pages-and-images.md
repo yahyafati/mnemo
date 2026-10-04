@@ -240,3 +240,40 @@ Not done in P0, and still open:
   dialog's **Read pages** button closes it and reads the field (with the same "Replace your changes?" question);
   **Done** closes it and only keeps the field. The Chapters button is shown for two or more bookmarks.
 
+## As built (P3, 2026-10-04)
+
+- **`PdfPageRenderer`** (`:core:ingest`) is `render(file, page, longEdge): RenderedPage(bytes, mimeType, width, height,
+  blank)`. A failure is a `PdfRenderException(problem)` carrying a `SourceProblem` (`Encrypted` for a password,
+  `Unsupported` for a file or page it can't read, `TooLarge` for running out of memory). The size rules are shared
+  and tested without a PDF library: `fitLongEdge`, `encodeWithin` (JPEG 80 first; over `MAX_IMAGE_BYTES`, 1.5 MB, then
+  quality 60, then 75 %, 50 % and 35 % of the edge, never under 400 px, so a 320 px thumbnail is never re-encoded) and
+  `InkCounter`.
+- **Blank pages.** Each renderer counts dark pixels (luma under 160) while it has the bitmap and sets `blank` when
+  there are fewer than 12, or fewer than one in 20,000. `SourceRepository.renderPdfPage` / `pdfThumbnail` turn that
+  into the new `SourceProblem.BlankPage` ("This page came out blank. It may be empty, or hold a picture Mnemo can't
+  draw") and save no file. **A page that is really empty fails the same way**, which the ADR accepted for the JBIG2 /
+  JPEG 2000 case; if a page grid (P6) needs to show truly empty pages, the repository is the place to tell them apart
+  (e.g. from the page's text layer and image list), because only it can see both libraries.
+- **Android:** `PdfRenderer` on a `ParcelFileDescriptor` of the cached copy, ARGB_8888 bitmap filled white,
+  `RENDER_MODE_FOR_DISPLAY`, recycled after each page, all behind one `synchronized` lock (the renderer is not
+  thread-safe even across documents; the interface is blocking, so a lock, not the roadmap's `Mutex`). A
+  `SecurityException` is `Encrypted`. **Robolectric cannot run `PdfRenderer` at all** (its native class calls a JDK
+  internal the test JVM lacks), so the host test covers only the file-gone error; the real check is
+  `app/src/androidTest/.../pdf/AndroidPdfPageRendererTest` (three scan encodings at both qualities: JPEG, size, white
+  corner, not blank; slides' shape; a missing page; a non-PDF), which is compiled by `assembleDebugAndroidTest` with
+  the `:core:ingest` fixtures added as that test's assets, **but has not been run: no device was available.**
+  Until it runs, what this ADR says about PDFium reading every scan codec is still from its documentation.
+- **Desktop:** `PDFRenderer.renderImage(page, edge / longSide, ImageType.RGB)` (RGB is filled white), the JPEG
+  written through ImageIO with the quality set and a memory-cache stream. `org.apache.pdfbox:jbig2-imageio` 3.0.5 is
+  in `desktopMain` (catalog `apache-pdfbox-jbig2`, `NOTICE`, AboutLibraries picks it up as Apache-2.0).
+  `NativeLibrariesTest` checks that ImageIO finds the JBIG2 reader and a JPEG writer, and the packaged
+  `Mnemo.app` contains the jar. The tests render every fixture: `scanned-jbig2.pdf` is not blank and darkens within 10 %
+  as many pixels as `scanned-ccitt.pdf`, an empty page is `blank`, a password gives `Encrypted`.
+- **Cache.** `renderPdfPage(handle, page, quality)` writes `cache/pdf/<id>/p<page>-standard|high.jpg` and
+  `pdfThumbnail(handle, page)` `p<page>-thumb.jpg` (`PdfQuality.THUMBNAIL_EDGE`, 320 px), each rendered once (a
+  temporary file in the folder is renamed over the target, so a reader never sees half a file) and reused until
+  `closePdf` or the day-old clean-up. A page outside the handle's page count fails as `Unsupported` without calling
+  the renderer. The result is `PdfPageResult.Success(file)` / `Failure(problem)`.
+- **A P1 fix on the way:** `closePdf` built the page folder from the raw handle id; it now uses the same
+  letters-digits-and-`-` filter as the copy, so a forged handle can't delete outside `cache/pdf/` (a test pins it).
+

@@ -24,9 +24,11 @@ import com.yahyafati.mnemo.core.data.sync.SyncBackgroundWork
 import com.yahyafati.mnemo.core.data.sync.SyncRepository
 import com.yahyafati.mnemo.core.database.di.databaseModule
 import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
+import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.desktop.NoSpeechTranscriber
+import com.yahyafati.mnemo.core.ingest.desktop.PdfBoxPageRenderer
 import com.yahyafati.mnemo.core.ingest.desktop.PdfBoxTextExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
 import com.yahyafati.mnemo.core.sync.oauth.OAuthAuthorizer
@@ -70,6 +72,7 @@ val desktopDataModule = module {
     factory<SQLiteDriver> { BundledSQLiteDriver() }
 
     single<PdfTextExtractor> { PdfBoxTextExtractor() }
+    single<PdfPageRenderer> { PdfBoxPageRenderer() }
     factory<SpeechTranscriber> { NoSpeechTranscriber }
 }
 

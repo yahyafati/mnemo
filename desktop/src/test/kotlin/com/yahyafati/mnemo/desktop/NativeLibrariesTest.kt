@@ -10,12 +10,13 @@ import org.jetbrains.skia.Color
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.Surface
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The three native libraries the desktop app depends on load and work on this OS. CI runs it on
+ * The three native libraries the desktop app depends on load and work on this OS, and the ImageIO plugin that scanned PDF pages need. CI runs it on
  * Linux, Windows and macOS (D1); the D0 spike proved it on macOS arm64 and Linux x64 only.
  */
 class NativeLibrariesTest {
@@ -60,5 +61,13 @@ class NativeLibrariesTest {
         // The PNG signature.
         assertEquals(listOf(0x89, 0x50, 0x4E, 0x47), png.take(4).map { it.toInt() and 0xFF })
         assertTrue(png.size > 60)
+    }
+
+    @Test
+    fun `ImageIO finds the JBIG2 plugin PDFBox needs to draw scanned pages`() {
+        // Without it a JBIG2 scan renders as a white page and nothing throws (ADR 0014, "As built (P0)").
+        assertTrue(ImageIO.getImageReadersByFormatName("JBIG2").hasNext())
+        // Pages are written as JPEG.
+        assertTrue(ImageIO.getImageWritersByFormatName("jpeg").hasNext())
     }
 }

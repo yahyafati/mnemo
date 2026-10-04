@@ -88,6 +88,8 @@ Apache License 2.0
     itself is in the public domain, https://sqlite.org/copyright.html.
   - Apache PDFBox (with FontBox, PDFBox-IO and Commons Logging), which reads the text of PDFs on
     the desktop. Copyright The Apache Software Foundation. BouncyCastle is excluded on purpose.
+  - PDFBox JBIG2 ImageIO plugin, which lets the desktop draw JBIG2-coded scanned pages. Copyright
+    2026 The Apache Software Foundation.
   - JNA (Java Native Access), used under its Apache-2.0 option (it is also available under the
     LGPL-2.1-or-later).
 

@@ -2,6 +2,9 @@ package com.yahyafati.mnemo.core.data.repository
 
 import com.yahyafati.mnemo.core.ingest.EpubLimits
 import com.yahyafati.mnemo.core.ingest.EpubReader
+import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
+import com.yahyafati.mnemo.core.ingest.PdfRenderException
+import com.yahyafati.mnemo.core.ingest.RenderedPage
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -12,6 +15,8 @@ import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageResult
+import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -53,12 +58,26 @@ class SourceRepositoryTest {
             return SourceResult.Success(SourceText("Pages ${pages ?: "first"} of ${input.readBytes().decodeToString()}", fileName))
         }
     }
+
+    /** A renderer that writes the page and edge into the "image", counts its calls, and fails or comes out white on request. */
+    private val renderer = object : PdfPageRenderer {
+        val calls = mutableListOf<Pair<Int, Int>>()
+        var blank = false
+        var failure: SourceProblem? = null
+
+        override fun render(file: File, page: Int, longEdge: Int): RenderedPage {
+            calls += page to longEdge
+            failure?.let { throw PdfRenderException(it) }
+            return RenderedPage("JPEG page $page at $longEdge of ${file.readText()}".toByteArray(), "image/jpeg", 10, 10, blank)
+        }
+    }
     private val cache: File = createTempDirectory("epub-cache").toFile()
     private val directories = TestAppDirectories()
     private val clock = TestClock()
     private val repository = DefaultSourceRepository(
         documents = documents,
         pdf = pdf,
+        pageRenderer = renderer,
         web = WebPageExtractor(okhttp3.OkHttpClient(), pdf),
         epub = EpubReader({ cache }, EpubLimits(maxFileBytes = 64 * 1024)),
         speech = object : SpeechTranscriber {
@@ -227,5 +246,78 @@ class SourceRepositoryTest {
         assertEquals(SourceProblem.FileUnavailable, assertIs<SourceResult.Failure>(repository.readPdf(forged, null)).problem)
         repository.closePdf(forged)
         assertTrue(outside.exists())
+    }
+
+    private suspend fun openFive(): PdfHandle {
+        documents.put("/docs/slides.pdf", "%PDF slides")
+        return assertIs<PdfOpenResult.Success>(repository.openPdf("/docs/slides.pdf")).handle
+    }
+
+    private fun PdfPageResult.file() = assertIs<PdfPageResult.Success>(this).file
+
+    @Test
+    fun aPageIsRenderedOnceIntoThePdfsFolderAndReused() = runTest {
+        val handle = openFive()
+        val standard = repository.renderPdfPage(handle, 2, PdfQuality.Standard).file()
+        assertEquals(File(File(pdfFolder, handle.id), "p2-standard.jpg"), standard)
+        assertEquals("JPEG page 2 at 1568 of %PDF slides", standard.readText())
+
+        assertEquals(standard, repository.renderPdfPage(handle, 2, PdfQuality.Standard).file())
+        assertEquals(listOf(2 to 1568), renderer.calls)
+
+        // Another quality, and the thumbnail, are other files.
+        assertEquals("p2-high.jpg", repository.renderPdfPage(handle, 2, PdfQuality.High).file().name)
+        val thumbnail = repository.pdfThumbnail(handle, 2).file()
+        assertEquals("p2-thumb.jpg", thumbnail.name)
+        assertEquals(listOf(2 to 1568, 2 to 2048, 2 to PdfQuality.THUMBNAIL_EDGE), renderer.calls)
+        assertEquals(emptyList(), File(pdfFolder, handle.id).listFiles().orEmpty().filter { it.name.endsWith(".part") })
+    }
+
+    @Test
+    fun closingThePdfDeletesItsPages() = runTest {
+        val handle = openFive()
+        repository.renderPdfPage(handle, 1, PdfQuality.Standard)
+        repository.pdfThumbnail(handle, 3)
+        repository.closePdf(handle)
+        assertEquals(emptyList(), pdfFolder.listFiles().orEmpty().toList())
+        assertEquals(SourceProblem.FileUnavailable, assertIs<PdfPageResult.Failure>(repository.renderPdfPage(handle, 1, PdfQuality.Standard)).problem)
+    }
+
+    @Test
+    fun aBlankPageIsAnErrorAndLeavesNoFile() = runTest {
+        val handle = openFive()
+        renderer.blank = true
+        assertEquals(SourceProblem.BlankPage, assertIs<PdfPageResult.Failure>(repository.renderPdfPage(handle, 1, PdfQuality.Standard)).problem)
+        assertEquals(emptyList(), File(pdfFolder, handle.id).listFiles().orEmpty().toList())
+
+        // The next try renders again: it is not remembered as blank.
+        renderer.blank = false
+        repository.renderPdfPage(handle, 1, PdfQuality.Standard).file()
+        assertEquals(2, renderer.calls.size)
+    }
+
+    @Test
+    fun aPageTheRendererCannotDrawFailsWithItsReason() = runTest {
+        val handle = openFive()
+        renderer.failure = SourceProblem.Encrypted
+        assertEquals(SourceProblem.Encrypted, assertIs<PdfPageResult.Failure>(repository.pdfThumbnail(handle, 1)).problem)
+    }
+
+    @Test
+    fun aPageThePdfDoesNotHaveIsNeverRendered() = runTest {
+        val handle = openFive()
+        for (page in listOf(0, 6, -1)) {
+            assertEquals(SourceProblem.Unsupported, assertIs<PdfPageResult.Failure>(repository.renderPdfPage(handle, page, PdfQuality.High)).problem)
+        }
+        assertEquals(emptyList(), renderer.calls)
+    }
+
+    @Test
+    fun aForgedHandleCannotDeleteOrRenderOutsideItsFolder() = runTest {
+        val outside = File(directories.cache, "secret").also { it.mkdirs(); File(it, "keep.txt").writeText("x") }
+        val forged = PdfHandle("../secret", PdfInfo(1, "x"))
+        repository.closePdf(forged)
+        assertTrue(File(outside, "keep.txt").exists())
+        assertIs<PdfPageResult.Failure>(repository.renderPdfPage(forged, 1, PdfQuality.Standard))
     }
 }

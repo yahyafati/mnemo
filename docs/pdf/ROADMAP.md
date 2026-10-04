@@ -54,7 +54,7 @@ Owner-only tasks are marked **(owner)**.
 | Report | `ReportAiButton` (`:core:ui/ai`) on every AI output | The transcription in the box needs one (P5). |
 | Card queue | `GeneratedCard(id, kind, front, back, tags, chunkIndex, wrongAnswers)` (`:core:model`); `AcceptGeneratedCardsUseCase` → `CardRepository.addNotes(…, NoteSource.Ai)` | Gets an optional `page` (P6) and figures (P7). |
 | Media | `MediaRepository.store(input, name)` (content-addressed, `![](media:<sha256>)`), clean-up keeps files younger than a day | Figures are ordinary media (P7). |
-| Rendering | None. ARCHITECTURE's table already names Android's `PdfRenderer` for previews. PdfBox-Android is not used for rendering | `PdfPageRenderer` is new (P3). |
+| Rendering | None. ARCHITECTURE's table already names Android's `PdfRenderer` for previews. PdfBox-Android is not used for rendering | `PdfPageRenderer` is new (P3, done). |
 
 ---
 
@@ -207,24 +207,28 @@ interface PdfPageRenderer {
 class RenderedPage(val bytes: ByteArray, val mimeType: String, val width: Int, val height: Int)
 ```
 
-- [ ] `AndroidPdfPageRenderer` (`:core:ingest` `androidMain`, `android` package): `PdfRenderer` on a
+- [x] `AndroidPdfPageRenderer` (`:core:ingest` `androidMain`, `android` package): `PdfRenderer` on a
       `ParcelFileDescriptor` of the cached copy; `Bitmap` `ARGB_8888` filled white, `RENDER_MODE_FOR_DISPLAY`,
       `Bitmap.compress(JPEG, quality)`, recycled after each page. One `PdfRenderer` at a time (it is not
       thread-safe): a `Mutex` around it. `SecurityException` (a password) → `SourceProblem.Encrypted`.
-- [ ] `PdfBoxPageRenderer` (`desktopMain`, `desktop` package): `PDFRenderer.renderImageWithDPI` at the DPI that
+- [x] `PdfBoxPageRenderer` (`desktopMain`, `desktop` package): `PDFRenderer.renderImageWithDPI` at the DPI that
       gives `longEdge`, `ImageType.RGB`, ImageIO JPEG writer with the quality set. Add `jbig2-imageio` to
       `desktopMain` (catalog entry, `NOTICE`, `app/config` / `desktop/config` licence JSON,
       `scripts/fdroid/check-foss-deps.py` stays green, `NativeLibrariesTest`-style check that the plugin is found in
       the packaged image: run `scripts/desktop/smoke-test-app.py`).
-- [ ] If an encoded page is over `MAX_IMAGE_BYTES` (1.5 MB), re-encode at a lower quality, then a smaller size.
-- [ ] `SourceRepository.renderPdfPage(handle, page, quality)` → a file in `cache/pdf/<id>/p<page>-<quality>.jpg`,
+- [x] If an encoded page is over `MAX_IMAGE_BYTES` (1.5 MB), re-encode at a lower quality, then a smaller size.
+- [x] `SourceRepository.renderPdfPage(handle, page, quality)` → a file in `cache/pdf/<id>/p<page>-<quality>.jpg`,
       rendered once and reused; `thumbnail(handle, page)` the same at about 320 px. `closePdf` deletes the folder.
-- [ ] `PdfQuality { Standard, High }` (`:core:model`) with the long edges decided in P0.
-- [ ] Bound in `androidDataModule` / `desktopDataModule` as a `single` (like `PdfTextExtractor`).
-- [ ] Tests: render each fixture on both targets. Robolectric does not really render PDFs, so the Android
+- [x] `PdfQuality { Standard, High }` (`:core:model`) with the long edges decided in P0.
+- [x] Bound in `androidDataModule` / `desktopDataModule` as a `single` (like `PdfTextExtractor`).
+- [x] Tests: render each fixture on both targets. Robolectric does not really render PDFs, so the Android
       renderer's real check is an instrumented test (`connectedDebugAndroidTest`, on a device) or P8's QA; under
       Robolectric test only the size arithmetic, the white fill and the error mapping. Desktop: `scanned-jbig2.pdf` renders non-blank (count dark
       pixels), sizes follow `longEdge`, the cache is reused and deleted.
+
+*Status: done on the desktop; on Android done and compiled, but its real check (PDFium drawing the fixtures) waits for a
+device (ADR 0014, "As built (P3)"). Open: run `./gradlew :app:connectedDebugAndroidTest --tests "*AndroidPdfPageRendererTest"`
+on a phone or emulator.*
 
 **Exit:** any page of the fixtures becomes a legible JPEG file on both platforms.
 

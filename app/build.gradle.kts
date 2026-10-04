@@ -23,6 +23,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    sourceSets {
+        // The PDF fixtures of :core:ingest, for the instrumented check of the page renderer (AndroidPdfPageRendererTest).
+        getByName("androidTest").assets.directories.add("../core/ingest/src/commonTest/resources/pdf")
+    }
+
     buildTypes {
         release {
             // R8 shrinking and optimization; keep rules live in src/main/keepRules/.
@@ -71,6 +76,7 @@ dependencies {
     testImplementation(libs.robolectric)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    androidTestImplementation(projects.core.ingest)
     androidTestImplementation(projects.core.testing)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

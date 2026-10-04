@@ -17,6 +17,8 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageResult
+import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.SourceInput
@@ -144,6 +146,22 @@ class FakeSourceRepository : SourceRepository {
 
     override suspend fun closePdf(handle: PdfHandle) {
         closedPdfs += handle
+    }
+
+    /** Every page asked for as `(handle, page, quality)`; `quality` is null for a thumbnail. */
+    val renderedPages = mutableListOf<Triple<PdfHandle, Int, PdfQuality?>>()
+
+    /** What a page renders to: by default a failure, as no file exists. */
+    var pdfPage: (PdfHandle, Int) -> PdfPageResult = { _, _ -> PdfPageResult.Failure(SourceProblem.FileUnavailable) }
+
+    override suspend fun renderPdfPage(handle: PdfHandle, page: Int, quality: PdfQuality): PdfPageResult {
+        renderedPages += Triple(handle, page, quality)
+        return pdfPage(handle, page)
+    }
+
+    override suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult {
+        renderedPages += Triple(handle, page, null)
+        return pdfPage(handle, page)
     }
 
     override fun isDictationAvailable(): Boolean = dictationAvailable

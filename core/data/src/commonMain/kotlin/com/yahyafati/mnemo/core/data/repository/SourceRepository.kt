@@ -4,6 +4,8 @@ import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import com.yahyafati.mnemo.core.common.platform.DocumentAccess
 import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.ingest.EpubReader
+import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
+import com.yahyafati.mnemo.core.ingest.PdfRenderException
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
@@ -13,6 +15,8 @@ import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageResult
+import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -48,8 +52,18 @@ interface SourceRepository {
      */
     suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult
 
-    /** Deletes the copy of an opened PDF. Safe to call twice. */
+    /** Deletes the copy of an opened PDF and the pages rendered from it. Safe to call twice. */
     suspend fun closePdf(handle: PdfHandle)
+
+    /**
+     * A JPEG of [page] (1-based) of an opened PDF at [quality], in `cache/pdf/<id>/` (docs/pdf/ROADMAP.md, P3). Rendered
+     * once and reused until the PDF is closed. A page with nothing on it fails as [SourceProblem.BlankPage]: a scan the
+     * renderer couldn't decode looks the same.
+     */
+    suspend fun renderPdfPage(handle: PdfHandle, page: Int, quality: PdfQuality): PdfPageResult
+
+    /** A small image of [page] for a page grid ([PdfQuality.THUMBNAIL_EDGE] px on the long side); cached like [renderPdfPage]. */
+    suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult
 
     fun isDictationAvailable(): Boolean
 
@@ -60,6 +74,7 @@ interface SourceRepository {
 internal class DefaultSourceRepository(
     private val documents: DocumentAccess,
     private val pdf: PdfTextExtractor,
+    private val pageRenderer: PdfPageRenderer,
     private val web: WebPageExtractor,
     private val epub: EpubReader,
     private val speech: SpeechTranscriber,
@@ -136,15 +151,53 @@ internal class DefaultSourceRepository(
 
     override suspend fun closePdf(handle: PdfHandle) = withContext(ioDispatcher) {
         pdfCopy(handle).delete()
-        // Rendered pages of the PDF (docs/pdf/ROADMAP.md, P3) sit in a folder named by its id.
-        File(pdfFolder(), handle.id).deleteRecursively()
+        pdfPages(handle).deleteRecursively()
         Unit
+    }
+
+    override suspend fun renderPdfPage(handle: PdfHandle, page: Int, quality: PdfQuality): PdfPageResult =
+        renderCached(handle, page, quality.longEdge, "p$page-${quality.name.lowercase()}.jpg")
+
+    override suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult =
+        renderCached(handle, page, PdfQuality.THUMBNAIL_EDGE, "p$page-thumb.jpg")
+
+    private suspend fun renderCached(handle: PdfHandle, page: Int, longEdge: Int, name: String): PdfPageResult = withContext(ioDispatcher) {
+        if (page !in 1..handle.info.pageCount) return@withContext PdfPageResult.Failure(SourceProblem.Unsupported)
+        val copy = pdfCopy(handle)
+        if (!copy.isFile) return@withContext PdfPageResult.Failure(SourceProblem.FileUnavailable)
+        val folder = pdfPages(handle)
+        val target = File(folder, name)
+        if (target.isFile && target.length() > 0) return@withContext PdfPageResult.Success(target)
+        try {
+            val rendered = pageRenderer.render(copy, page, longEdge)
+            // A white page is not saved: it is the answer for a scan the renderer can't decode, and the next try may differ.
+            if (rendered.blank) return@withContext PdfPageResult.Failure(SourceProblem.BlankPage)
+            if (!folder.isDirectory && !folder.mkdirs()) throw IOException("Can't create $folder")
+            // Written beside the target and renamed, so a reader never sees half a file and two renders of a page can't mix.
+            val partial = File(folder, "$name.${UUID.randomUUID()}.part")
+            try {
+                partial.writeBytes(rendered.bytes)
+                if (!partial.renameTo(target)) throw IOException("Can't write $target")
+            } finally {
+                partial.delete()
+            }
+            PdfPageResult.Success(target)
+        } catch (e: PdfRenderException) {
+            PdfPageResult.Failure(e.problem, e.message)
+        } catch (e: IOException) {
+            PdfPageResult.Failure(SourceProblem.FileUnavailable)
+        }
     }
 
     private fun pdfFolder() = File(directories.cache, PDF_FOLDER)
 
     /** The id is made by [openPdf], but a handle is a plain value: never let one name a file outside the folder. */
-    private fun pdfCopy(handle: PdfHandle) = File(pdfFolder(), "${handle.id.filter { it.isLetterOrDigit() || it == '-' }}.pdf")
+    private fun safeId(handle: PdfHandle) = handle.id.filter { it.isLetterOrDigit() || it == '-' }
+
+    private fun pdfCopy(handle: PdfHandle) = File(pdfFolder(), "${safeId(handle)}.pdf")
+
+    /** The pages rendered from a PDF (docs/pdf/ROADMAP.md, P3) sit in a folder named by its id. */
+    private fun pdfPages(handle: PdfHandle) = File(pdfFolder(), safeId(handle))
 
     /** A copy is deleted when its PDF is closed; one a closed window or a killed process left behind goes after a day. */
     private fun removeStale(folder: File) {

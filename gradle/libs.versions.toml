@@ -48,6 +48,8 @@ koin = "4.2.2"
 # Desktop platform code (D4): keychain for the secrets key, PDF text
 javaKeyring = "1.0.4"
 pdfbox = "3.0.8"
+# JBIG2 scans: PDFBox renders them blank without this ImageIO plugin (docs/pdf/ROADMAP.md, P3)
+jbig2 = "3.0.5"
 # Desktop card rendering (D5): TeX math and MP3/Ogg decoders for javax.sound
 jlatexmath = "1.0.7"
 mp3spi = "1.9.5.4"
@@ -140,6 +142,7 @@ okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3"
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 # The same on the desktop: Apache PDFBox.
 apache-pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version.ref = "pdfbox" }
+apache-pdfbox-jbig2 = { group = "org.apache.pdfbox", name = "jbig2-imageio", version.ref = "jbig2" }
 
 # Desktop: the OS keychain (Windows Credential Manager, macOS Keychain, Secret Service)
 java-keyring = { group = "com.github.javakeyring", name = "java-keyring", version.ref = "javaKeyring" }

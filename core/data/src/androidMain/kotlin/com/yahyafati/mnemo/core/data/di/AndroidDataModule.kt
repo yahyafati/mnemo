@@ -31,9 +31,11 @@ import com.yahyafati.mnemo.core.data.work.OptimizeFsrsWorker
 import com.yahyafati.mnemo.core.data.work.ReminderWorker
 import com.yahyafati.mnemo.core.database.di.databaseModule
 import com.yahyafati.mnemo.core.datastore.di.dataStoreModule
+import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.android.AndroidSpeechTranscriber
+import com.yahyafati.mnemo.core.ingest.android.AndroidPdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.android.PdfBoxAndroidTextExtractor
 import com.yahyafati.mnemo.core.security.di.securityModule
 import com.yahyafati.mnemo.core.sync.oauth.OAuthAuthorizer
@@ -61,6 +63,7 @@ val androidDataModule = module {
     factory<SQLiteDriver> { AndroidSQLiteDriver() }
 
     single<PdfTextExtractor> { PdfBoxAndroidTextExtractor(get<Context>()) }
+    single<PdfPageRenderer> { AndroidPdfPageRenderer() }
     factory<SpeechTranscriber> { AndroidSpeechTranscriber(get<Context>()) }
 }
 
