@@ -79,6 +79,8 @@ import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.PageRangeError
+import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.AiReport
@@ -178,7 +180,19 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_all
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_long
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_malformed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_out_of_range
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_read
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_reversed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_too_many
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pick
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_replace_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_summary
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_back
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_broken_cloze
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_cloze
@@ -410,6 +424,23 @@ internal fun SmartExtractScreen(
             },
         )
     }
+    if (uiState.pdf?.replaceConfirmation == true) {
+        AlertDialog(
+            onDismissRequest = { onAction(SmartExtractAction.CancelPdfReplace) },
+            title = { Text(stringResource(Res.string.feature_create_sections_replace_title)) },
+            text = { Text(stringResource(Res.string.feature_create_pdf_replace_message)) },
+            confirmButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.ConfirmPdfReplace) }) {
+                    Text(stringResource(Res.string.feature_create_sections_replace_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.CancelPdfReplace) }) {
+                    Text(stringResource(Res.string.feature_create_sections_replace_keep))
+                }
+            },
+        )
+    }
     if (uiState.showDeckDialog) {
         DeckEditorDialog(
             onConfirm = { onAction(SmartExtractAction.CreateDeck(it.path, it.category, it.description)) },
@@ -606,6 +637,7 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
                     enabled = !uiState.reading,
                 )
                 Hint(stringResource(Res.string.feature_create_pdf_hint))
+                uiState.pdf?.let { PdfPages(it, reading = uiState.reading, onAction = onAction) }
             }
             SourceKind.Epub -> EpubControls(uiState, onAction)
             SourceKind.Link -> {
@@ -662,6 +694,62 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             Text(text, style = MaterialTheme.typography.bodySmall, color = colors.error)
         }
     }
+}
+
+/** The open PDF: its page count and the Pages field that chooses which pages the box holds. */
+@Composable
+private fun PdfPages(pdf: PdfSummary, reading: Boolean, onAction: (SmartExtractAction) -> Unit) {
+    val count = pluralStringResource(Res.plurals.feature_create_pdf_pages, pdf.pageCount, pdf.pageCount)
+    Text(
+        text = pdf.title?.let { stringResource(Res.string.feature_create_pdf_summary, it, count) } ?: count,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.secondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    val long = pdf.pageCount > PdfInfo.MAX_PAGES
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+        OutlinedTextField(
+            value = pdf.pages,
+            onValueChange = { onAction(SmartExtractAction.PdfPagesChanged(it)) },
+            label = { Text(stringResource(Res.string.feature_create_pdf_pages_label)) },
+            placeholder = { Text(stringResource(Res.string.feature_create_pdf_pages_all)) },
+            supportingText = {
+                Text(
+                    pdf.error?.let { pdfPagesErrorText(it, pdf.pageCount) }
+                        ?: if (long) {
+                            stringResource(Res.string.feature_create_pdf_pages_hint_long, PdfInfo.MAX_PAGES)
+                        } else {
+                            stringResource(Res.string.feature_create_pdf_pages_hint)
+                        },
+                )
+            },
+            isError = pdf.error != null,
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            colors = editorFieldColors(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onAction(SmartExtractAction.ApplyPdfPages) }),
+            modifier = Modifier.weight(1f),
+        )
+        MnemoButton(
+            text = stringResource(Res.string.feature_create_pdf_pages_read),
+            onClick = { onAction(SmartExtractAction.ApplyPdfPages) },
+            style = MnemoButtonStyle.Secondary,
+            enabled = !reading && pdf.error == null,
+            modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun pdfPagesErrorText(error: PdfPagesError, pageCount: Int): String = when (error) {
+    is PdfPagesError.Invalid -> when (val e = error.error) {
+        is PageRangeError.OutOfRange -> stringResource(Res.string.feature_create_pdf_pages_out_of_range, e.page, pageCount)
+        is PageRangeError.Reversed -> stringResource(Res.string.feature_create_pdf_pages_reversed, e.start, e.end)
+        PageRangeError.Empty, is PageRangeError.Malformed -> stringResource(Res.string.feature_create_pdf_pages_malformed)
+    }
+    is PdfPagesError.TooMany -> stringResource(Res.string.feature_create_pdf_pages_too_many, error.limit, error.selected)
 }
 
 /** The Epub source: pick a book, then one of its chapters, whose text goes in the box below. */

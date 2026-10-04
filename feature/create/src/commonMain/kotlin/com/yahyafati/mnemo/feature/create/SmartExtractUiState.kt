@@ -10,6 +10,8 @@ import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.PageRangeError
+import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 
@@ -41,6 +43,8 @@ data class SmartExtractUiState(
     val showSections: Boolean = false,
     /** Asking the user to discard their edits to the text before the chosen sections replace it. */
     val sectionsConfirmation: Boolean = false,
+    /** The PDF opened for the Pdf source (docs/pdf/ROADMAP.md, P1), whose pages the box holds; null when none is open. */
+    val pdf: PdfSummary? = null,
     /** The EPUB read for the Epub source, and the chapter whose text is in the box. */
     val book: BookSummary? = null,
     val chapterId: Int? = null,
@@ -94,6 +98,28 @@ data class SectionsSummary(val options: List<SectionOption>, val selected: Set<I
 
 /** [title] is null for the lead, the text above the first heading; [level] is the heading's (2 for `h2`), 0 for the lead. */
 data class SectionOption(val id: Int, val title: String?, val level: Int, val words: Int)
+
+/**
+ * The PDF the Pdf source has open. The file's copy and its handle stay in the ViewModel; the screen needs only this.
+ * [pages] is the Pages field as typed: empty means every page, which is allowed up to [PdfInfo.MAX_PAGES].
+ */
+data class PdfSummary(
+    val title: String?,
+    val pageCount: Int,
+    val pages: String,
+    /** What is wrong with [pages], shown under the field; the text in the box isn't changed until it is fixed and applied. */
+    val error: PdfPagesError? = null,
+    /** Asking the user to discard their edits to the text before the chosen pages replace it. */
+    val replaceConfirmation: Boolean = false,
+)
+
+sealed interface PdfPagesError {
+    /** The field isn't a page range, or names a page the PDF doesn't have. */
+    data class Invalid(val error: PageRangeError) : PdfPagesError
+
+    /** [selected] pages are more than one read takes. */
+    data class TooMany(val selected: Int, val limit: Int) : PdfPagesError
+}
 
 /** The book Smart Extract is reading chapters from. The text stays in the ViewModel; the screen needs only this. */
 data class BookSummary(
@@ -185,6 +211,17 @@ sealed interface SmartExtractAction {
 
     /** A PDF picked through the Storage Access Framework. */
     data class PdfPicked(val uri: String) : SmartExtractAction
+
+    /** The Pages field of the open PDF was edited; the box keeps its text until [ApplyPdfPages]. */
+    data class PdfPagesChanged(val text: String) : SmartExtractAction
+
+    /** Reads the pages in the field into the box. Asks first when the text has been edited. */
+    data object ApplyPdfPages : SmartExtractAction
+
+    /** The user agreed to replace their edits ([PdfSummary.replaceConfirmation]). */
+    data object ConfirmPdfReplace : SmartExtractAction
+
+    data object CancelPdfReplace : SmartExtractAction
 
     /** An EPUB picked: read it, then choose a chapter. */
     data class EpubPicked(val uri: String) : SmartExtractAction

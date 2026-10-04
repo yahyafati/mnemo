@@ -88,6 +88,33 @@ sealed interface SourceResult {
     data class Failure(val problem: SourceProblem, val detail: String? = null) : SourceResult
 }
 
+/** What a PDF is before any of its text is read (docs/pdf/ROADMAP.md, P1). */
+data class PdfInfo(
+    val pageCount: Int,
+    /** The document's own title, or its file name when it has none. */
+    val title: String? = null,
+) {
+    companion object {
+        /** The most pages one read takes. The selection is limited, not the PDF: any pages of it can be chosen. */
+        const val MAX_PAGES = 300
+    }
+}
+
+/** A PDF opened for reading in pieces: [id] names its copy in the cache until it is closed. */
+data class PdfHandle(val id: String, val info: PdfInfo)
+
+sealed interface PdfInfoResult {
+    data class Success(val info: PdfInfo) : PdfInfoResult
+
+    data class Failure(val problem: SourceProblem, val detail: String? = null) : PdfInfoResult
+}
+
+sealed interface PdfOpenResult {
+    data class Success(val handle: PdfHandle) : PdfOpenResult
+
+    data class Failure(val problem: SourceProblem, val detail: String? = null) : PdfOpenResult
+}
+
 /** A book (EPUB) read into chapters. Nothing in it is saved until the user creates decks from it. */
 data class BookSource(
     val title: String,

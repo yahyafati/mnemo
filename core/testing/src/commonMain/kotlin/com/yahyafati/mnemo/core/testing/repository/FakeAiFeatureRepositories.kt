@@ -14,11 +14,15 @@ import com.yahyafati.mnemo.core.model.CoAuthorDeck
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
+import com.yahyafati.mnemo.core.model.SourceText
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
 import kotlinx.coroutines.channels.Channel
@@ -106,10 +110,22 @@ class FakeStudyAssistRepository : StudyAssistRepository {
     }
 }
 
-/** [SourceRepository] with [results] per source and [books] per EPUB; dictation is driven through [dictation]. */
+/**
+ * [SourceRepository] with [results] per source and [books] per EPUB; dictation is driven through [dictation].
+ * A PDF opens with the [PdfOpenResult] in [pdfs] for its location and is read with [pdfText], which records what
+ * it was asked for in [pdfReads] and [closedPdfs].
+ */
 class FakeSourceRepository : SourceRepository {
     val results = mutableMapOf<SourceInput, SourceResult>()
     val books = mutableMapOf<SourceInput.Epub, BookResult>()
+    val pdfs = mutableMapOf<String, PdfOpenResult>()
+    val pdfReads = mutableListOf<Pair<PdfHandle, PageRanges?>>()
+    val closedPdfs = mutableListOf<PdfHandle>()
+
+    /** The text of a read of a PDF: by default the pages asked for, written out. */
+    var pdfText: (PdfHandle, PageRanges?) -> SourceResult = { handle, pages ->
+        SourceResult.Success(SourceText("Text of ${(pages ?: PageRanges.all(handle.info.pageCount)).format()}.", handle.info.title))
+    }
     val dictation = MutableSharedFlow<DictationEvent>(extraBufferCapacity = 16)
     var dictationAvailable = true
 
@@ -118,6 +134,17 @@ class FakeSourceRepository : SourceRepository {
 
     override suspend fun readBook(source: SourceInput.Epub): BookResult =
         books[source] ?: BookResult.Failure(SourceProblem.FileUnavailable)
+
+    override suspend fun openPdf(uri: String): PdfOpenResult = pdfs[uri] ?: PdfOpenResult.Failure(SourceProblem.FileUnavailable)
+
+    override suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult {
+        pdfReads += handle to pages
+        return pdfText(handle, pages)
+    }
+
+    override suspend fun closePdf(handle: PdfHandle) {
+        closedPdfs += handle
+    }
 
     override fun isDictationAvailable(): Boolean = dictationAvailable
 

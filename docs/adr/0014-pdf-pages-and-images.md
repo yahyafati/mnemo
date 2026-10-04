@@ -188,3 +188,29 @@ Not done in P0, and still open:
   about `PdfRenderer` (every scan codec, a transparent bitmap to fill white) is from its documentation, not from a run.
 - **Tokens, latency and errors per provider** (ROADMAP P0, **(owner)**), and the **(owner)** confirmations of the
   proposed defaults, which keep this ADR at *Proposed*.
+
+## As built (P1, 2026-10-04)
+
+- **`PageRanges`** (`:core:model`) parses and writes the Pages field: sorted runs that don't touch, `-`/`–`/`—`, an
+  open end (`20-`), spaces anywhere, errors `Empty`, `Malformed(at)`, `OutOfRange(page)`, `Reversed(start, end)`.
+  A run of two pages is written as a range (`3-4`). The limit is `PdfInfo.MAX_PAGES` (300); `PdfTextExtractor.MAX_PAGES`
+  is the same constant.
+- **`PdfTextExtractor`** gained `inspect(input, fileName)` (`PdfInfoResult`) and `extract(input, pages, fileName)`;
+  `extract(input, fileName)` stays for PDF links and means "the first 300 pages". Pages the file doesn't have are
+  ignored, runs of consecutive pages are stripped together and joined with a blank line, and `truncated` is set when
+  the limit cut chosen pages or `MAX_CHARS` cut the text.
+- **`SourceRepository.openPdf / readPdf / closePdf`**: `openPdf` checks the size, copies the file to
+  `cache/pdf/<uuid>.pdf` (reading at most `MAX_FILE_BYTES + 1` bytes, so a file that misreports its size is still
+  refused), inspects the copy and deletes it again if that fails; copies and folders older than a day are removed
+  on every open. A handle's id is filtered to letters, digits and `-` before it names a file, so a forged handle
+  can't reach outside `cache/pdf/`. `closePdf` also deletes `cache/pdf/<id>/` (where P3's rendered pages go).
+  `read(SourceInput.Pdf)` is unchanged and unused by Smart Extract now.
+- **Smart Extract**: the PDF source shows the title, the page count and the Pages field with a Read pages button
+  (IME Done also applies). The field is validated as it is typed; the box changes only on apply, after "Replace your
+  changes?" if the text differs from what the last read gave it (a blank box is replaced without asking). A PDF
+  of 300 pages or fewer opens with an empty field (all pages); a longer one with `1-300`, and an empty field there
+  is the "choose 300 pages or fewer" error, not a silent cut.
+- **Deviation from the roadmap:** the open PDF's handle is **not** in `SavedStateHandle`. Nothing else of the
+  box (text, queue, book, sections) survives process death, so restoring only the handle would give a Pages field
+  over an empty box. It lives in the ViewModel and is closed when another source replaces it (a link only once it
+  was read) or the text is cleared; a copy left by a closed screen is removed by the one-day clean-up.

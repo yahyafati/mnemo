@@ -1,12 +1,18 @@
 package com.yahyafati.mnemo.core.data.repository
 
+import com.yahyafati.mnemo.core.common.platform.AppDirectories
 import com.yahyafati.mnemo.core.common.platform.DocumentAccess
+import com.yahyafati.mnemo.core.common.time.Clock
 import com.yahyafati.mnemo.core.ingest.EpubReader
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.DictationEvent
+import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfInfoResult
+import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -15,8 +21,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.time.Duration
+import java.util.UUID
 
 /** Smart Extract's sources (`:core:ingest`): PDFs, links and dictation become plain text on the device. */
 interface SourceRepository {
@@ -25,6 +34,22 @@ interface SourceRepository {
 
     /** An EPUB read into chapters. Read-only: nothing is saved. */
     suspend fun readBook(source: SourceInput.Epub): BookResult
+
+    /**
+     * Opens a picked PDF for reading in pieces (docs/pdf/ROADMAP.md, P1): checks its size, copies it into the cache
+     * (so it can be read again, and by the page renderer later, without another permission) and counts its pages.
+     * Copies left over from earlier are deleted when they are a day old. Close the handle when done.
+     */
+    suspend fun openPdf(uri: String): PdfOpenResult
+
+    /**
+     * The text of [pages] of an opened PDF ([PageRanges.Empty] is no pages, which fails as [SourceProblem.NoText]; null is the
+     * first [PdfTextExtractor.MAX_PAGES]). More pages than that are cut, and the result says so.
+     */
+    suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult
+
+    /** Deletes the copy of an opened PDF. Safe to call twice. */
+    suspend fun closePdf(handle: PdfHandle)
 
     fun isDictationAvailable(): Boolean
 
@@ -38,12 +63,14 @@ internal class DefaultSourceRepository(
     private val web: WebPageExtractor,
     private val epub: EpubReader,
     private val speech: SpeechTranscriber,
+    private val directories: AppDirectories,
+    private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
 ) : SourceRepository {
     override suspend fun read(source: SourceInput): SourceResult = withContext(ioDispatcher) {
         when (source) {
             is SourceInput.Link -> web.extract(source.url)
-            is SourceInput.Pdf -> readPdf(source.uri)
+            is SourceInput.Pdf -> readPdfFile(source.uri)
             is SourceInput.TextFile -> readTextFile(source.uri)
             is SourceInput.Epub -> SourceResult.Failure(SourceProblem.Unsupported)
         }
@@ -64,7 +91,68 @@ internal class DefaultSourceRepository(
         input.use { epub.read(it, info.name) }
     }
 
-    private fun readPdf(uri: String): SourceResult {
+    override suspend fun openPdf(uri: String): PdfOpenResult = withContext(ioDispatcher) {
+        val info = try {
+            documents.info(uri)
+        } catch (e: IOException) {
+            return@withContext PdfOpenResult.Failure(SourceProblem.FileUnavailable)
+        }
+        if ((info.size ?: 0) > PdfTextExtractor.MAX_FILE_BYTES) return@withContext PdfOpenResult.Failure(SourceProblem.TooLarge)
+        val folder = pdfFolder()
+        removeStale(folder)
+        val id = UUID.randomUUID().toString()
+        val copy = File(folder, "$id.pdf")
+        try {
+            if (!folder.isDirectory && !folder.mkdirs()) throw IOException("Can't create $folder")
+            val copied = documents.openInput(uri).use { input -> copy.outputStream().use { input.copyUpTo(it, PdfTextExtractor.MAX_FILE_BYTES + 1) } }
+            // A file that says nothing about its size (or lies) is told from one that just fits by the byte after the limit.
+            if (copied > PdfTextExtractor.MAX_FILE_BYTES) {
+                copy.delete()
+                return@withContext PdfOpenResult.Failure(SourceProblem.TooLarge)
+            }
+            val name = info.name?.removeSuffix(".pdf")?.removeSuffix(".PDF")
+            when (val inspected = copy.inputStream().use { pdf.inspect(it, name) }) {
+                is PdfInfoResult.Success -> PdfOpenResult.Success(PdfHandle(id, inspected.info))
+                is PdfInfoResult.Failure -> {
+                    copy.delete()
+                    PdfOpenResult.Failure(inspected.problem, inspected.detail)
+                }
+            }
+        } catch (e: IOException) {
+            copy.delete()
+            PdfOpenResult.Failure(SourceProblem.FileUnavailable)
+        }
+    }
+
+    override suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult = withContext(ioDispatcher) {
+        val copy = pdfCopy(handle)
+        if (!copy.isFile) return@withContext SourceResult.Failure(SourceProblem.FileUnavailable)
+        try {
+            copy.inputStream().use { pdf.extract(it, pages?.pages, handle.info.title) }
+        } catch (e: IOException) {
+            SourceResult.Failure(SourceProblem.FileUnavailable)
+        }
+    }
+
+    override suspend fun closePdf(handle: PdfHandle) = withContext(ioDispatcher) {
+        pdfCopy(handle).delete()
+        // Rendered pages of the PDF (docs/pdf/ROADMAP.md, P3) sit in a folder named by its id.
+        File(pdfFolder(), handle.id).deleteRecursively()
+        Unit
+    }
+
+    private fun pdfFolder() = File(directories.cache, PDF_FOLDER)
+
+    /** The id is made by [openPdf], but a handle is a plain value: never let one name a file outside the folder. */
+    private fun pdfCopy(handle: PdfHandle) = File(pdfFolder(), "${handle.id.filter { it.isLetterOrDigit() || it == '-' }}.pdf")
+
+    /** A copy is deleted when its PDF is closed; one a closed window or a killed process left behind goes after a day. */
+    private fun removeStale(folder: File) {
+        val cutoff = clock.now().minus(KEEP_PDF).toEpochMilli()
+        folder.listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.deleteRecursively() }
+    }
+
+    private fun readPdfFile(uri: String): SourceResult {
         val info = documents.info(uri)
         if ((info.size ?: 0) > PdfTextExtractor.MAX_FILE_BYTES) return SourceResult.Failure(SourceProblem.TooLarge)
         val input = try {
@@ -105,6 +193,10 @@ internal class DefaultSourceRepository(
     private companion object {
         /** A text file larger than this isn't a document Smart Extract can use (400,000 characters are read at most). */
         const val MAX_TEXT_FILE_BYTES = 8L * 1024 * 1024
+
+        /** The folder of the cache that holds opened PDFs: `<id>.pdf`, and a folder `<id>` for what is made from it. */
+        const val PDF_FOLDER = "pdf"
+        val KEEP_PDF: Duration = Duration.ofDays(1)
     }
 }
 
@@ -120,4 +212,17 @@ private fun InputStream.readUpTo(limit: Int): ByteArray {
         remaining -= read
     }
     return out.toByteArray()
+}
+
+/** Copies at most [limit] bytes of this stream to [out]; returns how many. */
+private fun InputStream.copyUpTo(out: java.io.OutputStream, limit: Long): Long {
+    val buffer = ByteArray(64 * 1024)
+    var total = 0L
+    while (total < limit) {
+        val read = read(buffer, 0, minOf(buffer.size.toLong(), limit - total).toInt())
+        if (read < 0) break
+        out.write(buffer, 0, read)
+        total += read
+    }
+    return total
 }

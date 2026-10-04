@@ -144,27 +144,30 @@ matter from P3 on, so confirm them before then.*
 
 **Goal:** read any pages of a PDF, chosen with a range field.
 
-- [ ] `PageRanges` (`:core:model`): `parse(text, pageCount)` → the sorted, merged, 1-based pages or a
+- [x] `PageRanges` (`:core:model`): `parse(text, pageCount)` → the sorted, merged, 1-based pages or a
       `PageRangeError` (`Empty`, `Malformed(at)`, `OutOfRange(page)`, `Reversed(start, end)`). Accepts spaces,
       `-`, `–` and `—` as dashes, an open end (`20-` = to the last page), repeated and overlapping parts. `format`
       writes the shortest form back (`1-10, 14, 20-25`). Plus `count` and `first(n)` (the limit).
-- [ ] `PdfTextExtractor` grows two calls (keeping `extract` for PDF links): `inspect(input)` → `PdfInfo(pageCount,
+- [x] `PdfTextExtractor` grows two calls (keeping `extract` for PDF links): `inspect(input)` → `PdfInfo(pageCount,
       title)` and `extract(input, pages, fileName)`, which strips only those pages (`startPage`/`endPage` per run of
       consecutive pages) and joins runs with a blank line. Same exceptions and failures as today.
-- [ ] `SourceRepository`: `openPdf(uri)` → `PdfOpenResult` (a `PdfHandle(id, info)` or a `SourceProblem`): the
+- [x] `SourceRepository`: `openPdf(uri)` → `PdfOpenResult` (a `PdfHandle(id, info)` or a `SourceProblem`): the
       size check, then a **copy into `cache/pdf/<id>.pdf`** (`AppDirectories.cache`), then `inspect`.
       `readPdf(handle, pages)` → `SourceResult` from the copy. `closePdf(handle)` deletes it; stale copies (older than
       a day) are deleted on open. The copy is there for P3's renderer and so the picked file can be re-read without a
       second permission.
-- [ ] `MAX_PAGES` applies to the selection: more than 300 pages selected is an error under the field ("Choose 300
+- [x] `MAX_PAGES` applies to the selection: more than 300 pages selected is an error under the field ("Choose 300
       pages or fewer"), not a silent cut. `truncated` is still set when `MAX_CHARS` cuts the text.
-- [ ] Smart Extract: after a PDF is picked or dropped, the PDF source shows its name, page count and a **Pages**
+- [x] Smart Extract: after a PDF is picked or dropped, the PDF source shows its name, page count and a **Pages**
       field (empty = all pages, if 300 or fewer; else `1-300` filled in). Applying it reads those pages into the box,
       asking first if the box was edited (the sections picker's rule: `SourceSections` / "Replace your changes?").
       The selection and the handle id live in the UI state and `SavedStateHandle` (the id only, not the file).
-- [ ] Tests: `PageRangesTest` (`:core:model`), `PdfTextExtractor` page selection on both targets with
+- [x] Tests: `PageRangesTest` (`:core:model`), `PdfTextExtractor` page selection on both targets with
       `outline.pdf`, `SourceRepositoryTest` (copy, stale clean-up, `closePdf`), `SmartExtractViewModel` tests for
       the field and the edit warning (`commonTest`), screenshots of the PDF source with the field (light, dark).
+
+*Status: done (ADR 0014, "As built (P1)"). Open: a look at the Pages field on a real phone and on the desktop; the
+handle is kept in the ViewModel, not in `SavedStateHandle`, as the ADR explains.*
 
 **Exit:** page 450 of a 600-page PDF can be read; PDFs of 300 pages or fewer behave as before when the field is left alone.
 

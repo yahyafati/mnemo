@@ -234,7 +234,7 @@ mnemo/
 │   │   └── test/resources/*.apkg                        # sample decks
 │   │
 │   ├── ingest/src/main/kotlin/com/yahyafati/mnemo/core/ingest/
-│   │   ├── PdfTextExtractor.kt                          # PdfBox-Android text layer, no OCR
+│   │   ├── PdfTextExtractor.kt                          # PdfBox text layer (page selection, page count), no OCR
 │   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
 │   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
 │   │   ├── GenericExtractor.kt  ContentFinder.kt        # jsoup page → main element (scored) → Markdown

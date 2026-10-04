@@ -90,6 +90,21 @@
     <string name="feature_create_drop_file">Drop a PDF or a text file to use it as the source</string>
     <string name="feature_create_drop_file_hint">You can also drop a PDF, text or Markdown file on this page.</string>
     <string name="feature_create_pdf_hint">Text is read on your device. Scanned PDFs have no text to read.</string>
+    <plurals name="feature_create_pdf_pages">
+        <item quantity="one">%1$d page</item>
+        <item quantity="other">%1$d pages</item>
+    </plurals>
+    <string name="feature_create_pdf_summary">%1$s · %2$s</string>
+    <string name="feature_create_pdf_pages_label">Pages</string>
+    <string name="feature_create_pdf_pages_all">All pages</string>
+    <string name="feature_create_pdf_pages_hint">For example 1-10, 14, 20-25. Leave empty to read every page.</string>
+    <string name="feature_create_pdf_pages_hint_long">%1$d pages at most at a time. For example 1-300, or 450-600.</string>
+    <string name="feature_create_pdf_pages_read">Read pages</string>
+    <string name="feature_create_pdf_pages_malformed">Write the pages like 1-10, 14, 20-25.</string>
+    <string name="feature_create_pdf_pages_out_of_range">Page %1$d isn't in this PDF: its pages go from 1 to %2$d.</string>
+    <string name="feature_create_pdf_pages_reversed">%1$d-%2$d runs backwards. Write the smaller page first.</string>
+    <string name="feature_create_pdf_pages_too_many">Choose %1$d pages or fewer (you chose %2$d).</string>
+    <string name="feature_create_pdf_replace_message">You edited the text in the box. Reading other pages replaces it with the text of those pages.</string>
     <string name="feature_create_link_label">Web page or PDF link</string>
     <string name="feature_create_link_read">Read</string>
     <string name="feature_create_link_hint">The page's main text is read on your device. Video pages usually have none.</string>

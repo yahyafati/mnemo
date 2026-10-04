@@ -22,6 +22,11 @@ import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PageRangesResult
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceSections
@@ -47,6 +52,11 @@ import kotlinx.coroutines.launch
  * A link whose page has sections (a Wikipedia article's, docs/web/ROADMAP.md, W4) fills the box with the chosen ones:
  * all of them, or the one a `#Fragment` in the link names. Choosing others rewrites the box, after asking if the user
  * has edited it. The page's text and sections stay here, not in the UI state.
+ *
+ * A PDF (docs/pdf/ROADMAP.md, P1) is opened, not just read: the repository keeps a copy and the Pages field chooses
+ * which of its pages the box holds, so any 300 pages of a long PDF can be used. Applying other pages rewrites the box,
+ * after asking if the user has edited it. The open PDF is closed when another source replaces it or the text is
+ * cleared; a copy that outlives the ViewModel is deleted by the repository when it is a day old.
  *
  * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
@@ -77,6 +87,10 @@ class SmartExtractViewModel(
     private var generationJob: Job? = null
     private var dictationJob: Job? = null
     private var readJob: Job? = null
+
+    /** The open PDF, and the text its pages last gave the box (to tell the user's edits from it). */
+    private var pdf: PdfHandle? = null
+    private var pdfText: String? = null
 
     /** The book whose chapters can be chosen, and the name its deck has (or would have) under the book's root. */
     private var book: BookSource? = null
@@ -169,11 +183,20 @@ class SmartExtractViewModel(
             SmartExtractAction.ClearText -> {
                 endBatch()
                 clearSections()
+                releasePdf()
                 _uiState.update { it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null) }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
-            is SmartExtractAction.PdfPicked -> read(SourceInput.Pdf(action.uri))
+            is SmartExtractAction.PdfPicked -> openPdf(action.uri)
+            is SmartExtractAction.PdfPagesChanged -> pdf?.let { handle ->
+                _uiState.update { state ->
+                    state.pdf?.let { state.copy(pdf = it.copy(pages = action.text, error = choosePages(action.text, handle.info.pageCount).second)) } ?: state
+                }
+            }
+            SmartExtractAction.ApplyPdfPages -> applyPdfPages(confirmed = false)
+            SmartExtractAction.ConfirmPdfReplace -> applyPdfPages(confirmed = true)
+            SmartExtractAction.CancelPdfReplace -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(replaceConfirmation = false)) } ?: state }
             is SmartExtractAction.EpubPicked -> readBook(action.uri)
             is SmartExtractAction.SelectChapter -> {
                 endBatch()
@@ -215,7 +238,7 @@ class SmartExtractViewModel(
             is SmartExtractAction.FileDropped -> when (DroppedFile.of(action.location)) {
                 DroppedFile.Pdf -> {
                     _uiState.update { it.copy(sourceKind = SourceKind.Pdf) }
-                    read(SourceInput.Pdf(action.location))
+                    openPdf(action.location)
                 }
                 DroppedFile.Text -> {
                     _uiState.update { it.copy(sourceKind = SourceKind.Paste) }
@@ -297,6 +320,7 @@ class SmartExtractViewModel(
         readJob = viewModelScope.launch {
             when (val result = sources.read(source)) {
                 is SourceResult.Success -> {
+                    releasePdf()
                     val fragment = (source as? SourceInput.Link)?.url?.substringAfter('#', "")
                     val text = adoptSections(result.source, fragment)
                     _uiState.update { state ->
@@ -314,6 +338,93 @@ class SmartExtractViewModel(
                 is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
             }
         }
+    }
+
+    /** Opens the PDF at [location] and reads the pages the Pages field starts with: all of them, or the first 300. */
+    private fun openPdf(location: String) {
+        endBatch()
+        readJob?.cancel()
+        _uiState.update { it.copy(reading = true, sourceProblem = null) }
+        readJob = viewModelScope.launch {
+            when (val opened = sources.openPdf(location)) {
+                is PdfOpenResult.Success -> {
+                    val handle = opened.handle
+                    releasePdf()
+                    pdf = handle
+                    pdfText = null
+                    val count = handle.info.pageCount
+                    val field = if (count > PdfInfo.MAX_PAGES) "1-${PdfInfo.MAX_PAGES}" else ""
+                    _uiState.update { it.copy(pdf = PdfSummary(title = handle.info.title, pageCount = count, pages = field)) }
+                    loadPdfPages(handle, choosePages(field, count).first)
+                }
+                is PdfOpenResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = opened.problem) }
+            }
+        }
+    }
+
+    /** Reads the field's pages into the box; a field with an error, or text the user edited and hasn't agreed to lose, waits. */
+    private fun applyPdfPages(confirmed: Boolean) {
+        val handle = pdf ?: return
+        val summary = _uiState.value.pdf ?: return
+        val (pages, error) = choosePages(summary.pages, handle.info.pageCount)
+        if (pages == null) {
+            _uiState.update { it.copy(pdf = summary.copy(error = error, replaceConfirmation = false)) }
+            return
+        }
+        val text = _uiState.value.text
+        if (!confirmed && text.isNotBlank() && text != pdfText) {
+            _uiState.update { it.copy(pdf = summary.copy(error = null, replaceConfirmation = true)) }
+            return
+        }
+        endBatch()
+        readJob?.cancel()
+        _uiState.update { it.copy(reading = true, sourceProblem = null, pdf = summary.copy(error = null, replaceConfirmation = false)) }
+        readJob = viewModelScope.launch { loadPdfPages(handle, pages) }
+    }
+
+    private suspend fun loadPdfPages(handle: PdfHandle, pages: PageRanges?) {
+        when (val result = sources.readPdf(handle, pages)) {
+            is SourceResult.Success -> {
+                clearSections()
+                pdfText = result.source.text
+                _uiState.update { state ->
+                    state.withText(result.source.text).copy(
+                        reading = false,
+                        title = result.source.title,
+                        truncated = result.source.truncated,
+                        disambiguation = false,
+                        chapterId = null,
+                    )
+                }
+            }
+            is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
+        }
+    }
+
+    /** Forgets the open PDF and has its copy deleted. */
+    private fun releasePdf() {
+        val handle = pdf ?: return
+        pdf = null
+        pdfText = null
+        _uiState.update { it.copy(pdf = null) }
+        viewModelScope.launch { sources.closePdf(handle) }
+    }
+
+    /**
+     * The pages [field] names in a PDF of [pageCount] pages, or why it can't be read. An empty field is every
+     * page, which one read takes only up to [PdfInfo.MAX_PAGES]: more is an error, not a silent cut.
+     */
+    private fun choosePages(field: String, pageCount: Int): Pair<PageRanges?, PdfPagesError?> {
+        val pages = if (field.isBlank()) {
+            PageRanges.all(pageCount)
+        } else {
+            when (val parsed = PageRanges.parse(field, pageCount)) {
+                is PageRangesResult.Valid -> parsed.ranges
+                is PageRangesResult.Invalid -> return null to PdfPagesError.Invalid(parsed.error)
+            }
+        }
+        if (pages.count > PdfInfo.MAX_PAGES) return null to PdfPagesError.TooMany(pages.count, PdfInfo.MAX_PAGES)
+        return pages to null
     }
 
     /**
@@ -388,6 +499,7 @@ class SmartExtractViewModel(
      */
     private suspend fun adopt(book: BookSource, name: String?, chapterId: Int?, openChapters: Boolean = chapterId == null) {
         clearSections()
+        releasePdf()
         val titled = book.withDefaultTitles()
         this.book = titled
         bookName = name ?: titled.defaultName()

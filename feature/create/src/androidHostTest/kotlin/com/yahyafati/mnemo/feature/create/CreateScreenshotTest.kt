@@ -89,8 +89,39 @@ class CreateScreenshotTest {
     fun batchRunDark() = captureRoboImage("src/androidHostTest/screenshots/create_batch_run_dark.png") { BatchRun(dark = true) }
 
     @Test
+    fun pdfPagesLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_pages_light.png") { PdfPages(dark = false, error = null) }
+
+    @Test
+    fun pdfPagesDark() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_pages_dark.png") {
+        PdfPages(dark = true, error = PdfPagesError.TooMany(selected = 400, limit = 300))
+    }
+
+    @Test
     fun bookImportDrm() = captureRoboImage("src/androidHostTest/screenshots/create_book_import_drm.png") {
         MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
+    }
+
+    /** Smart Extract with a 612-page PDF open: the Pages field (docs/pdf/ROADMAP.md, P1), valid or with an error under it. */
+    @androidx.compose.runtime.Composable
+    private fun PdfPages(dark: Boolean, error: PdfPagesError?) {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val text = "Mitochondria make most of the cell's ATP by oxidative phosphorylation."
+        MnemoTheme(darkTheme = dark) {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Cell biology")),
+                    deckId = "d",
+                    sourceKind = SourceKind.Pdf,
+                    text = text,
+                    title = "Cell biology",
+                    pdf = PdfSummary(title = "Cell biology", pageCount = 612, pages = if (error == null) "1-300" else "1-400", error = error),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
     }
 
     /** Smart Extract in the middle of a book run: chapter 3 of 8 is done and waits for its review. */

@@ -6,8 +6,11 @@ import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.yahyafati.mnemo.core.ingest.PdfSelection
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.pdfSourceResult
+import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import java.io.IOException
@@ -18,37 +21,59 @@ class PdfBoxAndroidTextExtractor(private val context: Context) : PdfTextExtracto
     @Volatile
     private var initialized = false
 
-    override fun extract(input: InputStream, fileName: String?): SourceResult {
+    override fun inspect(input: InputStream, fileName: String?): PdfInfoResult = guarded(
+        failure = { problem, detail -> PdfInfoResult.Failure(problem, detail) },
+    ) {
+        open(input) { document ->
+            val title = document.documentInformation?.title?.trim()?.takeIf { it.isNotEmpty() } ?: fileName
+            PdfInfoResult.Success(PdfInfo(document.numberOfPages, title))
+        }
+    }
+
+    override fun extract(input: InputStream, pages: List<Int>?, fileName: String?): SourceResult = guarded(
+        failure = { problem, detail -> SourceResult.Failure(problem, detail) },
+    ) {
+        open(input) { document ->
+            val selection = PdfSelection.of(pages, document.numberOfPages)
+            val stripper = PDFTextStripper().apply {
+                lineSeparator = "\n"
+                paragraphEnd = "\n\n"
+            }
+            val text = selection.runs.joinToString("\n\n") { run ->
+                stripper.startPage = run.first
+                stripper.endPage = run.last
+                stripper.getText(document)
+            }
+            pdfSourceResult(text, selection.cut, document.documentInformation?.title, fileName)
+        }
+    }
+
+    private inline fun <T> open(input: InputStream, block: (PDDocument) -> T): T {
         if (!initialized) {
             // Loads PdfBox's font and glyph resources; cheap after the first time.
             PDFBoxResourceLoader.init(context.applicationContext)
             initialized = true
         }
-        return try {
-            PDDocument.load(input, "", MemoryUsageSetting.setupMixed(MAX_MAIN_MEMORY_BYTES)).use { document ->
-                // Owner-password PDFs open without a password but forbid extraction; the user has the file.
-                if (document.isEncrypted) document.isAllSecurityToBeRemoved = true
-                val pages = document.numberOfPages
-                val stripper = PDFTextStripper().apply {
-                    startPage = 1
-                    endPage = minOf(pages, PdfTextExtractor.MAX_PAGES)
-                    lineSeparator = "\n"
-                    paragraphEnd = "\n\n"
-                }
-                pdfSourceResult(stripper.getText(document), pages, document.documentInformation?.title, fileName)
-            }
-        } catch (e: InvalidPasswordException) {
-            SourceResult.Failure(SourceProblem.Encrypted)
-        } catch (e: NoClassDefFoundError) {
-            // Certificate-encrypted PDFs need BouncyCastle, which Mnemo doesn't ship.
-            SourceResult.Failure(SourceProblem.Encrypted)
-        } catch (e: IOException) {
-            SourceResult.Failure(SourceProblem.Unsupported, e.message)
-        } catch (e: IllegalStateException) {
-            SourceResult.Failure(SourceProblem.Unsupported, e.message)
-        } catch (e: OutOfMemoryError) {
-            SourceResult.Failure(SourceProblem.TooLarge)
+        return PDDocument.load(input, "", MemoryUsageSetting.setupMixed(MAX_MAIN_MEMORY_BYTES)).use { document ->
+            // Owner-password PDFs open without a password but forbid extraction; the user has the file.
+            if (document.isEncrypted) document.isAllSecurityToBeRemoved = true
+            block(document)
         }
+    }
+
+    private inline fun <T> guarded(failure: (SourceProblem, String?) -> T, block: () -> T): T = try {
+        block()
+    } catch (e: InvalidPasswordException) {
+        failure(SourceProblem.Encrypted, null)
+    } catch (e: NoClassDefFoundError) {
+        // Certificate-encrypted PDFs need BouncyCastle, which Mnemo doesn't ship.
+        failure(SourceProblem.Encrypted, null)
+    } catch (e: IOException) {
+        failure(SourceProblem.Unsupported, e.message)
+    } catch (e: IllegalStateException) {
+        failure(SourceProblem.Unsupported, e.message)
+    } catch (e: OutOfMemoryError) {
+        failure(SourceProblem.TooLarge, null)
     }
 
     private companion object {

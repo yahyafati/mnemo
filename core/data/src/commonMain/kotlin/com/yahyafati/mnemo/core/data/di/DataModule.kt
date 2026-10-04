@@ -106,7 +106,7 @@ val dataModule = module {
         DefaultStudyAssistRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind StudyAssistRepository::class
     factory {
-        DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+        DefaultSourceRepository(get<DocumentAccess>(), get(), get(), get(), get(), get<AppDirectories>(), get(), dispatcher(MnemoDispatchers.IO))
     } bind SourceRepository::class
     factoryOf(::OfflineStatsRepository) bind StatsRepository::class
 

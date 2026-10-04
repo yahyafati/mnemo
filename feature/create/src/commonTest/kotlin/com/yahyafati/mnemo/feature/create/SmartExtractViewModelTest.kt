@@ -15,6 +15,9 @@ import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -304,7 +307,8 @@ class SmartExtractViewModelTest {
     @Test
     fun pdfsAndLinksFillTheTextBox() = runTest {
         val vm = readyViewModel(text = "")
-        sources.results[SourceInput.Pdf("content://doc/1")] = SourceResult.Success(SourceText("Page text.", title = "Lecture 3", truncated = true))
+        sources.pdfs["content://doc/1"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(pageCount = 4, title = "Lecture 3")))
+        sources.pdfText = { _, _ -> SourceResult.Success(SourceText("Page text.", title = "Lecture 3", truncated = true)) }
         sources.results[SourceInput.Link("example.com/a")] = SourceResult.Failure(SourceProblem.NoText)
 
         vm.onAction(SmartExtractAction.SelectSource(SourceKind.Pdf))
@@ -331,7 +335,8 @@ class SmartExtractViewModelTest {
     @Test
     fun aDroppedFileBecomesTheSourceByItsKind() = runTest {
         val vm = readyViewModel(text = "")
-        sources.results[SourceInput.Pdf("/home/me/Lecture 3.pdf")] = SourceResult.Success(SourceText("From the PDF.", title = "Lecture 3"))
+        sources.pdfs["/home/me/Lecture 3.pdf"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(pageCount = 2, title = "Lecture 3")))
+        sources.pdfText = { _, _ -> SourceResult.Success(SourceText("From the PDF.", title = "Lecture 3")) }
         sources.results[SourceInput.TextFile("/home/me/notes.md")] = SourceResult.Success(SourceText("# Notes\nFrom the file.", title = "notes"))
 
         vm.onAction(SmartExtractAction.FileDropped("/home/me/Lecture 3.pdf"))
