@@ -6,7 +6,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.model.AiCapabilities
+import com.yahyafati.mnemo.core.model.AiFailure
+import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
@@ -18,6 +21,8 @@ import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorMessage
 import com.yahyafati.mnemo.feature.create.coauthor.CoAuthorScreen
@@ -97,6 +102,26 @@ class CreateScreenshotTest {
     }
 
     @Test
+    fun pdfReadOptionsLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_read_options_light.png") {
+        PdfRead(dark = false, mode = PdfReadMode.Auto, pagesWithoutText = 6)
+    }
+
+    @Test
+    fun pdfReadProgressDark() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_read_progress_dark.png") {
+        PdfRead(dark = true, mode = PdfReadMode.ReadWithAi, readState = PdfReadState.Running(done = 3, total = 12, page = 4), reading = true)
+    }
+
+    @Test
+    fun pdfReadFailedLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_read_failed_light.png") {
+        PdfRead(
+            dark = false,
+            mode = PdfReadMode.ReadWithAi,
+            readState = PdfReadState.Failed(PageReadFailure.Ai(AiFailure(AiProblem.RateLimited)), page = 4, done = 3, total = 12),
+            transcribed = true,
+        )
+    }
+
+    @Test
     fun pdfChaptersLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_chapters_light.png") { PdfChapters(dark = false) }
 
     @Test
@@ -129,6 +154,48 @@ class CreateScreenshotTest {
                         error = error,
                         printedPages = "i–xii, 1–600",
                         chapters = pdfChapters(),
+                    ),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
+    }
+
+    /** The PDF source with a model that reads images set up (docs/pdf/ROADMAP.md, P5): the mode, the quality, and where a read is. */
+    @androidx.compose.runtime.Composable
+    private fun PdfRead(
+        dark: Boolean,
+        mode: PdfReadMode,
+        pagesWithoutText: Int = 0,
+        readState: PdfReadState? = null,
+        reading: Boolean = false,
+        transcribed: Boolean = false,
+    ) {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-4-scout", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val route = AiRoute(AiTask.ReadPages, provider, "llama-4-scout", AiCapabilities(vision = true), usesDefault = true)
+        val text = "# Cell biology\n\nMitochondria make most of the cell's ATP by oxidative phosphorylation."
+        MnemoTheme(darkTheme = dark) {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = route.copy(task = AiTask.Extract),
+                    readRoute = route,
+                    decks = listOf(DeckOption("d", "Cell biology")),
+                    deckId = "d",
+                    sourceKind = SourceKind.Pdf,
+                    text = text,
+                    title = "Cell biology (scan)",
+                    reading = reading,
+                    pdf = PdfSummary(
+                        title = "Cell biology (scan)",
+                        pageCount = 12,
+                        pages = "",
+                        mode = mode,
+                        quality = PdfQuality.High,
+                        pagesWithoutText = pagesWithoutText,
+                        readState = readState,
+                        transcribed = transcribed,
                     ),
                 ),
                 onAction = {},

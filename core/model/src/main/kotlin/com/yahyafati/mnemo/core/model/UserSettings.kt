@@ -33,6 +33,10 @@ data class UserSettings(
      * [AiProvider.disclosureAcceptedAt]: an image carries everything on the page, not only the text.
      */
     val imageDisclosureProviders: Set<String> = emptySet(),
+    /** How the PDF source read pages last time (docs/pdf/ROADMAP.md, P5); null until the user chooses, which means Auto when a model reads images and Text otherwise. */
+    val pdfReadMode: PdfReadMode? = null,
+    /** The resolution page images are sent at when a PDF is read with AI. */
+    val pdfQuality: PdfQuality = PdfQuality.Standard,
 ) {
     fun hasAcceptedImages(providerId: String): Boolean = providerId in imageDisclosureProviders
 }

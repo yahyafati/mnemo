@@ -316,3 +316,31 @@ Not done in P0, and still open:
   images' for a request without images. Accepted ids of deleted providers stay in the set; they are a few bytes.
   **Not wired to a screen yet**: nothing sends images until P5, which calls it from Smart Extract's ViewModel.
 
+## As built (P5, 2026-10-04)
+
+- **Modes.** `PdfReadMode { Text, Auto, ReadWithAi }` (`:core:model`). The mode and the image quality are chosen in the PDF
+  source and remembered in `UserSettings` (`pdfReadMode`, null until chosen; `pdfQuality`). With no remembered mode the
+  default is Auto when the `ReadPages` route's model has `vision`, else Text; a remembered AI mode on a model that no longer
+  sees images reads as Text, and the AI chips are disabled with a hint pointing at Settings › AI providers.
+- **The first read stays free.** Opening a PDF always reads its text layer, whatever the mode; the AI modes run when the
+  user presses Read pages, or **Read them with AI** under "N of the selected pages have no text (scanned?)". That count is
+  made after a text read from `pageTexts` (a page is "text" with at least 30 non-space characters, `PdfPageText.MIN_CHARS`),
+  and a PDF that fails as `NoText` counts every selected page. This deviates from "default mode applies on open" so that
+  opening a file never sends or confirms anything.
+- **Plan, then agree.** `ReadPdfPagesUseCase.plan` decides each page: Auto uses the layer where it has text, anything
+  already transcribed this session (the cache, keyed by PDF, page, model and quality, blank pages included) is reused, the
+  rest is a request. With no requests the box is filled at once; a PDF with text on every page in Auto is simply the text
+  read; otherwise the screen asks "Mnemo will send an image of each of N pages to Provider (model)…", then shows the provider
+  notice (if new) and the image notice (once per provider, `pendingDisclosures` order), then runs.
+- **Run.** One request per page in order through `PdfReadRepository.transcribe` (render at the chosen quality, the
+  transcription prompt, tokens logged under `ReadPages`; the reply is cleaned of a surrounding code fence and with
+  `TextCleanup.normalizeMarkdown`, and an empty reply is `InvalidResponse`, not an empty page). The box fills page by page
+  and is read-only meanwhile. **A page that renders blank is an empty page, not an error** (scans have blank versos): it is
+  left out, remembered, and counted in a message. Any other failure stops the run with the pages so far in the box and a
+  **Resume** that goes on from the failed page, appending to what the box holds (so edits survive); **Stop** keeps the box as
+  it is. The text stops at `SourceText.MAX_CHARS` and the run stops there too, rather than paying for text that would be cut.
+- **Report.** After a run that put model-written text in the box, a note and `ReportAiButton` (`AiReportKind.PdfTranscription`)
+  sit under it.
+- **Not done / open.** No end-to-end test with `scanned.pdf` through the data layer (renderers are covered in `:core:ingest`,
+  the request path with a fake renderer in `:core:data`); no real provider has been run; token numbers are still the
+  owner's P0 measurements.

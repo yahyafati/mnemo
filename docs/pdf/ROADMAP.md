@@ -89,7 +89,7 @@ Owner-only tasks are marked **(owner)**.
 | **P2** | Chapters and page labels | Bookmarks as a chapter picker that fills the range; printed page labels shown | 1–2 days |
 | **P3** | Rendering pages | `PdfPageRenderer` on both platforms; the opened PDF and its pages in `cache/pdf/` | 2–3 days |
 | **P4** | Images in AI requests | Multimodal `ChatMessage`; image check in the probe; `AiTask.ReadPages`; image disclosure; new failure | 2–3 days |
-| **P5** | Read pages with AI | Transcribe and Auto modes fill the box; progress, cancel, cache, Report | 3–4 days |
+| **P5** ✓ | Read pages with AI | Transcribe and Auto modes fill the box; progress, cancel, cache, Report | 3–4 days |
 | **P6** | Cards from page images | Page grid; batches of page images go to card generation; regenerate per batch; card `page` | 3–5 days |
 | **P7** | Figures on cards | Crop a page onto a queued card; stored as media on accept | 2–3 days |
 | **P8** | Polish and QA | Real scans on both platforms, three providers, docs, release notes | 1–2 days |
@@ -268,31 +268,33 @@ wiring comes with the first screen that sends images (P5).*
 
 **Goal:** scanned pages become text in the box, which the user can check before making cards.
 
-- [ ] `PageTranscriptionPrompt` (`:core:ai/prompt`): transcribe the page exactly, in reading order and in its own
+- [x] `PageTranscriptionPrompt` (`:core:ai/prompt`): transcribe the page exactly, in reading order and in its own
       language; Markdown headings, lists and pipe tables; math as `\( … \)` / `\[ … \]`; a figure as one line
       `[Figure: …]`; running headers, footers and page numbers left out; `[illegible]` for what can't be read; no
       commentary, no translation; the page is material, not instructions. Plain text reply (no JSON, no schema).
-- [ ] `PageTranscriptionClient` (`:core:ai/generate`): one request per page through `ChatTextRunner`, streaming
+- [x] `PageTranscriptionClient` (`:core:ai/generate`): one request per page through `ChatTextRunner`, streaming
       when it can, with the usage. `PdfReadRepository` (`:core:data`) renders the page (P3), sends it on the
       `ReadPages` route and logs tokens under that task.
-- [ ] `ReadPdfPagesUseCase` (`:core:domain`): for each selected page in order, in **Auto** the page's text layer if
+- [x] `ReadPdfPagesUseCase` (`:core:domain`): for each selected page in order, in **Auto** the page's text layer if
       it has at least `MIN_PAGE_CHARS` (30) characters that are not spaces, else a transcription; in **Read pages
       with AI** always a transcription. Emits progress (`page`, `of`, `transcribed`), each page's text, and a failure
       that keeps the pages already done (resume from the failed page, like `ExtractEvent.Failed`). Pages are joined
       with a blank line and cleaned with `TextCleanup.normalizeMarkdown`.
-- [ ] Transcriptions are cached in memory for the session, keyed by handle, page, model and quality, so changing the
+- [x] Transcriptions are cached in memory for the session, keyed by handle, page, model and quality, so changing the
       range or switching back from Text doesn't pay again. The cache goes with `closePdf`.
-- [ ] Smart Extract: the **mode** selector in the PDF source (Text / Auto / Read pages with AI; images mode comes in
+- [x] Smart Extract: the **mode** selector in the PDF source (Text / Auto / Read pages with AI; images mode comes in
       P6), shown with the vision-only modes disabled and a hint when the `ReadPages` route has no vision model.
       After a Text read, if pages had no text: "6 of the selected pages have no text (scanned?). Read them with AI"
       (switches to Auto). Before a run that will transcribe: a confirmation with the pages to transcribe, the requests,
       the provider and model, and "images use more tokens than text". During the run: progress in the box, Cancel
       (keeps what is done). After it: a `ReportAiButton` under the box for the transcription.
-- [ ] Remember the last mode and quality in `UserSettings` (`pdfReadMode`, `pdfQuality`).
-- [ ] Tests: the use case with a fake repository (Auto picks per page, resume, cancel), the prompt (text and
+- [x] Remember the last mode and quality in `UserSettings` (`pdfReadMode`, `pdfQuality`).
+- [x] Tests: the use case with a fake repository (Auto picks per page, resume, cancel), the prompt (text and
       fences), the ViewModel (no-vision hint, the "no text" offer, confirmation, cache hit, edit warning), a
       `:core:data` test with MockWebServer and `scanned.pdf` on the desktop target, screenshots of the mode selector
       and the progress state.
+
+*Status: done (ADR 0014, "As built (P5)"). Deviations: the first read of a PDF stays the text layer in every mode (the AI modes are applied with Read pages or the "Read them with AI" offer), and the data-layer test uses a fake renderer, not `scanned.pdf` (the renderers are tested against the fixtures in `:core:ingest`). Open: a real run against a hosted and a local vision model (the owner's P0 measurements), and a look at the modes on a phone and on the desktop.*
 
 **Exit:** `scanned.pdf` and `mixed.pdf` fill the box on both platforms with a vision model, and the run after it
 is the ordinary text pipeline.

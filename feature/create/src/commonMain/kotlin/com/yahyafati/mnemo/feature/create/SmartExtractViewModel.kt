@@ -5,11 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
+import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.BookDeckNames
 import com.yahyafati.mnemo.core.domain.ExtractEvent
 import com.yahyafati.mnemo.core.domain.ExtractRequest
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.PageSource
+import com.yahyafati.mnemo.core.domain.PageTranscriptionCache
+import com.yahyafati.mnemo.core.domain.PdfReadPlan
+import com.yahyafati.mnemo.core.domain.PdfReadPlanResult
+import com.yahyafati.mnemo.core.domain.ReadPagesEvent
+import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateResult
 import com.yahyafati.mnemo.core.domain.SkipReason
@@ -20,6 +27,7 @@ import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
+import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PageLabels
@@ -28,10 +36,16 @@ import com.yahyafati.mnemo.core.model.PageRangesResult
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageText
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceSections
 import com.yahyafati.mnemo.core.model.SourceText
+import com.yahyafati.mnemo.core.model.pendingDisclosures
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -59,6 +73,12 @@ import kotlinx.coroutines.launch
  * after asking if the user has edited it. The open PDF is closed when another source replaces it or the text is
  * cleared; a copy that outlives the ViewModel is deleted by the repository when it is a day old.
  *
+ * Pages can be read three ways (P5): **Text** (the text layer, free), **Auto** (the layer where a page has one, a vision
+ * model's transcription of the page where it has none) and **Read pages with AI**. The AI modes first plan which pages
+ * need a request, ask the user to agree to that number, then show the text growing in the box page by page; a failure
+ * keeps the pages done and Resume goes on from the page that failed. Transcriptions are kept for the session
+ * ([PageTranscriptionCache]), so changing the pages or the mode doesn't pay twice.
+ *
  * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
  * (made by the book import) the chapter's deck is selected, found by computing its name.
@@ -77,6 +97,8 @@ class SmartExtractViewModel(
     private val regenerateCard: RegenerateCardUseCase,
     private val acceptCards: AcceptGeneratedCardsUseCase,
     private val bookHandoff: BookHandoff,
+    private val userSettings: UserSettingsRepository,
+    private val readPdfPages: ReadPdfPagesUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SmartExtractUiState(dictationAvailable = sources.isDictationAvailable()))
     val uiState: StateFlow<SmartExtractUiState> = _uiState.asStateFlow()
@@ -92,6 +114,13 @@ class SmartExtractViewModel(
     /** The open PDF, and the text its pages last gave the box (to tell the user's edits from it). */
     private var pdf: PdfHandle? = null
     private var pdfText: String? = null
+
+    /** What the AI modes transcribed in this session, and the read waiting for the user's agreement or going on. */
+    private val transcriptions = PageTranscriptionCache()
+
+    private class PdfRun(val route: AiRoute, val plan: PdfReadPlan, var failedAt: Int = 0)
+
+    private var pdfRun: PdfRun? = null
 
     /** The book whose chapters can be chosen, and the name its deck has (or would have) under the book's root. */
     private var book: BookSource? = null
@@ -138,11 +167,15 @@ class SmartExtractViewModel(
     /** Providers whose notice was accepted here; the repository's flow may not have caught up yet. */
     private val disclosed = mutableSetOf<String>()
 
+    /** The same for the notice about page images, and the notices still to show after the one on screen. */
+    private val imageDisclosed = mutableSetOf<String>()
+    private var disclosureSteps: List<DisclosureStep> = emptyList()
+
     init {
         viewModelScope.launch {
             combine(aiProviders.observeEffectiveRoutes(), deckRepository.observeDeckSummaries()) { routes, decks ->
-                routes[AiTask.Extract] to decks.map { DeckOption(it.deck.id, it.path, it.totalCount) }.sortedBy { it.path.lowercase() }
-            }.collect { (route, decks) ->
+                Triple(routes[AiTask.Extract], routes[AiTask.ReadPages], decks.map { DeckOption(it.deck.id, it.path, it.totalCount) }.sortedBy { it.path.lowercase() })
+            }.collect { (route, readRoute, decks) ->
                 val preferred = preferredDeck(decks)
                 val pinned = pinnedDeckId
                 if (pinned != null && decks.any { it.id == pinned }) pinnedDeckId = null
@@ -150,6 +183,7 @@ class SmartExtractViewModel(
                     state.copy(
                         isLoading = false,
                         route = route,
+                        readRoute = readRoute,
                         decks = decks,
                         deckId = preferred?.id
                             ?: state.deckId?.takeIf { id -> id == pinned || decks.any { it.id == id } }
@@ -184,8 +218,13 @@ class SmartExtractViewModel(
             SmartExtractAction.ClearText -> {
                 endBatch()
                 clearSections()
+                // An AI read of PDF pages would go on filling the box that was just emptied.
+                val aiReading = _uiState.value.pdf?.readState != null
+                if (aiReading) readJob?.cancel()
                 releasePdf()
-                _uiState.update { it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null) }
+                _uiState.update {
+                    it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null, reading = it.reading && !aiReading)
+                }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
@@ -196,6 +235,19 @@ class SmartExtractViewModel(
                 }
             }
             SmartExtractAction.ApplyPdfPages -> applyPdfPages(confirmed = false)
+            is SmartExtractAction.SetPdfReadMode -> setPdfReadMode(action.mode)
+            is SmartExtractAction.SetPdfQuality -> setPdfQuality(action.quality)
+            SmartExtractAction.ReadPdfPagesWithAi -> {
+                setPdfReadMode(PdfReadMode.Auto)
+                applyPdfPages(confirmed = false)
+            }
+            SmartExtractAction.ConfirmPdfRead -> confirmPdfRead()
+            SmartExtractAction.DismissPdfReadConfirmation -> {
+                pdfRun = null
+                _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(readConfirmation = null)) } ?: state }
+            }
+            SmartExtractAction.CancelPdfRead -> cancelPdfRead()
+            SmartExtractAction.ResumePdfRead -> resumePdfRead()
             SmartExtractAction.ConfirmPdfReplace -> applyPdfPages(confirmed = true)
             SmartExtractAction.CancelPdfReplace -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(replaceConfirmation = false)) } ?: state }
             SmartExtractAction.ShowPdfChapters -> pdf?.let { handle ->
@@ -305,7 +357,8 @@ class SmartExtractViewModel(
             SmartExtractAction.AcceptDisclosure -> acceptDisclosure()
             SmartExtractAction.DismissDisclosure -> {
                 afterDisclosure = null
-                _uiState.update { it.copy(disclosure = null) }
+                disclosureSteps = emptyList()
+                _uiState.update { it.copy(disclosure = null, disclosureStep = DisclosureStep.Text) }
             }
             is SmartExtractAction.Accept -> accept(listOf(action.id))
             SmartExtractAction.AcceptAll -> accept(_uiState.value.acceptable.map { it.card.id })
@@ -366,7 +419,26 @@ class SmartExtractViewModel(
                     pdfText = null
                     val count = handle.info.pageCount
                     val field = if (count > PdfInfo.MAX_PAGES) "1-${PdfInfo.MAX_PAGES}" else ""
-                    _uiState.update { it.copy(pdf = PdfSummary(title = handle.info.title, pageCount = count, pages = field, printedPages = handle.info.labels?.let { PageLabels.summary(it) }, chapters = chapterOptions(handle.info))) }
+                    // The route may still be loading when a PDF is dropped on a screen that was just opened.
+                    _uiState.first { !it.isLoading }
+                    val canRead = _uiState.value.canReadPages
+                    val remembered = userSettings.settings.first()
+                    // Auto is the default for a model that reads images; a remembered AI mode needs one, or it falls back to Text.
+                    val mode = (remembered.pdfReadMode ?: if (canRead) PdfReadMode.Auto else PdfReadMode.Text).takeIf { canRead || !it.usesAi } ?: PdfReadMode.Text
+                    _uiState.update {
+                        it.copy(
+                            pdf = PdfSummary(
+                                title = handle.info.title,
+                                pageCount = count,
+                                pages = field,
+                                printedPages = handle.info.labels?.let { labels -> PageLabels.summary(labels) },
+                                chapters = chapterOptions(handle.info),
+                                mode = mode,
+                                quality = remembered.pdfQuality,
+                            ),
+                        )
+                    }
+                    // The first read is always the text layer: it costs nothing, and says which pages have none.
                     loadPdfPages(handle, choosePages(field, count).first)
                 }
                 is PdfOpenResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = opened.problem) }
@@ -390,8 +462,143 @@ class SmartExtractViewModel(
         }
         endBatch()
         readJob?.cancel()
-        _uiState.update { it.copy(reading = true, sourceProblem = null, pdf = summary.copy(error = null, replaceConfirmation = false)) }
-        readJob = viewModelScope.launch { loadPdfPages(handle, pages) }
+        pdfRun = null
+        // An AI mode needs a model that reads images; one that stopped being there reads the text layer instead.
+        val mode = summary.mode.takeIf { !it.usesAi || _uiState.value.canReadPages } ?: PdfReadMode.Text
+        _uiState.update {
+            it.copy(reading = true, sourceProblem = null, pdf = summary.copy(error = null, replaceConfirmation = false, readState = null, readConfirmation = null))
+        }
+        readJob = viewModelScope.launch {
+            if (mode.usesAi) planAiRead(handle, pages, mode, summary.quality) else loadPdfPages(handle, pages)
+        }
+    }
+
+    /** Decides which pages need a request; with none to make, the box is filled at once, and otherwise the user is asked first. */
+    private suspend fun planAiRead(handle: PdfHandle, pages: PageRanges, mode: PdfReadMode, quality: PdfQuality) {
+        val route = _uiState.value.readRoute
+        if (route == null) {
+            _uiState.update { it.copy(reading = false) }
+            return
+        }
+        when (val result = readPdfPages.plan(handle, pages.pages, mode, quality, route.modelId, transcriptions)) {
+            is PdfReadPlanResult.Failed -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
+            is PdfReadPlanResult.Ready -> {
+                val plan = result.plan
+                when {
+                    // A text layer on every page: this is the text read, with its one-piece layout and its limits.
+                    plan.isAllLayer -> loadPdfPages(handle, pages)
+                    // What was transcribed before covers it: nothing to send, nothing to agree to.
+                    plan.needsNoRequests -> startPdfRun(PdfRun(route, plan))
+                    else -> {
+                        pdfRun = PdfRun(route, plan)
+                        _uiState.update { state ->
+                            state.copy(
+                                reading = false,
+                                pdf = state.pdf?.copy(readConfirmation = PdfReadConfirmation(plan.pages.size, plan.requests, route.provider.name, route.modelId, quality)),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun confirmPdfRead() {
+        val run = pdfRun ?: return
+        _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(readConfirmation = null)) } ?: state }
+        // Images carry everything on the page: the provider's own notice first, then the images'.
+        withDisclosure(run.route, sendsImages = true) { startPdfRun(run) }
+    }
+
+    /**
+     * Goes through [run]'s pages from [from], filling the box page by page: after [before] when resuming, from an
+     * empty box when starting. The pages already in the box stay when it fails or is cancelled.
+     */
+    private fun startPdfRun(run: PdfRun, from: Int = 0, before: String = "") {
+        val handle = pdf ?: return
+        readJob?.cancel()
+        pdfRun = run
+        val total = run.plan.pages.size
+        if (from == 0) {
+            clearSections()
+            pdfText = ""
+        }
+        _uiState.update { state ->
+            val fresh = if (from == 0) state.withText("").copy(title = handle.info.title, truncated = false, disambiguation = false, chapterId = null) else state
+            fresh.copy(
+                reading = true,
+                sourceProblem = null,
+                pdf = fresh.pdf?.copy(readState = PdfReadState.Running(from, total, null), readConfirmation = null, error = null, transcribed = false),
+            )
+        }
+        readJob = viewModelScope.launch {
+            readPdfPages.run(run.route, run.plan, transcriptions, from, before).collect { event ->
+                when (event) {
+                    is ReadPagesEvent.Transcribing -> _uiState.update { state ->
+                        state.copy(pdf = state.pdf?.copy(readState = PdfReadState.Running(event.index, event.total, event.page)))
+                    }
+                    is ReadPagesEvent.Progress -> {
+                        pdfText = event.text
+                        _uiState.update { state -> state.withText(event.text).copy(pdf = state.pdf?.copy(readState = PdfReadState.Running(event.done, event.total, null))) }
+                    }
+                    is ReadPagesEvent.Failed -> {
+                        run.failedAt = event.index
+                        pdfText = event.text
+                        _uiState.update { state ->
+                            state.withText(event.text).copy(
+                                reading = false,
+                                pdf = state.pdf?.copy(readState = PdfReadState.Failed(event.failure, event.page, event.index, total), transcribed = event.text.isNotBlank() && run.plan.pages.any { it.source != PageSource.Layer }),
+                            )
+                        }
+                    }
+                    is ReadPagesEvent.Finished -> {
+                        pdfRun = null
+                        pdfText = event.text
+                        _uiState.update { state ->
+                            state.withText(event.text).copy(
+                                reading = false,
+                                truncated = event.truncated,
+                                pdf = state.pdf?.copy(readState = null, transcribed = event.text.isNotBlank() && run.plan.pages.any { it.source != PageSource.Layer }, pagesWithoutText = 0),
+                                message = if (event.blankPages > 0) ExtractMessage.PagesBlank(event.blankPages) else state.message,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Stops an AI read for good: what is in the box stays, and Read pages starts again (what was transcribed is kept). */
+    private fun cancelPdfRead() {
+        readJob?.cancel()
+        val run = pdfRun
+        pdfRun = null
+        _uiState.update { state ->
+            val fromModel = run != null && state.text.isNotBlank() && run.plan.pages.any { it.source != PageSource.Layer }
+            state.copy(reading = false, pdf = state.pdf?.copy(readState = null, transcribed = fromModel))
+        }
+    }
+
+    private fun resumePdfRead() {
+        val run = pdfRun ?: return
+        if (_uiState.value.pdf?.readState !is PdfReadState.Failed) return
+        startPdfRun(run, from = run.failedAt, before = _uiState.value.text)
+    }
+
+    private fun setPdfReadMode(mode: PdfReadMode) {
+        if (mode.usesAi && !_uiState.value.canReadPages) return
+        _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(mode = mode)) } ?: state }
+        rememberPdfOptions()
+    }
+
+    private fun setPdfQuality(quality: PdfQuality) {
+        _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(quality = quality)) } ?: state }
+        rememberPdfOptions()
+    }
+
+    private fun rememberPdfOptions() {
+        val summary = _uiState.value.pdf ?: return
+        viewModelScope.launch { userSettings.setPdfReadOptions(summary.mode, summary.quality) }
     }
 
     private suspend fun loadPdfPages(handle: PdfHandle, pages: PageRanges?) {
@@ -406,11 +613,27 @@ class SmartExtractViewModel(
                         truncated = result.source.truncated,
                         disambiguation = false,
                         chapterId = null,
+                        pdf = state.pdf?.copy(pagesWithoutText = 0, transcribed = false, readState = null),
                     )
                 }
+                countPagesWithoutText(handle, pages)
             }
-            is SourceResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = result.problem) }
+            is SourceResult.Failure -> _uiState.update { state ->
+                // A PDF with no text at all is every page "without text": the offer to read them with AI is the same.
+                val without = if (result.problem == SourceProblem.NoText) (pages ?: PageRanges.all(handle.info.pageCount).first(PdfInfo.MAX_PAGES)).count else 0
+                state.copy(reading = false, sourceProblem = result.problem, pdf = state.pdf?.copy(pagesWithoutText = without, transcribed = false, readState = null))
+            }
         }
+    }
+
+    /** After a text read: how many of its pages are only a picture, so the box can offer to read them with AI. */
+    private suspend fun countPagesWithoutText(handle: PdfHandle, pages: PageRanges?) {
+        val chosen = (pages ?: PageRanges.all(handle.info.pageCount).first(PdfInfo.MAX_PAGES)).pages
+        val texts = (sources.pageTexts(handle, chosen) as? PdfPageTextsResult.Success)?.texts ?: return
+        val without = texts.count { !PdfPageText.hasText(it.value) }
+        // The PDF may have been replaced or closed while the layers were read.
+        if (pdf != handle) return
+        _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(pagesWithoutText = without)) } ?: state }
     }
 
     /** The bookmarks as picker rows; none when there are fewer than two, as one bookmark is no choice. */
@@ -447,6 +670,8 @@ class SmartExtractViewModel(
         val handle = pdf ?: return
         pdf = null
         pdfText = null
+        pdfRun = null
+        transcriptions.clear(handle)
         _uiState.update { it.copy(pdf = null) }
         viewModelScope.launch { sources.closePdf(handle) }
     }
@@ -849,20 +1074,52 @@ class SmartExtractViewModel(
         }
     }
 
-    private fun withDisclosure(route: AiRoute, action: () -> Unit) {
-        if (route.provider.disclosureAcceptedAt != null || route.provider.id in disclosed) {
-            action()
-        } else {
-            afterDisclosure = action
-            _uiState.update { it.copy(disclosure = route) }
+    /**
+     * Runs [action] once the notices the request needs are accepted: the provider's own, and, for a request that
+     * [sendsImages] of PDF pages, the images' (ADR 0014), in that order and each asked once per provider.
+     */
+    private fun withDisclosure(route: AiRoute, sendsImages: Boolean = false, action: () -> Unit) {
+        val textAccepted = route.provider.disclosureAcceptedAt != null || route.provider.id in disclosed
+        if (!sendsImages) {
+            showDisclosures(route, pendingDisclosures(textAccepted, sendsImages = false, imagesAccepted = false), action)
+            return
         }
+        viewModelScope.launch {
+            val imagesAccepted = route.provider.id in imageDisclosed || userSettings.settings.first().hasAcceptedImages(route.provider.id)
+            showDisclosures(route, pendingDisclosures(textAccepted, sendsImages = true, imagesAccepted), action)
+        }
+    }
+
+    private fun showDisclosures(route: AiRoute, steps: List<DisclosureStep>, action: () -> Unit) {
+        if (steps.isEmpty()) {
+            action()
+            return
+        }
+        afterDisclosure = action
+        disclosureSteps = steps.drop(1)
+        _uiState.update { it.copy(disclosure = route, disclosureStep = steps.first()) }
     }
 
     private fun acceptDisclosure() {
         val route = _uiState.value.disclosure ?: return
-        disclosed += route.provider.id
-        _uiState.update { it.copy(disclosure = null) }
-        viewModelScope.launch { aiProviders.acceptDisclosure(route.provider.id) }
+        val id = route.provider.id
+        when (_uiState.value.disclosureStep) {
+            DisclosureStep.Text -> {
+                disclosed += id
+                viewModelScope.launch { aiProviders.acceptDisclosure(id) }
+            }
+            DisclosureStep.Images -> {
+                imageDisclosed += id
+                viewModelScope.launch { userSettings.acceptImageDisclosure(id) }
+            }
+        }
+        val next = disclosureSteps.firstOrNull()
+        if (next != null) {
+            disclosureSteps = disclosureSteps.drop(1)
+            _uiState.update { it.copy(disclosureStep = next) }
+            return
+        }
+        _uiState.update { it.copy(disclosure = null, disclosureStep = DisclosureStep.Text) }
         afterDisclosure?.invoke()
         afterDisclosure = null
     }

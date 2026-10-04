@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.domain.ChapterDeckRequest
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
+import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
@@ -20,6 +21,8 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
+import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -72,6 +75,8 @@ class SmartExtractBookTest : PlatformTest() {
         regenerateCard = RegenerateCardUseCase(generation, cards),
         acceptCards = AcceptGeneratedCardsUseCase(cards),
         bookHandoff = handoff,
+        userSettings = FakeUserSettingsRepository(),
+        readPdfPages = ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
     ).also { providers.addProvider(provider) }
 
     /** The deck ids the book import would have made, for [chapters] of a book called [name]. */

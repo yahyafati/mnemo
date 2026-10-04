@@ -5,10 +5,12 @@ import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
 import com.yahyafati.mnemo.core.ingest.RawBookmark
 import com.yahyafati.mnemo.core.ingest.pdfLabels
 import com.yahyafati.mnemo.core.ingest.pdfOutline
+import com.yahyafati.mnemo.core.ingest.pdfPageText
 import com.yahyafati.mnemo.core.ingest.pdfSourceResult
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOutlineItem
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import org.apache.pdfbox.Loader
@@ -48,6 +50,25 @@ class PdfBoxTextExtractor : PdfTextExtractor {
                 stripper.getText(document)
             }
             pdfSourceResult(text, selection.cut, document.documentInformation?.title, fileName)
+        }
+    }
+
+    override fun pageTexts(input: InputStream, pages: List<Int>): PdfPageTextsResult = guarded(
+        failure = { problem, detail -> PdfPageTextsResult.Failure(problem, detail) },
+    ) {
+        open(input) { document ->
+            val stripper = PDFTextStripper().apply {
+                lineSeparator = "\n"
+                paragraphEnd = "\n\n"
+            }
+            val texts = LinkedHashMap<Int, String>()
+            for (page in pages.distinct().sorted()) {
+                if (page !in 1..document.numberOfPages) continue
+                stripper.startPage = page
+                stripper.endPage = page
+                texts[page] = pdfPageText(stripper.getText(document))
+            }
+            PdfPageTextsResult.Success(texts)
         }
     }
 

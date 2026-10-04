@@ -1,6 +1,8 @@
 package com.yahyafati.mnemo.core.ingest
 
 import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
+import com.yahyafati.mnemo.core.model.PdfPageText
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOutlineItem
@@ -24,13 +26,20 @@ interface PdfTextExtractor {
      */
     fun extract(input: InputStream, pages: List<Int>?, fileName: String? = null): SourceResult
 
+    /**
+     * The text layer of each of [pages] on its own (1-based; ones the PDF doesn't have are left out), cleaned like
+     * [extract]'s text and empty for a page with none. For deciding, page by page, which pages need their image read
+     * (docs/pdf/ROADMAP.md, P5); [PdfPageText.hasText] says whether a page's text is enough. Not limited to [MAX_PAGES].
+     */
+    fun pageTexts(input: InputStream, pages: List<Int>): PdfPageTextsResult
+
     /** The first [MAX_PAGES] pages: a PDF behind a link, or a file read without choosing pages. */
     fun extract(input: InputStream, fileName: String? = null): SourceResult = extract(input, null as List<Int>?, fileName)
 
     companion object {
         const val MAX_FILE_BYTES = 50L * 1024 * 1024
         const val MAX_PAGES = PdfInfo.MAX_PAGES
-        const val MAX_CHARS = 400_000
+        const val MAX_CHARS = SourceText.MAX_CHARS
     }
 }
 
@@ -46,9 +55,12 @@ internal class PdfSelection(val runs: List<IntRange>, val cut: Boolean) {
     }
 }
 
+/** One page's text as both PDF libraries report it: tidied, and with lines the page wrapped joined up. */
+internal fun pdfPageText(rawText: String): String = TextCleanup.normalize(TextCleanup.joinWrappedLines(TextCleanup.normalize(rawText)))
+
 /** What both PDF libraries report the same way: their [rawText] of the chosen pages, cleaned up. */
 internal fun pdfSourceResult(rawText: String, cut: Boolean, title: String?, fileName: String?): SourceResult {
-    val text = TextCleanup.normalize(TextCleanup.joinWrappedLines(TextCleanup.normalize(rawText)))
+    val text = pdfPageText(rawText)
     if (text.isBlank()) return SourceResult.Failure(SourceProblem.NoText)
     return SourceResult.Success(
         SourceText(

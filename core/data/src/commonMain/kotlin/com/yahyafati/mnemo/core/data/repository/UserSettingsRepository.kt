@@ -3,6 +3,8 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +44,9 @@ interface UserSettingsRepository {
     suspend fun setAutoPlayAudio(value: Boolean)
 
     suspend fun setOnboardingCompleted(value: Boolean)
+
+    /** What the PDF source did last time (docs/pdf/ROADMAP.md, P5): remembered for the next PDF. */
+    suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality)
 
     /** The user accepted sending page images to [providerId] (ADR 0014); asked once per provider. */
     suspend fun acceptImageDisclosure(providerId: String)

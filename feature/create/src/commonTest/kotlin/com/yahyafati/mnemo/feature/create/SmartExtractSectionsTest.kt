@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.feature.create
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
+import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
@@ -15,6 +16,8 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
+import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -59,6 +62,8 @@ class SmartExtractSectionsTest : PlatformTest() {
         regenerateCard = RegenerateCardUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
         acceptCards = AcceptGeneratedCardsUseCase(FakeCardRepository()),
         bookHandoff = BookHandoff(),
+        userSettings = FakeUserSettingsRepository(),
+        readPdfPages = ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
     )
 
     private val SmartExtractViewModel.state get() = uiState.value

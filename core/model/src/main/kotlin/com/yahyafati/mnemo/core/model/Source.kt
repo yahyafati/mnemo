@@ -36,6 +36,9 @@ data class SourceText(
     fun textOf(section: SourceSection): String = text.substring(section.start.coerceIn(0, text.length), section.end.coerceIn(0, text.length))
 
     companion object {
+        /** The most text Smart Extract's box holds: what a source or a read of PDF pages adds beyond it is cut. */
+        const val MAX_CHARS = 400_000
+
         /** See [WordCount.count]: Japanese and Chinese have no spaces, so their characters count too. */
         fun countWords(text: String): Int = WordCount.count(text)
     }
@@ -236,4 +239,39 @@ sealed interface PdfPageResult {
     data class Success(val file: java.io.File) : PdfPageResult
 
     data class Failure(val problem: SourceProblem, val detail: String? = null) : PdfPageResult
+}
+
+/**
+ * How the pages of a PDF are read into Smart Extract's text box (docs/pdf/ROADMAP.md, P5; ADR 0014). Each mode ends in
+ * the same editable box. "Cards from page images" is a fourth mode and comes with P6.
+ */
+enum class PdfReadMode {
+    /** The text layer, read on the device. */
+    Text,
+
+    /** The text layer where a page has one, an AI transcription of the page's image where it has none. */
+    Auto,
+
+    /** Every selected page is transcribed by a vision model. */
+    ReadWithAi,
+    ;
+
+    /** Whether reading in this mode may send page images to a provider. */
+    val usesAi: Boolean get() = this != Text
+}
+
+/** The text layer of single pages, for telling the ones that have text from the ones that are only a picture. */
+sealed interface PdfPageTextsResult {
+    /** [texts] has every asked-for page that exists, with an empty string for a page with no text. */
+    data class Success(val texts: Map<Int, String>) : PdfPageTextsResult
+
+    data class Failure(val problem: SourceProblem, val detail: String? = null) : PdfPageTextsResult
+}
+
+object PdfPageText {
+    /** A page whose layer has fewer letters and digits than this is a picture with a stray mark, not a page of text. */
+    const val MIN_CHARS = 30
+
+    /** Whether [text], the layer of one page, is worth using instead of reading the page's image. */
+    fun hasText(text: String): Boolean = text.count { !it.isWhitespace() } >= MIN_CHARS
 }

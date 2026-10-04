@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.create
 
+import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.domain.GeneratedCardProblem
 import com.yahyafati.mnemo.core.domain.GeneratedCardValidator
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -10,8 +11,11 @@ import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 
@@ -22,6 +26,8 @@ data class SmartExtractUiState(
     val isLoading: Boolean = true,
     /** The provider and model Smart Extract uses; null shows the setup prompt. */
     val route: AiRoute? = null,
+    /** The provider and model that read PDF pages as images (docs/pdf/ROADMAP.md, P5); null when none is set up. */
+    val readRoute: AiRoute? = null,
     val decks: List<DeckOption> = emptyList(),
     val deckId: String? = null,
     val sourceKind: SourceKind = SourceKind.Paste,
@@ -65,6 +71,8 @@ data class SmartExtractUiState(
     val editingId: String? = null,
     /** Waiting for the user to accept the provider notice before sending anything. */
     val disclosure: AiRoute? = null,
+    /** Which notice [disclosure] is showing: what the text of a request holds, or that page images are sent (ADR 0014). */
+    val disclosureStep: DisclosureStep = DisclosureStep.Text,
     val showDeckDialog: Boolean = false,
     /** Asking the user to confirm adding cards to a deck that already has some. */
     val nonEmptyDeck: NonEmptyDeck? = null,
@@ -78,6 +86,9 @@ data class SmartExtractUiState(
         get() = if (wordCount == 0) 0 else maxOf(options.targetCards(wordCount), wordCount / options.density.wordsPerCard)
 
     val isGenerating: Boolean get() = generation is GenerationState.Running
+
+    /** The model PDF pages are read with can see images, so Auto and Read pages with AI can be chosen. */
+    val canReadPages: Boolean get() = readRoute?.capabilities?.vision == true
 
     val canGenerate: Boolean
         get() = route != null && text.isNotBlank() && !isGenerating && !reading && options.archetypes.isNotEmpty()
@@ -118,6 +129,36 @@ data class PdfSummary(
     /** The chapters whose pages are all in [pages]; what the picker shows ticked. */
     val selectedChapters: Set<Int> = emptySet(),
     val showChapters: Boolean = false,
+    /** How the pages are read the next time (P5); an AI mode needs [SmartExtractUiState.canReadPages]. */
+    val mode: PdfReadMode = PdfReadMode.Text,
+    /** The resolution page images are sent at in an AI mode. */
+    val quality: PdfQuality = PdfQuality.Standard,
+    /** How many of the pages the box was last read from have no text layer (scanned?); 0 when none or not known yet. */
+    val pagesWithoutText: Int = 0,
+    /** Reading pages with AI is going on or stopped on an error; null otherwise. */
+    val readState: PdfReadState? = null,
+    /** Waiting for the user to agree to the requests an AI read will make. */
+    val readConfirmation: PdfReadConfirmation? = null,
+    /** Some of the text in the box was written by a model reading the pages: it can be reported. */
+    val transcribed: Boolean = false,
+)
+
+/** Reading PDF pages with a vision model (P5). The text so far is in the box either way. */
+sealed interface PdfReadState {
+    /** [done] of [total] pages are in the box; [page] is the one being sent to the model, null while a page's own text is taken. */
+    data class Running(val done: Int, val total: Int, val page: Int?) : PdfReadState
+
+    /** The request for [page] failed after [done] of [total] pages; Resume goes on from it. */
+    data class Failed(val failure: PageReadFailure, val page: Int, val done: Int, val total: Int) : PdfReadState
+}
+
+/** What an AI read of the PDF's pages is about to do, said before anything is sent: [requests] requests for [pages] pages. */
+data class PdfReadConfirmation(
+    val pages: Int,
+    val requests: Int,
+    val providerName: String,
+    val modelId: String,
+    val quality: PdfQuality,
 )
 
 /**
@@ -209,6 +250,9 @@ sealed interface ExtractMessage {
 
     /** The last chapter of a book run was done (or skipped). */
     data class BatchFinished(val chapters: Int) : ExtractMessage
+
+    /** [pages] pages of a PDF came out blank when read with AI and were left out. */
+    data class PagesBlank(val pages: Int) : ExtractMessage
 }
 
 sealed interface SmartExtractAction {
@@ -230,6 +274,25 @@ sealed interface SmartExtractAction {
 
     /** Reads the pages in the field into the box. Asks first when the text has been edited. */
     data object ApplyPdfPages : SmartExtractAction
+
+    /** How the pages are read next time. An AI mode is ignored while no model reads images. */
+    data class SetPdfReadMode(val mode: PdfReadMode) : SmartExtractAction
+
+    data class SetPdfQuality(val quality: PdfQuality) : SmartExtractAction
+
+    /** "Read them with AI" on the pages that had no text: switches to Auto and reads. */
+    data object ReadPdfPagesWithAi : SmartExtractAction
+
+    /** The user agreed to the requests ([PdfReadConfirmation]). */
+    data object ConfirmPdfRead : SmartExtractAction
+
+    data object DismissPdfReadConfirmation : SmartExtractAction
+
+    /** Stops an AI read; the pages already read stay in the box. */
+    data object CancelPdfRead : SmartExtractAction
+
+    /** After a failed AI read: goes on from the page that failed. */
+    data object ResumePdfRead : SmartExtractAction
 
     /** The user agreed to replace their edits ([PdfSummary.replaceConfirmation]). */
     data object ConfirmPdfReplace : SmartExtractAction

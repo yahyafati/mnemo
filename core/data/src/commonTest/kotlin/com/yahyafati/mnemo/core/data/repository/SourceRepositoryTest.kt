@@ -15,6 +15,7 @@ import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourceInput
@@ -52,6 +53,9 @@ class SourceRepositoryTest {
             val bytes = input.readBytes().decodeToString()
             return if (bytes.startsWith("%PDF")) PdfInfoResult.Success(PdfInfo(5, fileName)) else PdfInfoResult.Failure(SourceProblem.Unsupported)
         }
+
+        override fun pageTexts(input: InputStream, pages: List<Int>): PdfPageTextsResult =
+            PdfPageTextsResult.Success(pages.filter { it in 1..5 }.associateWith { if (it % 2 == 0) "" else "Text of page $it" })
 
         override fun extract(input: InputStream, pages: List<Int>?, fileName: String?): SourceResult {
             extracted += pages
@@ -208,6 +212,16 @@ class SourceRepositoryTest {
         assertEquals(emptyList(), pdfFolder.listFiles().orEmpty().toList())
         repository.closePdf(opened) // twice is fine
         assertEquals(SourceProblem.FileUnavailable, assertIs<SourceResult.Failure>(repository.readPdf(opened, pages)).problem)
+    }
+
+    @Test
+    fun theTextLayerOfSinglePagesIsReadFromTheCopy() = runTest {
+        val handle = openFive()
+        val texts = assertIs<PdfPageTextsResult.Success>(repository.pageTexts(handle, listOf(1, 2, 9))).texts
+        assertEquals(mapOf(1 to "Text of page 1", 2 to ""), texts)
+
+        repository.closePdf(handle)
+        assertEquals(SourceProblem.FileUnavailable, assertIs<PdfPageTextsResult.Failure>(repository.pageTexts(handle, listOf(1))).problem)
     }
 
     @Test

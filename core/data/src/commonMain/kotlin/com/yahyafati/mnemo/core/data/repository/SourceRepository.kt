@@ -15,6 +15,7 @@ import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourceInput
@@ -51,6 +52,12 @@ interface SourceRepository {
      * first [PdfTextExtractor.MAX_PAGES]). More pages than that are cut, and the result says so.
      */
     suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult
+
+    /**
+     * The text layer of each of [pages] of an opened PDF, on its own and empty for a page with none (docs/pdf/ROADMAP.md,
+     * P5): what Auto mode and the "no text" count tell the pages that have text from the ones that are only a picture.
+     */
+    suspend fun pageTexts(handle: PdfHandle, pages: List<Int>): PdfPageTextsResult
 
     /** Deletes the copy of an opened PDF and the pages rendered from it. Safe to call twice. */
     suspend fun closePdf(handle: PdfHandle)
@@ -146,6 +153,16 @@ internal class DefaultSourceRepository(
             copy.inputStream().use { pdf.extract(it, pages?.pages, handle.info.title) }
         } catch (e: IOException) {
             SourceResult.Failure(SourceProblem.FileUnavailable)
+        }
+    }
+
+    override suspend fun pageTexts(handle: PdfHandle, pages: List<Int>): PdfPageTextsResult = withContext(ioDispatcher) {
+        val copy = pdfCopy(handle)
+        if (!copy.isFile) return@withContext PdfPageTextsResult.Failure(SourceProblem.FileUnavailable)
+        try {
+            copy.inputStream().use { pdf.pageTexts(it, pages) }
+        } catch (e: IOException) {
+            PdfPageTextsResult.Failure(SourceProblem.FileUnavailable)
         }
     }
 

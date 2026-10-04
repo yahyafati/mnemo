@@ -4,6 +4,8 @@ import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.CoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.GenerationRequest
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
+import com.yahyafati.mnemo.core.data.repository.PageTranscription
+import com.yahyafati.mnemo.core.data.repository.PdfReadRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
 import com.yahyafati.mnemo.core.model.AiRoute
@@ -17,6 +19,7 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.RewriteOutcome
@@ -144,6 +147,17 @@ class FakeSourceRepository : SourceRepository {
         return pdfText(handle, pages)
     }
 
+    /** Every ask of the text layers, and what it answers: by default every page has text, naming its number. */
+    val pageTextRequests = mutableListOf<Pair<PdfHandle, List<Int>>>()
+    var pageTextLayers: (PdfHandle, List<Int>) -> PdfPageTextsResult = { _, pages ->
+        PdfPageTextsResult.Success(pages.filter { it >= 1 }.associateWith { "Text layer of page $it, which has enough letters to count as text." })
+    }
+
+    override suspend fun pageTexts(handle: PdfHandle, pages: List<Int>): PdfPageTextsResult {
+        pageTextRequests += handle to pages
+        return pageTextLayers(handle, pages)
+    }
+
     override suspend fun closePdf(handle: PdfHandle) {
         closedPdfs += handle
     }
@@ -191,5 +205,21 @@ class FakeCoAuthorRepository : CoAuthorRepository {
     override suspend fun improve(route: AiRoute, card: StudyCard): RewriteOutcome {
         improved += card
         return improve(card)
+    }
+}
+
+/**
+ * [PdfReadRepository] that answers each page with [respond]: by default a transcription naming its page. [transcribed]
+ * records every request as `(route, handle, page, quality)`.
+ */
+class FakePdfReadRepository : PdfReadRepository {
+    val transcribed = mutableListOf<TranscriptionRequest>()
+    var respond: suspend (page: Int) -> PageTranscription = { page -> PageTranscription.Success("Transcription of page $page.") }
+
+    data class TranscriptionRequest(val route: AiRoute, val handle: PdfHandle, val page: Int, val quality: PdfQuality)
+
+    override suspend fun transcribe(route: AiRoute, handle: PdfHandle, page: Int, quality: PdfQuality): PageTranscription {
+        transcribed += TranscriptionRequest(route, handle, page, quality)
+        return respond(page)
     }
 }

@@ -66,6 +66,7 @@ import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
+import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.domain.GeneratedCardProblem
 import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiEndpoint
@@ -75,12 +76,15 @@ import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.CardArchetype
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DictationProblem
+import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.AiReport
@@ -110,10 +114,6 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_clo
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_definition
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetypes
 import com.yahyafati.mnemo.feature.create.resources.feature_create_back
-import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_cancel
-import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_confirm
-import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
-import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_advance
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_confirm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_keep
@@ -153,6 +153,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_dictation_sto
 import com.yahyafati.mnemo.feature.create.resources.feature_create_dictation_unavailable
 import com.yahyafati.mnemo.feature.create.resources.feature_create_discard_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_disclosure_content
+import com.yahyafati.mnemo.feature.create.resources.feature_create_disclosure_images
 import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file
 import com.yahyafati.mnemo.feature.create.resources.feature_create_drop_file_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_another
@@ -178,13 +179,32 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_link_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_link_read
 import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_mic_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_confirm
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_blank
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail_printed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_send
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_no_vision
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_text
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_text_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_no_text
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_no_text_read
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint
@@ -197,8 +217,18 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_rea
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_reversed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_too_many
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pick
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_quality_high
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_quality_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_quality_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_quality_standard
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_read_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_read_resume
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_read_stop
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_reading_page
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_reading_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_replace_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_summary
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_transcribed_note
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_back
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_broken_cloze
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_cloze
@@ -228,11 +258,11 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_manage
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_setup
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_via
+import com.yahyafati.mnemo.feature.create.resources.feature_create_source_blank_page
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_clear
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_count
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_dictation
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_disambiguation
-import com.yahyafati.mnemo.feature.create.resources.feature_create_source_blank_page
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_drm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_encrypted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_source_epub
@@ -367,7 +397,12 @@ internal fun SmartExtractScreen(
         AiDisclosureDialog(
             providerName = route.provider.name,
             host = AiEndpoint.host(route.provider.baseUrl) ?: route.provider.baseUrl,
-            whatIsSent = stringResource(Res.string.feature_create_disclosure_content),
+            whatIsSent = stringResource(
+                when (uiState.disclosureStep) {
+                    DisclosureStep.Text -> Res.string.feature_create_disclosure_content
+                    DisclosureStep.Images -> Res.string.feature_create_disclosure_images
+                },
+            ),
             onAccept = { onAction(SmartExtractAction.AcceptDisclosure) },
             onDismiss = { onAction(SmartExtractAction.DismissDisclosure) },
         )
@@ -440,6 +475,21 @@ internal fun SmartExtractScreen(
             onDismiss = { onAction(SmartExtractAction.DismissPdfChapters) },
         )
     }
+    uiState.pdf?.readConfirmation?.let { confirmation ->
+        AlertDialog(
+            onDismissRequest = { onAction(SmartExtractAction.DismissPdfReadConfirmation) },
+            title = { Text(stringResource(Res.string.feature_create_pdf_confirm_title)) },
+            text = {
+                Text(pluralStringResource(Res.plurals.feature_create_pdf_confirm_message, confirmation.requests, confirmation.requests, confirmation.providerName, confirmation.modelId))
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.ConfirmPdfRead) }) { Text(stringResource(Res.string.feature_create_pdf_confirm_send)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.DismissPdfReadConfirmation) }) { Text(stringResource(Res.string.feature_create_pdf_confirm_cancel)) }
+            },
+        )
+    }
     if (uiState.pdf?.replaceConfirmation == true) {
         AlertDialog(
             onDismissRequest = { onAction(SmartExtractAction.CancelPdfReplace) },
@@ -471,6 +521,7 @@ private fun messageText(message: ExtractMessage): String = when (message) {
     ExtractMessage.NothingNew -> stringResource(Res.string.feature_create_nothing_new)
     is ExtractMessage.BatchFinished -> pluralStringResource(Res.plurals.feature_create_batch_done, message.chapters, message.chapters)
     is ExtractMessage.RegenerateFailed -> stringResource(Res.string.feature_create_regenerate_failed, aiFailureText(message.failure))
+    is ExtractMessage.PagesBlank -> pluralStringResource(Res.plurals.feature_create_pdf_blank, message.pages, message.pages)
 }
 
 /** The source, the options and the Generate button: the mockup's "AI generator workshop" card. */
@@ -653,7 +704,7 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
                     enabled = !uiState.reading,
                 )
                 Hint(stringResource(Res.string.feature_create_pdf_hint))
-                uiState.pdf?.let { PdfPages(it, reading = uiState.reading, onAction = onAction) }
+                uiState.pdf?.let { PdfPages(it, reading = uiState.reading, canReadPages = uiState.canReadPages, onAction = onAction) }
             }
             SourceKind.Epub -> EpubControls(uiState, onAction)
             SourceKind.Link -> {
@@ -698,7 +749,8 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             }
             SourceKind.Dictation -> DictationControls(uiState, onAction)
         }
-        if (uiState.reading) {
+        // An AI read of PDF pages says where it is and can be stopped; every other read just says it is reading.
+        if (uiState.reading && uiState.pdf?.readState !is PdfReadState.Running) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                 Text(stringResource(Res.string.feature_create_reading), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = MnemoTheme.spacing.sm))
@@ -714,7 +766,7 @@ private fun SourcePanel(uiState: SmartExtractUiState, onAction: (SmartExtractAct
 
 /** The open PDF: its page count and the Pages field that chooses which pages the box holds. */
 @Composable
-private fun PdfPages(pdf: PdfSummary, reading: Boolean, onAction: (SmartExtractAction) -> Unit) {
+private fun PdfPages(pdf: PdfSummary, reading: Boolean, canReadPages: Boolean, onAction: (SmartExtractAction) -> Unit) {
     val pageCount = pluralStringResource(Res.plurals.feature_create_pdf_pages, pdf.pageCount, pdf.pageCount)
     val count = pdf.printedPages?.let { stringResource(Res.string.feature_create_pdf_pages_printed, pageCount, it) } ?: pageCount
     Text(
@@ -765,6 +817,109 @@ private fun PdfPages(pdf: PdfSummary, reading: Boolean, onAction: (SmartExtractA
             enabled = !reading,
         )
     }
+    PdfReadOptions(pdf, reading = reading, canReadPages = canReadPages, onAction = onAction)
+    PdfReadStatus(pdf, reading = reading, canReadPages = canReadPages, onAction = onAction)
+}
+
+/** How the pages are read (P5): the text layer, Auto, or every page by a vision model, and at what image quality. */
+@Composable
+private fun PdfReadOptions(pdf: PdfSummary, reading: Boolean, canReadPages: Boolean, onAction: (SmartExtractAction) -> Unit) {
+    Label(stringResource(Res.string.feature_create_pdf_mode_label))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+        PdfReadMode.entries.forEach { mode ->
+            MnemoChip(
+                label = stringResource(
+                    when (mode) {
+                        PdfReadMode.Text -> Res.string.feature_create_pdf_mode_text
+                        PdfReadMode.Auto -> Res.string.feature_create_pdf_mode_auto
+                        PdfReadMode.ReadWithAi -> Res.string.feature_create_pdf_mode_ai
+                    },
+                ),
+                selected = pdf.mode == mode,
+                onClick = { onAction(SmartExtractAction.SetPdfReadMode(mode)) },
+                enabled = !reading && (canReadPages || !mode.usesAi),
+            )
+        }
+    }
+    Hint(
+        stringResource(
+            when (pdf.mode) {
+                PdfReadMode.Text -> Res.string.feature_create_pdf_mode_text_hint
+                PdfReadMode.Auto -> Res.string.feature_create_pdf_mode_auto_hint
+                PdfReadMode.ReadWithAi -> Res.string.feature_create_pdf_mode_ai_hint
+            },
+        ),
+    )
+    if (!canReadPages) Hint(stringResource(Res.string.feature_create_pdf_mode_no_vision))
+    if (pdf.mode.usesAi) {
+        Label(stringResource(Res.string.feature_create_pdf_quality_label))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+            PdfQuality.entries.forEach { quality ->
+                MnemoChip(
+                    label = stringResource(
+                        when (quality) {
+                            PdfQuality.Standard -> Res.string.feature_create_pdf_quality_standard
+                            PdfQuality.High -> Res.string.feature_create_pdf_quality_high
+                        },
+                    ),
+                    selected = pdf.quality == quality,
+                    onClick = { onAction(SmartExtractAction.SetPdfQuality(quality)) },
+                    enabled = !reading,
+                )
+            }
+        }
+        Hint(stringResource(Res.string.feature_create_pdf_quality_hint))
+    }
+}
+
+/** Where an AI read is, what stopped it, or that some pages had no text: each with the one thing to do about it. */
+@Composable
+private fun PdfReadStatus(pdf: PdfSummary, reading: Boolean, canReadPages: Boolean, onAction: (SmartExtractAction) -> Unit) {
+    when (val state = pdf.readState) {
+        is PdfReadState.Running -> {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
+                    Text(
+                        text = state.page?.let { stringResource(Res.string.feature_create_pdf_reading_page, it, state.done + 1, state.total) }
+                            ?: stringResource(Res.string.feature_create_pdf_reading_pages, state.done, state.total),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    LinearProgressIndicator(progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total }, modifier = Modifier.fillMaxWidth())
+                }
+                TextButton(onClick = { onAction(SmartExtractAction.CancelPdfRead) }) { Text(stringResource(Res.string.feature_create_pdf_read_stop)) }
+            }
+        }
+        is PdfReadState.Failed -> {
+            Text(
+                text = stringResource(Res.string.feature_create_pdf_read_failed, state.page, pageReadFailureText(state.failure)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            MnemoButton(
+                text = stringResource(Res.string.feature_create_pdf_read_resume),
+                onClick = { onAction(SmartExtractAction.ResumePdfRead) },
+                style = MnemoButtonStyle.Secondary,
+                enabled = !reading,
+            )
+        }
+        null -> if (pdf.pagesWithoutText > 0 && !reading) {
+            Hint(pluralStringResource(Res.plurals.feature_create_pdf_no_text, pdf.pagesWithoutText, pdf.pagesWithoutText))
+            if (canReadPages) {
+                MnemoButton(
+                    text = stringResource(Res.string.feature_create_pdf_no_text_read),
+                    onClick = { onAction(SmartExtractAction.ReadPdfPagesWithAi) },
+                    style = MnemoButtonStyle.Secondary,
+                    leadingIcon = MnemoIcons.Sparkle,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun pageReadFailureText(failure: PageReadFailure): String = when (failure) {
+    is PageReadFailure.Ai -> aiFailureText(failure.failure)
+    is PageReadFailure.Page -> sourceProblemText(failure.problem)
 }
 
 /** The open PDF's bookmarks: tick the chapters whose pages go in the Pages field, then read them. */
@@ -1098,6 +1253,8 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
             } else {
                 null
             },
+            // The pages come in one by one while a read goes on; typing into them would be overwritten by the next one.
+            readOnly = uiState.pdf?.readState is PdfReadState.Running,
             minLines = 5,
             maxLines = 12,
             shape = MaterialTheme.shapes.small,
@@ -1105,6 +1262,12 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             modifier = Modifier.fillMaxWidth(),
         )
+        if (uiState.pdf?.transcribed == true && uiState.text.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Hint(stringResource(Res.string.feature_create_pdf_transcribed_note), Modifier.weight(1f))
+                ReportAiButton(AiReport(AiReportKind.PdfTranscription, uiState.text, uiState.readRoute?.modelId))
+            }
+        }
         if (uiState.truncated) Hint(stringResource(Res.string.feature_create_source_truncated))
         if (uiState.disambiguation) Hint(stringResource(Res.string.feature_create_source_disambiguation))
     }

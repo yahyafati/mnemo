@@ -24,6 +24,7 @@ import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
+import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
@@ -42,6 +43,8 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
+import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -75,6 +78,7 @@ class SmartExtractScreenTest {
         SmartExtractViewModel(
             providers, decks, sources,
             GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards), BookHandoff(),
+            FakeUserSettingsRepository(), ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
         )
     }
 

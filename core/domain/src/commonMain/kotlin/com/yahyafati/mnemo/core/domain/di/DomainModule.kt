@@ -9,6 +9,7 @@ import com.yahyafati.mnemo.core.domain.FindDuplicateNotesUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
 import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
+import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.StudySchedulerReplayer
 import com.yahyafati.mnemo.core.domain.UndoLastAnswerUseCase
@@ -28,6 +29,7 @@ val domainModule = module {
     factoryOf(::GenerateCardsUseCase)
     factoryOf(::GetRetentionOverviewUseCase)
     factoryOf(::GetTodaySummaryUseCase)
+    factoryOf(::ReadPdfPagesUseCase)
     factoryOf(::RegenerateCardUseCase)
     factoryOf(::UndoLastAnswerUseCase)
 

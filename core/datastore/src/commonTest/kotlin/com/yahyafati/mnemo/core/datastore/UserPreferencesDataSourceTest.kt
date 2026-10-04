@@ -5,6 +5,8 @@ import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.first
@@ -59,6 +61,7 @@ class UserPreferencesDataSourceTest {
         source.setReminder(ReminderSettings(enabled = true, time = LocalTime.of(7, 45)))
         source.setAutoPlayAudio(false)
         source.setOnboardingCompleted(true)
+        source.setPdfReadOptions(PdfReadMode.ReadWithAi, PdfQuality.High)
         source.acceptImageDisclosure("provider-a")
         source.acceptImageDisclosure("provider-b")
         source.acceptImageDisclosure("provider-a")
@@ -79,6 +82,8 @@ class UserPreferencesDataSourceTest {
                 autoPlayAudio = false,
                 onboardingCompleted = true,
                 imageDisclosureProviders = setOf("provider-a", "provider-b"),
+                pdfReadMode = PdfReadMode.ReadWithAi,
+                pdfQuality = PdfQuality.High,
             ),
             source.settings.first(),
         )

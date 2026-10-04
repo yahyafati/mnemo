@@ -60,7 +60,7 @@ class FakeAiProviderRepository : AiProviderRepository {
     override fun observeRoutes(): Flow<List<AiTaskRoute>> = routes
 
     override fun observeEffectiveRoutes(): Flow<Map<AiTask, AiRoute?>> =
-        combine(providers, routes) { p, r -> AiTask.entries.associateWith { resolve(it, p, r) } }
+        combine(providers, routes, models) { p, r, m -> AiTask.entries.associateWith { resolve(it, p, r, m) } }
 
     override fun observeIsConfigured(): Flow<Boolean> = providers.map { list -> list.any { it.isUsable } }
 
@@ -68,7 +68,7 @@ class FakeAiProviderRepository : AiProviderRepository {
 
     override suspend fun getProvider(id: String): AiProvider? = providers.value.firstOrNull { it.id == id }
 
-    override suspend fun routeFor(task: AiTask): AiRoute? = resolve(task, providers.value, routes.value)
+    override suspend fun routeFor(task: AiTask): AiRoute? = resolve(task, providers.value, routes.value, models.value)
 
     override suspend fun saveProvider(draft: AiProviderDraft, report: AiConnectionReport?): MnemoResult<Unit> {
         if (failKeyStorage && draft.apiKey is ApiKeyChange.Set) return MnemoResult.Failure(MnemoError.Storage())
@@ -148,17 +148,20 @@ class FakeAiProviderRepository : AiProviderRepository {
         keys.keys.retainAll(providers.value.map { it.id }.toSet())
     }
 
-    private fun resolve(task: AiTask, providers: List<AiProvider>, routes: List<AiTaskRoute>): AiRoute? {
+    private fun resolve(task: AiTask, providers: List<AiProvider>, routes: List<AiTaskRoute>, models: Map<String, List<AiModel>>): AiRoute? {
+        /** What the model is known to do (from [addProvider] or [setCapabilities]); nothing special otherwise. */
+        fun capabilities(providerId: String, modelId: String) = models[providerId]?.firstOrNull { it.id == modelId }?.capabilities ?: AiCapabilities()
+
         fun chosen(of: AiTask): AiRoute? {
             val route = routes.firstOrNull { it.task == of } ?: return null
             val provider = providers.firstOrNull { it.id == route.providerId && it.enabled } ?: return null
             val model = route.modelId ?: provider.defaultModel ?: return null
-            return AiRoute(task, provider, model, AiCapabilities(), usesDefault = false)
+            return AiRoute(task, provider, model, capabilities(provider.id, model), usesDefault = false)
         }
         chosen(task)?.let { return it }
         // Same as the real repository: reading pages uses the Smart Extract route until it has its own.
         if (task == AiTask.ReadPages) chosen(AiTask.Extract)?.let { return it.copy(usesDefault = true) }
         val default = providers.firstOrNull { it.isUsable } ?: return null
-        return AiRoute(task, default, default.defaultModel!!, AiCapabilities(), usesDefault = true)
+        return AiRoute(task, default, default.defaultModel!!, capabilities(default.id, default.defaultModel!!), usesDefault = true)
     }
 }

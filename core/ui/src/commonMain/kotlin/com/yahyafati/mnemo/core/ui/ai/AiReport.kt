@@ -12,6 +12,7 @@ enum class AiReportKind(val label: String) {
     CoAuthorReply("Co-Author reply"),
     CoAuthorSuggestion("Co-Author suggested card"),
     CoAuthorRewrite("Co-Author rewritten card"),
+    PdfTranscription("PDF page transcription"),
 }
 
 /**

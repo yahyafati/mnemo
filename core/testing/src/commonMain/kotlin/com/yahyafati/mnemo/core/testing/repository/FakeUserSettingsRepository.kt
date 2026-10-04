@@ -4,6 +4,8 @@ import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +44,9 @@ class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserS
     override suspend fun setAutoPlayAudio(value: Boolean) = settings.update { it.copy(autoPlayAudio = value) }
 
     override suspend fun setOnboardingCompleted(value: Boolean) = settings.update { it.copy(onboardingCompleted = value) }
+
+    override suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) =
+        settings.update { it.copy(pdfReadMode = mode, pdfQuality = quality) }
 
     override suspend fun acceptImageDisclosure(providerId: String) =
         settings.update { it.copy(imageDisclosureProviders = it.imageDisclosureProviders + providerId) }

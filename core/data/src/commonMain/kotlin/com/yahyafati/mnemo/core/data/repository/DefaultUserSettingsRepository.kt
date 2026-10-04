@@ -4,6 +4,8 @@ import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +44,8 @@ internal class DefaultUserSettingsRepository(
     override suspend fun setAutoPlayAudio(value: Boolean) = dataSource.setAutoPlayAudio(value)
 
     override suspend fun setOnboardingCompleted(value: Boolean) = dataSource.setOnboardingCompleted(value)
+
+    override suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) = dataSource.setPdfReadOptions(mode, quality)
 
     override suspend fun acceptImageDisclosure(providerId: String) = dataSource.acceptImageDisclosure(providerId)
 }

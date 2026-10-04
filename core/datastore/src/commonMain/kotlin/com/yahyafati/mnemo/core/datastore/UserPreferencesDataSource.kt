@@ -14,6 +14,8 @@ import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
 import com.yahyafati.mnemo.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +57,8 @@ class UserPreferencesDataSource(
             autoPlayAudio = prefs[Keys.AutoPlayAudio] ?: defaults.autoPlayAudio,
             onboardingCompleted = prefs[Keys.OnboardingCompleted] ?: defaults.onboardingCompleted,
             imageDisclosureProviders = prefs[Keys.ImageDisclosureProviders] ?: defaults.imageDisclosureProviders,
+            pdfReadMode = PdfReadMode.entries.firstOrNull { it.name == prefs[Keys.PdfReadMode] },
+            pdfQuality = prefs[Keys.PdfQuality].toEnum(defaults.pdfQuality),
         )
     }
 
@@ -66,6 +70,11 @@ class UserPreferencesDataSource(
     suspend fun setAutoPlayAudio(value: Boolean) = edit { it[Keys.AutoPlayAudio] = value }
 
     suspend fun setOnboardingCompleted(value: Boolean) = edit { it[Keys.OnboardingCompleted] = value }
+
+    suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) = edit {
+        it[Keys.PdfReadMode] = mode.name
+        it[Keys.PdfQuality] = quality.name
+    }
 
     suspend fun acceptImageDisclosure(providerId: String) = edit {
         it[Keys.ImageDisclosureProviders] = (it[Keys.ImageDisclosureProviders] ?: emptySet()) + providerId
@@ -151,6 +160,8 @@ class UserPreferencesDataSource(
         val AutoPlayAudio = booleanPreferencesKey("auto_play_audio")
         val OnboardingCompleted = booleanPreferencesKey("onboarding_completed")
         val ImageDisclosureProviders = stringSetPreferencesKey("image_disclosure_providers")
+        val PdfReadMode = stringPreferencesKey("pdf_read_mode")
+        val PdfQuality = stringPreferencesKey("pdf_quality")
     }
 
     private companion object {
