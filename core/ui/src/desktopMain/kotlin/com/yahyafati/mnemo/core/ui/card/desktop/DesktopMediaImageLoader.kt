@@ -22,8 +22,9 @@ import java.io.File
 class DesktopMediaImageLoader(private val directory: File) : MediaImageLoader {
     private val cache = BitmapCache(CACHE_BYTES)
 
-    override fun load(hash: String): ImageBitmap? {
-        val file = File(directory, hash)
+    override fun load(hash: String): ImageBitmap? = loadFile(File(directory, hash))
+
+    override fun loadFile(file: File): ImageBitmap? {
         cache[file.path]?.let { return it }
         if (!file.isFile) return null
         val decoded = runCatching { Image.makeFromEncoded(file.readBytes()) }.getOrNull() ?: return null

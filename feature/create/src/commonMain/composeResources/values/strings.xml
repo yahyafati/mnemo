@@ -119,6 +119,9 @@
     <string name="feature_create_pdf_mode_auto_hint">Uses the PDF's own text where a page has some, and has a model read the pages that are only pictures.</string>
     <string name="feature_create_pdf_mode_ai_hint">Has a model read every page from its image. It handles scans, handwriting and formulas, and uses more tokens.</string>
     <string name="feature_create_pdf_mode_no_vision">Reading pages with AI needs a model that sees images. Choose one under Settings › AI providers › Read PDF pages.</string>
+    <string name="feature_create_pdf_pages_hint_images">Tick pages in the grid, or write them like 1-10, 14, 20-25.</string>
+    <string name="feature_create_pdf_mode_images">Cards from page images</string>
+    <string name="feature_create_pdf_mode_images_hint">Sends the pages themselves to the model, so it sees diagrams, tables and layout. You tick pages instead of editing text. Suits slides and figures; every retry sends the images again.</string>
     <string name="feature_create_pdf_quality_label">Page image quality</string>
     <string name="feature_create_pdf_quality_standard">Standard</string>
     <string name="feature_create_pdf_quality_high">High</string>
@@ -140,6 +143,43 @@
     </plurals>
     <string name="feature_create_pdf_confirm_send">Send</string>
     <string name="feature_create_pdf_confirm_cancel">Cancel</string>
+    <string name="feature_create_pdf_confirm_cards_title">Make cards from page images?</string>
+    <plurals name="feature_create_pdf_confirm_cards_message">
+        <item quantity="one">Mnemo will send an image of 1 page to %2$s (%3$s), in %4$s, and write cards from it. Images use more tokens than text.</item>
+        <item quantity="other">Mnemo will send images of %1$d pages to %2$s (%3$s), in %4$s, and write cards from them. Images use more tokens than text.</item>
+    </plurals>
+    <plurals name="feature_create_pdf_confirm_requests">
+        <item quantity="one">%1$d request</item>
+        <item quantity="other">%1$d requests</item>
+    </plurals>
+    <string name="feature_create_pdf_confirm_cards_send">Make cards</string>
+    <plurals name="feature_create_pdf_grid_ticked">
+        <item quantity="one">%1$d page ticked</item>
+        <item quantity="other">%1$d pages ticked</item>
+    </plurals>
+    <string name="feature_create_pdf_grid_summary">%1$s · %2$s</string>
+    <string name="feature_create_pdf_grid_none">No pages ticked. Tick the pages to make cards from.</string>
+    <string name="feature_create_pdf_grid_select_all">Select all</string>
+    <string name="feature_create_pdf_grid_clear">Clear</string>
+    <string name="feature_create_pdf_grid_page">Page %1$d</string>
+    <string name="feature_create_pdf_grid_page_blank">Page %1$d, nothing to show</string>
+    <string name="feature_create_pdf_grid_view">View page %1$d large</string>
+    <string name="feature_create_pdf_view_title">Page %1$d of %2$d</string>
+    <string name="feature_create_pdf_view_previous">Previous page</string>
+    <string name="feature_create_pdf_view_next">Next page</string>
+    <string name="feature_create_pdf_view_close">Close</string>
+    <string name="feature_create_pdf_view_unavailable">This page can't be shown.</string>
+    <string name="feature_create_pdf_view_image">Page %1$d of the PDF</string>
+    <string name="feature_create_pdf_chapters_use">Use these pages</string>
+    <plurals name="feature_create_pages_list">
+        <item quantity="one">page %1$s</item>
+        <item quantity="other">pages %1$s</item>
+    </plurals>
+    <string name="feature_create_generating_pages">Writing cards from %1$s… (%2$d of %3$d)</string>
+    <string name="feature_create_page_failed">Generation stopped: page %1$d can't be read (%2$s). The cards below are kept.</string>
+    <string name="feature_create_regenerate_page_failed">Couldn't write the card again: page %1$d can't be read (%2$s).</string>
+    <string name="feature_create_card_page">p. %1$d</string>
+    <string name="feature_create_card_page_open">Open page %1$d</string>
     <plurals name="feature_create_pdf_blank">
         <item quantity="one">%1$d page came out blank and was left out.</item>
         <item quantity="other">%1$d pages came out blank and were left out.</item>

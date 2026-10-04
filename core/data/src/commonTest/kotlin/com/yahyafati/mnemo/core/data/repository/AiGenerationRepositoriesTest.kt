@@ -29,6 +29,7 @@ import com.yahyafati.mnemo.core.testing.TestAppDirectories
 import com.yahyafati.mnemo.core.testing.TestClock
 import com.yahyafati.mnemo.core.testing.inMemoryDatabase
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import com.yahyafati.mnemo.core.testing.security.SoftwareSecretCipher
 import java.io.File
 import java.time.Instant
@@ -53,7 +54,7 @@ class AiGenerationRepositoriesTest : PlatformTest() {
     private val providers = FakeAiProviderRepository()
     private val server = MockWebServer()
     private val runner = ChatTextRunner(OpenAiCompatibleClient(OkHttpClient()))
-    private val generation = DefaultCardGenerationRepository(CardGenerationClient(runner), ProviderConfigs(secrets), providers, Dispatchers.Unconfined)
+    private val generation = DefaultCardGenerationRepository(CardGenerationClient(runner), ProviderConfigs(secrets), providers, FakeSourceRepository(), Dispatchers.Unconfined)
     private val database = inMemoryDatabase()
     private val clock = TestClock()
     private val assist = DefaultStudyAssistRepository(

@@ -90,7 +90,7 @@ Owner-only tasks are marked **(owner)**.
 | **P3** | Rendering pages | `PdfPageRenderer` on both platforms; the opened PDF and its pages in `cache/pdf/` | 2–3 days |
 | **P4** | Images in AI requests | Multimodal `ChatMessage`; image check in the probe; `AiTask.ReadPages`; image disclosure; new failure | 2–3 days |
 | **P5** ✓ | Read pages with AI | Transcribe and Auto modes fill the box; progress, cancel, cache, Report | 3–4 days |
-| **P6** | Cards from page images | Page grid; batches of page images go to card generation; regenerate per batch; card `page` | 3–5 days |
+| **P6** ✓ | Cards from page images | Page grid; batches of page images go to card generation; regenerate per batch; card `page` | 3–5 days |
 | **P7** | Figures on cards | Crop a page onto a queued card; stored as media on accept | 2–3 days |
 | **P8** | Polish and QA | Real scans on both platforms, three providers, docs, release notes | 1–2 days |
 
@@ -303,25 +303,27 @@ is the ordinary text pipeline.
 
 **Goal:** the pages themselves are the source; the user chooses pages instead of editing text.
 
-- [ ] Mode **Cards from page images** in the selector (vision only). The box is replaced by a **page grid**:
+- [x] Mode **Cards from page images** in the selector (vision only). The box is replaced by a **page grid**:
       thumbnails (P3) with a checkbox each, the selected count, and the Pages field kept in step with the ticks.
       Tapping a thumbnail opens the page large (zoom on Android, scroll wheel on the desktop, `Esc` to close).
-- [ ] `GenerationRequest` gains `images: List<PageImage(page, file)>` (empty for text) and `pageNumbers`;
+- [x] `GenerationRequest` gains `images: List<PageImage(page, file)>` (empty for text) and `pageNumbers`;
       `CardGenerationPrompt` gets an images variant: "The source is the attached page images (pages 14, 15 and 16, in
       that order)", the text layer of those pages inside `<source>` when they have one (default on, ADR 0014), and the
       same rules and output format. `CardGenerationClient` builds the message with `ChatMessage.user(text, images)`.
-- [ ] `GeneratedCardsSchema` and the parser: an optional integer `page` per card (the page it came from), kept only
+- [x] `GeneratedCardsSchema` and the parser: an optional integer `page` per card (the page it came from), kept only
       when it is one of the request's pages. `GeneratedCard` gains `page: Int?` (queue only, not saved on the note).
-- [ ] `GenerateCardsUseCase` / `ExtractRequest`: a source is either text parts or **page batches**
+- [x] `GenerateCardsUseCase` / `ExtractRequest`: a source is either text parts or **page batches**
       (`PAGES_PER_REQUEST`, 3), one request per batch, in order; `chunkIndex` is the batch, so **Regenerate** resends
       that batch's images; `targetCards` counts `PDF_PAGE_WORDS` (300) per page, or the page's text-layer words if
       more. Dedupe and validation are unchanged.
-- [ ] Review queue: a "p. 14" label on a card with a page; tapping it opens that page.
-- [ ] Confirmation before the run (pages, requests, provider and model, the token note), the image disclosure, and
+- [x] Review queue: a "p. 14" label on a card with a page; tapping it opens that page.
+- [x] Confirmation before the run (pages, requests, provider and model, the token note), the image disclosure, and
       progress per batch, as in P5.
-- [ ] Tests: the prompt with images (`:core:ai`, the message has the parts in order and the text layer), the schema
+- [x] Tests: the prompt with images (`:core:ai`, the message has the parts in order and the text layer), the schema
       and parser with and without `page` (add replies to `core/ai/src/test/resources/replies`), the use case's
       batching, resume and regenerate (fakes), the ViewModel's grid ↔ field sync, screenshots of the grid.
+
+*Status: done (ADR 0014, "As built (P6)"). Deviations: the image mode uses the `ReadPages` route (the one that must see images) and logs usage under it; an empty Pages field is no page in this mode (not all of them); the estimate is per request, `max(300 × pages, text-layer words)`, not per page; pinch/wheel zoom and Esc are in, arrow keys in the large view and grid keyboard navigation are P8. Open: a real run with slides on a hosted and a local vision model, and a look at the grid on a phone and on the desktop.*
 
 **Exit:** `slides.pdf` gives cards from its images; regenerate works per batch; text modes are untouched.
 

@@ -68,6 +68,8 @@ data class GeneratedCard(
     val chunkIndex: Int = 0,
     /** Multiple choice: the wrong options. */
     val wrongAnswers: List<String> = emptyList(),
+    /** Cards from page images: the page of the PDF (1-based) the model says the card came from. Queue only, never saved. */
+    val page: Int? = null,
 ) {
     val fields: List<String>
         get() = if (kind == NoteKind.MultipleChoice) listOf(front, back, MultipleChoice.wrongField(wrongAnswers)) else listOf(front, back)

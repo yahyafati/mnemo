@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.create
 
+import com.yahyafati.mnemo.core.data.repository.PageImages
 import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.domain.GeneratedCardProblem
 import com.yahyafati.mnemo.core.domain.GeneratedCardValidator
@@ -12,6 +13,7 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.DisclosureStep
+import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
@@ -83,15 +85,34 @@ data class SmartExtractUiState(
 
     /** About how many cards generating would give (before duplicates are dropped). */
     val estimatedCards: Int
-        get() = if (wordCount == 0) 0 else maxOf(options.targetCards(wordCount), wordCount / options.density.wordsPerCard)
+        get() = if (showsPageGrid) {
+            // A page has no words to count: it is worth PAGE_WORDS, like the request itself sizes it.
+            pageBatches.sumOf { cardsFor(PageImageBatches.words(it.size, layerWords = 0)) }
+        } else if (wordCount == 0) {
+            0
+        } else {
+            cardsFor(wordCount)
+        }
+
+    private fun cardsFor(words: Int) = maxOf(options.targetCards(words), words / options.density.wordsPerCard)
 
     val isGenerating: Boolean get() = generation is GenerationState.Running
 
-    /** The model PDF pages are read with can see images, so Auto and Read pages with AI can be chosen. */
+    /** The model PDF pages are read with can see images, so Auto, Read pages with AI and Cards from page images can be chosen. */
     val canReadPages: Boolean get() = readRoute?.capabilities?.vision == true
 
+    /** The PDF source is in Cards from page images mode: a grid of pages stands where the text box is (P6). */
+    val showsPageGrid: Boolean get() = sourceKind == SourceKind.Pdf && pdf?.mode == PdfReadMode.PageImages && canReadPages
+
+    /** The ticked pages in groups of one request, in Cards from page images mode; none in any other. */
+    val pageBatches: List<List<Int>> get() = if (showsPageGrid) PageImageBatches.of(pdf?.selectedPages.orEmpty().toList()) else emptyList()
+
     val canGenerate: Boolean
-        get() = route != null && text.isNotBlank() && !isGenerating && !reading && options.archetypes.isNotEmpty()
+        get() = if (showsPageGrid) {
+            pageBatches.isNotEmpty() && pdf?.error == null && !isGenerating && !reading && options.archetypes.isNotEmpty()
+        } else {
+            route != null && text.isNotBlank() && !isGenerating && !reading && options.archetypes.isNotEmpty()
+        }
 
     /** Cards that can be saved now: valid, and not being regenerated. */
     val acceptable: List<QueueItem> get() = queue.filter { it.problem == null && !it.regenerating }
@@ -115,6 +136,8 @@ data class SectionOption(val id: Int, val title: String?, val level: Int, val wo
  * [pages] is the Pages field as typed: empty means every page, which is allowed up to [PdfInfo.MAX_PAGES].
  */
 data class PdfSummary(
+    /** The open PDF's id: a queued card made from its pages can open them while it is the one that is open. */
+    val handleId: String,
     val title: String?,
     val pageCount: Int,
     val pages: String,
@@ -141,6 +164,10 @@ data class PdfSummary(
     val readConfirmation: PdfReadConfirmation? = null,
     /** Some of the text in the box was written by a model reading the pages: it can be reported. */
     val transcribed: Boolean = false,
+    /** The pages [pages] names, as the grid ticks them (Cards from page images); empty for a field with an error, and for an empty one. */
+    val selectedPages: Set<Int> = emptySet(),
+    /** The page shown large (1-based), or null. */
+    val viewPage: Int? = null,
 )
 
 /** Reading PDF pages with a vision model (P5). The text so far is in the box either way. */
@@ -152,13 +179,17 @@ sealed interface PdfReadState {
     data class Failed(val failure: PageReadFailure, val page: Int, val done: Int, val total: Int) : PdfReadState
 }
 
-/** What an AI read of the PDF's pages is about to do, said before anything is sent: [requests] requests for [pages] pages. */
+/**
+ * What an AI read of the PDF's pages is about to do, said before anything is sent: [requests] requests for [pages] pages.
+ * [forCards]: the pages go to card generation as images (P6) rather than being turned into text for the box.
+ */
 data class PdfReadConfirmation(
     val pages: Int,
     val requests: Int,
     val providerName: String,
     val modelId: String,
     val quality: PdfQuality,
+    val forCards: Boolean = false,
 )
 
 /**
@@ -214,6 +245,8 @@ data class QueueItem(
     val card: GeneratedCard,
     val source: String,
     val regenerating: Boolean = false,
+    /** Cards from page images: the pages this card's request was sent with, so Regenerate sends the same ones. */
+    val pages: PageImages? = null,
 ) {
     val problem: GeneratedCardProblem? get() = GeneratedCardValidator.problem(card)
 }
@@ -221,14 +254,17 @@ data class QueueItem(
 sealed interface GenerationState {
     data object Idle : GenerationState
 
-    /** Working on [part] (0-based) of [parts]. */
-    data class Running(val part: Int, val parts: Int) : GenerationState
+    /** Working on [part] (0-based) of [parts]; with page images, [pages] are the ones this request sends. */
+    data class Running(val part: Int, val parts: Int, val pages: List<Int> = emptyList()) : GenerationState
 
     /** Every part is done; [added] cards joined the queue. */
     data class Done(val added: Int) : GenerationState
 
     /** Stopped at [part] of [parts]; Retry resumes there. Cards already received stay. */
     data class Failed(val failure: AiFailure, val part: Int, val parts: Int) : GenerationState
+
+    /** Stopped at [part] of [parts] because [page] couldn't be drawn, so nothing was sent for it; Retry draws it again. */
+    data class PageUnreadable(val page: Int, val problem: SourceProblem, val part: Int, val parts: Int) : GenerationState
 }
 
 sealed interface DictationState {
@@ -247,6 +283,9 @@ sealed interface ExtractMessage {
     data object NothingNew : ExtractMessage
 
     data class RegenerateFailed(val failure: AiFailure) : ExtractMessage
+
+    /** Regenerating a card made from page images: [page] couldn't be drawn, so nothing was sent. */
+    data class RegeneratePageUnreadable(val page: Int, val problem: SourceProblem) : ExtractMessage
 
     /** The last chapter of a book run was done (or skipped). */
     data class BatchFinished(val chapters: Int) : ExtractMessage
@@ -293,6 +332,17 @@ sealed interface SmartExtractAction {
 
     /** After a failed AI read: goes on from the page that failed. */
     data object ResumePdfRead : SmartExtractAction
+
+    /** Cards from page images: ticks or unticks a page of the grid, which adds it to the Pages field or takes it out. */
+    data class TogglePdfPage(val page: Int) : SmartExtractAction
+
+    /** Cards from page images: ticks every page, up to the limit of one read, or none. */
+    data class SelectAllPdfPages(val all: Boolean) : SmartExtractAction
+
+    /** Shows a page of the open PDF large; the viewer's previous and next send the neighbouring page. */
+    data class OpenPdfPage(val page: Int) : SmartExtractAction
+
+    data object ClosePdfPage : SmartExtractAction
 
     /** The user agreed to replace their edits ([PdfSummary.replaceConfirmation]). */
     data object ConfirmPdfReplace : SmartExtractAction

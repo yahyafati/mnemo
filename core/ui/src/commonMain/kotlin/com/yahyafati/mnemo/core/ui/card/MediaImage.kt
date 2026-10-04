@@ -35,6 +35,12 @@ interface MediaImageLoader {
     /** The image for media [hash], downsampled to screen size; null if it's missing or can't be decoded. Blocking. */
     fun load(hash: String): ImageBitmap?
 
+    /**
+     * The image in [file], which isn't media storage (a rendered PDF page in the cache), decoded and downsampled like
+     * [load]; null if it is missing or can't be decoded. Blocking. A loader that can't read files says so with null.
+     */
+    fun loadFile(file: java.io.File): ImageBitmap? = null
+
     companion object {
         /** Loads nothing: previews, tests, and a platform that has not provided a loader. */
         val None: MediaImageLoader = object : MediaImageLoader {

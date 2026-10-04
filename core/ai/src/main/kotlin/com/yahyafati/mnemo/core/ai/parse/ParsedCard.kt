@@ -18,6 +18,8 @@ data class ParsedCard(
     val tags: List<String> = emptyList(),
     /** Multiple choice: the wrong options. */
     val wrongAnswers: List<String> = emptyList(),
+    /** Cards from page images: the page the model says the card came from, if it said one. Whether it is a real page is for the caller. */
+    val page: Int? = null,
 )
 
 /**
@@ -35,6 +37,7 @@ internal object CardFields {
     private val TAGS = listOf("tags", "tag", "topics", "keywords")
     private val OPTIONS = listOf("options", "choices", "answers", "wronganswers", "distractors")
     private val TYPE = listOf("type", "cardtype", "kind")
+    private val PAGE = listOf("page", "pagenumber", "pageno", "sourcepage")
 
     /** The card [obj] describes, or null if it isn't one (no front, or a Basic card with no back). */
     fun from(obj: JsonObject): ParsedCard? {
@@ -53,11 +56,12 @@ internal object CardFields {
             ?.mapNotNull { it.asText()?.trim()?.takeIf(String::isNotEmpty) }
             .orEmpty()
         val tags = TAGS.firstNotNullOfOrNull { fields[it] }?.let(::tagsOf).orEmpty()
+        val page = PAGE.firstNotNullOfOrNull { fields[it]?.asText() }?.let(::pageOf)
         if (kind == NoteKind.Basic && options.isNotEmpty()) {
             val declaredChoice = TYPE.firstNotNullOfOrNull { fields[it]?.asText() }?.lowercase()?.filter { it.isLetter() }
                 ?.let { it.contains("choice") || it == "mcq" } == true
             choice(front, back, options, declaredChoice)?.let { (answer, wrong) ->
-                return ParsedCard(NoteKind.MultipleChoice, front, answer, tags, wrong)
+                return ParsedCard(NoteKind.MultipleChoice, front, answer, tags, wrong, page)
             }
         }
         val fullFront = if (kind == NoteKind.Basic && options.size >= 2 && options.none { it in front }) {
@@ -65,7 +69,7 @@ internal object CardFields {
         } else {
             front
         }
-        return ParsedCard(kind, fullFront, back, tags)
+        return ParsedCard(kind, fullFront, back, tags, page = page)
     }
 
     /**
@@ -103,6 +107,11 @@ internal object CardFields {
         if (Regex("""^[A-Ha-h][.)]\s""").containsMatchIn(option)) return option
         return "${'A' + index}. $option"
     }
+
+    /** The page number in `14`, `14.0`, `"14"` or `"p. 14"`; the first number in it, and never zero or negative. */
+    private fun pageOf(text: String): Int? = PAGE_NUMBER.find(text)?.value?.toIntOrNull()?.takeIf { it >= 1 }
+
+    private val PAGE_NUMBER = Regex("""-?\d+""")
 
     private fun tagsOf(element: JsonElement): List<String> {
         val raw = when (element) {

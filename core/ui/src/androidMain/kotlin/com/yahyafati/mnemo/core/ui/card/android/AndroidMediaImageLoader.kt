@@ -14,6 +14,8 @@ import java.io.File
  */
 class AndroidMediaImageLoader(private val directory: File) : MediaImageLoader {
     override fun load(hash: String): ImageBitmap? = MediaBitmaps.load(File(directory, hash))
+
+    override fun loadFile(file: File): ImageBitmap? = MediaBitmaps.load(file)
 }
 
 /** Decoded images, downsampled to screen size and kept in a small memory cache. */

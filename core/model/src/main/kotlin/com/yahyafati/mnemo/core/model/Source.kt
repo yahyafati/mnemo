@@ -242,8 +242,8 @@ sealed interface PdfPageResult {
 }
 
 /**
- * How the pages of a PDF are read into Smart Extract's text box (docs/pdf/ROADMAP.md, P5; ADR 0014). Each mode ends in
- * the same editable box. "Cards from page images" is a fourth mode and comes with P6.
+ * How the pages of a PDF are read in Smart Extract (docs/pdf/ROADMAP.md, P5–P6; ADR 0014). The first three end in the
+ * same editable text box; [PageImages] has no box: the page images themselves are the source.
  */
 enum class PdfReadMode {
     /** The text layer, read on the device. */
@@ -254,10 +254,34 @@ enum class PdfReadMode {
 
     /** Every selected page is transcribed by a vision model. */
     ReadWithAi,
+
+    /** The pages are sent as images to card generation, a few to a request; the user picks pages, not text (P6). */
+    PageImages,
     ;
 
     /** Whether reading in this mode may send page images to a provider. */
     val usesAi: Boolean get() = this != Text
+
+    /** Whether the pages are turned into text by a model before card generation (the modes that fill the box with AI text). */
+    val transcribes: Boolean get() = this == Auto || this == ReadWithAi
+}
+
+/**
+ * Pages sent as images to card generation (docs/pdf/ROADMAP.md, P6; ADR 0014): how they are grouped into requests and
+ * how many cards a group is worth, since it has no text to count.
+ */
+object PageImageBatches {
+    /** Page images in one card-generation request: several share the prompt, and more would strain a small model. */
+    const val PAGES_PER_REQUEST = 3
+
+    /** A page with no text layer counts as this many words when estimating how many cards it gives. */
+    const val PAGE_WORDS = 300
+
+    /** [pages] (sorted, distinct) in groups of [PAGES_PER_REQUEST], in order: one request each. */
+    fun of(pages: List<Int>): List<List<Int>> = pages.distinct().sorted().chunked(PAGES_PER_REQUEST)
+
+    /** The words a request of [pages] pages is sized by: [PAGE_WORDS] each, or the text layer's [layerWords] if more. */
+    fun words(pages: Int, layerWords: Int): Int = maxOf(pages * PAGE_WORDS, layerWords)
 }
 
 /** The text layer of single pages, for telling the ones that have text from the ones that are only a picture. */

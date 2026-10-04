@@ -100,7 +100,7 @@ val dataModule = module {
         DefaultAiProviderRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.Default))
     } bind AiProviderRepository::class
     factory {
-        DefaultCardGenerationRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+        DefaultCardGenerationRepository(get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind CardGenerationRepository::class
     factory {
         DefaultCoAuthorRepository(get(), get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))

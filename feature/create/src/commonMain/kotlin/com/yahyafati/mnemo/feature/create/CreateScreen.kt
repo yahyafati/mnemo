@@ -92,6 +92,7 @@ internal fun CreateScreen(
                 onAction = smartExtractViewModel::onAction,
                 onSetUpAi = onSetUpAi,
                 onImportBook = onImportBook,
+                pageFiles = smartExtractViewModel.pageFiles,
                 modifier = Modifier.weight(1f),
             )
             CreateMode.CoAuthor -> CoAuthorScreen(

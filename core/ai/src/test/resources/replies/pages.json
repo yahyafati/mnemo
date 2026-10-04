@@ -1,0 +1,8 @@
+{"cards": [
+  {"type": "basic", "front": "What does the arrow from the nucleus to the ribosome show?", "back": "mRNA leaving the nucleus", "options": [], "tags": ["cells"], "page": 14},
+  {"type": "cloze", "front": "{{c1::Ribosomes}} build proteins.", "back": "", "options": [], "tags": [], "page": "p. 15"},
+  {"type": "basic", "front": "What is the Golgi's job?", "back": "Packaging proteins", "options": [], "tags": [], "page": 0},
+  {"type": "basic", "front": "Where are lipids made?", "back": "Smooth ER", "options": [], "tags": [], "page": 16.0},
+  {"type": "basic", "front": "What does a lysosome hold?", "back": "Digestive enzymes", "options": [], "tags": []},
+  {"type": "basic", "front": "What is a vacuole?", "back": "A storage sac", "options": [], "tags": [], "page": -3}
+]}

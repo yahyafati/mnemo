@@ -46,6 +46,38 @@ object GeneratedCardsSchema {
         }
     }
 
+    /** [cards] with the page each card came from, for requests that send page images: `"page"` is an integer, 0 for none. */
+    val cardsWithPage: JsonObject = buildJsonObject {
+        strictObject("cards") {
+            putJsonObject("cards") {
+                put("type", "array")
+                putJsonObject("items") {
+                    strictObject("type", "front", "back", "options", "tags", "page") {
+                        putJsonObject("type") {
+                            put("type", "string")
+                            putJsonArray("enum") {
+                                add(JsonPrimitive("basic"))
+                                add(JsonPrimitive("cloze"))
+                                add(JsonPrimitive("choice"))
+                            }
+                        }
+                        putJsonObject("front") { put("type", "string") }
+                        putJsonObject("back") { put("type", "string") }
+                        putJsonObject("options") {
+                            put("type", "array")
+                            putJsonObject("items") { put("type", "string") }
+                        }
+                        putJsonObject("tags") {
+                            put("type", "array")
+                            putJsonObject("items") { put("type", "string") }
+                        }
+                        putJsonObject("page") { put("type", "integer") }
+                    }
+                }
+            }
+        }
+    }
+
     /** A rewritten card: `{"front", "back"}`. */
     val rewrite: JsonObject = buildJsonObject {
         strictObject("front", "back") {
@@ -55,6 +87,8 @@ object GeneratedCardsSchema {
     }
 
     val cardsFormat: ResponseFormat = ResponseFormat.jsonSchema("flashcards", cards)
+
+    val cardsWithPageFormat: ResponseFormat = ResponseFormat.jsonSchema("flashcards", cardsWithPage)
 
     val rewriteFormat: ResponseFormat = ResponseFormat.jsonSchema("flashcard", rewrite)
 

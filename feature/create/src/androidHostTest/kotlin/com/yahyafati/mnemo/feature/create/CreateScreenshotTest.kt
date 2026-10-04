@@ -4,7 +4,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.yahyafati.mnemo.core.data.repository.PageImages
+import com.yahyafati.mnemo.core.ui.card.LocalMediaImageLoader
+import com.yahyafati.mnemo.core.ui.card.MediaImageLoader
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -21,6 +30,8 @@ import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceProblem
@@ -122,6 +133,12 @@ class CreateScreenshotTest {
     }
 
     @Test
+    fun pdfPageGridLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_grid_light.png") { PageGrid(dark = false) }
+
+    @Test
+    fun pdfPageGridDark() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_grid_dark.png") { PageGrid(dark = true) }
+
+    @Test
     fun pdfChaptersLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_chapters_light.png") { PdfChapters(dark = false) }
 
     @Test
@@ -148,6 +165,7 @@ class CreateScreenshotTest {
                     text = text,
                     title = "Cell biology",
                     pdf = PdfSummary(
+                        handleId = "pdf",
                         title = "Cell biology",
                         pageCount = 612,
                         pages = if (error == null) "1-300" else "1-400",
@@ -188,6 +206,7 @@ class CreateScreenshotTest {
                     title = "Cell biology (scan)",
                     reading = reading,
                     pdf = PdfSummary(
+                        handleId = "pdf",
                         title = "Cell biology (scan)",
                         pageCount = 12,
                         pages = "",
@@ -201,6 +220,71 @@ class CreateScreenshotTest {
                 onAction = {},
                 onSetUpAi = {},
             )
+        }
+    }
+
+    /**
+     * Cards from page images (docs/pdf/ROADMAP.md, P6): the grid of a 12-page deck of slides with four pages ticked, and the queue
+     * under it with two cards that name their pages. The pictures are generated: a shade for each page.
+     */
+    @androidx.compose.runtime.Composable
+    private fun PageGrid(dark: Boolean) {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-4-scout", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val route = AiRoute(AiTask.ReadPages, provider, "llama-4-scout", AiCapabilities(vision = true), usesDefault = true)
+        val handle = PdfHandle("pdf", PdfInfo(12, "Cell biology slides"))
+        val pages = PageImages(handle, PdfQuality.Standard, listOf(2, 3, 4))
+        val files = object : PdfPageFiles {
+            override suspend fun thumbnail(page: Int) = if (page == 7) null else java.io.File("p$page.jpg")
+
+            override suspend fun page(page: Int) = java.io.File("p$page.jpg")
+        }
+        val loader = object : MediaImageLoader {
+            override fun load(hash: String): ImageBitmap? = null
+
+            override fun loadFile(file: java.io.File): ImageBitmap {
+                val page = file.name.filter { it.isDigit() }.toInt()
+                val bitmap = ImageBitmap(160, 120)
+                Canvas(bitmap).drawRect(Rect(0f, 0f, 160f, 120f), Paint().apply { color = Color.hsv((page * 29f) % 360f, 0.25f, 0.95f) })
+                return bitmap
+            }
+        }
+        MnemoTheme(darkTheme = dark) {
+            CompositionLocalProvider(LocalMediaImageLoader provides loader) {
+                SmartExtractScreen(
+                    uiState = SmartExtractUiState(
+                        isLoading = false,
+                        route = route.copy(task = AiTask.Extract),
+                        readRoute = route,
+                        decks = listOf(DeckOption("d", "Cell biology")),
+                        deckId = "d",
+                        sourceKind = SourceKind.Pdf,
+                        pdf = PdfSummary(
+                            handleId = "pdf",
+                            title = "Cell biology slides",
+                            pageCount = 12,
+                            pages = "2-4, 9",
+                            mode = PdfReadMode.PageImages,
+                            selectedPages = setOf(2, 3, 4, 9),
+                        ),
+                        generation = GenerationState.Done(2),
+                        queue = listOf(
+                            QueueItem(
+                                GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
+                                source = "",
+                                pages = pages,
+                            ),
+                            QueueItem(
+                                GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4),
+                                source = "",
+                                pages = pages,
+                            ),
+                        ),
+                    ),
+                    onAction = {},
+                    onSetUpAi = {},
+                    pageFiles = files,
+                )
+            }
         }
     }
 

@@ -55,6 +55,7 @@ class GeneratedCardParserTest {
             "nested-wrapper.json" to 2,
             "refusal.txt" to 0,
             "invalid-cards.json" to 1,
+            "pages.json" to 6,
         )
         for ((name, count) in expected) assertEquals(count, cards(name).size, name)
     }
@@ -65,6 +66,13 @@ class GeneratedCardParserTest {
         assertEquals(listOf(NoteKind.Basic, NoteKind.Cloze, NoteKind.Basic), cards.map { it.kind })
         assertEquals(listOf("amygdala", "limbic-system"), cards[1].tags)
         assertEquals("", cards[1].back)
+    }
+
+    @Test
+    fun aCardMayNameItsPage() {
+        // 14, "p. 15" and 16.0 are page numbers; 0, a negative number and a missing one are no page.
+        assertEquals(listOf(14, 15, null, 16, null, null), cards("pages.json").map { it.page })
+        assertEquals(listOf(null, null, null), cards("clean-schema.json").map { it.page })
     }
 
     @Test

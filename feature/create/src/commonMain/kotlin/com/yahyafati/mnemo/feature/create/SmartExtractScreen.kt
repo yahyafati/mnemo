@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.create
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -104,6 +107,20 @@ import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_requests
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_send
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_use
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
+import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_pages
+import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_page_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page_open
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_into
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_no_deck
@@ -304,6 +321,8 @@ internal fun SmartExtractScreen(
     modifier: Modifier = Modifier,
     /** Opens the book import; null leaves its entry out. */
     onImportBook: (() -> Unit)? = null,
+    /** The pictures of the open PDF's pages, for the page grid and the large view. */
+    pageFiles: PdfPageFiles = PdfPageFiles.None,
 ) {
     val snackbar = remember { SnackbarHostState() }
     val message = uiState.message?.let { messageText(it) }
@@ -360,7 +379,7 @@ internal fun SmartExtractScreen(
                     verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md),
                 ) {
                     if (onImportBook != null) item(key = "book") { BookImportEntry(onImportBook, Modifier.widthIn(max = 680.dp)) }
-                    item(key = "workshop") { Workshop(uiState, uiState.route, onAction, onSetUpAi, Modifier.widthIn(max = 680.dp)) }
+                    item(key = "workshop") { Workshop(uiState, uiState.route, pageFiles, onAction, onSetUpAi, Modifier.widthIn(max = 680.dp)) }
                     item(key = "queue-header") { QueueHeader(uiState, onAction, Modifier.widthIn(max = 680.dp)) }
                     itemsIndexed(uiState.queue, key = { _, item -> item.card.id }) { index, item ->
                         ReviewCard(
@@ -368,6 +387,8 @@ internal fun SmartExtractScreen(
                             number = index + 1,
                             editing = uiState.editingId == item.card.id,
                             modelId = uiState.route.modelId,
+                            // The page a card came from opens while that PDF is the open one.
+                            canOpenPage = item.pages != null && item.pages.handle.id == uiState.pdf?.handleId,
                             onAction = onAction,
                             modifier = Modifier
                                 .widthIn(max = 680.dp)
@@ -471,25 +492,44 @@ internal fun SmartExtractScreen(
             pdf = pdf,
             reading = uiState.reading,
             onToggle = { onAction(SmartExtractAction.TogglePdfChapter(it)) },
-            onRead = { onAction(SmartExtractAction.ApplyPdfChapters) },
+            onRead = { onAction(if (pdf.mode == PdfReadMode.PageImages) SmartExtractAction.DismissPdfChapters else SmartExtractAction.ApplyPdfChapters) },
             onDismiss = { onAction(SmartExtractAction.DismissPdfChapters) },
         )
     }
     uiState.pdf?.readConfirmation?.let { confirmation ->
         AlertDialog(
             onDismissRequest = { onAction(SmartExtractAction.DismissPdfReadConfirmation) },
-            title = { Text(stringResource(Res.string.feature_create_pdf_confirm_title)) },
+            title = {
+                Text(stringResource(if (confirmation.forCards) Res.string.feature_create_pdf_confirm_cards_title else Res.string.feature_create_pdf_confirm_title))
+            },
             text = {
-                Text(pluralStringResource(Res.plurals.feature_create_pdf_confirm_message, confirmation.requests, confirmation.requests, confirmation.providerName, confirmation.modelId))
+                if (confirmation.forCards) {
+                    val requests = pluralStringResource(Res.plurals.feature_create_pdf_confirm_requests, confirmation.requests, confirmation.requests)
+                    Text(
+                        pluralStringResource(
+                            Res.plurals.feature_create_pdf_confirm_cards_message,
+                            confirmation.pages,
+                            confirmation.pages,
+                            confirmation.providerName,
+                            confirmation.modelId,
+                            requests,
+                        ),
+                    )
+                } else {
+                    Text(pluralStringResource(Res.plurals.feature_create_pdf_confirm_message, confirmation.requests, confirmation.requests, confirmation.providerName, confirmation.modelId))
+                }
             },
             confirmButton = {
-                TextButton(onClick = { onAction(SmartExtractAction.ConfirmPdfRead) }) { Text(stringResource(Res.string.feature_create_pdf_confirm_send)) }
+                TextButton(onClick = { onAction(SmartExtractAction.ConfirmPdfRead) }) {
+                    Text(stringResource(if (confirmation.forCards) Res.string.feature_create_pdf_confirm_cards_send else Res.string.feature_create_pdf_confirm_send))
+                }
             },
             dismissButton = {
                 TextButton(onClick = { onAction(SmartExtractAction.DismissPdfReadConfirmation) }) { Text(stringResource(Res.string.feature_create_pdf_confirm_cancel)) }
             },
         )
     }
+    uiState.pdf?.let { pdf -> pdf.viewPage?.let { PdfPageViewer(pdf, it, pageFiles, onAction) } }
     if (uiState.pdf?.replaceConfirmation == true) {
         AlertDialog(
             onDismissRequest = { onAction(SmartExtractAction.CancelPdfReplace) },
@@ -522,6 +562,8 @@ private fun messageText(message: ExtractMessage): String = when (message) {
     is ExtractMessage.BatchFinished -> pluralStringResource(Res.plurals.feature_create_batch_done, message.chapters, message.chapters)
     is ExtractMessage.RegenerateFailed -> stringResource(Res.string.feature_create_regenerate_failed, aiFailureText(message.failure))
     is ExtractMessage.PagesBlank -> pluralStringResource(Res.plurals.feature_create_pdf_blank, message.pages, message.pages)
+    is ExtractMessage.RegeneratePageUnreadable ->
+        stringResource(Res.string.feature_create_regenerate_page_failed, message.page, sourceProblemText(message.problem))
 }
 
 /** The source, the options and the Generate button: the mockup's "AI generator workshop" card. */
@@ -529,6 +571,7 @@ private fun messageText(message: ExtractMessage): String = when (message) {
 private fun Workshop(
     uiState: SmartExtractUiState,
     route: AiRoute,
+    pageFiles: PdfPageFiles,
     onAction: (SmartExtractAction) -> Unit,
     onSetUpAi: () -> Unit,
     modifier: Modifier = Modifier,
@@ -560,7 +603,12 @@ private fun Workshop(
             SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
             if (LocalPlatformCapabilities.current.keyboardAndMouse) Hint(stringResource(Res.string.feature_create_drop_file_hint))
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
-            SourceTextField(uiState, onAction)
+            val pdf = uiState.pdf
+            if (uiState.showsPageGrid && pdf != null) {
+                PdfPageGrid(pdf = pdf, pageFiles = pageFiles, reading = uiState.reading, onAction = onAction)
+            } else {
+                SourceTextField(uiState, onAction)
+            }
 
             DeckDropdown(
                 decks = uiState.decks,
@@ -613,7 +661,7 @@ private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction:
                     when (generation) {
                         is GenerationState.Running -> Res.string.feature_create_batch_hint_running
                         is GenerationState.Done -> Res.string.feature_create_batch_hint_review
-                        is GenerationState.Failed -> Res.string.feature_create_batch_hint_failed
+                        is GenerationState.Failed, is GenerationState.PageUnreadable -> Res.string.feature_create_batch_hint_failed
                         GenerationState.Idle -> Res.string.feature_create_batch_hint_idle
                     },
                 ),
@@ -786,7 +834,9 @@ private fun PdfPages(pdf: PdfSummary, reading: Boolean, canReadPages: Boolean, o
             supportingText = {
                 Text(
                     pdf.error?.let { pdfPagesErrorText(it, pdf.pageCount) }
-                        ?: if (long) {
+                        ?: if (pdf.mode == PdfReadMode.PageImages) {
+                            stringResource(Res.string.feature_create_pdf_pages_hint_images)
+                        } else if (long) {
                             stringResource(Res.string.feature_create_pdf_pages_hint_long, PdfInfo.MAX_PAGES)
                         } else {
                             stringResource(Res.string.feature_create_pdf_pages_hint)
@@ -801,13 +851,16 @@ private fun PdfPages(pdf: PdfSummary, reading: Boolean, canReadPages: Boolean, o
             keyboardActions = KeyboardActions(onDone = { onAction(SmartExtractAction.ApplyPdfPages) }),
             modifier = Modifier.weight(1f),
         )
-        MnemoButton(
-            text = stringResource(Res.string.feature_create_pdf_pages_read),
-            onClick = { onAction(SmartExtractAction.ApplyPdfPages) },
-            style = MnemoButtonStyle.Secondary,
-            enabled = !reading && pdf.error == null,
-            modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
-        )
+        // The grid is the selection in the image mode: there is no text to read, so there is nothing to press.
+        if (pdf.mode != PdfReadMode.PageImages) {
+            MnemoButton(
+                text = stringResource(Res.string.feature_create_pdf_pages_read),
+                onClick = { onAction(SmartExtractAction.ApplyPdfPages) },
+                style = MnemoButtonStyle.Secondary,
+                enabled = !reading && pdf.error == null,
+                modifier = Modifier.padding(top = MnemoTheme.spacing.xs),
+            )
+        }
     }
     if (pdf.chapters.isNotEmpty()) {
         MnemoButton(
@@ -833,6 +886,7 @@ private fun PdfReadOptions(pdf: PdfSummary, reading: Boolean, canReadPages: Bool
                         PdfReadMode.Text -> Res.string.feature_create_pdf_mode_text
                         PdfReadMode.Auto -> Res.string.feature_create_pdf_mode_auto
                         PdfReadMode.ReadWithAi -> Res.string.feature_create_pdf_mode_ai
+                        PdfReadMode.PageImages -> Res.string.feature_create_pdf_mode_images
                     },
                 ),
                 selected = pdf.mode == mode,
@@ -847,6 +901,7 @@ private fun PdfReadOptions(pdf: PdfSummary, reading: Boolean, canReadPages: Bool
                 PdfReadMode.Text -> Res.string.feature_create_pdf_mode_text_hint
                 PdfReadMode.Auto -> Res.string.feature_create_pdf_mode_auto_hint
                 PdfReadMode.ReadWithAi -> Res.string.feature_create_pdf_mode_ai_hint
+                PdfReadMode.PageImages -> Res.string.feature_create_pdf_mode_images_hint
             },
         ),
     )
@@ -941,8 +996,9 @@ private fun PdfChaptersDialog(pdf: PdfSummary, reading: Boolean, onToggle: (Int)
             }
         },
         confirmButton = {
+            // In the image mode the ticks are the pages: there is nothing to read, so the dialog only closes.
             TextButton(onClick = onRead, enabled = !reading && pdf.error == null) {
-                Text(stringResource(Res.string.feature_create_pdf_pages_read))
+                Text(stringResource(if (pdf.mode == PdfReadMode.PageImages) Res.string.feature_create_pdf_chapters_use else Res.string.feature_create_pdf_pages_read))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_sections_done)) } },
@@ -1345,7 +1401,14 @@ private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtra
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (generation.parts > 1) {
+                    text = if (generation.pages.isNotEmpty()) {
+                        stringResource(
+                            Res.string.feature_create_generating_pages,
+                            pluralStringResource(Res.plurals.feature_create_pages_list, generation.pages.size, generation.pages.joinToString(", ")),
+                            generation.part + 1,
+                            generation.parts,
+                        )
+                    } else if (generation.parts > 1) {
                         stringResource(Res.string.feature_create_generating_part, generation.part + 1, generation.parts)
                     } else {
                         stringResource(Res.string.feature_create_generating)
@@ -1368,6 +1431,21 @@ private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtra
                         Icon(MnemoIcons.Error, null, Modifier.size(18.dp))
                         Text(
                             text = stringResource(Res.string.feature_create_failed, aiFailureText(generation.failure)),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(MnemoTheme.spacing.sm),
+                        )
+                        TextButton(onClick = { onAction(SmartExtractAction.Retry) }) { Text(stringResource(Res.string.feature_create_retry)) }
+                    }
+                }
+            }
+            if (generation is GenerationState.PageUnreadable) {
+                Surface(shape = MaterialTheme.shapes.small, color = colors.errorContainer, contentColor = colors.onErrorContainer) {
+                    Row(Modifier.padding(start = MnemoTheme.spacing.md, end = MnemoTheme.spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(MnemoIcons.Error, null, Modifier.size(18.dp))
+                        Text(
+                            text = stringResource(Res.string.feature_create_page_failed, generation.page, sourceProblemText(generation.problem)),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier
                                 .weight(1f)
@@ -1432,6 +1510,8 @@ private fun ReviewCard(
     modelId: String?,
     onAction: (SmartExtractAction) -> Unit,
     modifier: Modifier = Modifier,
+    /** The card names a page of the PDF that is open now, so the label can open it. */
+    canOpenPage: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
@@ -1452,6 +1532,27 @@ private fun ReviewCard(
                     color = colors.secondary,
                     modifier = Modifier.padding(start = spacing.sm),
                 )
+                card.page?.let { page ->
+                    val label = stringResource(Res.string.feature_create_card_page, page)
+                    Text(
+                        text = label,
+                        style = MnemoTheme.typography.metricSm,
+                        color = if (canOpenPage) colors.primary else colors.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(start = spacing.sm)
+                            .then(
+                                if (canOpenPage) {
+                                    val open = stringResource(Res.string.feature_create_card_page_open, page)
+                                    Modifier
+                                        .clickable(role = Role.Button, onClickLabel = open) { onAction(SmartExtractAction.OpenPdfPage(page)) }
+                                        .clickCursor()
+                                        .semantics { contentDescription = open }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                    )
+                }
                 Box(Modifier.weight(1f))
                 MnemoIconButton(
                     icon = MnemoIcons.Regenerate,

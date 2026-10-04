@@ -4,12 +4,25 @@ import com.yahyafati.mnemo.core.data.repository.CardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.GenerationRequest
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
+import com.yahyafati.mnemo.core.data.repository.PageImages
+import com.yahyafati.mnemo.core.data.repository.UnreadablePage
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.PdfHandle
+import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.SourceProblem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+
+/**
+ * Cards from page images (docs/pdf/ROADMAP.md, P6): the PDF's pages in groups, one request each. Part `i` of the run is
+ * sent with the images of `batches[i]`, rendered at [quality]; its text is only the pages' text layer.
+ */
+data class PageBatches(val handle: PdfHandle, val quality: PdfQuality, val batches: List<List<Int>>) {
+    fun images(part: Int) = PageImages(handle, quality, batches[part])
+}
 
 /** A Smart Extract run: a source split into [parts], generated from [fromPart] on. */
 data class ExtractRequest(
@@ -22,7 +35,13 @@ data class ExtractRequest(
     val fromPart: Int = 0,
     /** Cards already in the review queue: not repeated, and named to the model so it avoids them. */
     val known: List<GeneratedCard> = emptyList(),
-)
+    /** Cards from page images: each of [parts] goes with its group of pages; null for a text source. */
+    val pages: PageBatches? = null,
+) {
+    init {
+        require(pages == null || pages.batches.size == parts.size) { "Every part needs its group of pages" }
+    }
+}
 
 sealed interface ExtractEvent {
     data class PartStarted(val part: Int, val parts: Int) : ExtractEvent
@@ -35,6 +54,9 @@ sealed interface ExtractEvent {
 
     /** The request for [part] failed. Cards already emitted stay; a retry can resume at [part]. */
     data class Failed(val part: Int, val failure: AiFailure) : ExtractEvent
+
+    /** A page of [part] couldn't be drawn, so its request was not made. Cards already emitted stay; a retry can resume at [part]. */
+    data class PageUnreadable(val part: Int, val page: Int, val problem: SourceProblem) : ExtractEvent
 
     /** Every part is done. */
     data object Finished : ExtractEvent
@@ -66,6 +88,7 @@ class GenerateCardsUseCase(
         for (part in request.fromPart until request.parts.size) {
             emit(ExtractEvent.PartStarted(part, request.parts.size))
             var failure: AiFailure? = null
+            var unreadable: UnreadablePage? = null
             val generationRequest = GenerationRequest(
                 text = request.parts[part],
                 options = request.options,
@@ -73,6 +96,7 @@ class GenerateCardsUseCase(
                 parts = request.parts.size,
                 title = request.title,
                 avoid = avoid.takeLast(MAX_AVOID),
+                pages = request.pages?.images(part),
             )
             generation.generate(route, generationRequest).collect { update ->
                 when (update) {
@@ -87,8 +111,15 @@ class GenerateCardsUseCase(
                             }
                         }
                     }
-                    is GenerationUpdate.Done -> failure = update.failure
+                    is GenerationUpdate.Done -> {
+                        failure = update.failure
+                        unreadable = update.unreadablePage
+                    }
                 }
+            }
+            unreadable?.let {
+                emit(ExtractEvent.PageUnreadable(part, it.page, it.problem))
+                return@flow
             }
             failure?.let {
                 emit(ExtractEvent.Failed(part, it))
@@ -110,11 +141,15 @@ sealed interface RegenerateResult {
     data object NothingNew : RegenerateResult
 
     data class Failed(val failure: AiFailure) : RegenerateResult
+
+    /** A page of the card's group couldn't be drawn, so nothing was sent. */
+    data class PageUnreadable(val page: Int, val problem: SourceProblem) : RegenerateResult
 }
 
 /**
  * "Regenerate" on one queued card: one new card from [source], the part of the source the card
- * came from. The queue keeps each card's part, since the text box may have changed since.
+ * came from. The queue keeps each card's part, since the text box may have changed since. A card made from page images
+ * keeps its group of pages ([pages]) too, and the same images are sent again.
  */
 class RegenerateCardUseCase(
     private val generation: CardGenerationRepository,
@@ -128,6 +163,7 @@ class RegenerateCardUseCase(
         deckId: String?,
         title: String? = null,
         known: List<GeneratedCard> = emptyList(),
+        pages: PageImages? = null,
     ): RegenerateResult {
         val seen = HashSet<String>()
         deckId?.let { id -> cardRepository.getNoteFields(id).forEach { seen += GeneratedCardValidator.key(it.firstOrNull().orEmpty()) } }
@@ -136,6 +172,7 @@ class RegenerateCardUseCase(
 
         var replacement: GeneratedCard? = null
         var failure: AiFailure? = null
+        var unreadable: UnreadablePage? = null
         val request = GenerationRequest(
             text = source,
             options = options,
@@ -143,6 +180,7 @@ class RegenerateCardUseCase(
             title = title,
             avoid = known.map { it.front }.takeLast(MAX_AVOID),
             replacing = card,
+            pages = pages,
         )
         generation.generate(route, request).collect { update ->
             when (update) {
@@ -151,10 +189,14 @@ class RegenerateCardUseCase(
                         ?.takeIf { GeneratedCardValidator.key(it.front) !in seen }
                         ?.let { replacement = it }
                 }
-                is GenerationUpdate.Done -> failure = update.failure
+                is GenerationUpdate.Done -> {
+                    failure = update.failure
+                    unreadable = update.unreadablePage
+                }
             }
         }
         return replacement?.let { RegenerateResult.Replaced(it) }
+            ?: unreadable?.let { RegenerateResult.PageUnreadable(it.page, it.problem) }
             ?: failure?.let { RegenerateResult.Failed(it) }
             ?: RegenerateResult.NothingNew
     }

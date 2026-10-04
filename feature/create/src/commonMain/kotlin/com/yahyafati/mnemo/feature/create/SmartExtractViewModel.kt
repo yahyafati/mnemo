@@ -11,6 +11,7 @@ import com.yahyafati.mnemo.core.domain.BookDeckNames
 import com.yahyafati.mnemo.core.domain.ExtractEvent
 import com.yahyafati.mnemo.core.domain.ExtractRequest
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.PageBatches
 import com.yahyafati.mnemo.core.domain.PageSource
 import com.yahyafati.mnemo.core.domain.PageTranscriptionCache
 import com.yahyafati.mnemo.core.domain.PdfReadPlan
@@ -30,12 +31,14 @@ import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PageLabels
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PageRangesResult
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfOpenResult
+import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.PdfPageText
 import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfQuality
@@ -58,6 +61,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import java.io.File
 
 /**
  * Smart Extract (ARCHITECTURE §5.2): source → text → streamed cards in a review queue → accepted
@@ -78,6 +84,11 @@ import kotlinx.coroutines.launch
  * need a request, ask the user to agree to that number, then show the text growing in the box page by page; a failure
  * keeps the pages done and Resume goes on from the page that failed. Transcriptions are kept for the session
  * ([PageTranscriptionCache]), so changing the pages or the mode doesn't pay twice.
+ *
+ * **Cards from page images** (P6) has no box: the pages ticked in a grid (the Pages field is the single source of the
+ * ticks, like the chapter picker's) are the source. Generate confirms the number of requests, shows the notices (the
+ * provider's, then the images'), then sends the pages three to a request on the Read PDF pages route (the one that must see
+ * images), each card naming its page; the queue keeps a card's pages so Regenerate sends the same images again.
  *
  * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
@@ -104,7 +115,18 @@ class SmartExtractViewModel(
     val uiState: StateFlow<SmartExtractUiState> = _uiState.asStateFlow()
 
     /** The source being generated from, kept so Retry can resume it. */
-    private class Run(val parts: List<String>, val options: ExtractOptions, val title: String?, val deckId: String?)
+    private class Run(
+        val parts: List<String>,
+        val options: ExtractOptions,
+        val title: String?,
+        val deckId: String?,
+        /** The route page images were sent on; null for a text source, which Retry looks up again. */
+        val route: AiRoute? = null,
+        /** Cards from page images: the group of pages of each part. */
+        val pages: PageBatches? = null,
+    ) {
+        fun pagesOf(part: Int): List<Int> = pages?.batches?.getOrNull(part).orEmpty()
+    }
 
     private var run: Run? = null
     private var generationJob: Job? = null
@@ -121,6 +143,42 @@ class SmartExtractViewModel(
     private class PdfRun(val route: AiRoute, val plan: PdfReadPlan, var failedAt: Int = 0)
 
     private var pdfRun: PdfRun? = null
+
+    /** Cards from page images, waiting for the user to agree to the requests; and what the Pages field starts with for a text read. */
+    private class PageRun(val route: AiRoute, val handle: PdfHandle, val quality: PdfQuality, val batches: List<List<Int>>)
+
+    private var pendingPageRun: PageRun? = null
+    private var defaultPages: String = ""
+
+    /** Pages whose thumbnail came out blank, so scrolling back to them doesn't render them again. */
+    private val blankThumbnails: MutableSet<Int> = java.util.Collections.synchronizedSet(mutableSetOf())
+    private val renderSlots = Semaphore(PAGE_RENDERS_AT_ONCE)
+
+    /** The pictures of the open PDF's pages for the grid and the large view. */
+    val pageFiles: PdfPageFiles = object : PdfPageFiles {
+        override suspend fun thumbnail(page: Int): File? {
+            if (page in blankThumbnails) return null
+            return when (val result = renderPage { sources.pdfThumbnail(it, page) }) {
+                is PdfPageResult.Success -> result.file
+                is PdfPageResult.Failure -> {
+                    if (result.problem == SourceProblem.BlankPage) blankThumbnails += page
+                    null
+                }
+                null -> null
+            }
+        }
+
+        override suspend fun page(page: Int): File? {
+            val quality = _uiState.value.pdf?.quality ?: PdfQuality.Standard
+            return (renderPage { sources.renderPdfPage(it, page, quality) } as? PdfPageResult.Success)?.file
+        }
+    }
+
+    /** Draws a page of the open PDF, a few at a time (a grid asks for many at once); null when no PDF is open. */
+    private suspend fun renderPage(render: suspend (PdfHandle) -> PdfPageResult): PdfPageResult? {
+        val handle = pdf ?: return null
+        return renderSlots.withPermit { render(handle) }
+    }
 
     /** The book whose chapters can be chosen, and the name its deck has (or would have) under the book's root. */
     private var book: BookSource? = null
@@ -230,10 +288,17 @@ class SmartExtractViewModel(
             SmartExtractAction.FetchLink -> _uiState.value.link.takeIf { it.isNotBlank() }?.let { read(SourceInput.Link(it.trim())) }
             is SmartExtractAction.PdfPicked -> openPdf(action.uri)
             is SmartExtractAction.PdfPagesChanged -> pdf?.let { handle ->
-                _uiState.update { state ->
-                    state.pdf?.let { state.copy(pdf = it.copy(pages = action.text, error = choosePages(action.text, handle.info.pageCount).second)) } ?: state
-                }
+                _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.withPages(action.text, handle.info)) } ?: state }
             }
+            is SmartExtractAction.TogglePdfPage -> pdf?.let { togglePage(it, action.page) }
+            is SmartExtractAction.SelectAllPdfPages -> pdf?.let { handle ->
+                val field = if (action.all) PageRanges.all(handle.info.pageCount).first(PdfInfo.MAX_PAGES).format() else ""
+                _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.withPages(field, handle.info)) } ?: state }
+            }
+            is SmartExtractAction.OpenPdfPage -> pdf?.let { handle ->
+                if (action.page in 1..handle.info.pageCount) _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(viewPage = action.page)) } ?: state }
+            }
+            SmartExtractAction.ClosePdfPage -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(viewPage = null)) } ?: state }
             SmartExtractAction.ApplyPdfPages -> applyPdfPages(confirmed = false)
             is SmartExtractAction.SetPdfReadMode -> setPdfReadMode(action.mode)
             is SmartExtractAction.SetPdfQuality -> setPdfQuality(action.quality)
@@ -244,6 +309,7 @@ class SmartExtractViewModel(
             SmartExtractAction.ConfirmPdfRead -> confirmPdfRead()
             SmartExtractAction.DismissPdfReadConfirmation -> {
                 pdfRun = null
+                pendingPageRun = null
                 _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(readConfirmation = null)) } ?: state }
             }
             SmartExtractAction.CancelPdfRead -> cancelPdfRead()
@@ -418,16 +484,20 @@ class SmartExtractViewModel(
                     pdf = handle
                     pdfText = null
                     val count = handle.info.pageCount
-                    val field = if (count > PdfInfo.MAX_PAGES) "1-${PdfInfo.MAX_PAGES}" else ""
+                    defaultPages = if (count > PdfInfo.MAX_PAGES) "1-${PdfInfo.MAX_PAGES}" else ""
                     // The route may still be loading when a PDF is dropped on a screen that was just opened.
                     _uiState.first { !it.isLoading }
                     val canRead = _uiState.value.canReadPages
                     val remembered = userSettings.settings.first()
                     // Auto is the default for a model that reads images; a remembered AI mode needs one, or it falls back to Text.
                     val mode = (remembered.pdfReadMode ?: if (canRead) PdfReadMode.Auto else PdfReadMode.Text).takeIf { canRead || !it.usesAi } ?: PdfReadMode.Text
+                    // Pages are ticked one by one in the image mode: an empty field is no page there, not all of them.
+                    val field = if (mode == PdfReadMode.PageImages) "" else defaultPages
                     _uiState.update {
                         it.copy(
+                            title = if (mode == PdfReadMode.PageImages) handle.info.title else it.title,
                             pdf = PdfSummary(
+                                handleId = handle.id,
                                 title = handle.info.title,
                                 pageCount = count,
                                 pages = field,
@@ -438,8 +508,9 @@ class SmartExtractViewModel(
                             ),
                         )
                     }
-                    // The first read is always the text layer: it costs nothing, and says which pages have none.
-                    loadPdfPages(handle, choosePages(field, count).first)
+                    // The first read is always the text layer: it costs nothing, and says which pages have none. The
+                    // image mode has no box to fill, and a scan's "no text" would only confuse it.
+                    if (mode == PdfReadMode.PageImages) _uiState.update { it.copy(reading = false) } else loadPdfPages(handle, choosePages(field, count).first)
                 }
                 is PdfOpenResult.Failure -> _uiState.update { it.copy(reading = false, sourceProblem = opened.problem) }
             }
@@ -450,6 +521,8 @@ class SmartExtractViewModel(
     private fun applyPdfPages(confirmed: Boolean) {
         val handle = pdf ?: return
         val summary = _uiState.value.pdf ?: return
+        // The grid is the selection in the image mode: there is no text to read, and the ticks follow the field as it is typed.
+        if (summary.mode == PdfReadMode.PageImages) return
         val (pages, error) = choosePages(summary.pages, handle.info.pageCount)
         if (pages == null) {
             _uiState.update { it.copy(pdf = summary.copy(error = error, replaceConfirmation = false)) }
@@ -504,6 +577,13 @@ class SmartExtractViewModel(
     }
 
     private fun confirmPdfRead() {
+        pendingPageRun?.let { pageRun ->
+            pendingPageRun = null
+            _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(readConfirmation = null)) } ?: state }
+            // The same two notices, in the same order, as for a transcription: the provider's, then the images'.
+            withDisclosure(pageRun.route, sendsImages = true) { startPageRun(pageRun) }
+            return
+        }
         val run = pdfRun ?: return
         _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(readConfirmation = null)) } ?: state }
         // Images carry everything on the page: the provider's own notice first, then the images'.
@@ -587,7 +667,20 @@ class SmartExtractViewModel(
 
     private fun setPdfReadMode(mode: PdfReadMode) {
         if (mode.usesAi && !_uiState.value.canReadPages) return
-        _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(mode = mode)) } ?: state }
+        val info = pdf?.info
+        _uiState.update { state ->
+            state.pdf?.let { summary ->
+                // What the field starts with means "every page" to a text read; as ticks it would send hundreds of pages.
+                val field = when {
+                    info == null -> summary.pages
+                    mode == PdfReadMode.PageImages && summary.pages == defaultPages -> ""
+                    mode != PdfReadMode.PageImages && summary.pages.isBlank() -> defaultPages
+                    else -> summary.pages
+                }
+                val fitted = if (info != null && field != summary.pages) summary.withPages(field, info) else summary
+                state.copy(pdf = fitted.copy(mode = mode, viewPage = fitted.viewPage.takeIf { mode == PdfReadMode.PageImages }))
+            } ?: state
+        }
         rememberPdfOptions()
     }
 
@@ -661,8 +754,28 @@ class SmartExtractViewModel(
             val chapter = PageRanges.of(info.chapterPages(id))
             val next = if (id in summary.selectedChapters) chosen - chapter else chosen + chapter
             val field = next.format()
-            state.copy(pdf = summary.copy(pages = field, error = choosePages(field, info.pageCount).second, selectedChapters = chaptersIn(field, info)))
+            state.copy(pdf = summary.withPages(field, info).copy(selectedChapters = chaptersIn(field, info)))
         }
+    }
+
+    /** Ticks or unticks [page] of the grid by writing the field again: the field stays the one thing that decides. */
+    private fun togglePage(handle: PdfHandle, page: Int) {
+        val info = handle.info
+        if (page !in 1..info.pageCount) return
+        _uiState.update { state ->
+            val summary = state.pdf ?: return@update state
+            // A blank or unreadable field has no ticked pages, so the first tick starts it over.
+            val chosen = (PageRanges.parse(summary.pages, info.pageCount) as? PageRangesResult.Valid)?.ranges ?: PageRanges.Empty
+            val next = if (page in chosen) chosen - PageRanges.of(page) else chosen + PageRanges.of(page)
+            val field = next.format()
+            state.copy(pdf = summary.withPages(field, info).copy(selectedChapters = chaptersIn(field, info)))
+        }
+    }
+
+    /** [field] as the Pages field and the pages it ticks; an empty or faulty field ticks none. */
+    private fun PdfSummary.withPages(field: String, info: PdfInfo): PdfSummary {
+        val (chosen, error) = choosePages(field, info.pageCount)
+        return copy(pages = field, error = error, selectedPages = if (field.isBlank()) emptySet() else chosen?.pages?.toSet().orEmpty())
     }
 
     /** Forgets the open PDF and has its copy deleted. */
@@ -671,6 +784,8 @@ class SmartExtractViewModel(
         pdf = null
         pdfText = null
         pdfRun = null
+        pendingPageRun = null
+        blankThumbnails.clear()
         transcriptions.clear(handle)
         _uiState.update { it.copy(pdf = null) }
         viewModelScope.launch { sources.closePdf(handle) }
@@ -946,6 +1061,10 @@ class SmartExtractViewModel(
 
     private fun generate() {
         val state = _uiState.value
+        if (state.showsPageGrid) {
+            generateFromPages(state)
+            return
+        }
         val route = state.route ?: return
         if (!state.canGenerate) return
         stopDictation()
@@ -958,55 +1077,112 @@ class SmartExtractViewModel(
         }
     }
 
+    /**
+     * Cards from the ticked pages: first says how many requests that is and to whom, then (once agreed, and the notices
+     * are accepted) [startPageRun] sends them. The images go to the Read PDF pages route, the one that must see them.
+     */
+    private fun generateFromPages(state: SmartExtractUiState) {
+        val route = state.readRoute?.takeIf { it.capabilities.vision } ?: return
+        val handle = pdf ?: return
+        val summary = state.pdf ?: return
+        if (!state.canGenerate) return
+        val batches = state.pageBatches
+        pendingPageRun = PageRun(route, handle, summary.quality, batches)
+        _uiState.update {
+            it.copy(
+                pdf = summary.copy(
+                    readConfirmation = PdfReadConfirmation(batches.sumOf { batch -> batch.size }, batches.size, route.provider.name, route.modelId, summary.quality, forCards = true),
+                ),
+            )
+        }
+    }
+
+    /**
+     * Sends [pageRun]'s groups of pages in order, each with the text layer of its pages (the ones that have one) to help
+     * with spelling and numbers. The layers are read first, so the run shows as started at once.
+     */
+    private fun startPageRun(pageRun: PageRun) {
+        val current = _uiState.value
+        generationJob?.cancel()
+        _uiState.update { it.copy(generation = GenerationState.Running(0, pageRun.batches.size, pageRun.batches.first())) }
+        generationJob = viewModelScope.launch {
+            val layers = (sources.pageTexts(pageRun.handle, pageRun.batches.flatten()) as? PdfPageTextsResult.Success)?.texts.orEmpty()
+            val parts = pageRun.batches.map { batch ->
+                batch.filter { PdfPageText.hasText(layers[it].orEmpty()) }.joinToString("\n\n") { "[Page $it]\n${layers.getValue(it).trim()}" }
+            }
+            val run = Run(
+                parts = parts,
+                options = current.options,
+                title = current.pdf?.title ?: current.title,
+                deckId = current.deckId,
+                route = pageRun.route,
+                pages = PageBatches(pageRun.handle, pageRun.quality, pageRun.batches),
+            )
+            this@SmartExtractViewModel.run = run
+            collectGeneration(pageRun.route, run, fromPart = 0)
+        }
+    }
+
     private fun retry() {
-        val failed = _uiState.value.generation as? GenerationState.Failed ?: return
-        val route = _uiState.value.route ?: return
-        launchGeneration(route, failed.part)
+        val failedPart = when (val failed = _uiState.value.generation) {
+            is GenerationState.Failed -> failed.part
+            is GenerationState.PageUnreadable -> failed.part
+            else -> return
+        }
+        val route = run?.route ?: _uiState.value.route ?: return
+        launchGeneration(route, failedPart)
     }
 
     private fun launchGeneration(route: AiRoute, fromPart: Int) {
         val run = run ?: return
         generationJob?.cancel()
-        _uiState.update { it.copy(generation = GenerationState.Running(fromPart, run.parts.size)) }
-        generationJob = viewModelScope.launch {
-            var added = 0
-            var part = fromPart
-            val request = ExtractRequest(
-                parts = run.parts,
-                options = run.options,
-                deckId = run.deckId,
-                title = run.title,
-                fromPart = fromPart,
-                known = _uiState.value.queue.map { it.card },
-            )
-            generateCards(route, request).collect { event ->
-                when (event) {
-                    is ExtractEvent.PartStarted -> {
-                        part = event.part
-                        _uiState.update { it.copy(generation = GenerationState.Running(event.part, event.parts)) }
-                    }
-                    is ExtractEvent.Card -> {
-                        added++
-                        _uiState.update { it.copy(queue = it.queue + QueueItem(event.card, run.parts[part])) }
-                    }
-                    is ExtractEvent.Skipped -> _uiState.update {
-                        when (event.reason) {
-                            SkipReason.Duplicate -> it.copy(duplicatesSkipped = it.duplicatesSkipped + 1)
-                            SkipReason.Invalid -> it.copy(invalidSkipped = it.invalidSkipped + 1)
-                        }
-                    }
-                    is ExtractEvent.Failed -> _uiState.update { it.copy(generation = GenerationState.Failed(event.failure, event.part, run.parts.size)) }
-                    ExtractEvent.Finished -> _uiState.update { it.copy(generation = GenerationState.Done(added)) }
+        _uiState.update { it.copy(generation = GenerationState.Running(fromPart, run.parts.size, run.pagesOf(fromPart))) }
+        generationJob = viewModelScope.launch { collectGeneration(route, run, fromPart) }
+    }
+
+    private suspend fun collectGeneration(route: AiRoute, run: Run, fromPart: Int) {
+        var added = 0
+        var part = fromPart
+        val request = ExtractRequest(
+            parts = run.parts,
+            options = run.options,
+            deckId = run.deckId,
+            title = run.title,
+            fromPart = fromPart,
+            known = _uiState.value.queue.map { it.card },
+            pages = run.pages,
+        )
+        generateCards(route, request).collect { event ->
+            when (event) {
+                is ExtractEvent.PartStarted -> {
+                    part = event.part
+                    _uiState.update { it.copy(generation = GenerationState.Running(event.part, event.parts, run.pagesOf(event.part))) }
                 }
+                is ExtractEvent.Card -> {
+                    added++
+                    _uiState.update { it.copy(queue = it.queue + QueueItem(event.card, run.parts[part], pages = run.pages?.images(part))) }
+                }
+                is ExtractEvent.Skipped -> _uiState.update {
+                    when (event.reason) {
+                        SkipReason.Duplicate -> it.copy(duplicatesSkipped = it.duplicatesSkipped + 1)
+                        SkipReason.Invalid -> it.copy(invalidSkipped = it.invalidSkipped + 1)
+                    }
+                }
+                is ExtractEvent.Failed -> _uiState.update { it.copy(generation = GenerationState.Failed(event.failure, event.part, run.parts.size)) }
+                is ExtractEvent.PageUnreadable ->
+                    _uiState.update { it.copy(generation = GenerationState.PageUnreadable(event.page, event.problem, event.part, run.parts.size)) }
+                ExtractEvent.Finished -> _uiState.update { it.copy(generation = GenerationState.Done(added)) }
             }
         }
     }
 
     private fun regenerate(id: String) {
         val state = _uiState.value
-        val route = state.route ?: return
         val item = state.queue.firstOrNull { it.card.id == id }?.takeIf { !it.regenerating } ?: return
-        withDisclosure(route) {
+        // A card made from page images is made again from the same images, which only a model that sees them can read.
+        val images = item.pages
+        val route = (if (images == null) state.route else state.readRoute?.takeIf { it.capabilities.vision }) ?: return
+        withDisclosure(route, sendsImages = images != null) {
             setRegenerating(id, true)
             viewModelScope.launch {
                 val current = _uiState.value
@@ -1018,17 +1194,22 @@ class SmartExtractViewModel(
                     deckId = current.deckId,
                     title = run?.title ?: current.title,
                     known = current.queue.map { it.card },
+                    pages = images,
                 )
                 _uiState.update { s ->
                     when (result) {
                         is RegenerateResult.Replaced -> s.copy(
-                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.source) else it },
+                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.source, pages = images) else it },
                             editingId = s.editingId.takeIf { it != id },
                         )
                         RegenerateResult.NothingNew -> s.copy(queue = s.queue.withRegenerating(id, false), message = ExtractMessage.NothingNew)
                         is RegenerateResult.Failed -> s.copy(
                             queue = s.queue.withRegenerating(id, false),
                             message = ExtractMessage.RegenerateFailed(result.failure),
+                        )
+                        is RegenerateResult.PageUnreadable -> s.copy(
+                            queue = s.queue.withRegenerating(id, false),
+                            message = ExtractMessage.RegeneratePageUnreadable(result.page, result.problem),
                         )
                     }
                 }
@@ -1125,6 +1306,9 @@ class SmartExtractViewModel(
     }
 
     internal companion object {
+        /** Pages drawn at the same time for the grid: more would only queue behind the renderer's lock. */
+        const val PAGE_RENDERS_AT_ONCE = 2
+
         /** Adds a dictated phrase to the text, on the same line with a space. */
         fun appendPhrase(text: String, phrase: String): String {
             val trimmed = phrase.trim()

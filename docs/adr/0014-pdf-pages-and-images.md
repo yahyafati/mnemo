@@ -344,3 +344,33 @@ Not done in P0, and still open:
 - **Not done / open.** No end-to-end test with `scanned.pdf` through the data layer (renderers are covered in `:core:ingest`,
   the request path with a fake renderer in `:core:data`); no real provider has been run; token numbers are still the
   owner's P0 measurements.
+
+## As built (P6, 2026-10-04)
+
+- **Mode and grid.** `PdfReadMode.PageImages` ("Cards from page images", vision only, remembered like the others). It has no box: a
+  grid of thumbnails (`PdfPageGrid`, `SourceRepository.pdfThumbnail`, drawn as they scroll into view, two renders at a time)
+  stands in its place, each with a checkbox and a button that opens the page large (`PdfPageViewer`: pinch or wheel to zoom,
+  drag, previous/next, Esc or the button to close; shows the page at the quality that is sent). **The Pages field is the single
+  source of the ticks** (`PdfSummary.selectedPages` is derived from it, like the chapter picker's); ticking rewrites the field.
+  An empty field is *no* page here (it is "all" to a text read); the field a long PDF opens with (`1-300`) is cleared on entering
+  the mode and restored on leaving it. Opening a PDF in this mode reads no text layer, so a scan raises no "no text".
+- **Route.** Generation goes on the **`ReadPages` route**, not Extract's: it is the route whose model is required to see images.
+  Usage is logged under `ReadPages`. The notices are the transcription's: provider first, then images, once per provider.
+- **Request.** `GenerationRequest.pages: PageImages(handle, quality, pages)`; the repository renders the pages itself
+  (`DefaultCardGenerationRepository` now takes `SourceRepository`), attaches the images after the instructions in page order,
+  and puts the text layer (only for pages with at least `PdfPageText.MIN_CHARS`, each under `[Page n]`) in `<source>` as a help
+  that "may be incomplete or wrong". A blank page is left out; if every page of a group is blank no request is made. A page
+  that can't be drawn ends the request with `GenerationUpdate.Done(unreadablePage)` → `ExtractEvent.PageUnreadable` →
+  `GenerationState.PageUnreadable`, which Retry resumes at its group. A repair request sends the images again.
+- **Groups and size.** `PageImageBatches.of` groups sorted, distinct pages three to a request (`PAGES_PER_REQUEST`); `ExtractRequest.pages`
+  (`PageBatches`) carries them and each part's text is its layer. `chunkIndex` is the group, so Regenerate sends that group's images
+  (`QueueItem.pages`, `RegenerateCardUseCase(pages = …)`). `targetCards` counts `max(300 × pages, layer words)` per request.
+- **Page on the card.** Images requests use `GeneratedCardsSchema.cardsWithPage` (strict schema, `page` an integer, 0 = unknown) and
+  `CardGenerationPrompt.OUTPUT_FORMAT_WITH_PAGE`; the parser reads `page` (also `"p. 15"`, `15.0`) into `ParsedCard.page`, and the
+  repository keeps it on `GeneratedCard.page` only if it is one of the request's pages. It is queue-only and never saved. The queue
+  shows "p. 14", which opens that page while its PDF is the open one.
+- **Confirmation.** Generate asks first (`PdfReadConfirmation(forCards = true)`: pages, requests, provider, model, "images use more
+  tokens"), then the notices, then the run; progress names the pages of each request.
+- **Not done / open.** Arrow keys in the large view and keyboard movement in the grid (P8); a real run on a hosted and a local model
+  (the owner's measurements); the grid and viewer on a phone and the desktop by eye.
+

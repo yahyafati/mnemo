@@ -45,6 +45,9 @@ import java.time.Instant
  */
 class FakeCardGenerationRepository : CardGenerationRepository {
     val requests = mutableListOf<GenerationRequest>()
+
+    /** The route of each request in [requests], in the same order. */
+    val routes = mutableListOf<AiRoute>()
     var respond: (GenerationRequest) -> Flow<GenerationUpdate> = { flowOf(GenerationUpdate.Done()) }
 
     /** Splits on "---" lines, so tests can make multi-part sources. */
@@ -52,6 +55,7 @@ class FakeCardGenerationRepository : CardGenerationRepository {
 
     override fun generate(route: AiRoute, request: GenerationRequest): Flow<GenerationUpdate> {
         requests += request
+        routes += route
         return respond(request)
     }
 
