@@ -297,6 +297,15 @@
     <string name="feature_create_sections_replace_confirm">Replace</string>
     <string name="feature_create_sections_replace_keep">Keep my text</string>
 
+    <!-- Accepting cards into a deck that already has some -->
+    <string name="feature_create_nonempty_title">Add to a deck that has cards?</string>
+    <plurals name="feature_create_nonempty_message">
+        <item quantity="one">%1$s already has %2$d card. The cards you accept will be added to it.</item>
+        <item quantity="other">%1$s already has %2$d cards. The cards you accept will be added to it.</item>
+    </plurals>
+    <string name="feature_create_nonempty_confirm">Add cards</string>
+    <string name="feature_create_nonempty_cancel">Choose another deck</string>
+
     <!-- A book run, several chapters in order: docs/epub/ROADMAP.md, B6 -->
     <string name="feature_create_batch_confirm_title">Generate cards for these chapters?</string>
     <plurals name="feature_create_batch_confirm_chapters">

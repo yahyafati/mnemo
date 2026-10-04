@@ -63,7 +63,8 @@ data class NoteEditorUiState(
     }
 }
 
-data class DeckOption(val id: String, val path: String)
+/** [cardCount] is the cards in this deck alone, not its subdecks (only Smart Extract reads it). */
+data class DeckOption(val id: String, val path: String, val cardCount: Int = 0)
 
 enum class EditorProblem { NoDeck, EmptyFront, EmptyBack, NoCloze, NoWrongAnswers }
 

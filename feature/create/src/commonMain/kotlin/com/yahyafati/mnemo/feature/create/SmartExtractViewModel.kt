@@ -103,6 +103,12 @@ class SmartExtractViewModel(
     /** The decks the book import made for the run's chapters, by chapter id. */
     private var batchDecks: Map<Int, String> = emptyMap()
 
+    /** The cards waiting for the user to agree to add them to a deck that already has some. */
+    private var pendingAccept: List<String>? = null
+
+    /** Decks the user agreed to add to, or that this session already added to: they aren't asked about again. */
+    private val confirmedDecks = mutableSetOf<String>()
+
     /** A deck known to exist that the decks list may not have yet (the run's first chapter, made a moment ago). */
     private var pinnedDeckId: String? = null
 
@@ -120,7 +126,7 @@ class SmartExtractViewModel(
     init {
         viewModelScope.launch {
             combine(aiProviders.observeEffectiveRoutes(), deckRepository.observeDeckSummaries()) { routes, decks ->
-                routes[AiTask.Extract] to decks.map { DeckOption(it.deck.id, it.path) }.sortedBy { it.path.lowercase() }
+                routes[AiTask.Extract] to decks.map { DeckOption(it.deck.id, it.path, it.totalCount) }.sortedBy { it.path.lowercase() }
             }.collect { (route, decks) ->
                 val preferred = preferredDeck(decks)
                 val pinned = pinnedDeckId
@@ -222,19 +228,32 @@ class SmartExtractViewModel(
             SmartExtractAction.DictationPermissionDenied ->
                 _uiState.update { it.copy(dictation = DictationState.Failed(DictationProblem.NoPermission)) }
             is SmartExtractAction.SelectDeck -> {
+                pendingAccept = null
                 preferredDeckPath = null
                 pinnedDeckId = null
-                _uiState.update { it.copy(deckId = action.deckId) }
+                _uiState.update { it.copy(deckId = action.deckId, nonEmptyDeck = null) }
             }
             SmartExtractAction.ShowDeckDialog -> _uiState.update { it.copy(showDeckDialog = true) }
             SmartExtractAction.DismissDeckDialog -> _uiState.update { it.copy(showDeckDialog = false) }
+            SmartExtractAction.ConfirmNonEmptyDeck -> {
+                val ids = pendingAccept
+                pendingAccept = null
+                _uiState.value.deckId?.let { confirmedDecks += it }
+                _uiState.update { it.copy(nonEmptyDeck = null) }
+                if (ids != null) accept(ids)
+            }
+            SmartExtractAction.CancelNonEmptyDeck -> {
+                pendingAccept = null
+                _uiState.update { it.copy(nonEmptyDeck = null) }
+            }
             is SmartExtractAction.CreateDeck -> {
                 _uiState.update { it.copy(showDeckDialog = false) }
                 viewModelScope.launch {
                     val id = deckRepository.saveDeck(action.path, action.description, action.category)
                     preferredDeckPath = null
                     pinnedDeckId = null
-                    _uiState.update { it.copy(deckId = id) }
+                    pendingAccept = null
+                    _uiState.update { it.copy(deckId = id, nonEmptyDeck = null) }
                 }
             }
             is SmartExtractAction.SetDensity -> updateOptions { it.copy(density = action.density) }
@@ -648,7 +667,10 @@ class SmartExtractViewModel(
     private fun editCard(id: String, transform: (GeneratedCard) -> GeneratedCard) =
         _uiState.update { state -> state.copy(queue = state.queue.map { if (it.card.id == id) it.copy(card = transform(it.card)) else it }) }
 
-    /** Saves [ids] to the chosen deck. They leave the queue at once, so a double tap can't save twice. */
+    /**
+     * Saves [ids] to the chosen deck. They leave the queue at once, so a double tap can't save twice. A deck that
+     * already has cards is asked about first (once per deck): a whole queue in the wrong deck is hard to take back.
+     */
     private fun accept(ids: List<String>) {
         val state = _uiState.value
         val deckId = state.deckId
@@ -658,6 +680,14 @@ class SmartExtractViewModel(
         }
         val items = state.queue.filter { it.card.id in ids && it.problem == null && !it.regenerating }
         if (items.isEmpty()) return
+        val deck = state.decks.firstOrNull { it.id == deckId }
+        if (deck != null && deck.cardCount > 0 && deckId !in confirmedDecks) {
+            pendingAccept = ids
+            _uiState.update { it.copy(nonEmptyDeck = NonEmptyDeck(deck.path, deck.cardCount)) }
+            return
+        }
+        // This session's own cards make the deck non-empty: no need to ask again before the next one.
+        confirmedDecks += deckId
         val removed = items.map { it.card.id }.toSet()
         _uiState.update { s -> s.copy(queue = s.queue.filterNot { it.card.id in removed }, editingId = s.editingId.takeIf { it !in removed }) }
         viewModelScope.launch {

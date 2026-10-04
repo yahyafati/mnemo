@@ -62,6 +62,8 @@ data class SmartExtractUiState(
     /** Waiting for the user to accept the provider notice before sending anything. */
     val disclosure: AiRoute? = null,
     val showDeckDialog: Boolean = false,
+    /** Asking the user to confirm adding cards to a deck that already has some. */
+    val nonEmptyDeck: NonEmptyDeck? = null,
     /** A one-off message for the snackbar; cleared once shown. */
     val message: ExtractMessage? = null,
 ) {
@@ -123,6 +125,9 @@ enum class BatchConfirmation {
     /** The run goes on to the next chapter, or ends after the last. */
     Advance,
 }
+
+/** The deck the accepted cards are about to join, which already holds [cards] cards. */
+data class NonEmptyDeck(val path: String, val cards: Int)
 
 /** A proposed card in the review queue. [source] is the part of the text it came from, for regenerating. */
 data class QueueItem(
@@ -238,6 +243,11 @@ sealed interface SmartExtractAction {
     data object ShowDeckDialog : SmartExtractAction
 
     data object DismissDeckDialog : SmartExtractAction
+
+    /** The user agreed to add the cards to the deck that already has some ([SmartExtractUiState.nonEmptyDeck]). */
+    data object ConfirmNonEmptyDeck : SmartExtractAction
+
+    data object CancelNonEmptyDeck : SmartExtractAction
 
     data class CreateDeck(val path: String, val category: String, val description: String) : SmartExtractAction
 

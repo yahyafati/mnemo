@@ -193,6 +193,69 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun acceptingIntoADeckThatHasCardsAsksOncePerDeck() = runTest {
+        decks.setCounts(deckId, FakeDeckRepository.DeckCounts(total = 12))
+        val vm = readyViewModel()
+        generation.answer(card("Q1", "A1"), card("Q2", "A2"), card("Q3", "A3"))
+        vm.onAction(SmartExtractAction.Generate)
+        val (first, second) = vm.state.queue.map { it.card.id }
+
+        vm.onAction(SmartExtractAction.Accept(first))
+        assertEquals(NonEmptyDeck("Neuroscience", 12), vm.state.nonEmptyDeck)
+        assertTrue(cards.notes.value.isEmpty(), "nothing is saved until the user agrees")
+        assertEquals(3, vm.state.queue.size)
+
+        vm.onAction(SmartExtractAction.CancelNonEmptyDeck)
+        assertNull(vm.state.nonEmptyDeck)
+        assertTrue(cards.notes.value.isEmpty())
+
+        vm.onAction(SmartExtractAction.Accept(first))
+        vm.onAction(SmartExtractAction.ConfirmNonEmptyDeck)
+        assertNull(vm.state.nonEmptyDeck)
+        assertEquals(1, cards.notes.value.size)
+        assertEquals(2, vm.state.queue.size)
+        assertEquals(second, vm.state.queue.first().card.id)
+
+        vm.onAction(SmartExtractAction.AcceptAll)
+        assertNull(vm.state.nonEmptyDeck, "the deck was agreed to already")
+        assertEquals(3, cards.notes.value.size)
+    }
+
+    @Test
+    fun anEmptyDeckIsNotAskedAboutAgainOnceCardsWentIn() = runTest {
+        val vm = readyViewModel()
+        vm.onAction(SmartExtractAction.SelectDeck(deckId))
+        generation.answer(card("Q1", "A1"), card("Q2", "A2"))
+        vm.onAction(SmartExtractAction.Generate)
+        val first = vm.state.queue.first().card.id
+
+        vm.onAction(SmartExtractAction.Accept(first))
+        assertNull(vm.state.nonEmptyDeck)
+        // The deck list catches up with the saved card.
+        decks.setCounts(deckId, FakeDeckRepository.DeckCounts(total = 1))
+        vm.onAction(SmartExtractAction.AcceptAll)
+        assertNull(vm.state.nonEmptyDeck)
+        assertEquals(2, cards.notes.value.size)
+    }
+
+    @Test
+    fun choosingAnotherDeckDropsTheQuestion() = runTest {
+        decks.setCounts(deckId, FakeDeckRepository.DeckCounts(total = 1))
+        val other = decks.saveDeck("Empty")
+        val vm = readyViewModel()
+        generation.answer(card("Q1", "A1"))
+        vm.onAction(SmartExtractAction.Generate)
+        vm.onAction(SmartExtractAction.SelectDeck(deckId))
+
+        vm.onAction(SmartExtractAction.AcceptAll)
+        assertNotNull(vm.state.nonEmptyDeck)
+        vm.onAction(SmartExtractAction.SelectDeck(other))
+        assertNull(vm.state.nonEmptyDeck)
+        vm.onAction(SmartExtractAction.AcceptAll)
+        assertEquals(other, cards.notes.value.values.single().deckId)
+    }
+
+    @Test
     fun regenerateAndDiscard() = runTest {
         val vm = readyViewModel()
         generation.answer(card("Vague question?", "Vague answer"), card("Keep me?", "Yes"))

@@ -108,6 +108,10 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_clo
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_definition
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetypes
 import com.yahyafati.mnemo.feature.create.resources.feature_create_back
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_confirm
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_advance
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_confirm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_discard_keep
@@ -355,6 +359,23 @@ internal fun SmartExtractScreen(
             onDismiss = { onAction(SmartExtractAction.CancelBatchDiscard) },
         )
     }
+    uiState.nonEmptyDeck?.let { deck ->
+        AlertDialog(
+            onDismissRequest = { onAction(SmartExtractAction.CancelNonEmptyDeck) },
+            title = { Text(stringResource(Res.string.feature_create_nonempty_title)) },
+            text = { Text(pluralStringResource(Res.plurals.feature_create_nonempty_message, deck.cards, deck.path, deck.cards)) },
+            confirmButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.ConfirmNonEmptyDeck) }) {
+                    Text(stringResource(Res.string.feature_create_nonempty_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(SmartExtractAction.CancelNonEmptyDeck) }) {
+                    Text(stringResource(Res.string.feature_create_nonempty_cancel))
+                }
+            },
+        )
+    }
     uiState.book?.takeIf { uiState.showChapters }?.let { book ->
         ChapterChooserDialog(
             book = book,
@@ -453,7 +474,8 @@ private fun Workshop(
             ArchetypePicker(uiState.options.archetypes) { onAction(SmartExtractAction.ToggleArchetype(it)) }
             LanguagePicker(uiState.options.language) { onAction(SmartExtractAction.SetLanguage(it)) }
 
-            GenerateControls(uiState, onAction)
+            // A book run generates by itself and moves on through the banner; a Generate button here would only invite a second request.
+            if (uiState.batch == null || uiState.generation !is GenerationState.Done) GenerateControls(uiState, onAction)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(MnemoIcons.Route, null, tint = colors.outline, modifier = Modifier.size(14.dp))
                 Text(
