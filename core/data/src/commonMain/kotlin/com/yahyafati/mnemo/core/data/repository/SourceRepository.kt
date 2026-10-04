@@ -7,10 +7,13 @@ import com.yahyafati.mnemo.core.ingest.EpubReader
 import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.PdfRenderException
 import com.yahyafati.mnemo.core.ingest.PdfTextExtractor
+import com.yahyafati.mnemo.core.ingest.RenderedPage
 import com.yahyafati.mnemo.core.ingest.SpeechTranscriber
 import com.yahyafati.mnemo.core.ingest.WebPageExtractor
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.DictationEvent
+import com.yahyafati.mnemo.core.model.MediaRef
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfoResult
@@ -71,6 +74,13 @@ interface SourceRepository {
 
     /** A small image of [page] for a page grid ([PdfQuality.THUMBNAIL_EDGE] px on the long side); cached like [renderPdfPage]. */
     suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult
+
+    /**
+     * The part of [page] that [region] names, drawn from the page itself ([PdfQuality.FIGURE_EDGE] px on its long side) as a PNG
+     * or a JPEG file in `cache/pdf/<id>/`, for a figure on a card (docs/pdf/ROADMAP.md, P7). The same page and region are drawn
+     * once. A region with nothing on it fails as [SourceProblem.BlankPage].
+     */
+    suspend fun cropPdfPage(handle: PdfHandle, page: Int, region: PageRegion): PdfPageResult
 
     fun isDictationAvailable(): Boolean
 
@@ -178,20 +188,37 @@ internal class DefaultSourceRepository(
     override suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult =
         renderCached(handle, page, PdfQuality.THUMBNAIL_EDGE, "p$page-thumb.jpg")
 
-    private suspend fun renderCached(handle: PdfHandle, page: Int, longEdge: Int, name: String): PdfPageResult = withContext(ioDispatcher) {
+    override suspend fun cropPdfPage(handle: PdfHandle, page: Int, region: PageRegion): PdfPageResult {
+        // The encoding (PNG or JPEG) is the renderer's choice, so a figure drawn before is found under either name.
+        val base = "fig-p$page-${region.key}"
+        return renderCached(handle, page, listOf("$base.png", "$base.jpg")) { copy, folder ->
+            val rendered = pageRenderer.renderRegion(copy, page, region, PdfQuality.FIGURE_EDGE)
+            rendered to File(folder, "$base.${MediaRef.extensionFor(rendered.mimeType) ?: "jpg"}")
+        }
+    }
+
+    private suspend fun renderCached(handle: PdfHandle, page: Int, longEdge: Int, name: String): PdfPageResult =
+        renderCached(handle, page, listOf(name)) { copy, folder -> pageRenderer.render(copy, page, longEdge) to File(folder, name) }
+
+    /** [names] are the files a drawing of this may already be in; [draw] makes it and says which file it goes to. */
+    private suspend fun renderCached(
+        handle: PdfHandle,
+        page: Int,
+        names: List<String>,
+        draw: (copy: File, folder: File) -> Pair<RenderedPage, File>,
+    ): PdfPageResult = withContext(ioDispatcher) {
         if (page !in 1..handle.info.pageCount) return@withContext PdfPageResult.Failure(SourceProblem.Unsupported)
         val copy = pdfCopy(handle)
         if (!copy.isFile) return@withContext PdfPageResult.Failure(SourceProblem.FileUnavailable)
         val folder = pdfPages(handle)
-        val target = File(folder, name)
-        if (target.isFile && target.length() > 0) return@withContext PdfPageResult.Success(target)
+        names.map { File(folder, it) }.firstOrNull { it.isFile && it.length() > 0 }?.let { return@withContext PdfPageResult.Success(it) }
         try {
-            val rendered = pageRenderer.render(copy, page, longEdge)
+            val (rendered, target) = draw(copy, folder)
             // A white page is not saved: it is the answer for a scan the renderer can't decode, and the next try may differ.
             if (rendered.blank) return@withContext PdfPageResult.Failure(SourceProblem.BlankPage)
             if (!folder.isDirectory && !folder.mkdirs()) throw IOException("Can't create $folder")
             // Written beside the target and renamed, so a reader never sees half a file and two renders of a page can't mix.
-            val partial = File(folder, "$name.${UUID.randomUUID()}.part")
+            val partial = File(folder, "${target.name}.${UUID.randomUUID()}.part")
             try {
                 partial.writeBytes(rendered.bytes)
                 if (!partial.renameTo(target)) throw IOException("Can't write $target")

@@ -1,8 +1,10 @@
 package com.yahyafati.mnemo.core.ingest
 
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.SourceProblem
 import java.io.File
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -18,6 +20,16 @@ interface PdfPageRenderer {
      * @throws PdfRenderException when the file or the page can't be rendered.
      */
     fun render(file: File, page: Int, longEdge: Int): RenderedPage
+
+    /**
+     * The part of [page] (1-based) that [region] names, drawn from the page itself at [longEdge] px on the crop's long side
+     * (docs/pdf/ROADMAP.md, P7): a figure for a card. A small region is drawn larger, not cut out of a small picture. The
+     * image is a PNG or a JPEG, whichever is smaller (a diagram is, usually, the PNG; a photograph the JPEG), on a white
+     * background, and is made smaller when it would be over [MAX_IMAGE_BYTES].
+     *
+     * @throws PdfRenderException when the file or the page can't be rendered.
+     */
+    fun renderRegion(file: File, page: Int, region: PageRegion, longEdge: Int): RenderedPage
 
     companion object {
         /** An encoded page larger than this is encoded again, smaller (a limit that several providers share). */
@@ -44,6 +56,28 @@ internal fun fitLongEdge(pageWidth: Float, pageHeight: Float, longEdge: Int): Pa
     val scale = longEdge / max(pageWidth, pageHeight)
     return max(1, (pageWidth * scale).roundToInt()) to max(1, (pageHeight * scale).roundToInt())
 }
+
+/** How a [PageRegion] is drawn: [scale] pixels to each unit of the page, for an image of [width] × [height] px. */
+internal class FigureGeometry(val scale: Float, val width: Int, val height: Int)
+
+/**
+ * The size of a figure cut from a page of [pageWidth] × [pageHeight] (any unit, the page as it is shown): the crop's long side
+ * is [longEdge] px, so a small region is drawn larger and a large one smaller. The drawing scale is capped, since drawing a
+ * scan at many times its own resolution gains nothing and a page-sized transform would grow without limit.
+ */
+internal fun figureGeometry(pageWidth: Float, pageHeight: Float, region: PageRegion, longEdge: Int): FigureGeometry {
+    require(pageWidth > 0f && pageHeight > 0f) { "A page has a size" }
+    val cropWidth = region.width * pageWidth
+    val cropHeight = region.height * pageHeight
+    val scale = min(longEdge / max(cropWidth, cropHeight), MAX_PAGE_EDGE / max(pageWidth, pageHeight))
+    return FigureGeometry(scale, max(1, (cropWidth * scale).roundToInt()), max(1, (cropHeight * scale).roundToInt()))
+}
+
+/** The more compact of two encodings of the same figure; the first when they are the same size. */
+internal fun smallerOf(first: RenderedPage, second: RenderedPage): RenderedPage = if (second.bytes.size < first.bytes.size) second else first
+
+/** No figure is drawn at a scale that would make the whole page longer than this many px. */
+private const val MAX_PAGE_EDGE = 8_192f
 
 /**
  * Encodes a page and, when the result is over [limit] bytes, again at lower quality and then on a smaller edge

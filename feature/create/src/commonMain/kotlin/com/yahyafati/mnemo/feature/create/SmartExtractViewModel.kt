@@ -28,12 +28,15 @@ import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
+import com.yahyafati.mnemo.core.model.CardFigure
 import com.yahyafati.mnemo.core.model.DisclosureStep
+import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PageLabels
 import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PageRangesResult
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
@@ -299,6 +302,12 @@ class SmartExtractViewModel(
                 if (action.page in 1..handle.info.pageCount) _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(viewPage = action.page)) } ?: state }
             }
             SmartExtractAction.ClosePdfPage -> _uiState.update { state -> state.pdf?.let { state.copy(pdf = it.copy(viewPage = null)) } ?: state }
+            is SmartExtractAction.AddFigure -> openFigure(action.cardId)
+            is SmartExtractAction.SaveFigure -> saveFigure(action.region, action.side)
+            SmartExtractAction.CloseFigure -> _uiState.update { it.copy(figureEdit = null) }
+            is SmartExtractAction.RemoveFigure -> _uiState.update { state ->
+                state.copy(queue = state.queue.map { if (it.card.id == action.cardId) it.copy(figure = null) else it })
+            }
             SmartExtractAction.ApplyPdfPages -> applyPdfPages(confirmed = false)
             is SmartExtractAction.SetPdfReadMode -> setPdfReadMode(action.mode)
             is SmartExtractAction.SetPdfQuality -> setPdfQuality(action.quality)
@@ -787,7 +796,16 @@ class SmartExtractViewModel(
         pendingPageRun = null
         blankThumbnails.clear()
         transcriptions.clear(handle)
-        _uiState.update { it.copy(pdf = null) }
+        _uiState.update { state ->
+            // A figure is a file in the closed PDF's folder: it goes with it, so say so rather than keep a card that shows nothing.
+            val lost = state.queue.count { it.figure != null }
+            state.copy(
+                pdf = null,
+                figureEdit = null,
+                queue = if (lost > 0) state.queue.map { if (it.figure != null) it.copy(figure = null) else it } else state.queue,
+                message = if (lost > 0) ExtractMessage.FiguresRemoved(lost) else state.message,
+            )
+        }
         viewModelScope.launch { sources.closePdf(handle) }
     }
 
@@ -1217,6 +1235,55 @@ class SmartExtractViewModel(
         }
     }
 
+    /** Opens the crop screen for a queued card that names a page of the PDF that is open now, at its figure's crop if it has one. */
+    private fun openFigure(cardId: String) {
+        val state = _uiState.value
+        val item = state.queue.firstOrNull { it.card.id == cardId } ?: return
+        val page = item.card.page ?: return
+        val images = item.pages ?: return
+        if (images.handle.id != pdf?.id) return
+        val sides = FigureSide.allowedFor(item.card.kind)
+        val figure = item.figure
+        _uiState.update {
+            it.copy(
+                figureEdit = FigureEdit(
+                    cardId = cardId,
+                    page = page,
+                    region = figure?.region ?: PageRegion.inset(FIGURE_START_INSET),
+                    side = figure?.side?.takeIf { side -> side in sides } ?: FigureSide.Front,
+                    sides = sides,
+                    hasFigure = figure != null,
+                ),
+                // The crop screen takes the place of the page viewer.
+                pdf = it.pdf?.copy(viewPage = null),
+            )
+        }
+    }
+
+    /** Cuts [region] out of the card's page and puts it on the card; a region that can't be cut keeps the screen open and says why. */
+    private fun saveFigure(region: PageRegion, side: FigureSide) {
+        val edit = _uiState.value.figureEdit?.takeIf { !it.saving && side in it.sides } ?: return
+        val handle = pdf ?: return
+        _uiState.update { it.copy(figureEdit = edit.copy(saving = true, problem = null)) }
+        viewModelScope.launch {
+            val result = sources.cropPdfPage(handle, edit.page, region)
+            // The PDF may have been closed while the crop was drawn: its folder, and so the file, is gone.
+            if (pdf?.id != handle.id) return@launch
+            _uiState.update { state ->
+                if (state.figureEdit?.cardId != edit.cardId) return@update state
+                when (result) {
+                    is PdfPageResult.Success -> state.copy(
+                        queue = state.queue.map {
+                            if (it.card.id == edit.cardId) it.copy(figure = QueueFigure(edit.page, region, side, result.file)) else it
+                        },
+                        figureEdit = null,
+                    )
+                    is PdfPageResult.Failure -> state.copy(figureEdit = state.figureEdit.copy(saving = false, problem = result.problem))
+                }
+            }
+        }
+    }
+
     private fun setRegenerating(id: String, regenerating: Boolean) =
         _uiState.update { it.copy(queue = it.queue.withRegenerating(id, regenerating)) }
 
@@ -1250,8 +1317,9 @@ class SmartExtractViewModel(
         val removed = items.map { it.card.id }.toSet()
         _uiState.update { s -> s.copy(queue = s.queue.filterNot { it.card.id in removed }, editingId = s.editingId.takeIf { it !in removed }) }
         viewModelScope.launch {
-            val result = acceptCards(deckId, items.map { it.card })
-            _uiState.update { it.copy(message = ExtractMessage.Accepted(result.cardCount, state.deckPath.orEmpty())) }
+            val figures = items.mapNotNull { item -> item.figure?.let { item.card.id to CardFigure(it.file, it.side) } }.toMap()
+            val result = acceptCards(deckId, items.map { it.card }, figures)
+            _uiState.update { it.copy(message = ExtractMessage.Accepted(result.cardCount, state.deckPath.orEmpty(), result.figuresMissing)) }
         }
     }
 
@@ -1308,6 +1376,9 @@ class SmartExtractViewModel(
     internal companion object {
         /** Pages drawn at the same time for the grid: more would only queue behind the renderer's lock. */
         const val PAGE_RENDERS_AT_ONCE = 2
+
+        /** A new crop starts this far in from each edge of the page (a tenth of it), so its handles are within reach. */
+        const val FIGURE_START_INSET = 0.1f
 
         /** Adds a dictated phrase to the text, on the same line with a space. */
         fun appendPhrase(text: String, phrase: String): String {

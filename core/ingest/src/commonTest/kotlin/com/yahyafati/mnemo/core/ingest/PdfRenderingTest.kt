@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.core.ingest
 
+import com.yahyafati.mnemo.core.model.PageRegion
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -87,5 +88,40 @@ class PdfRenderingTest {
     fun aSmallImageNeedsOnlyTheMinimumNumberOfDarkPixels() {
         assertTrue(InkCounter(320 * 240).apply { add(pixels(320 * 240, dark = 40)) }.hasInk)
         assertFalse(InkCounter(320 * 240).apply { add(pixels(320 * 240, dark = 11)) }.hasInk)
+    }
+
+    @Test
+    fun aFigureIsDrawnSoThatItsLongSideGetsTheEdgeWhateverItsSize() {
+        // The whole of a US Letter page, then a quarter of it, then a thin strip: all 1,600 px on the long side.
+        val full = figureGeometry(612f, 792f, PageRegion.Full, 1600)
+        assertEquals(1236 to 1600, full.width to full.height)
+        assertEquals(1600f / 792f, full.scale, 0.0001f)
+
+        val quarter = figureGeometry(612f, 792f, PageRegion(0f, 0f, 0.5f, 0.5f), 1600)
+        assertEquals(1600, maxOf(quarter.width, quarter.height))
+        assertEquals(306f / 396f, quarter.width.toFloat() / quarter.height, 0.01f)
+
+        val strip = figureGeometry(612f, 792f, PageRegion(0f, 0.4f, 1f, 0.45f), 1600)
+        assertEquals(1600, strip.width)
+        assertEquals(1600 * 39.6f / 612f, strip.height.toFloat(), 1f)
+    }
+
+    @Test
+    fun aSmallRegionIsNotDrawnAtAMadeUpScale() {
+        // A 5% square of a 4,000-point-wide poster would need a scale beyond the cap: the page is limited to 8,192 px.
+        val geometry = figureGeometry(4000f, 3000f, PageRegion(0f, 0f, 0.05f, 0.05f), 1600)
+        assertEquals(8192f / 4000f, geometry.scale, 0.0001f)
+        assertEquals(410, geometry.width)
+        assertEquals(307, geometry.height)
+    }
+
+    @Test
+    fun theSmallerEncodingWinsAndTheFirstOnATie() {
+        val jpeg = RenderedPage(ByteArray(900), "image/jpeg", 10, 10, blank = false)
+        val png = RenderedPage(ByteArray(400), "image/png", 10, 10, blank = false)
+        assertEquals("image/png", smallerOf(jpeg, png).mimeType)
+        assertEquals("image/png", smallerOf(png, jpeg).mimeType)
+        val sameSize = RenderedPage(ByteArray(900), "image/png", 10, 10, blank = false)
+        assertEquals("image/jpeg", smallerOf(jpeg, sameSize).mimeType)
     }
 }

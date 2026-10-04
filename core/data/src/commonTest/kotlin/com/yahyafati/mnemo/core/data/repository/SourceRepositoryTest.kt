@@ -11,6 +11,7 @@ import com.yahyafati.mnemo.core.ingest.WebPageExtractor
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
@@ -66,13 +67,23 @@ class SourceRepositoryTest {
     /** A renderer that writes the page and edge into the "image", counts its calls, and fails or comes out white on request. */
     private val renderer = object : PdfPageRenderer {
         val calls = mutableListOf<Pair<Int, Int>>()
+        val crops = mutableListOf<Triple<Int, PageRegion, Int>>()
         var blank = false
         var failure: SourceProblem? = null
+
+        /** The type of image a crop comes out as: the renderer picks the smaller of PNG and JPEG. */
+        var cropType = "image/png"
 
         override fun render(file: File, page: Int, longEdge: Int): RenderedPage {
             calls += page to longEdge
             failure?.let { throw PdfRenderException(it) }
             return RenderedPage("JPEG page $page at $longEdge of ${file.readText()}".toByteArray(), "image/jpeg", 10, 10, blank)
+        }
+
+        override fun renderRegion(file: File, page: Int, region: PageRegion, longEdge: Int): RenderedPage {
+            crops += Triple(page, region, longEdge)
+            failure?.let { throw PdfRenderException(it) }
+            return RenderedPage("Crop of page $page at $longEdge of ${file.readText()}".toByteArray(), cropType, 10, 10, blank)
         }
     }
     private val cache: File = createTempDirectory("epub-cache").toFile()
@@ -333,5 +344,58 @@ class SourceRepositoryTest {
         repository.closePdf(forged)
         assertTrue(File(outside, "keep.txt").exists())
         assertIs<PdfPageResult.Failure>(repository.renderPdfPage(forged, 1, PdfQuality.Standard))
+    }
+
+    private val region = PageRegion(0.1f, 0.2f, 0.6f, 0.7f)
+
+    @Test
+    fun aCropIsDrawnOnceAtTheFigureEdgeNamedByPageAndRegionAndReused() = runTest {
+        val handle = openFive()
+        val figure = repository.cropPdfPage(handle, 2, region).file()
+        assertEquals(File(File(pdfFolder, handle.id), "fig-p2-100-200-600-700.png"), figure)
+        assertEquals("Crop of page 2 at 1600 of %PDF slides", figure.readText())
+
+        assertEquals(figure, repository.cropPdfPage(handle, 2, region).file())
+        assertEquals(listOf(Triple(2, region, PdfQuality.FIGURE_EDGE)), renderer.crops)
+
+        // Another region, or page, is another file.
+        assertEquals("fig-p2-100-200-600-800.png", repository.cropPdfPage(handle, 2, PageRegion(0.1f, 0.2f, 0.6f, 0.8f)).file().name)
+        assertEquals("fig-p3-100-200-600-700.png", repository.cropPdfPage(handle, 3, region).file().name)
+        assertEquals(emptyList(), File(pdfFolder, handle.id).listFiles().orEmpty().filter { it.name.endsWith(".part") })
+    }
+
+    @Test
+    fun aCropTheRendererEncodedAsAJpegIsAJpgFileAndStillReused() = runTest {
+        val handle = openFive()
+        renderer.cropType = "image/jpeg"
+        val figure = repository.cropPdfPage(handle, 1, region).file()
+        assertEquals("fig-p1-100-200-600-700.jpg", figure.name)
+        // Reuse looks for either name, so a cached JPEG isn't drawn again even if the renderer would now choose a PNG.
+        renderer.cropType = "image/png"
+        assertEquals(figure, repository.cropPdfPage(handle, 1, region).file())
+        assertEquals(1, renderer.crops.size)
+    }
+
+    @Test
+    fun aBlankCropIsAnErrorWithNoFileAndAFailureKeepsItsReason() = runTest {
+        val handle = openFive()
+        renderer.blank = true
+        assertEquals(SourceProblem.BlankPage, assertIs<PdfPageResult.Failure>(repository.cropPdfPage(handle, 1, region)).problem)
+        assertEquals(emptyList(), File(pdfFolder, handle.id).listFiles().orEmpty().toList())
+
+        renderer.blank = false
+        renderer.failure = SourceProblem.Encrypted
+        assertEquals(SourceProblem.Encrypted, assertIs<PdfPageResult.Failure>(repository.cropPdfPage(handle, 1, region)).problem)
+    }
+
+    @Test
+    fun aCropOfAPageThePdfDoesNotHaveOrOfAClosedPdfIsNeverDrawn() = runTest {
+        val handle = openFive()
+        assertEquals(SourceProblem.Unsupported, assertIs<PdfPageResult.Failure>(repository.cropPdfPage(handle, 6, region)).problem)
+        repository.cropPdfPage(handle, 1, region).file()
+        repository.closePdf(handle)
+        assertEquals(emptyList(), pdfFolder.listFiles().orEmpty().toList())
+        assertEquals(SourceProblem.FileUnavailable, assertIs<PdfPageResult.Failure>(repository.cropPdfPage(handle, 1, region)).problem)
+        assertEquals(1, renderer.crops.size)
     }
 }

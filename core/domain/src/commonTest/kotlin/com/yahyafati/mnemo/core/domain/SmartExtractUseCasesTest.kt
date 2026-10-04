@@ -7,16 +7,21 @@ import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
+import com.yahyafati.mnemo.core.model.CardFigure
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.FigureSide
+import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.File
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -28,7 +33,8 @@ class SmartExtractUseCasesTest {
     private val cards = FakeCardRepository()
     private val generate = GenerateCardsUseCase(generation, cards)
     private val regenerate = RegenerateCardUseCase(generation, cards)
-    private val accept = AcceptGeneratedCardsUseCase(cards)
+    private val media = FakeMediaRepository()
+    private val accept = AcceptGeneratedCardsUseCase(cards, media)
 
     private val route = AiRoute(
         task = AiTask.Extract,
@@ -160,5 +166,64 @@ class SmartExtractUseCasesTest {
         assertEquals(GeneratedCardProblem.TooLong, GeneratedCardValidator.problem(card("x".repeat(2_001), "y")))
         assertNull(GeneratedCardValidator.problem(card("{{c1::a}}", kind = NoteKind.Cloze)))
         assertEquals("the mitochondria make atp", GeneratedCardValidator.key("The **{{c1::mitochondria}}** make `ATP`!"))
+    }
+
+    private fun figureFile(content: String = "figure bytes", name: String = "fig-p2-100-200-600-700.png"): File =
+        File(kotlin.io.path.createTempDirectory("figure").toFile(), name).also { it.writeText(content) }
+
+    private fun noteWith(front: String) = cards.notes.value.values.single { it.fields[0].startsWith(front) }
+
+    @Test
+    fun aFigureIsStoredAsMediaAndReferencedAtTheEndOfItsSide() = runTest {
+        val file = figureFile()
+        val front = card("What does this show?", "A cell").copy(id = "a")
+        val back = card("Label the parts", "Nucleus, membrane").copy(id = "b")
+        val result = accept("deck", listOf(front, back), mapOf("a" to CardFigure(file, FigureSide.Front), "b" to CardFigure(file, FigureSide.Back)))
+
+        assertEquals(listOf("a", "b"), result.acceptedIds)
+        assertEquals(0, result.figuresMissing)
+        // The same picture on two cards is one media file, named after the crop.
+        val stored = media.stored.values.single()
+        assertEquals(file.name, stored.name)
+        assertEquals("image/png", stored.mimeType)
+        val reference = "![](${MediaRef.of(stored.id)})"
+        assertEquals(listOf("What does this show?\n\n$reference", "A cell"), noteWith("What does this show?").fields)
+        assertEquals(listOf("Label the parts", "Nucleus, membrane\n\n$reference"), noteWith("Label the parts").fields)
+    }
+
+    @Test
+    fun aFigureOnAnEmptyExtraFieldIsJustTheReference() = runTest {
+        val cloze = card("The {{c1::nucleus}} holds the DNA.", kind = NoteKind.Cloze).copy(id = "a")
+        accept("deck", listOf(cloze), mapOf("a" to CardFigure(figureFile(), FigureSide.Back)))
+        val note = noteWith("The {{c1::nucleus}}")
+        assertEquals("The {{c1::nucleus}} holds the DNA.", note.fields[0])
+        assertEquals("![](${MediaRef.of(media.stored.keys.single())})", note.fields[1])
+    }
+
+    @Test
+    fun nothingIsStoredForACardThatIsNotSavedOrForAFigureWithNoCard() = runTest {
+        val broken = card("Edited into nothing", "").copy(id = "a")
+        val result = accept("deck", listOf(broken), mapOf("a" to CardFigure(figureFile(), FigureSide.Front), "gone" to CardFigure(figureFile("other"), FigureSide.Front)))
+        assertEquals(AcceptResult(emptyList(), 0), result)
+        assertTrue(media.stored.isEmpty())
+        assertEquals(0, cards.addNotesCalls)
+    }
+
+    @Test
+    fun aFigureThatCannotBeStoredLeavesTheCardSavedWithoutItAndIsCounted() = runTest {
+        val gone = File(kotlin.io.path.createTempDirectory("figure").toFile(), "fig.png") // never written
+        val choice = card("Which organelle makes ATP?", "Mitochondrion", kind = NoteKind.MultipleChoice).copy(id = "b", wrongAnswers = listOf("Nucleus", "Golgi"))
+        val plain = card("What is a cell?", "The unit of life").copy(id = "a")
+        val result = accept(
+            "deck",
+            listOf(plain, choice),
+            // A picture can't be the correct option of a multiple-choice card.
+            mapOf("a" to CardFigure(gone, FigureSide.Front), "b" to CardFigure(figureFile(), FigureSide.Back)),
+        )
+        assertEquals(listOf("a", "b"), result.acceptedIds)
+        assertEquals(2, result.figuresMissing)
+        assertEquals(listOf("What is a cell?", "The unit of life"), noteWith("What is a cell?").fields)
+        assertEquals("Mitochondrion", noteWith("Which organelle").fields[1])
+        assertTrue(media.stored.isEmpty())
     }
 }

@@ -231,6 +231,9 @@ enum class PdfQuality(val longEdge: Int) {
     companion object {
         /** The long side of a thumbnail in a page grid. */
         const val THUMBNAIL_EDGE = 320
+
+        /** The long side of a figure cut from a page for a card (P7), whatever the size of the cut: it is drawn at this size, not scaled. */
+        const val FIGURE_EDGE = 1_600
     }
 }
 

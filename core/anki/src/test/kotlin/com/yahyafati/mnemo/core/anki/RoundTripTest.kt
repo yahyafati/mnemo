@@ -175,4 +175,34 @@ class RoundTripTest {
             }
         }
     }
+
+    /** A figure cut from a PDF page (docs/pdf/ROADMAP.md, P7) is a field ending in `![](media:<hash>)`, with no alt text. */
+    @Test
+    fun aFigureFromAPdfPageIsInTheExportedPackageAndComesBackInItsField() {
+        val front = "What does the arrow show?\n\n![](media:$pngHash)"
+        val source = studied(NoteKind.Basic, listOf(front, "mRNA leaving the nucleus"), emptyList(), 0, mapOf(0 to listOf(0L to Rating.Good)))
+        val output = tmp.newFile("figure.apkg")
+        val mapper = AnkiExportMapper(start.minus(Duration.ofHours(4)), desiredRetention = 0.9, learningSteps = 2, relearningSteps = 1)
+        AnkiPackageWriter(Fixtures.driver, tmp.newFolder()).use { writer ->
+            writer.begin(mapper.collectionCreated, listOf(mapper.deck(deck, "Languages::Japanese")), mapper.notetypes)
+            val exported = mapper.note(source.note, source.kind, source.cards, source.reviews) { hash -> if (hash == pngHash) "figure-p2.png" else null }
+            writer.addNotes(listOf(exported.note))
+            writer.addCards(exported.cards)
+            writer.addMedia("figure-p2.png") { png.inputStream() }
+            output.outputStream().use { writer.finish(it) }
+        }
+
+        ApkgReader(Fixtures.driver).open(output, tmp.newFolder()).use { pkg ->
+            // Anki's field is HTML that refers to the picture by its file name, and the package carries that file.
+            val exportedField = pkg.notes().flatten().single().fields.first()
+            assertTrue("""<img src="figure-p2.png">""" in exportedField, exportedField)
+            val refs = Fixtures.mediaRefs(pkg)
+            assertEquals(mapOf("figure-p2.png" to "media:$pngHash"), refs)
+            val importer = AnkiImportMapper(pkg.collectionCreated, pkg.notetypes, now, learningSteps = 2, relearningSteps = 1)
+            val note = pkg.notes().flatten().single()
+            val cards = pkg.cardsForNotes(listOf(note.id))
+            val back = importer.map(note, cards, emptyMap(), importer.mnemoIdOf(note)!!, { deck.id }, refs::get)!!
+            assertEquals(front, back.note.fields.first())
+        }
+    }
 }

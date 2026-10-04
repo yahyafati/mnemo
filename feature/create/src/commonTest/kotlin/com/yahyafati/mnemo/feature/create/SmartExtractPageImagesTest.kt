@@ -29,6 +29,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
@@ -72,7 +73,7 @@ class SmartExtractPageImagesTest : PlatformTest() {
         sources = sources,
         generateCards = GenerateCardsUseCase(generation, FakeCardRepository()),
         regenerateCard = RegenerateCardUseCase(generation, FakeCardRepository()),
-        acceptCards = AcceptGeneratedCardsUseCase(FakeCardRepository()),
+        acceptCards = AcceptGeneratedCardsUseCase(FakeCardRepository(), FakeMediaRepository()),
         bookHandoff = BookHandoff(),
         userSettings = settings,
         readPdfPages = ReadPdfPagesUseCase(sources, reading),

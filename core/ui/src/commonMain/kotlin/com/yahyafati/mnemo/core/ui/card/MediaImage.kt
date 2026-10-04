@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -68,17 +69,35 @@ fun MediaImage(src: String, alt: String, modifier: Modifier = Modifier) {
             withContext(Dispatchers.IO) { loader.load(hash) }?.let(ImageState::Loaded) ?: ImageState.Missing
         }
     }
-    when (val s = state) {
+    ImageContent(state, alt, modifier, MAX_HEIGHT)
+}
+
+/**
+ * An image that isn't in media storage yet, shown the way [MediaImage] shows a stored one: a figure cut from a PDF page for
+ * a card in the review queue (docs/pdf/ROADMAP.md, P7), which is stored when the card is accepted. At most [maxHeight] tall.
+ */
+@Composable
+fun MediaFileImage(file: java.io.File, alt: String, modifier: Modifier = Modifier, maxHeight: Dp = MAX_HEIGHT) {
+    val loader = LocalMediaImageLoader.current
+    val state by produceState<ImageState>(ImageState.Loading, file, loader) {
+        value = withContext(Dispatchers.IO) { loader.loadFile(file) }?.let(ImageState::Loaded) ?: ImageState.Missing
+    }
+    ImageContent(state, alt, modifier, maxHeight)
+}
+
+@Composable
+private fun ImageContent(state: ImageState, alt: String, modifier: Modifier, maxHeight: Dp) {
+    when (state) {
         ImageState.Loading -> Unit
         is ImageState.Loaded -> Image(
-            bitmap = s.bitmap,
+            bitmap = state.bitmap,
             contentDescription = alt.ifBlank { null },
             contentScale = ContentScale.Fit,
             // Small images line up with the text rather than floating in the middle.
             alignment = Alignment.CenterStart,
             modifier = modifier
                 .fillMaxWidth()
-                .heightIn(max = MAX_HEIGHT),
+                .heightIn(max = maxHeight),
         )
         ImageState.Missing -> Row(
             modifier = modifier,

@@ -18,6 +18,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCoAuthorRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -54,7 +55,7 @@ class CoAuthorViewModelTest {
         cardRepository = cards,
         coAuthor = coAuthor,
         findDuplicates = FindDuplicateNotesUseCase(decks, cards),
-        acceptCards = AcceptGeneratedCardsUseCase(cards),
+        acceptCards = AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()),
     )
 
     private val CoAuthorViewModel.state get() = uiState.value

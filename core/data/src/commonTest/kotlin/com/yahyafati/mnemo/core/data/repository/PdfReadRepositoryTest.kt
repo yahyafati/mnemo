@@ -75,6 +75,9 @@ class PdfReadRepositoryTest : PlatformTest() {
             failure?.let { throw PdfRenderException(it) }
             return RenderedPage("JPEG of page $page at $longEdge".toByteArray(), "image/jpeg", 10, 10, blank = page in blank)
         }
+
+        override fun renderRegion(file: File, page: Int, region: com.yahyafati.mnemo.core.model.PageRegion, longEdge: Int): RenderedPage =
+            throw UnsupportedOperationException("transcription draws whole pages")
     }
 
     private val pdf = object : PdfTextExtractor {

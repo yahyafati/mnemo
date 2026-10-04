@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.PdfRenderException
 import com.yahyafati.mnemo.core.ingest.android.AndroidPdfPageRenderer
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourceProblem
 import org.junit.After
@@ -84,6 +85,36 @@ class AndroidPdfPageRendererTest {
         try {
             renderer.render(file, 1, 800)
             fail("not a PDF")
+        } catch (e: PdfRenderException) {
+            assertEquals(SourceProblem.Unsupported, e.problem)
+        }
+    }
+
+    @Test
+    fun aFigureIsTheRegionDrawnAtTheFigureEdgeAndWhiteWhereThePageIsEmpty() {
+        val file = fixture("scanned.pdf")
+        val crop = renderer.renderRegion(file, 1, PageRegion(0f, 0f, 1f, 0.5f), PdfQuality.FIGURE_EDGE)
+        assertTrue(crop.mimeType == "image/png" || crop.mimeType == "image/jpeg")
+        assertEquals(PdfQuality.FIGURE_EDGE, crop.width)
+        assertTrue(crop.height < crop.width)
+        assertFalse("the top half of the page has text", crop.blank)
+        assertTrue(crop.bytes.size < PdfPageRenderer.MAX_IMAGE_BYTES)
+        val bitmap = BitmapFactory.decodeByteArray(crop.bytes, 0, crop.bytes.size)
+        assertEquals(crop.width, bitmap.width)
+        assertEquals(crop.height, bitmap.height)
+        val corner = bitmap.getPixel(2, 2)
+        assertTrue("the corner is paper", (corner shr 16 and 0xFF) > 0xF0)
+        bitmap.recycle()
+
+        // The page's bottom edge is margin.
+        assertTrue(renderer.renderRegion(file, 1, PageRegion(0.1f, 0.95f, 0.9f, 1f), 800).blank)
+    }
+
+    @Test
+    fun aFigureFromAPageTheDocumentDoesNotHaveFails() {
+        try {
+            renderer.renderRegion(fixture("scanned.pdf"), 4, PageRegion.Full, 800)
+            fail("page 4 of a three-page PDF")
         } catch (e: PdfRenderException) {
             assertEquals(SourceProblem.Unsupported, e.problem)
         }

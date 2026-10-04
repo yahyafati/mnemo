@@ -91,7 +91,7 @@ Owner-only tasks are marked **(owner)**.
 | **P4** | Images in AI requests | Multimodal `ChatMessage`; image check in the probe; `AiTask.ReadPages`; image disclosure; new failure | 2–3 days |
 | **P5** ✓ | Read pages with AI | Transcribe and Auto modes fill the box; progress, cancel, cache, Report | 3–4 days |
 | **P6** ✓ | Cards from page images | Page grid; batches of page images go to card generation; regenerate per batch; card `page` | 3–5 days |
-| **P7** | Figures on cards | Crop a page onto a queued card; stored as media on accept | 2–3 days |
+| **P7** ✓ | Figures on cards | Crop a page onto a queued card; stored as media on accept | 2–3 days |
 | **P8** | Polish and QA | Real scans on both platforms, three providers, docs, release notes | 1–2 days |
 
 ```
@@ -331,17 +331,19 @@ is the ordinary text pipeline.
 
 **Goal:** a card about a diagram can show the diagram.
 
-- [ ] **Add figure** on a queued card that has a `page` (images mode): the page opens large with a crop rectangle
+- [x] **Add figure** on a queued card that has a `page` (images mode): the page opens large with a crop rectangle
       (drag the corners or the whole box; on the desktop with the mouse and arrow keys), and a choice of **Front** or
       **Back**. The crop is rendered from the page at High quality and kept in `cache/pdf/<id>/` until accept. A
       queued card shows its figure; **Remove figure** undoes it.
-- [ ] Accept: for each accepted card with a figure, `MediaRepository.store` the crop (JPEG, or PNG when that is
+- [x] Accept: for each accepted card with a figure, `MediaRepository.store` the crop (JPEG, or PNG when that is
       smaller: diagrams), then append `\n\n![](media:<sha256>)` to the chosen side, then `addNotes` as today. A
       failed accept leaves orphan media that the daily clean-up collects.
-- [ ] The card preview in the queue renders the image through `MediaImage` like a saved card.
-- [ ] Tests: crop maths (rectangle in page coordinates → pixels at any scale), accept stores media and writes the
+- [x] The card preview in the queue renders the image through `MediaImage` like a saved card.
+- [x] Tests: crop maths (rectangle in page coordinates → pixels at any scale), accept stores media and writes the
       reference to the right field (fake `MediaRepository`), a figure on a rejected card stores nothing, a screenshot
       of the crop screen. Exported `.apkg` of such a card carries the image (existing exporter, one test).
+
+*Status: done (ADR 0014, "As built (P7)"). Deviations: the crop is drawn from the page itself at 1,600 px on its long side (not cut out of the cached High render), as the smaller of PNG and JPEG; the card shows the figure in a strip under its text, not inside the card face; the crop screen has Front / Back chips (Back is hidden for multiple-choice and type-in cards); only a card that names a page gets Add figure; closing the PDF removes figures from queued cards; Regenerate drops a card's figure. Open: the Android `PdfRenderer` region drawing waits for a device (`AndroidPdfPageRendererTest`, now with a crop test), arrow keys are in but a screen reader can't move the box (P8), and a look at the crop screen on a phone and on the desktop.*
 
 **Exit:** an anatomy slide becomes a card with the figure on its front.
 

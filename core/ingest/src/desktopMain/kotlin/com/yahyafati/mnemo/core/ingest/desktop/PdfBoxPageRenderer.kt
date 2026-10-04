@@ -5,11 +5,15 @@ import com.yahyafati.mnemo.core.ingest.PdfPageRenderer
 import com.yahyafati.mnemo.core.ingest.PdfRenderException
 import com.yahyafati.mnemo.core.ingest.RenderedPage
 import com.yahyafati.mnemo.core.ingest.encodeWithin
+import com.yahyafati.mnemo.core.ingest.figureGeometry
+import com.yahyafati.mnemo.core.ingest.smallerOf
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.SourceProblem
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException
 import org.apache.pdfbox.rendering.ImageType
 import org.apache.pdfbox.rendering.PDFRenderer
+import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -25,23 +29,62 @@ import kotlin.math.max
  * JPEG 2000 has none (ADR 0014), so such a page comes out white and the caller sees [RenderedPage.blank].
  */
 class PdfBoxPageRenderer : PdfPageRenderer {
-    override fun render(file: File, page: Int, longEdge: Int): RenderedPage = try {
+    override fun render(file: File, page: Int, longEdge: Int): RenderedPage = withDocument(file, page) { document ->
+        val box = document.getPage(page - 1).cropBox
+        // A page is drawn at `scale` × 72 dpi; with the rotation already in the renderer's output, only the long side counts.
+        val longSide = max(box.width, box.height)
+        if (longSide <= 0f) throw PdfRenderException(SourceProblem.Unsupported, "Page $page has no size")
+        val renderer = PDFRenderer(document)
+        encodeWithin(longEdge) { edge, quality ->
+            // RGB is filled white by PDFBox, so the JPEG has no black background.
+            val image = renderer.renderImage(page - 1, edge / longSide, ImageType.RGB)
+            try {
+                RenderedPage(jpeg(image, quality), "image/jpeg", image.width, image.height, blank = !hasInk(image))
+            } finally {
+                image.flush()
+            }
+        }
+    }
+
+    override fun renderRegion(file: File, page: Int, region: PageRegion, longEdge: Int): RenderedPage = withDocument(file, page) { document ->
+        val pdfPage = document.getPage(page - 1)
+        val box = pdfPage.cropBox
+        // The region is a fraction of the page as it is shown, so a rotated page swaps its sides.
+        val turned = pdfPage.rotation % 180 != 0
+        val pageWidth = if (turned) box.height else box.width
+        val pageHeight = if (turned) box.width else box.height
+        if (pageWidth <= 0f || pageHeight <= 0f) throw PdfRenderException(SourceProblem.Unsupported, "Page $page has no size")
+        val renderer = PDFRenderer(document)
+        encodeWithin(longEdge) { edge, quality ->
+            val geometry = figureGeometry(pageWidth, pageHeight, region, edge)
+            val image = BufferedImage(geometry.width, geometry.height, BufferedImage.TYPE_INT_RGB)
+            try {
+                val graphics = image.createGraphics()
+                try {
+                    graphics.background = Color.WHITE
+                    graphics.color = Color.WHITE
+                    graphics.fillRect(0, 0, geometry.width, geometry.height)
+                    // Shifted in pixels before the renderer scales and rotates the page, so the region's corner lands on the origin.
+                    graphics.translate((-region.left * pageWidth * geometry.scale).toDouble(), (-region.top * pageHeight * geometry.scale).toDouble())
+                    renderer.renderPageToGraphics(page - 1, graphics, geometry.scale)
+                } finally {
+                    graphics.dispose()
+                }
+                val blank = !hasInk(image)
+                smallerOf(
+                    RenderedPage(jpeg(image, quality), "image/jpeg", image.width, image.height, blank),
+                    RenderedPage(png(image), "image/png", image.width, image.height, blank),
+                )
+            } finally {
+                image.flush()
+            }
+        }
+    }
+
+    private fun withDocument(file: File, page: Int, draw: (org.apache.pdfbox.pdmodel.PDDocument) -> RenderedPage): RenderedPage = try {
         Loader.loadPDF(file).use { document ->
             if (page !in 1..document.numberOfPages) throw PdfRenderException(SourceProblem.Unsupported, "No page $page")
-            val box = document.getPage(page - 1).cropBox
-            // A page is drawn at `scale` × 72 dpi; with the rotation already in the renderer's output, only the long side counts.
-            val longSide = max(box.width, box.height)
-            if (longSide <= 0f) throw PdfRenderException(SourceProblem.Unsupported, "Page $page has no size")
-            val renderer = PDFRenderer(document)
-            encodeWithin(longEdge) { edge, quality ->
-                // RGB is filled white by PDFBox, so the JPEG has no black background.
-                val image = renderer.renderImage(page - 1, edge / longSide, ImageType.RGB)
-                try {
-                    RenderedPage(jpeg(image, quality), "image/jpeg", image.width, image.height, blank = !hasInk(image))
-                } finally {
-                    image.flush()
-                }
-            }
+            draw(document)
         }
     } catch (e: PdfRenderException) {
         throw e
@@ -58,6 +101,12 @@ class PdfBoxPageRenderer : PdfPageRenderer {
         throw PdfRenderException(SourceProblem.Unsupported, e.message, e)
     } catch (e: OutOfMemoryError) {
         throw PdfRenderException(SourceProblem.TooLarge, cause = e)
+    }
+
+    private fun png(image: BufferedImage): ByteArray {
+        val out = ByteArrayOutputStream()
+        check(ImageIO.write(image, "png", out)) { "Couldn't encode the figure" }
+        return out.toByteArray()
     }
 
     private fun jpeg(image: BufferedImage, quality: Int): ByteArray {

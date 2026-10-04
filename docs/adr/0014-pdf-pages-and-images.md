@@ -374,3 +374,31 @@ Not done in P0, and still open:
 - **Not done / open.** Arrow keys in the large view and keyboard movement in the grid (P8); a real run on a hosted and a local model
   (the owner's measurements); the grid and viewer on a phone and the desktop by eye.
 
+## As built (P7, 2026-10-04)
+
+- **The crop is a region of the page, not of a picture.** `PageRegion` (`:core:model`) is four fractions of the page *as shown* (rotation
+  applied), at least 5% each way and never off the page; moving, dragging a corner (stopping at the minimum rather than flipping) and
+  keyboard resizing are its methods, and `toPixels` maps it onto an image of any size. `key` (thousandths) names a cache file.
+- **Drawn from the page itself.** `PdfPageRenderer.renderRegion(file, page, region, longEdge)` draws only the region, `PdfQuality.FIGURE_EDGE`
+  (1,600 px) on the crop's long side whatever its size, so a small crop is drawn larger rather than cut from a small picture; the drawing scale
+  is capped at a page of 8,192 px (`figureGeometry`). Android: `PdfRenderer.Page.render(bitmap, null, matrix, …)` with a scale-and-shift matrix
+  (the bitmap is only as large as the crop); desktop: PDFBox `renderPageToGraphics` on a graphics translated in pixels first, so the bitmap is also
+  crop-sized and rotated pages work (tested). The result is the **smaller of PNG and JPEG** (a diagram is usually the PNG), re-encoded smaller when
+  over `MAX_IMAGE_BYTES`. A region with no ink is `BlankPage`. The Android half is not run by any automatic test here (Robolectric can't); the crop test is
+  in `app/src/androidTest/.../AndroidPdfPageRendererTest`.
+- **Repository.** `SourceRepository.cropPdfPage` writes `cache/pdf/<id>/fig-p<page>-<region.key>.png|jpg` once (found under either extension) and
+  `closePdf` deletes it with the pages.
+- **Queue.** `QueueItem.figure` (`QueueFigure(page, region, side, file)`). *Add figure* shows on a card that names a page of the PDF that is open; the
+  crop dialog (`PdfFigureCropper`, `FigureCropperContent`) shows the page at the chosen quality, a box to move by its body and resize by its corners
+  (28 dp reach, at most a third of the box's smaller side), arrow keys to move and Shift + arrows to resize on a keyboard, and Front / Back chips
+  (`FigureSide.allowedFor`: a multiple-choice card's back is the text of the right option and a type-in card's is compared with typing, so both take the
+  figure on the front only). "Use this crop" cuts it; a blank region keeps the dialog open and says so. The card shows the figure in a strip under its text
+  (`MediaFileImage`, the file-backed twin of `MediaImage`) with Change and Remove figure. A card from a request that left out its `page` can't get a figure.
+- **Accept.** `AcceptGeneratedCardsUseCase` now takes a `MediaRepository` and a map of figures by queue id: only cards that are saved store anything, media is
+  stored before `addNotes`, and `\n\n![](media:<sha256>)` (just the reference when the field is empty) is appended to the chosen field. A figure that can't
+  be stored (file gone, no place for it) leaves the card saved without it and is counted in `AcceptResult.figuresMissing`, said in the snackbar.
+- **Lifetime.** Figures live in the open PDF's cache folder. Closing the PDF (clear, another source) takes the figures off queued cards and says how many
+  (`ExtractMessage.FiguresRemoved`); Regenerate returns a new card without one; editing text keeps it.
+- **Export.** The reference is ordinary media markup, so Export carries the picture (`RoundTripTest.aFigureFromAPdfPageIsInTheExportedPackage…`).
+- **Not done / open.** A screen reader can't move the box (custom actions, P8); a card whose request left out its page can't take a figure; arrow keys and the
+  large view's keyboard movement are P8's; a real run on slides, and the crop screen on a phone and on the desktop by eye.

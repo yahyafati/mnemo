@@ -32,6 +32,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
@@ -76,10 +77,11 @@ class SmartExtractPageImagesScreenTest {
     private val viewModel = run {
         sources.pdfs["content://doc/1"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(6, "Slides")))
         sources.pdfPage = { _, page -> PdfPageResult.Success(File("p$page.jpg")) }
+        sources.pdfCrop = { _, page, region -> PdfPageResult.Success(File("fig-p$page-${region.key}.png")) }
         runBlocking { settings.setPdfReadOptions(PdfReadMode.PageImages, com.yahyafati.mnemo.core.model.PdfQuality.Standard) }
         SmartExtractViewModel(
             providers, FakeDeckRepository(), sources,
-            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards), BookHandoff(),
+            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()), BookHandoff(),
             settings, ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
         )
     }
@@ -142,5 +144,46 @@ class SmartExtractPageImagesScreenTest {
         composeRule.onNodeWithContentDescription("Close").performClick()
         composeRule.onNodeWithText("Page 3 of 6").assertDoesNotExist()
         assertNull(viewModel.uiState.value.pdf?.viewPage)
+    }
+
+    @Test
+    fun cutAFigureForACardChangeItAndTakeItOff() {
+        show()
+        viewModel.onAction(SmartExtractAction.SelectSource(SourceKind.Pdf))
+        viewModel.onAction(SmartExtractAction.PdfPicked("content://doc/1"))
+        generation.respond = { request ->
+            flowOf(GenerationUpdate.Card(card("What is on the slide?", "A cell").copy(id = "c0", chunkIndex = request.part, page = 2)), GenerationUpdate.Done())
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Page 2").performClick()
+        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Make cards").performClick()
+        composeRule.onNodeWithText("Continue").performClick()
+        composeRule.onNodeWithText("What is on the slide?").assertExists()
+
+        // The card names page 2, so a figure can be cut from it: the crop screen shows the page with its box.
+        composeRule.onNodeWithText("Add figure").performClick()
+        composeRule.onNodeWithText("Figure from page 2").assertExists()
+        composeRule.onNodeWithContentDescription("Page 2 of the PDF").assertExists()
+        composeRule.onNodeWithContentDescription("Part of the page to cut out").assertExists()
+        composeRule.onNodeWithText("On the front").assertExists()
+        composeRule.onNodeWithText("On the back").performClick()
+        composeRule.onNodeWithText("Use this crop").performClick()
+
+        // The crop is on the card, shown as it will be saved, on the side that was chosen.
+        composeRule.onNodeWithText("Figure from page 2").assertDoesNotExist()
+        composeRule.onNodeWithText("Figure on the back").assertExists()
+        composeRule.onNodeWithContentDescription("Figure cut from page 2").assertExists()
+        assertEquals(com.yahyafati.mnemo.core.model.FigureSide.Back, viewModel.uiState.value.queue.single().figure?.side)
+        composeRule.onNodeWithText("Add figure").assertDoesNotExist()
+
+        // Change reopens the screen on the same crop; Remove figure takes it off.
+        composeRule.onNodeWithText("Change").performClick()
+        composeRule.onNodeWithText("Figure from page 2").assertExists()
+        composeRule.onNodeWithContentDescription("Close").performClick()
+        composeRule.onNodeWithText("Remove figure").performClick()
+        composeRule.onNodeWithText("Figure on the back").assertDoesNotExist()
+        assertNull(viewModel.uiState.value.queue.single().figure)
+        composeRule.onNodeWithText("Add figure").assertExists()
     }
 }

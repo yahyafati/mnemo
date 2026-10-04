@@ -180,6 +180,30 @@
     <string name="feature_create_regenerate_page_failed">Couldn't write the card again: page %1$d can't be read (%2$s).</string>
     <string name="feature_create_card_page">p. %1$d</string>
     <string name="feature_create_card_page_open">Open page %1$d</string>
+    <string name="feature_create_figure_add">Add figure</string>
+    <string name="feature_create_figure_title">Figure from page %1$d</string>
+    <string name="feature_create_figure_save">Use this crop</string>
+    <string name="feature_create_figure_front">On the front</string>
+    <string name="feature_create_figure_back">On the back</string>
+    <string name="feature_create_figure_hint">Drag the box, or its corners, over the part of the page you want on the card.</string>
+    <string name="feature_create_figure_hint_keys">Drag the box, or its corners, over the part of the page you want on the card. The arrow keys move the box; Shift and the arrow keys resize it.</string>
+    <string name="feature_create_figure_page">Page %1$d of the PDF</string>
+    <string name="feature_create_figure_box">Part of the page to cut out</string>
+    <string name="feature_create_figure_blank">There is nothing in this part of the page. Move the box over the figure.</string>
+    <string name="feature_create_figure_failed">This part of the page can't be cut out (%1$s).</string>
+    <string name="feature_create_figure_on_front">Figure on the front</string>
+    <string name="feature_create_figure_on_back">Figure on the back</string>
+    <string name="feature_create_figure_alt">Figure cut from page %1$d</string>
+    <string name="feature_create_figure_change">Change</string>
+    <string name="feature_create_figure_remove">Remove figure</string>
+    <plurals name="feature_create_figures_missing">
+        <item quantity="one">%1$d figure couldn't be added.</item>
+        <item quantity="other">%1$d figures couldn't be added.</item>
+    </plurals>
+    <plurals name="feature_create_figures_removed">
+        <item quantity="one">%1$d figure was removed because its PDF was closed.</item>
+        <item quantity="other">%1$d figures were removed because their PDF was closed.</item>
+    </plurals>
     <plurals name="feature_create_pdf_blank">
         <item quantity="one">%1$d page came out blank and was left out.</item>
         <item quantity="other">%1$d pages came out blank and were left out.</item>

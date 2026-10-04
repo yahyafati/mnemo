@@ -1,5 +1,6 @@
 package com.yahyafati.mnemo.feature.create
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
@@ -26,10 +27,12 @@ import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DuplicateGroup
+import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.Note
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
@@ -139,6 +142,21 @@ class CreateScreenshotTest {
     fun pdfPageGridDark() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_grid_dark.png") { PageGrid(dark = true) }
 
     @Test
+    fun figureQueueLight() = captureRoboImage("src/androidHostTest/screenshots/create_figure_queue_light.png") { FigureQueue(dark = false) }
+
+    @Test
+    fun figureQueueDark() = captureRoboImage("src/androidHostTest/screenshots/create_figure_queue_dark.png") { FigureQueue(dark = true) }
+
+    @Test
+    fun figureCropperLight() = captureRoboImage("src/androidHostTest/screenshots/create_figure_cropper_light.png") { FigureCropper(dark = false) }
+
+    @Test
+    fun figureCropperDark() = captureRoboImage("src/androidHostTest/screenshots/create_figure_cropper_dark.png") { FigureCropper(dark = true) }
+
+    @Test
+    fun figureCropperNothingThere() = captureRoboImage("src/androidHostTest/screenshots/create_figure_cropper_blank.png") { FigureCropper(dark = false, problem = SourceProblem.BlankPage) }
+
+    @Test
     fun pdfChaptersLight() = captureRoboImage("src/androidHostTest/screenshots/create_pdf_chapters_light.png") { PdfChapters(dark = false) }
 
     @Test
@@ -242,6 +260,7 @@ class CreateScreenshotTest {
             override fun load(hash: String): ImageBitmap? = null
 
             override fun loadFile(file: java.io.File): ImageBitmap {
+                if (file.name.startsWith("fig")) return diagram(300, 190)
                 val page = file.name.filter { it.isDigit() }.toInt()
                 val bitmap = ImageBitmap(160, 120)
                 Canvas(bitmap).drawRect(Rect(0f, 0f, 160f, 120f), Paint().apply { color = Color.hsv((page * 29f) % 360f, 0.25f, 0.95f) })
@@ -284,6 +303,102 @@ class CreateScreenshotTest {
                     onSetUpAi = {},
                     pageFiles = files,
                 )
+            }
+        }
+    }
+
+    /** Two queued cards from page 2 of an open PDF: one with a figure cut for its back, one that can still get one. */
+    @androidx.compose.runtime.Composable
+    private fun FigureQueue(dark: Boolean) {
+        val pages = PageImages(PdfHandle("pdf", PdfInfo(12, "Cell biology slides")), PdfQuality.Standard, listOf(2, 3, 4))
+        val loader = object : MediaImageLoader {
+            override fun load(hash: String): ImageBitmap? = null
+
+            override fun loadFile(file: java.io.File): ImageBitmap = diagram(300, 190)
+        }
+        MnemoTheme(darkTheme = dark) {
+            CompositionLocalProvider(LocalMediaImageLoader provides loader) {
+                androidx.compose.foundation.layout.Column(
+                    Modifier.padding(16.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                ) {
+                    ReviewCard(
+                        item = QueueItem(
+                            GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
+                            source = "",
+                            pages = pages,
+                            figure = QueueFigure(2, PageRegion(0.1f, 0.2f, 0.9f, 0.7f), FigureSide.Back, java.io.File("fig-p2.png")),
+                        ),
+                        number = 1,
+                        editing = false,
+                        modelId = "llama-4-scout",
+                        onAction = {},
+                        canOpenPage = true,
+                    )
+                    ReviewCard(
+                        item = QueueItem(GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4), source = "", pages = pages),
+                        number = 2,
+                        editing = false,
+                        modelId = "llama-4-scout",
+                        onAction = {},
+                        canOpenPage = true,
+                    )
+                }
+            }
+        }
+    }
+
+    /** A made-up diagram: boxes joined by an arrow, standing for a figure cut from a slide. */
+    private fun diagram(width: Int, height: Int): ImageBitmap {
+        val bitmap = ImageBitmap(width, height)
+        val canvas = Canvas(bitmap)
+        canvas.drawRect(Rect(0f, 0f, width.toFloat(), height.toFloat()), Paint().apply { color = Color.White })
+        canvas.drawRect(Rect(20f, 60f, 110f, 130f), Paint().apply { color = Color(0xFF7BA7D9) })
+        canvas.drawRect(Rect(190f, 60f, 280f, 130f), Paint().apply { color = Color(0xFFE0A458) })
+        canvas.drawRect(Rect(110f, 92f, 190f, 98f), Paint().apply { color = Color(0xFF333333) })
+        return bitmap
+    }
+
+    /** The crop screen on page 2 with a box over a made-up slide, as the page picture a loader would give. */
+    @androidx.compose.runtime.Composable
+    private fun FigureCropper(dark: Boolean, problem: SourceProblem? = null) {
+        val files = object : PdfPageFiles {
+            override suspend fun thumbnail(page: Int) = java.io.File("p$page.jpg")
+
+            override suspend fun page(page: Int) = java.io.File("p$page.jpg")
+        }
+        val loader = object : MediaImageLoader {
+            override fun load(hash: String): ImageBitmap? = null
+
+            override fun loadFile(file: java.io.File): ImageBitmap {
+                val bitmap = ImageBitmap(400, 300)
+                val canvas = Canvas(bitmap)
+                canvas.drawRect(Rect(0f, 0f, 400f, 300f), Paint().apply { color = Color(0xFFF7F4EC) })
+                canvas.drawRect(Rect(30f, 25f, 370f, 50f), Paint().apply { color = Color(0xFF444444) })
+                canvas.drawRect(Rect(50f, 110f, 160f, 200f), Paint().apply { color = Color(0xFF7BA7D9) })
+                canvas.drawRect(Rect(240f, 110f, 350f, 200f), Paint().apply { color = Color(0xFFE0A458) })
+                canvas.drawRect(Rect(160f, 150f, 240f, 158f), Paint().apply { color = Color(0xFF333333) })
+                canvas.drawRect(Rect(30f, 250f, 280f, 262f), Paint().apply { color = Color(0xFF999999) })
+                return bitmap
+            }
+        }
+        MnemoTheme(darkTheme = dark) {
+            CompositionLocalProvider(LocalMediaImageLoader provides loader) {
+                androidx.compose.material3.Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.surface) {
+                    FigureCropperContent(
+                        edit = FigureEdit(
+                            cardId = "1",
+                            page = 2,
+                            region = PageRegion(0.1f, 0.3f, 0.92f, 0.72f),
+                            side = FigureSide.Front,
+                            sides = listOf(FigureSide.Front, FigureSide.Back),
+                            problem = problem,
+                        ),
+                        pageFiles = files,
+                        onAction = {},
+                        modifier = Modifier.height(640.dp),
+                    )
+                }
             }
         }
     }

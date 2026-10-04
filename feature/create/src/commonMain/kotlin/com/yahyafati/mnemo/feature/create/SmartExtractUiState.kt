@@ -13,7 +13,9 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.DisclosureStep
+import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.PageImageBatches
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
@@ -76,6 +78,8 @@ data class SmartExtractUiState(
     /** Which notice [disclosure] is showing: what the text of a request holds, or that page images are sent (ADR 0014). */
     val disclosureStep: DisclosureStep = DisclosureStep.Text,
     val showDeckDialog: Boolean = false,
+    /** The crop screen for adding a figure to a queued card (docs/pdf/ROADMAP.md, P7); null when it is closed. */
+    val figureEdit: FigureEdit? = null,
     /** Asking the user to confirm adding cards to a deck that already has some. */
     val nonEmptyDeck: NonEmptyDeck? = null,
     /** A one-off message for the snackbar; cleared once shown. */
@@ -247,9 +251,33 @@ data class QueueItem(
     val regenerating: Boolean = false,
     /** Cards from page images: the pages this card's request was sent with, so Regenerate sends the same ones. */
     val pages: PageImages? = null,
+    /** A crop of the card's page that joins the card when it is accepted (P7). */
+    val figure: QueueFigure? = null,
 ) {
     val problem: GeneratedCardProblem? get() = GeneratedCardValidator.problem(card)
 }
+
+/**
+ * A picture cut from [page] of the open PDF for a queued card: [region] of the page, drawn into [file] in the cache (so
+ * it lives only as long as that PDF stays open), to go on [side] of the card. Nothing is stored until the card is accepted.
+ */
+data class QueueFigure(val page: Int, val region: PageRegion, val side: FigureSide, val file: java.io.File)
+
+/**
+ * The crop screen is open for the queued card [cardId]: [page] is shown with [region] to start from and [side] chosen, and
+ * [sides] are the ones the card's kind can take. [hasFigure]: the card already has one, which a new crop replaces.
+ * [saving] while the crop is being drawn; [problem] when it couldn't be (a region with nothing on it, a page that can't be drawn).
+ */
+data class FigureEdit(
+    val cardId: String,
+    val page: Int,
+    val region: PageRegion,
+    val side: FigureSide,
+    val sides: List<FigureSide>,
+    val hasFigure: Boolean = false,
+    val saving: Boolean = false,
+    val problem: SourceProblem? = null,
+)
 
 sealed interface GenerationState {
     data object Idle : GenerationState
@@ -277,7 +305,11 @@ sealed interface DictationState {
 }
 
 sealed interface ExtractMessage {
-    data class Accepted(val cards: Int, val deckPath: String) : ExtractMessage
+    /** [missingFigures] figures couldn't be stored: their cards were added without them. */
+    data class Accepted(val cards: Int, val deckPath: String, val missingFigures: Int = 0) : ExtractMessage
+
+    /** [figures] figures on queued cards went when their PDF was closed: their files went with it. */
+    data class FiguresRemoved(val figures: Int) : ExtractMessage
 
     /** Regenerating gave only the same card, or ones that exist already. */
     data object NothingNew : ExtractMessage
@@ -343,6 +375,17 @@ sealed interface SmartExtractAction {
     data class OpenPdfPage(val page: Int) : SmartExtractAction
 
     data object ClosePdfPage : SmartExtractAction
+
+    /** Opens the crop screen for the queued card, which names a page of the PDF that is open. */
+    data class AddFigure(val cardId: String) : SmartExtractAction
+
+    /** The crop screen's Add figure: cuts [region] from the page and puts it on [side] of the card. */
+    data class SaveFigure(val region: PageRegion, val side: FigureSide) : SmartExtractAction
+
+    data object CloseFigure : SmartExtractAction
+
+    /** Takes the figure off the queued card. */
+    data class RemoveFigure(val cardId: String) : SmartExtractAction
 
     /** The user agreed to replace their edits ([PdfSummary.replaceConfirmation]). */
     data object ConfirmPdfReplace : SmartExtractAction

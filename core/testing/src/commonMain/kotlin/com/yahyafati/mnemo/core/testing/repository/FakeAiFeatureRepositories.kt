@@ -17,6 +17,7 @@ import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.PageRanges
+import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.PdfPageTextsResult
@@ -180,6 +181,17 @@ class FakeSourceRepository : SourceRepository {
     override suspend fun pdfThumbnail(handle: PdfHandle, page: Int): PdfPageResult {
         renderedPages += Triple(handle, page, null)
         return pdfPage(handle, page)
+    }
+
+    /** Every crop asked for as `(handle, page, region)`. */
+    val croppedPages = mutableListOf<Triple<PdfHandle, Int, PageRegion>>()
+
+    /** What a crop comes out as: by default a failure, as no file exists. */
+    var pdfCrop: (PdfHandle, Int, PageRegion) -> PdfPageResult = { _, _, _ -> PdfPageResult.Failure(SourceProblem.FileUnavailable) }
+
+    override suspend fun cropPdfPage(handle: PdfHandle, page: Int, region: PageRegion): PdfPageResult {
+        croppedPages += Triple(handle, page, region)
+        return pdfCrop(handle, page, region)
     }
 
     override fun isDictationAvailable(): Boolean = dictationAvailable

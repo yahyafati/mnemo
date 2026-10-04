@@ -51,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -82,6 +83,7 @@ import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.PageRangeError
@@ -96,6 +98,7 @@ import com.yahyafati.mnemo.core.ui.ai.AiSetupPrompt
 import com.yahyafati.mnemo.core.ui.ai.ReportAiButton
 import com.yahyafati.mnemo.core.ui.ai.aiFailureText
 import com.yahyafati.mnemo.core.ui.card.CardFace
+import com.yahyafati.mnemo.core.ui.card.MediaFileImage
 import com.yahyafati.mnemo.core.ui.deck.DeckEditorDialog
 import com.yahyafati.mnemo.core.ui.files.fileDropTarget
 import com.yahyafati.mnemo.core.ui.files.rememberFilePicker
@@ -107,6 +110,14 @@ import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_add
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_alt
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_change
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_back
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_front
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_remove
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_missing
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_removed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
@@ -530,6 +541,7 @@ internal fun SmartExtractScreen(
         )
     }
     uiState.pdf?.let { pdf -> pdf.viewPage?.let { PdfPageViewer(pdf, it, pageFiles, onAction) } }
+    uiState.figureEdit?.let { PdfFigureCropper(it, pageFiles, onAction) }
     if (uiState.pdf?.replaceConfirmation == true) {
         AlertDialog(
             onDismissRequest = { onAction(SmartExtractAction.CancelPdfReplace) },
@@ -557,7 +569,15 @@ internal fun SmartExtractScreen(
 
 @Composable
 private fun messageText(message: ExtractMessage): String = when (message) {
-    is ExtractMessage.Accepted -> pluralStringResource(Res.plurals.feature_create_accepted, message.cards, message.cards, message.deckPath)
+    is ExtractMessage.Accepted -> {
+        val added = pluralStringResource(Res.plurals.feature_create_accepted, message.cards, message.cards, message.deckPath)
+        if (message.missingFigures > 0) {
+            added + " " + pluralStringResource(Res.plurals.feature_create_figures_missing, message.missingFigures, message.missingFigures)
+        } else {
+            added
+        }
+    }
+    is ExtractMessage.FiguresRemoved -> pluralStringResource(Res.plurals.feature_create_figures_removed, message.figures, message.figures)
     ExtractMessage.NothingNew -> stringResource(Res.string.feature_create_nothing_new)
     is ExtractMessage.BatchFinished -> pluralStringResource(Res.plurals.feature_create_batch_done, message.chapters, message.chapters)
     is ExtractMessage.RegenerateFailed -> stringResource(Res.string.feature_create_regenerate_failed, aiFailureText(message.failure))
@@ -1503,14 +1523,14 @@ private fun QueueHeader(uiState: SmartExtractUiState, onAction: (SmartExtractAct
 
 /** One proposed card: shown as it will be studied, or as two fields while editing. */
 @Composable
-private fun ReviewCard(
+internal fun ReviewCard(
     item: QueueItem,
     number: Int,
     editing: Boolean,
     modelId: String?,
     onAction: (SmartExtractAction) -> Unit,
     modifier: Modifier = Modifier,
-    /** The card names a page of the PDF that is open now, so the label can open it. */
+    /** The card names a page of the PDF that is open now, so the label can open it and a figure can be cut from the page. */
     canOpenPage: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -1598,6 +1618,9 @@ private fun ReviewCard(
                 CardFace(sides = card.sides, revealed = true)
             }
 
+            item.figure?.let { figure ->
+                CardFigureStrip(figure, canChange = canOpenPage && !item.regenerating, onChange = { onAction(SmartExtractAction.AddFigure(card.id)) }, onRemove = { onAction(SmartExtractAction.RemoveFigure(card.id)) })
+            }
             if (card.tags.isNotEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
                     card.tags.forEach { Text("#$it", style = MnemoTheme.typography.metricSm, color = colors.primary) }
@@ -1610,6 +1633,12 @@ private fun ReviewCard(
                     color = colors.error,
                     modifier = Modifier.weight(1f),
                 )
+                // A figure is cut from the card's page, which needs the PDF to be open and the card to say which page it came from.
+                if (canOpenPage && card.page != null && item.figure == null) {
+                    TextButton(onClick = { onAction(SmartExtractAction.AddFigure(card.id)) }, enabled = !item.regenerating) {
+                        Text(stringResource(Res.string.feature_create_figure_add))
+                    }
+                }
                 MnemoButton(
                     text = stringResource(Res.string.feature_create_card_accept),
                     onClick = { onAction(SmartExtractAction.Accept(card.id)) },
@@ -1621,6 +1650,34 @@ private fun ReviewCard(
         }
     }
 }
+
+/** The figure on a queued card, as it will be saved, with the side it goes on, and buttons to cut it again or take it off. */
+@Composable
+private fun CardFigureStrip(figure: QueueFigure, canChange: Boolean, onChange: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .background(colors.surfaceContainer)
+            .padding(MnemoTheme.spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs),
+    ) {
+        MediaFileImage(figure.file, stringResource(Res.string.feature_create_figure_alt, figure.page), maxHeight = FIGURE_PREVIEW_HEIGHT)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(if (figure.side == FigureSide.Front) Res.string.feature_create_figure_on_front else Res.string.feature_create_figure_on_back),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.secondary,
+                modifier = Modifier.weight(1f),
+            )
+            if (canChange) TextButton(onClick = onChange) { Text(stringResource(Res.string.feature_create_figure_change)) }
+            TextButton(onClick = onRemove) { Text(stringResource(Res.string.feature_create_figure_remove)) }
+        }
+    }
+}
+
+private val FIGURE_PREVIEW_HEIGHT = 200.dp
 
 @Composable
 private fun problemText(problem: GeneratedCardProblem): String = stringResource(
@@ -1635,7 +1692,7 @@ private fun problemText(problem: GeneratedCardProblem): String = stringResource(
 )
 
 @Composable
-private fun sourceProblemText(problem: SourceProblem): String = stringResource(
+internal fun sourceProblemText(problem: SourceProblem): String = stringResource(
     when (problem) {
         SourceProblem.NoText -> Res.string.feature_create_source_no_text
         SourceProblem.Encrypted -> Res.string.feature_create_source_encrypted
