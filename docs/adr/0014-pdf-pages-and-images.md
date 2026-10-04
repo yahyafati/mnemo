@@ -148,3 +148,43 @@ rejected.
   rules ask (`NOTICE`, the disclosure).
 - Images mode is a second path through card generation: the request, regenerate and the queue learn about page
   batches. Keeping the other three modes on the text box limits that to one mode.
+
+## As built (P0, 2026-10-04)
+
+P0 made the fixtures and ran the desktop half of the rendering spike. Nothing in the decision above changed; what
+it found:
+
+- **Fixtures** are in `core/ingest/src/commonTest/resources/pdf/` (README there), made by
+  `core/ingest/fixtures/make_pdf_fixtures.py` and pinned by `PdfFixturesTest`. `scanned-jbig2.pdf` is JBIG2 with
+  **MMR** coding, not the arithmetic coding `jbig2enc` writes; see the README's limits.
+- **Without `jbig2-imageio`, PDFBox renders a JBIG2 page as blank white and throws nothing.** P3 must treat a
+  rendered page with no dark pixels as "could not be read" (an error state, not an empty page), whichever platform
+  rendered it. With the plugin, the JBIG2 and CCITT fixtures decode to the same pixels.
+- **`org.apache.pdfbox:jbig2-imageio` is 3.0.5** (Maven Central, May 2026; the roadmap said 3.0.4). Its POM has
+  only test dependencies, the jar registers itself through `META-INF/services/javax.imageio.spi.ImageReaderSpi`
+  (so plain `ImageIO` finds it on the classpath, with nothing to call), and it ships Apache-2.0 `LICENSE` and
+  `NOTICE` files (the copyright line to put in `NOTICE` is "PDFBox JBIG2 ImageIO plugin, Copyright 2026 The Apache
+  Software Foundation"). It is 151 KB. Apache-2.0 is compatible with GPL-3.0-or-later.
+- **JPEG 2000 stays unsupported on the desktop.** `com.github.jai-imageio:jai-imageio-jpeg2000` 1.4.0 is under
+  two licences: Sun's BSD-3-clause with a "not for nuclear facilities" acknowledgement, and **JJ2000**, which grants
+  its copyright covenant only for products "claiming conformance to the JPEG 2000 Standard", says "no license or
+  right to this software module is granted for non JPEG 2000 Standard conforming products", warns that use may
+  infringe patents, and lets the partners "inhibit third parties" from other uses. Our reading (not legal advice)
+  is that this is a field-of-use restriction GPL-3.0 does not allow on code we distribute under it, and F-Droid
+  would likely flag it, so it is not bundled. A JPEG 2000 page then renders without its image (blank where the scan
+  is): the same blank-page check as above catches it, and P8 documents it in `docs/desktop/install.md`.
+- **Desktop rendering numbers** (PDFBox 3.0.8, JDK 21, macOS arm64, JPEG quality 0.80, white background, the
+  fixtures above at 150 dpi source): Standard (1,568 px long edge) gave 47–85 KB per page, High (2,048 px) 70–136
+  KB, far below the 1.5 MB limit. The first render of a page took roughly 70–130 ms and a re-render at another size
+  a few ms (PDFBox keeps the decoded images); 1-bit scans cost no more than gray ones. Both sizes were legible by
+  eye on the fixtures, including exponents, the radical and the fraction bar of `scanned.pdf` page 2 and the labels
+  on `slides.pdf`, so **the 1,568 / 2,048 numbers stay as proposed**: these fixtures are too clean and too small
+  to argue for different ones, and the tokens-per-page figures need the owner's provider runs (below).
+
+Not done in P0, and still open:
+
+- **Android's `PdfRenderer` comparison.** No device or emulator was available. P3's instrumented test (and the
+  owner's P8 pass) will render the same fixtures with PDFium and compare size and legibility; what the ADR says
+  about `PdfRenderer` (every scan codec, a transparent bitmap to fill white) is from its documentation, not from a run.
+- **Tokens, latency and errors per provider** (ROADMAP P0, **(owner)**), and the **(owner)** confirmations of the
+  proposed defaults, which keep this ADR at *Proposed*.

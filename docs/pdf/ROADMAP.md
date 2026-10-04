@@ -31,7 +31,7 @@ ADR 0006, and the web and EPUB work it sits next to is [../web/ROADMAP.md](../we
 | Image disclosure | **Its own one-time acceptance per provider**, kept as a set of provider ids in `UserSettings` (no schema change). |
 | PDF links | **Unchanged (text only)** in this work. |
 | On-device OCR | **Not now** (ADR 0014). |
-| Dependencies | **One new, desktop only:** `org.apache.pdfbox:jbig2-imageio` (Apache-2.0) for JBIG2 scans. Android renders with the platform `PdfRenderer`. No JPEG 2000 plugin on the desktop until its licence is checked. |
+| Dependencies | **One new, desktop only:** `org.apache.pdfbox:jbig2-imageio` 3.0.5 (Apache-2.0) for JBIG2 scans. Android renders with the platform `PdfRenderer`. No JPEG 2000 plugin on the desktop until its licence is checked. |
 
 Owner-only tasks are marked **(owner)**.
 
@@ -115,7 +115,7 @@ other and can be done in either order. P5 is the smallest step that makes scanne
       `AiTask.ReadPages` or not, pages per request, the two resolutions, and whether images mode (P6–P7) is wanted
       in the first release or only transcription (P5).
 - [x] **ADR 0014** (`docs/adr/0014-pdf-pages-and-images.md`).
-- [ ] **Fixtures** in `core/ingest/src/commonTest/resources/pdf/`, all made by us, each listed in a README with
+- [x] **Fixtures** in `core/ingest/src/commonTest/resources/pdf/`, all made by us, each listed in a README with
       the command that made it (so they can be regenerated) and no third-party content:
   - `outline.pdf`: 12 text pages, three-level bookmarks, page labels `i`–`ii` then `1`–`10`.
   - `scanned.pdf`: three pages that are only images of text (rendered text → PNG → `img2pdf`), one with a formula.
@@ -125,14 +125,20 @@ other and can be done in either order. P5 is the smallest step that makes scanne
   - `ocr-layer.pdf`: a scan with an invisible text layer (it must read as text, not as scanned).
   - Keep each file small (under about 200 KB) and the total under 1 MB.
 - [ ] **Spike (throwaway branch):** render `scanned.pdf` and `slides.pdf` with Android's `PdfRenderer` and with
-      PDFBox at both resolutions; check legibility by eye.
+      PDFBox at both resolutions; check legibility by eye. *PDFBox half done (ADR 0014, "As built (P0)"): legible at
+      both sizes, 47–136 KB a page. The `PdfRenderer` half needs a device and is left to P3's instrumented test.*
 - [ ] **(owner)** Send the rendered pages to three providers (one hosted, one local through Ollama or LM Studio,
       one more) with a transcription prompt; note the `usage` tokens per page per resolution, the latency and the
       errors. Record the numbers at the end of this file; adjust the resolutions and `PDF_PAGE_WORDS` if they say so.
-- [ ] Check `jbig2-imageio`'s licence and artifact (Apache-2.0) and whether `jai-imageio-jpeg2000`'s licence is
+- [x] Check `jbig2-imageio`'s licence and artifact (Apache-2.0) and whether `jai-imageio-jpeg2000`'s licence is
       compatible with GPL-3.0 and F-Droid; record the answer in ADR 0014.
 
 **Exit:** defaults confirmed (**owner**); fixtures committed; token and legibility numbers recorded.
+
+*Status: fixtures, the desktop spike and the licence check are done and recorded in ADR 0014 ("As built (P0)").
+Open: the **(owner)** confirmations, the **(owner)** provider measurements below, and Android's `PdfRenderer` in the
+spike. P1 and P2 only use the page-number and page-limit defaults (the first rows of the table); the AI rows
+matter from P3 on, so confirm them before then.*
 
 ## P1 — Page ranges
 
