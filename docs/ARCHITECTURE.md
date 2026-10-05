@@ -423,6 +423,20 @@ SmartExtractViewModel
   8. AcceptGeneratedCardsUseCase → notes (source = AI) + cards in one transaction
 ```
 
+A PDF adds a step before 1 (docs/pdf/ROADMAP.md, ADR 0014). `SourceRepository.openPdf` copies the file into `cache/pdf/`
+and the user picks pages (a range or a chapter). The mode then decides what step 1 produces:
+
+```
+Text / Auto     → the text layer of the pages (free, on device); Auto and "Read pages with AI" send a page that has no text
+                  to the AiTask.ReadPages route as an image (ReadPdfPagesUseCase → PdfReadRepository), one request per page,
+                  and put the transcription in the box, where the rest of the pipeline is unchanged
+Page images     → no box: the pages are the source. Step 3 groups them three to a request (PageImageBatches), step 4 attaches
+                  the rendered pages to the message (ChatMessage.user(text, images)) on the ReadPages route, and a card may
+                  name its page, which the review queue uses to crop a figure onto it (step 8 stores it as media)
+```
+
+Images go only to a model with the `vision` capability, only after the confirmation and the provider's one-time image notice.
+
 Nothing touches the database before step 8 (except the token-usage log). If the network fails partway, the cards already received stay in the review queue and Retry resumes at the failed part. Study-time AI (Explain / Example / Rewrite) goes through `StudyAssistRepository` the same way; a rewrite is a proposal that updates the note's fields only when applied. See ADR 0006.
 
 Books (EPUB, ADR 0011) enter before step 1: `SourceRepository.readBook` → `EpubReader` gives chapters with their text (Markdown, like a link's); `CreateBookDecksUseCase` makes the empty `Book::NN Chapter` decks (`BookDeckNames`); a chapter's text then fills the same text box (Smart Extract's Epub source, or "Generate cards" on the import result through the in-memory `BookHandoff`) and goes through steps 2–8 into that chapter's deck, found by computing its name. Sizes use `WordCount`, which counts Japanese and Chinese by character. A book run ("Create decks and generate", B6) is the same path for several chapters in book order: the import hands over a batch offer, and Smart Extract runs one chapter at a time, moving on only when the user does. Nothing about the book is stored.

@@ -34,7 +34,7 @@ True retention, a forgetting curve, a review calendar, forecasts, per-deck matur
 hardest cards, all computed on your device.
 
 **Optional AI, your provider**
-Turn notes, PDFs, links and dictation into cards, ask for explanations while studying, or let
+Turn notes, PDFs (scans too, with a model that sees images), links and dictation into cards, ask for explanations while studying, or let
 Co-Author suggest missing cards and fix the ones you keep forgetting. Works with any
 OpenAI-compatible provider you choose (OpenAI, OpenRouter, Groq, Mistral, Gemini, DeepSeek, or
 your own Ollama or LM Studio). Nothing is sent until you set one up and confirm it.

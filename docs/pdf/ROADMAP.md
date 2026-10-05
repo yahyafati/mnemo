@@ -92,7 +92,7 @@ Owner-only tasks are marked **(owner)**.
 | **P5** ✓ | Read pages with AI | Transcribe and Auto modes fill the box; progress, cancel, cache, Report | 3–4 days |
 | **P6** ✓ | Cards from page images | Page grid; batches of page images go to card generation; regenerate per batch; card `page` | 3–5 days |
 | **P7** ✓ | Figures on cards | Crop a page onto a queued card; stored as media on accept | 2–3 days |
-| **P8** | Polish and QA | Real scans on both platforms, three providers, docs, release notes | 1–2 days |
+| **P8** ✓ | Polish and QA | Error states, accessibility and docs done; the owner's pass on real scans is the QA log below | 1–2 days |
 
 ```
 P0 ──► P1 ──► P2
@@ -353,17 +353,23 @@ is the ordinary text pipeline.
       maths-heavy scan, a lecture-slides PDF, a 600-page textbook by chapter, a PDF with an OCR layer, an Internet
       Archive scan (often JPEG 2000: check the desktop's behaviour), a password-protected PDF. With one hosted and one
       local vision model. Note the results, token use and timing in the log below.
-- [ ] Error and empty states: no vision model, `ImagesNotAccepted`, a page that renders blank, a selection over 300
-      pages, a cancelled run, a provider timeout on a slow local model (suggest raising the provider timeout).
-- [ ] Accessibility: thumbnails and the crop box have content descriptions; the grid works with the keyboard on the
-      desktop (`Shortcuts`: Space to tick, arrows to move).
-- [ ] Docs: `CLAUDE.md`, `docs/ARCHITECTURE.md` (§3 `:core:ingest` row and tree, §4.3 seam table: PDF rendering,
-      §5.2), ADR 0014's "As built" notes; the F-Droid changelog for the release's versionCode; `docs/desktop/install.md`
-      if JPEG 2000 stays unsupported on the desktop.
+- [x] Error and empty states: no vision model, `ImagesNotAccepted`, a page that renders blank, a selection over 300
+      pages and a cancelled run were in place from P4–P6; a provider timeout is now `AiProblem.Timeout`, whose text
+      sends the user to the provider's Timeout field.
+- [x] Accessibility: thumbnails and the crop box have content descriptions; the crop box reports its place and has
+      move/resize actions for a screen reader; the grid works with the keyboard (arrows to move, Space to tick, Enter to
+      view large) and so does the large view (arrows turn pages, + / − zoom, Shift + arrows move, Esc closes).
+- [x] Docs: `CLAUDE.md`, `docs/ARCHITECTURE.md` (§5.2 describes the PDF modes; the §3 row and §4.3 table were current),
+      ADR 0014's "As built (P8)", the privacy policy (page images), the store text, the F-Droid changelog, and
+      `docs/desktop/install.md` (JPEG 2000 on the desktop).
 - [ ] Optional, if the owner wants it now: PDF links get the same options by handing the downloaded bytes to
-      `openPdf` instead of reading them as text.
+      `openPdf` instead of reading them as text. *Not started: it needs the owner's yes.*
 
-**Exit:** QA log written (**owner**); docs current.
+*Status: everything the code can do is done (ADR 0014, "As built (P8)"). Open: the **(owner)** pass below, which also
+covers the earlier steps' "by eye" and device checks (Android `PdfRenderer` fixtures, the grid, viewer and crop screen on
+a phone and on the desktop).*
+
+**Exit:** QA log written (**owner**); docs current (done).
 
 ### Measurements (P0, owner)
 

@@ -17,6 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.dp
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -30,9 +31,15 @@ import com.yahyafati.mnemo.shell.resources.shortcuts_edit_note
 import com.yahyafati.mnemo.shell.resources.shortcuts_find
 import com.yahyafati.mnemo.shell.resources.shortcuts_group_anywhere
 import com.yahyafati.mnemo.shell.resources.shortcuts_group_editing
+import com.yahyafati.mnemo.shell.resources.shortcuts_group_pdf
 import com.yahyafati.mnemo.shell.resources.shortcuts_group_studying
 import com.yahyafati.mnemo.shell.resources.shortcuts_import
 import com.yahyafati.mnemo.shell.resources.shortcuts_new_note
+import com.yahyafati.mnemo.shell.resources.shortcuts_pdf_move
+import com.yahyafati.mnemo.shell.resources.shortcuts_pdf_tick
+import com.yahyafati.mnemo.shell.resources.shortcuts_pdf_turn
+import com.yahyafati.mnemo.shell.resources.shortcuts_pdf_view
+import com.yahyafati.mnemo.shell.resources.shortcuts_pdf_zoom
 import com.yahyafati.mnemo.shell.resources.shortcuts_or
 import com.yahyafati.mnemo.shell.resources.shortcuts_rate
 import com.yahyafati.mnemo.shell.resources.shortcuts_reveal
@@ -75,6 +82,16 @@ private val shortcutGroups: List<ShortcutGroup> = listOf(
             ShortcutRow(Res.string.shortcuts_rate, listOf("1–${Shortcuts.Answers.size}")),
             ShortcutRow(Res.string.shortcuts_undo, listOf(Shortcuts.Undo.label())),
             ShortcutRow(Res.string.shortcuts_edit_note, listOf(Shortcuts.EditNote.label())),
+        ),
+    ),
+    ShortcutGroup(
+        Res.string.shortcuts_group_pdf,
+        listOf(
+            ShortcutRow(Res.string.shortcuts_pdf_move, listOf("←", "→", "↑", "↓")),
+            ShortcutRow(Res.string.shortcuts_pdf_tick, listOf(Shortcut(Key.Spacebar).label())),
+            ShortcutRow(Res.string.shortcuts_pdf_view, listOf(Shortcut(Key.Enter).label())),
+            ShortcutRow(Res.string.shortcuts_pdf_turn, listOf("←", "→")),
+            ShortcutRow(Res.string.shortcuts_pdf_zoom, listOf("+", "−", "0")),
         ),
     ),
     ShortcutGroup(

@@ -65,7 +65,7 @@ Three modes:
 
 1. **Manual create.** A fast editor with field templates, cloze shortcuts, tags, image and audio attachments, and a live preview.
 2. **AI Smart Extract.** Turn source material into a batch of cards.
-   - Inputs: pasted notes, PDF upload (text extracted on device), a web or lecture link, and dictation (on-device speech-to-text).
+   - Inputs: pasted notes, PDF upload (text extracted on device; pages chosen by range or chapter; scanned pages, or the pages themselves, can be read by a vision model you configure), a web or lecture link, and dictation (on-device speech-to-text).
    - Controls: destination deck, number of cards / information density (Concise ↔ Comprehensive), card archetypes (definition, cloze, multiple-choice, case study), and language.
    - Output: an editable **review queue** of generated cards. Accept, edit, regenerate, or discard each one, or **Accept All**. Nothing is written to a deck until the user accepts it.
 3. **AI Co-Author.** A chat-style assistant scoped to a deck that suggests missing cards, finds duplicates, and improves weak cards (for example ones with a high lapse rate).

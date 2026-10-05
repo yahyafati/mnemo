@@ -136,8 +136,11 @@ enum class AiProblem {
     /** 5xx. */
     ServerError,
 
-    /** DNS, refused connection, TLS, or timeout. */
+    /** DNS, refused connection or TLS. */
     Unreachable,
+
+    /** The server took longer than the provider's timeout to answer (a slow local model, a long page). */
+    Timeout,
 
     /** Plain HTTP to a provider that isn't marked local, or to a non-local address. */
     InsecureUrl,

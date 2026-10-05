@@ -34,6 +34,12 @@
     <string name="shortcuts_or">or</string>
     <string name="shortcuts_group_anywhere">Anywhere</string>
     <string name="shortcuts_group_studying">Studying</string>
+    <string name="shortcuts_group_pdf">PDF pages (Smart Extract)</string>
+    <string name="shortcuts_pdf_move">Move between pages in the grid</string>
+    <string name="shortcuts_pdf_tick">Tick the page</string>
+    <string name="shortcuts_pdf_view">Show the page large</string>
+    <string name="shortcuts_pdf_turn">Turn pages in the large view</string>
+    <string name="shortcuts_pdf_zoom">Zoom in, out, reset</string>
     <string name="shortcuts_group_editing">Writing cards</string>
     <string name="shortcuts_new_note">New note</string>
     <string name="shortcuts_find">Find cards</string>

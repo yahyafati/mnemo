@@ -12,6 +12,7 @@ import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.AiTaskRoute
+import java.io.InterruptedIOException
 import java.time.Instant
 
 internal fun AiProviderEntity.toModel(hasApiKey: Boolean) = AiProvider(
@@ -68,7 +69,8 @@ internal fun MnemoError.toAiFailure(): AiFailure = when (this) {
         },
         detail = listOfNotNull("HTTP $code", body).joinToString(": "),
     )
-    is MnemoError.Network -> AiFailure(AiProblem.Unreachable, cause?.message)
+    // OkHttp's read timeout is a SocketTimeoutException, its call timeout an InterruptedIOException("timeout").
+    is MnemoError.Network -> AiFailure(if (cause is InterruptedIOException) AiProblem.Timeout else AiProblem.Unreachable, cause?.message)
     is MnemoError.ImagesNotAccepted -> AiFailure(AiProblem.ImagesNotAccepted, detail)
     is MnemoError.Blocked -> AiFailure(AiProblem.InsecureUrl, reason)
     is MnemoError.Parse -> AiFailure(AiProblem.InvalidResponse, message)

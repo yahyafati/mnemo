@@ -18,7 +18,7 @@ Import .apkg and .colpkg files with their review history and media, and export b
 True retention, a forgetting curve, a review calendar, forecasts, per-deck maturity and your hardest cards, all computed on your device.
 
 <b>Optional AI, your provider</b>
-Turn notes, PDFs, links and dictation into cards, ask for explanations while studying, or let Co-Author suggest missing cards and fix the ones you keep forgetting. Works with any OpenAI-compatible provider you choose (OpenAI, OpenRouter, Groq, Mistral, Gemini, DeepSeek, or your own Ollama or LM Studio). Nothing is sent until you set one up and confirm it, and the app works fully without it.
+Turn notes, PDFs (scans too, with a model that sees images), links and dictation into cards, ask for explanations while studying, or let Co-Author suggest missing cards and fix the ones you keep forgetting. Works with any OpenAI-compatible provider you choose (OpenAI, OpenRouter, Groq, Mistral, Gemini, DeepSeek, or your own Ollama or LM Studio). Nothing is sent until you set one up and confirm it, and the app works fully without it.
 
 <b>Sync your devices, optionally</b>
 Keep your phone and computers in step without an account or a Mnemo server. Each device writes its changes to a place you own: a folder (with Syncthing, Nextcloud or similar), a WebDAV server such as Nextcloud, or, where the build offers it, a hidden folder in your Google Drive. Studying offline on several devices merges cleanly, no review is lost, and a passphrase encrypts everything before it leaves the device. Off until you turn it on.

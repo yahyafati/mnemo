@@ -6,4 +6,4 @@ First public release.
 - Analytics: retention, forgetting curve, calendar, forecast
 - Optional AI with your own provider: Smart Extract, Explain, Co-Author
 - Optional sync through a folder, WebDAV or Google Drive, end-to-end encrypted
-- Links keep their headings, lists and tables; Wikipedia articles can be read by section
+- PDFs by page or chapter; scans read by a vision model; links keep their headings

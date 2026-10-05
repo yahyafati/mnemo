@@ -87,6 +87,18 @@ Mnemo plays `wav`, `mp3` and `ogg` sound files from cards. Other formats (for ex
 are not played: the app says so instead of staying silent. Text to speech and dictation are not on
 the desktop yet.
 
+## PDFs
+
+Smart Extract reads the text in a PDF on your computer. Pages that are only pictures (scans) can be
+read by an AI model that sees images, or you can make cards from the page images themselves; both are
+off until you choose them, and ask before anything is sent.
+
+To draw those pages, the desktop app understands the scan formats most PDFs use (JPEG, CCITT fax,
+JBIG2 and plain bitmaps). **It cannot draw JPEG 2000 images**, which many Internet Archive and some
+library scans use: such a page comes out blank, and Mnemo says the page could not be read instead
+of sending an empty picture. The Android app reads them. On the desktop, printing the PDF to a new PDF from
+another viewer usually re-encodes the images into a format Mnemo can draw.
+
 ## Update
 
 Install the new version over the old one. Your data stays where it is, and Mnemo opens it, migrating the

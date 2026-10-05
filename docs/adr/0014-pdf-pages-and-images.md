@@ -402,3 +402,34 @@ Not done in P0, and still open:
 - **Export.** The reference is ordinary media markup, so Export carries the picture (`RoundTripTest.aFigureFromAPdfPageIsInTheExportedPackage…`).
 - **Not done / open.** A screen reader can't move the box (custom actions, P8); a card whose request left out its page can't take a figure; arrow keys and the
   large view's keyboard movement are P8's; a real run on slides, and the crop screen on a phone and on the desktop by eye.
+
+## As built (P8, 2026-10-04)
+
+P8 is the polish the earlier steps left, plus the docs. Everything that needs real material or a device is still the owner's pass (the QA log in
+`docs/pdf/ROADMAP.md`).
+
+- **A timeout is its own problem.** `AiProblem.Timeout` (OkHttp's read timeout is a `SocketTimeoutException`, its call timeout an
+  `InterruptedIOException`; both are `InterruptedIOException`s, and `MnemoError.toAiFailure` maps them) says "the model didn't answer in time"
+  and sends the user to the provider's **Timeout** field. A slow local model reading a page is the case it is for. Refused connections, DNS and TLS stay
+  `Unreachable`. The wording is in `AiFailureText`, so every AI surface shows it.
+- **Already in place from earlier steps, checked rather than rebuilt.** No vision model (the mode chips are disabled with the hint under Settings › AI providers ›
+  Read PDF pages), `ImagesNotAccepted` ("Choose a model that reads images … Check images"), a page that renders blank (`SourceProblem.BlankPage`: left out of a
+  request, or "nothing to show" in the grid), a selection over 300 pages (an error under the field), a stopped run (Stop keeps what is in the box, Resume
+  goes on) and a failed one (names the page, keeps the pages before it).
+- **Keyboard (desktop, or a tablet with a keyboard).** In the page grid each page is one focus stop: Tab and the arrow keys move the focus (Left and Right
+  step through the pages in order, so the end of a row continues on the next; Up and Down keep the column: the desktop does not move the focus on arrow
+  keys by itself, so the cell does it with `FocusManager.moveFocus`), **Space** ticks, **Enter** shows the page large. The "view large" button is skipped by
+  the keyboard (it would have taken the Right arrow) and still works by pointer and for a screen reader. In the large view (`PdfPageViewerContent`): **Left /
+  Right** turn pages, **+ / −** zoom, **0** resets, **Shift + arrows** move a zoomed page, **Esc** closes. The zoom is a hoisted `ZoomState`, so pinch, wheel and
+  keys drive one thing. The keys are listed in the grid and viewer when `PlatformCapabilities.keyboardAndMouse` is on, and in the `?` sheet. They are
+  not `Shortcut`s, because they only mean something with that control focused.
+- **Screen reader.** Thumbnails already said "Page n" (or "nothing to show"). The crop box now reports where it is (`stateDescription`: its four edges
+  as percentages of the page) and has six custom actions: move it left, right, up, down (5% of the page) and make it larger or smaller. They call
+  the same `PageRegion` functions as the arrow keys.
+- **Tests.** `PdfPageKeysTest` (`:feature:create` `desktopTest`: Robolectric stays in touch mode, where a tick box cannot take the focus, so the keys
+  are tested on the desktop target), the screen-reader test in `SmartExtractPageImagesScreenTest`, `AiFailureMappingTest`.
+- **Docs.** The privacy policy lists the page images and when they are sent; the store text says scans work with a vision model; the F-Droid changelog
+  mentions PDFs; `docs/desktop/install.md` has a PDFs section that says JPEG 2000 pages are blank on the desktop (this ADR's rendering section).
+- **Not done / open.** The owner's QA pass (real scans, handwriting, a 600-page textbook by chapter, an OCR-layer PDF, an Internet Archive scan, a password-protected
+  PDF, on a phone and on the desktop, with a hosted and a local model) and the provider measurements of P0; the Android renderer's device test; arrow keys do not
+  scroll a zoomed page (Shift + arrows do); PDF links stay text-only (the optional item, left for the owner to ask for).

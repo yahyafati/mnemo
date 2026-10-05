@@ -6,6 +6,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -185,5 +188,38 @@ class SmartExtractPageImagesScreenTest {
         composeRule.onNodeWithText("Figure on the back").assertDoesNotExist()
         assertNull(viewModel.uiState.value.queue.single().figure)
         composeRule.onNodeWithText("Add figure").assertExists()
+    }
+
+    @Test
+    fun aScreenReaderCanMoveAndResizeTheCropBox() {
+        show()
+        viewModel.onAction(SmartExtractAction.SelectSource(SourceKind.Pdf))
+        viewModel.onAction(SmartExtractAction.PdfPicked("content://doc/1"))
+        generation.respond = { request ->
+            flowOf(GenerationUpdate.Card(card("What is on the slide?", "A cell").copy(id = "c0", chunkIndex = request.part, page = 2)), GenerationUpdate.Done())
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Page 2").performClick()
+        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Make cards").performClick()
+        composeRule.onNodeWithText("Continue").performClick()
+        composeRule.onNodeWithText("Add figure").performClick()
+
+        val box = composeRule.onNodeWithContentDescription("Part of the page to cut out")
+        fun state() = box.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription).orEmpty()
+        fun act(label: String) = composeRule.runOnIdle {
+            val action = box.fetchSemanticsNode().config[SemanticsActions.CustomActions].single { it.label == label }
+            action.action()
+        }
+        val before = state()
+        assertEquals(true, before.startsWith("Left edge "))
+        act("Move the box right")
+        composeRule.waitForIdle()
+        val moved = state()
+        assertEquals(false, moved == before)
+        act("Make the box smaller")
+        composeRule.waitForIdle()
+        assertEquals(false, state() == moved)
+        assertEquals(6, box.fetchSemanticsNode().config[SemanticsActions.CustomActions].size)
     }
 }

@@ -44,8 +44,11 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -63,7 +66,14 @@ import com.yahyafati.mnemo.core.ui.card.LocalMediaImageLoader
 import com.yahyafati.mnemo.feature.create.resources.Res
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_back
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_blank
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_down
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_larger
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_left
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_right
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_smaller
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_action_up
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_box
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_box_state
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_front
 import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_hint
@@ -78,6 +88,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.hypot
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Crops a figure out of a page for a queued card (docs/pdf/ROADMAP.md, P7): the page, large, with a rectangle over it to
@@ -163,6 +174,21 @@ internal fun FigureCropperContent(edit: FigureEdit, pageFiles: PdfPageFiles, onA
                 onRegion = { region = it },
                 pageDescription = stringResource(Res.string.feature_create_figure_page, edit.page),
                 boxDescription = stringResource(Res.string.feature_create_figure_box),
+                boxState = stringResource(
+                    Res.string.feature_create_figure_box_state,
+                    region.left.percent(),
+                    region.top.percent(),
+                    region.right.percent(),
+                    region.bottom.percent(),
+                ),
+                actions = CropActions(
+                    left = stringResource(Res.string.feature_create_figure_action_left),
+                    right = stringResource(Res.string.feature_create_figure_action_right),
+                    up = stringResource(Res.string.feature_create_figure_action_up),
+                    down = stringResource(Res.string.feature_create_figure_action_down),
+                    larger = stringResource(Res.string.feature_create_figure_action_larger),
+                    smaller = stringResource(Res.string.feature_create_figure_action_smaller),
+                ),
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -184,6 +210,8 @@ private fun CropArea(
     onRegion: (PageRegion) -> Unit,
     pageDescription: String,
     boxDescription: String,
+    boxState: String,
+    actions: CropActions,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -221,7 +249,19 @@ private fun CropArea(
         Box(
             Modifier
                 .fillMaxSize()
-                .semantics { contentDescription = boxDescription }
+                .semantics {
+                    contentDescription = boxDescription
+                    stateDescription = boxState
+                    // A screen reader can't drag: the same moves as the arrow keys, in bigger steps.
+                    customActions = listOf(
+                        CustomAccessibilityAction(actions.left) { change(currentRegion.moved(-ACTION_STEP, 0f)); true },
+                        CustomAccessibilityAction(actions.right) { change(currentRegion.moved(ACTION_STEP, 0f)); true },
+                        CustomAccessibilityAction(actions.up) { change(currentRegion.moved(0f, -ACTION_STEP)); true },
+                        CustomAccessibilityAction(actions.down) { change(currentRegion.moved(0f, ACTION_STEP)); true },
+                        CustomAccessibilityAction(actions.larger) { change(currentRegion.resized(ACTION_STEP, ACTION_STEP)); true },
+                        CustomAccessibilityAction(actions.smaller) { change(currentRegion.resized(-ACTION_STEP, -ACTION_STEP)); true },
+                    )
+                }
                 .focusRequester(focus)
                 .focusable()
                 .onKeyEvent { event ->
@@ -267,6 +307,19 @@ private fun CropArea(
         ) {}
     }
 }
+
+/** The words of the crop box's accessibility actions (a screen reader can't drag). */
+internal class CropActions(
+    val left: String,
+    val right: String,
+    val up: String,
+    val down: String,
+    val larger: String,
+    val smaller: String,
+)
+
+/** A fraction of the page as a rounded percentage, for the screen reader. */
+private fun Float.percent(): String = "${(this * 100).roundToInt()}%"
 
 /** What a drag that started at some point will do to the rectangle. */
 internal sealed interface CropTarget {
@@ -335,5 +388,8 @@ internal data class CropLayout(val bounds: Rect) {
 
 /** A page's fraction one arrow key press moves or resizes the rectangle by. */
 private const val KEY_STEP = 0.01f
+
+/** The same for one screen-reader action, which can't be repeated as fast as a key. */
+private const val ACTION_STEP = 0.05f
 
 private val CORNER_REACH = 28.dp

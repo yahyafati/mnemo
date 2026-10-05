@@ -32,6 +32,7 @@ own local network):
 | Feature | What is sent |
 |---|---|
 | Smart Extract | The source text you paste, pick (PDF) or open (link), and the questions of cards already in the review queue |
+| Smart Extract, PDF pages as images (only if you choose "Read pages with AI", Auto for pages without text, or "Cards from page images") | Pictures of the PDF pages you picked, with everything on them, and the text of those pages where a page has some. You confirm the number of requests first, and Mnemo asks once per provider before the first picture is sent |
 | Explain / Example / Rewrite | The card you are looking at |
 | Co-Author | The deck's name and up to 150 of its cards as plain text, and your messages; for "Improve weak cards", one card and how often you forgot it |
 | Test connection | A one-word test message |
