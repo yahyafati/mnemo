@@ -15,10 +15,13 @@ import com.yahyafati.mnemo.core.database.dao.NoteRow
 import com.yahyafati.mnemo.core.database.dao.ReviewLogDao
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.NoteType
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.OutputStream
 import java.time.Instant
+import java.util.concurrent.Executors
 
 /**
  * Exports decks as an Anki package (`.apkg`, legacy schema so every Anki can import it), with
@@ -67,41 +70,51 @@ class AnkiExporter internal constructor(
             name
         }
 
-        AnkiPackageWriter(driver, workDir).use { writer ->
-            writer.begin(mapper.collectionCreated, decks.map { mapper.deck(it, paths.getValue(it.id)) }, mapper.notetypes)
-            val total = noteDao.count().coerceAtLeast(1)
-            var done = 0
-            var after = 0L
-            while (true) {
-                val page: List<NoteRow> =
-                    if (deckId == null) noteDao.getPage(after, PAGE) else noteDao.getPageInDecks(deckIds.toList(), after, PAGE)
-                if (page.isEmpty()) break
-                val cards = cardDao.getCardsForNotes(page.map { it.note.id })
-                    .map { it.toModel() }
-                    .filter { it.deckId in deckIds }
-                    .groupBy { it.noteId }
-                val reviews = cards.values.flatten().map { it.id }.chunked(PAGE)
-                    .flatMap { reviewLogDao.getForCards(it) }
-                    .map { it.toModel() }
-                    .groupBy { it.cardId }
-                for (row in page) {
-                    val note = row.note.toModel()
-                    val kind = NoteType.byId(note.noteTypeId)?.kind ?: continue
-                    val noteCards = cards[note.id].orEmpty().ifEmpty { continue }
-                    val exported = mapper.note(note, kind, noteCards, noteCards.flatMap { reviews[it.id].orEmpty() }, ::nameFor)
-                    writer.addNotes(listOf(exported.note))
-                    writer.addCards(exported.cards)
-                    writer.addRevlog(exported.revlog)
+        // The writer's transaction belongs to the thread that began it (the framework driver on Android keeps
+        // it in a thread-bound session), but the reads below suspend and Room answers on its own threads, so
+        // the rest would resume anywhere. One thread for the whole write keeps BEGIN and COMMIT together.
+        val writerThread = Executors.newSingleThreadExecutor { Thread(it, "anki-export") }
+        try {
+            withContext(writerThread.asCoroutineDispatcher()) {
+                AnkiPackageWriter(driver, workDir).use { writer ->
+                    writer.begin(mapper.collectionCreated, decks.map { mapper.deck(it, paths.getValue(it.id)) }, mapper.notetypes)
+                    val total = noteDao.count().coerceAtLeast(1)
+                    var done = 0
+                    var after = 0L
+                    while (true) {
+                        val page: List<NoteRow> =
+                            if (deckId == null) noteDao.getPage(after, PAGE) else noteDao.getPageInDecks(deckIds.toList(), after, PAGE)
+                        if (page.isEmpty()) break
+                        val cards = cardDao.getCardsForNotes(page.map { it.note.id })
+                            .map { it.toModel() }
+                            .filter { it.deckId in deckIds }
+                            .groupBy { it.noteId }
+                        val reviews = cards.values.flatten().map { it.id }.chunked(PAGE)
+                            .flatMap { reviewLogDao.getForCards(it) }
+                            .map { it.toModel() }
+                            .groupBy { it.cardId }
+                        for (row in page) {
+                            val note = row.note.toModel()
+                            val kind = NoteType.byId(note.noteTypeId)?.kind ?: continue
+                            val noteCards = cards[note.id].orEmpty().ifEmpty { continue }
+                            val exported = mapper.note(note, kind, noteCards, noteCards.flatMap { reviews[it.id].orEmpty() }, ::nameFor)
+                            writer.addNotes(listOf(exported.note))
+                            writer.addCards(exported.cards)
+                            writer.addRevlog(exported.revlog)
+                        }
+                        done += page.size
+                        after = page.last().rowId
+                        onProgress((done.toFloat() / total).coerceAtMost(0.95f))
+                    }
+                    names.forEach { (hash, name) ->
+                        val file = mediaRepository.file(hash)
+                        if (file.exists()) writer.addMedia(name) { file.inputStream() }
+                    }
+                    writer.finish(output)
                 }
-                done += page.size
-                after = page.last().rowId
-                onProgress((done.toFloat() / total).coerceAtMost(0.95f))
             }
-            names.forEach { (hash, name) ->
-                val file = mediaRepository.file(hash)
-                if (file.exists()) writer.addMedia(name) { file.inputStream() }
-            }
-            writer.finish(output)
+        } finally {
+            writerThread.shutdown()
         }
         onProgress(1f)
     }
