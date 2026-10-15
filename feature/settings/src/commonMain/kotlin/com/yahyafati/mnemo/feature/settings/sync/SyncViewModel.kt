@@ -135,7 +135,7 @@ object SyncPassphrase {
 }
 
 /**
- * Settings › Sync (docs/sync/ROADMAP.md S5): turns the lifecycle of [SyncRepository] into dialogs and one state. Passphrases
+ * Settings › Sync (ADR 0013 S5): turns the lifecycle of [SyncRepository] into dialogs and one state. Passphrases
  * live only in the arguments of the calls and, while the user answers "replace this device?", in [pendingPassphrase];
  * they are never part of the state.
  */

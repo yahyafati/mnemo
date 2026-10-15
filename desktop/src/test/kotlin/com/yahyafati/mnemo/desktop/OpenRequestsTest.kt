@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Handing the files of a second launch to the running app (desktop ROADMAP D8). */
+/** Handing the files of a second launch to the running app (desktop step D8). */
 class OpenRequestsTest {
     @get:Rule
     val folder = TemporaryFolder()

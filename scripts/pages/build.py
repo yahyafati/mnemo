@@ -4,8 +4,8 @@
     python3 scripts/pages/build.py <output-dir>
 
 Needs `pip install markdown`. Fails while the privacy policy still has its contact placeholder,
-because Play rejects a policy without a way to reach the developer (release ROADMAP R4), and when
-the download table names a file the release does not produce (sideload roadmap S4).
+because Play rejects a policy without a way to reach the developer (release step R4), and when
+the download table names a file the release does not produce.
 
 The page is `index.html` + `download.js` in this folder; the table of files is made here from the
 stable names that `scripts/release/prepare-release.py` gives the release files, so the links

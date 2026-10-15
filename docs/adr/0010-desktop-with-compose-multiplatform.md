@@ -2,7 +2,7 @@
 
 - **Status:** Accepted, with the open checks listed under "Not yet proven" (they are closed in D1 and D4)
 - **Date:** 2026-09-29
-- **Context for:** desktop ROADMAP D0–D9 (`docs/desktop/ROADMAP.md`); ARCHITECTURE §3–4; ADR 0002, 0004, 0005, 0009
+- **Context for:** desktop steps D0–D9; ARCHITECTURE §3–4; ADR 0002, 0004, 0005, 0009
 
 ## Decision
 
@@ -483,7 +483,7 @@ have not run yet.
 9. **Still open:** the first workflow run (WiX on the Windows runner, `rpm` and `fakeroot` on Ubuntu, the
    smoke test under Xvfb), the `.msi`, `.deb` and `.rpm` themselves (file names, `/opt/mnemo`, file
    associations registering, the menu entries), install, upgrade over an older version and uninstall on
-   each system, the Intel Mac build (added in sideload roadmap S7: a `macos-15-intel` matrix entry and the `-macos-x64` name; not yet run), and the size.
+   each system, the Intel Mac build (added for direct distribution: a `macos-15-intel` matrix entry and the `-macos-x64` name; not yet run), and the size.
 
 ## Alternatives
 

@@ -3,8 +3,7 @@
 Mnemo runs on Windows, macOS and Linux. It is the same app as on the phone, with the same collection
 format, and it keeps everything on your computer. This page covers the installers from
 [GitHub Releases](https://github.com/yahyafati/mnemo/releases) (built by
-[`release.yml`](../../.github/workflows/release.yml), see
-[ROADMAP.md](ROADMAP.md) D8).
+[`release.yml`](../../.github/workflows/release.yml)).
 
 ## Which file to download
 

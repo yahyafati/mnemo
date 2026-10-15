@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The fixture set of model replies (ROADMAP Phase 4 exit criterion): real-world mistakes from
+ * The fixture set of model replies (Phase 4 exit criterion): real-world mistakes from
  * models with and without structured output. Every fixture must give the same cards whether it
  * arrives whole, in small chunks, or one character at a time.
  */

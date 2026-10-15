@@ -20,7 +20,7 @@ For a security problem, or anything that involves your private data, don't open 
 Follow [SECURITY.md](SECURITY.md).
 
 For a larger feature, open an issue to discuss it before writing code, so you don't spend time on
-something that doesn't fit the [roadmap](docs/ROADMAP.md).
+something that doesn't fit the [project](docs/PROJECT_OVERVIEW.md).
 
 ## Getting set up
 
@@ -61,7 +61,7 @@ Every pull request must pass CI:
 
 Desktop changes (`desktop/`) are checked with `./gradlew :desktop:test`; CI runs it on Linux, Windows
 and macOS. `./gradlew :desktop:run` opens the window (see
-[docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md)).
+[ADR 0010](docs/adr/0010-desktop-with-compose-multiplatform.md)).
 
 Run a single test with, for example,
 `./gradlew :app:testDebugUnitTest --tests "com.yahyafati.mnemo.ui.MnemoAppNavigationTest"`.

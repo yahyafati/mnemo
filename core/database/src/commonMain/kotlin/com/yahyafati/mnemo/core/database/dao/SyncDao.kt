@@ -9,7 +9,7 @@ import com.yahyafati.mnemo.core.database.entity.SyncFieldClockEntity
 import com.yahyafati.mnemo.core.database.entity.SyncSeqEntity
 import com.yahyafati.mnemo.core.database.entity.SyncStateEntity
 
-/** This device's sync state and the outbox (docs/sync/ROADMAP.md S1). */
+/** This device's sync state and the outbox (ADR 0013 S1). */
 @Dao
 interface SyncDao {
     @Query("SELECT * FROM sync_state WHERE id = 1")

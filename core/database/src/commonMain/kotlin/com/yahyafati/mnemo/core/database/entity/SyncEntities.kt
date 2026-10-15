@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * This device's sync bookkeeping: one row, `id = 1` (docs/sync/ROADMAP.md S1, ADR 0013). It is created
+ * This device's sync bookkeeping: one row, `id = 1` (ADR 0013 S1). It is created
  * with the database and again on every open if it is missing, so a restored backup without one still
  * gets an identity. Never synced.
  */
@@ -48,7 +48,7 @@ data class SyncChangeEntity(
 }
 
 /**
- * The newest stamp of a field, for the per-field last-writer-wins merge (docs/sync/ROADMAP.md S3, ADR 0013).
+ * The newest stamp of a field, for the per-field last-writer-wins merge (ADR 0013 S3).
  * [field] is a column name, `schedule` for a card's eight schedule columns (they merge as one unit), or `*`
  * for "every field of the row, stamped when it was created", which keeps a 12,000-card import to one row per
  * row instead of one per column. The stamp is ([clock], [device]); the device id breaks ties.

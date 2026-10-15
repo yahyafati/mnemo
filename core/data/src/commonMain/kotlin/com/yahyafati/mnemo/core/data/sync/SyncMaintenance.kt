@@ -8,7 +8,7 @@ import com.yahyafati.mnemo.core.sync.format.DeviceInfo
 import com.yahyafati.mnemo.core.sync.format.SnapshotMeta
 import java.time.Duration
 
-/** The numbers behind snapshots and clean-up (docs/sync/ROADMAP.md S4); tests shrink them. */
+/** The numbers behind snapshots and clean-up (ADR 0013 S4); tests shrink them. */
 internal data class SyncPolicy(
     /** A device writes a snapshot once this many change files are newer than the newest one. */
     val snapshotAfterFiles: Int = 50,
@@ -30,7 +30,7 @@ internal class MaintenanceOutcome(
 )
 
 /**
- * What keeps a sync location small (docs/sync/ROADMAP.md S4, ADR 0013): snapshots, deleting the change files they
+ * What keeps a sync location small (ADR 0013 S4): snapshots, deleting the change files they
  * make redundant, and deleting media nobody uses. Everything here only *removes* what is provably not needed any
  * more, and anything it can't be sure of it leaves:
  *

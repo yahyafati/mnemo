@@ -26,7 +26,7 @@ import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
 
-/** The page grid and the large view with a keyboard, which only the desktop (or a tablet with one) has: docs/pdf/ROADMAP.md, P8. */
+/** The page grid and the large view with a keyboard, which only the desktop (or a tablet with one) has: ADR 0014, P8. */
 @OptIn(ExperimentalTestApi::class)
 class PdfPageKeysTest {
     private val files = object : PdfPageFiles {

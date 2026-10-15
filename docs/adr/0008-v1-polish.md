@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (licensing and distribution: decided in ADR 0009)
 - **Date:** 2026-09-29
-- **Context for:** ROADMAP Phase 6; PROJECT_OVERVIEW §4.2, §4.3, §4.5, §10; ADR 0003, 0005, 0006, 0007
+- **Context for:** Phase 6; PROJECT_OVERVIEW §4.2, §4.3, §4.5, §10; ADR 0003, 0005, 0006, 0007
 
 ## Decision
 
@@ -130,7 +130,7 @@ buttons side by side on wide-and-short windows and on either side of the fold in
 - Manual checks that need hardware: 60/120 fps in the study loop and Analytics on a mid-range
   device, TTS voices and audio focus, dictation, the widget on real launchers, and "Test
   connection"/"1,000 words in 30 s" with real providers. The steps, pass criteria and the results
-  log are in [`docs/release/qa.md`](../release/qa.md) (release ROADMAP R3); when every row is
+  log are in [`docs/release/qa.md`](../release/qa.md) (release step R3); when every row is
   green, record the summary here and remove this item.
 
 ## Consequences

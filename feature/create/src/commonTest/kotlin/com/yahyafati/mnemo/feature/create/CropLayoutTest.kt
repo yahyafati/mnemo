@@ -7,7 +7,7 @@ import com.yahyafati.mnemo.core.model.RegionCorner
 import org.junit.Test
 import kotlin.test.assertEquals
 
-/** The arithmetic of the crop screen (docs/pdf/ROADMAP.md, P7): where the page sits, the box on it, and what a touch takes hold of. */
+/** The arithmetic of the crop screen (ADR 0014, P7): where the page sits, the box on it, and what a touch takes hold of. */
 class CropLayoutTest {
     // A 600 × 800 page picture fitted into a 1,000 × 1,000 area: 750 × 1,000, centred, 125 px from the left.
     private val layout = CropLayout.fit(1000f, 1000f, 600, 800)

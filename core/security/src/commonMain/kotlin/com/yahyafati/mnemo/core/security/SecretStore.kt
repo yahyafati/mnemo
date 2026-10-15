@@ -110,10 +110,10 @@ object SecretIds {
     /** The key the sync location's files are encrypted with (hex), kept so a device needn't ask for the passphrase again. */
     const val SYNC_KEY = "sync.key"
 
-    /** The refresh token of the Google account that holds the Drive sync location (docs/sync/ROADMAP.md S6). */
+    /** The refresh token of the Google account that holds the Drive sync location (ADR 0013 S6). */
     const val GOOGLE_REFRESH_TOKEN = "sync.google.refresh"
 
-    /** The (app) password of the WebDAV account that holds the sync location (docs/sync/ROADMAP.md S7). */
+    /** The (app) password of the WebDAV account that holds the sync location (ADR 0013 S7). */
     const val WEBDAV_PASSWORD = "sync.webdav.password"
 
     /** Ids that belong to something other than a provider. */

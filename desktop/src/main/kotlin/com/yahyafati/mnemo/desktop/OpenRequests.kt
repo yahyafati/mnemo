@@ -5,7 +5,7 @@ import java.io.IOException
 import java.util.UUID
 
 /**
- * Files that a second Mnemo was asked to open, handed to the first (desktop ROADMAP D8). Windows and Linux
+ * Files that a second Mnemo was asked to open, handed to the first (desktop step D8). Windows and Linux
  * start the program with the path as an argument when a `.apkg` is opened from the file manager; the
  * collection admits one process ([com.yahyafati.mnemo.core.data.desktop.SingleInstanceLock]), so the newcomer
  * leaves the paths in a folder of the data directory and exits, and the running app picks them up.

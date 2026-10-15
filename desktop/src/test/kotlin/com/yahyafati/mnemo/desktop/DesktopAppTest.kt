@@ -61,7 +61,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * The shared app on the desktop (ROADMAP D6): the real desktop graph on a temporary data
+ * The shared app on the desktop (desktop step D6): the real desktop graph on a temporary data
  * directory, driven through the window's content. The Android counterparts are the app tests in
  * `:app` (`FirstSessionTest`, `MnemoAppNavigationTest`).
  */

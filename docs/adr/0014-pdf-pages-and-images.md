@@ -1,9 +1,9 @@
 # ADR 0014: PDF pages, scanned pages and page images
 
-- **Status:** Proposed (2026-10-04). Written on the proposed defaults of `docs/pdf/ROADMAP.md`; the points marked
+- **Status:** Proposed (2026-10-04). Written on the PDF plan's proposed defaults; the points marked
   **(owner)** are the ones to change before P1 starts. P3–P6 build on them, so a change after they land costs more.
 - **Date:** 2026-10-04
-- **Context for:** `docs/pdf/ROADMAP.md` (P0–P8); ADR 0005 (AI providers and secrets); ADR 0006 (AI card
+- **Context for:** steps P0–P8; ADR 0005 (AI providers and secrets); ADR 0006 (AI card
   creation); ADR 0004 (media); ARCHITECTURE §5.2
 
 ## Decision
@@ -186,7 +186,7 @@ Not done in P0, and still open:
 - **Android's `PdfRenderer` comparison.** No device or emulator was available. P3's instrumented test (and the
   owner's P8 pass) will render the same fixtures with PDFium and compare size and legibility; what the ADR says
   about `PdfRenderer` (every scan codec, a transparent bitmap to fill white) is from its documentation, not from a run.
-- **Tokens, latency and errors per provider** (ROADMAP P0, **(owner)**), and the **(owner)** confirmations of the
+- **Tokens, latency and errors per provider** (P0, **(owner)**), and the **(owner)** confirmations of the
   proposed defaults, which keep this ADR at *Proposed*.
 
 ## As built (P1, 2026-10-04)
@@ -405,8 +405,8 @@ Not done in P0, and still open:
 
 ## As built (P8, 2026-10-04)
 
-P8 is the polish the earlier steps left, plus the docs. Everything that needs real material or a device is still the owner's pass (the QA log in
-`docs/pdf/ROADMAP.md`).
+P8 is the polish the earlier steps left, plus the docs. Everything that needs real material or a device is still the owner's pass (§2.1 of
+`docs/release/qa.md`).
 
 - **A timeout is its own problem.** `AiProblem.Timeout` (OkHttp's read timeout is a `SocketTimeoutException`, its call timeout an
   `InterruptedIOException`; both are `InterruptedIOException`s, and `MnemoError.toAiFailure` maps them) says "the model didn't answer in time"

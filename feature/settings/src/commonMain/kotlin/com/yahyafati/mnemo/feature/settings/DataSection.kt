@@ -66,7 +66,7 @@ internal class DataCallbacks(
     val onDismissTransfers: () -> Unit,
 )
 
-/** Settings › Data: backups, restore and full exports (ROADMAP Phase 2). */
+/** Settings › Data: backups, restore and full exports (Phase 2). */
 @Composable
 internal fun DataSection(backup: BackupSettings, state: DataUiState, callbacks: DataCallbacks) {
     val backupPicker = rememberFileSaver(ZIP_MIME) { callbacks.onBackUp(it) }

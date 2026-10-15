@@ -53,7 +53,7 @@ enum class WebDavFolder {
 }
 
 /**
- * A sync location in a folder on a WebDAV server such as Nextcloud (docs/sync/ROADMAP.md S7, ADR 0013), over OkHttp.
+ * A sync location in a folder on a WebDAV server such as Nextcloud (ADR 0013 S7), over OkHttp.
  *
  * The layout is flattened into the one folder the user named (`/` is `__` in a file name), like [com.yahyafati.mnemo.core.sync.store.FolderSyncStore],
  * so nothing but that folder is ever created. A new file is a `PUT` with `If-None-Match: *`, which a server answers with

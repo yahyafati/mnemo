@@ -15,7 +15,7 @@ data class BookDecks(
 )
 
 /**
- * Makes the decks of a book (docs/epub/ROADMAP.md, B3): a root deck named after the book and one empty deck per
+ * Makes the decks of a book (ADR 0011, B3): a root deck named after the book and one empty deck per
  * chapter under it, named by [BookDeckNames]. Cards come later, through Smart Extract.
  *
  * Decks that exist already (same path, ignoring case) are reused as they are, not saved again: `saveDeck` on an

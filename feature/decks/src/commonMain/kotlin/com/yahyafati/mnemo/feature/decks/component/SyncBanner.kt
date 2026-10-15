@@ -40,7 +40,7 @@ import com.yahyafati.mnemo.feature.decks.resources.feature_decks_sync_update
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Says that sync needs the user, with a way to Settings › Sync (docs/sync/ROADMAP.md S5). The Decks screen shows it only
+ * Says that sync needs the user, with a way to Settings › Sync (ADR 0013 S5). The Decks screen shows it only
  * for a status that [com.yahyafati.mnemo.core.data.sync.attentionFrom] says deserves it: nothing shows while sync works.
  */
 @Composable

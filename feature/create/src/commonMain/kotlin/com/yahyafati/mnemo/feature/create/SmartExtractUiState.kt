@@ -30,7 +30,7 @@ data class SmartExtractUiState(
     val isLoading: Boolean = true,
     /** The provider and model Smart Extract uses; null shows the setup prompt. */
     val route: AiRoute? = null,
-    /** The provider and model that read PDF pages as images (docs/pdf/ROADMAP.md, P5); null when none is set up. */
+    /** The provider and model that read PDF pages as images (ADR 0014, P5); null when none is set up. */
     val readRoute: AiRoute? = null,
     val decks: List<DeckOption> = emptyList(),
     val deckId: String? = null,
@@ -53,7 +53,7 @@ data class SmartExtractUiState(
     val showSections: Boolean = false,
     /** Asking the user to discard their edits to the text before the chosen sections replace it. */
     val sectionsConfirmation: Boolean = false,
-    /** The PDF opened for the Pdf source (docs/pdf/ROADMAP.md, P1), whose pages the box holds; null when none is open. */
+    /** The PDF opened for the Pdf source (ADR 0014, P1), whose pages the box holds; null when none is open. */
     val pdf: PdfSummary? = null,
     /** The EPUB read for the Epub source, and the chapter whose text is in the box. */
     val book: BookSummary? = null,
@@ -78,7 +78,7 @@ data class SmartExtractUiState(
     /** Which notice [disclosure] is showing: what the text of a request holds, or that page images are sent (ADR 0014). */
     val disclosureStep: DisclosureStep = DisclosureStep.Text,
     val showDeckDialog: Boolean = false,
-    /** The crop screen for adding a figure to a queued card (docs/pdf/ROADMAP.md, P7); null when it is closed. */
+    /** The crop screen for adding a figure to a queued card (ADR 0014, P7); null when it is closed. */
     val figureEdit: FigureEdit? = null,
     /** Asking the user to confirm adding cards to a deck that already has some. */
     val nonEmptyDeck: NonEmptyDeck? = null,
@@ -222,7 +222,7 @@ data class BookSummary(
 data class ChapterOption(val id: Int, val title: String, val words: Int, val kind: ChapterKind, val truncated: Boolean)
 
 /**
- * Generating for several chapters in book order (docs/epub/ROADMAP.md, B6): [chapters] are the ones to run and
+ * Generating for several chapters in book order (ADR 0011, B6): [chapters] are the ones to run and
  * [position] the one in the box now. One chapter at a time, each with its own review queue; the run never goes
  * on by itself, so a failure, a rate limit or an unfinished review keeps it where it is.
  */

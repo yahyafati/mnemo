@@ -1,9 +1,8 @@
-# F-Droid (release ROADMAP R7)
+# F-Droid
 
 Mnemo goes to F-Droid from the same source tree and the same Gradle build as Play (ADR 0009): no
 flavor, no fork. F-Droid builds it itself from a git tag and signs it with its own key. The repo
-side of R7 is done; the boxes that need your GitLab account are marked **(owner)** and ticked in
-[ROADMAP.md](ROADMAP.md) when you finish them.
+side is done; the steps that need your GitLab account are marked **(owner)**.
 
 ## What is in the repo
 
@@ -78,7 +77,7 @@ above in it: the tag is what F-Droid checks out (`docs/release/signing.md`, rele
    Say in it: GPL-3.0-or-later, no proprietary SDK, the `NonFreeNet` reason, and that fastlane
    metadata is in the app repo.
 5. Answer the reviewers until it merges. The build cycle then picks the app up, usually within a few
-   days. Tick R7's boxes in ROADMAP.md.
+   days.
 
 ## Every later release
 

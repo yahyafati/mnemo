@@ -37,7 +37,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * A book run (docs/epub/ROADMAP.md, B6): the chapters in order, one review queue at a time, and never on to the
+ * A book run (ADR 0011, B6): the chapters in order, one review queue at a time, and never on to the
  * next chapter without the user.
  */
 class SmartExtractBatchTest : PlatformTest() {

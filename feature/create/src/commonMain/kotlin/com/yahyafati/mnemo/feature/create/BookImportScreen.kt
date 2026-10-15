@@ -160,7 +160,7 @@ internal fun BookImportFullScreen(
 }
 
 /**
- * Pick a book, choose its chapters, create the decks (docs/epub/ROADMAP.md, B4). Stateless apart from
+ * Pick a book, choose its chapters, create the decks (ADR 0011, B4). Stateless apart from
  * the file picker. No AI is involved here: the decks start empty.
  */
 @Composable

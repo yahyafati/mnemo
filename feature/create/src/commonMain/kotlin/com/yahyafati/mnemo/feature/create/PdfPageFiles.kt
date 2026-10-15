@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.feature.create
 import java.io.File
 
 /**
- * Where the screen gets pictures of the open PDF's pages (Cards from page images, docs/pdf/ROADMAP.md, P6). Both are files the
+ * Where the screen gets pictures of the open PDF's pages (Cards from page images, ADR 0014, P6). Both are files the
  * page renderer made in the cache, rendered once; null when the page has nothing on it, can't be drawn, or the PDF is closed.
  * Blocking work stays behind these two calls, so the screen can ask for the pages it shows as it scrolls.
  */

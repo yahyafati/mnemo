@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Starts a packaged desktop app and checks it comes up (desktop ROADMAP D8).
+"""Starts a packaged desktop app and checks it comes up (desktop step D8).
 
     python3 scripts/desktop/smoke-test-app.py desktop/build/compose/binaries/main/app [--open-file deck.apkg]
 

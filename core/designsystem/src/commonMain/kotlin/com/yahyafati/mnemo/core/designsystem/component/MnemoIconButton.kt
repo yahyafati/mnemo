@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.yahyafati.mnemo.core.designsystem.platform.LocalPlatformCapabilities
 
 /**
- * An icon button that says what it does when the pointer rests on it (desktop ROADMAP D7). Where the
+ * An icon button that says what it does when the pointer rests on it (desktop step D7). Where the
  * platform has no mouse ([com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities.keyboardAndMouse]
  * off) it is a plain [IconButton].
  *

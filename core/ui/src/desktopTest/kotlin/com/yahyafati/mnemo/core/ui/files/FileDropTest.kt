@@ -10,7 +10,7 @@ import java.awt.datatransfer.UnsupportedFlavorException
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Reading what a file manager hands over in a drag (desktop ROADMAP D7). */
+/** Reading what a file manager hands over in a drag (desktop step D7). */
 class FileDropTest {
     @get:Rule
     val folder = TemporaryFolder()

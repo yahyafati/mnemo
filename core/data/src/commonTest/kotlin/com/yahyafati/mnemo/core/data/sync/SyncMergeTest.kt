@@ -27,7 +27,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The merge, one scenario at a time (docs/sync/ROADMAP.md S3): devices with their own database and clock, one shared
+ * The merge, one scenario at a time (ADR 0013 S3): devices with their own database and clock, one shared
  * location, and the question after every scenario is whether they hold the same rows.
  */
 class SyncMergeTest : PlatformTest() {
@@ -75,7 +75,7 @@ class SyncMergeTest : PlatformTest() {
         assertTrue(b.dump().any { it.startsWith("notes/") })
     }
 
-    // --- the scenarios of the roadmap -----------------------------------------------------------------------
+    // --- the planned scenarios (S3) -----------------------------------------------------------------------
 
     @Test
     fun theSameCardReviewedOnBothDevicesKeepsBothReviewsAndReplaysTheSchedule() = runTest {
@@ -302,7 +302,7 @@ class SyncMergeTest : PlatformTest() {
         println("sync: 12,000 cards: packed and written in ${(receiving - sending) / 1_000_000} ms in ${sent.sentFiles} files, applied in ${(done - receiving) / 1_000_000} ms")
     }
 
-    // --- more than the roadmap lists ---------------------------------------------------------------------------
+    // --- beyond the planned ones -------------------------------------------------------------------------------
 
     @Test
     fun syncingAgainChangesNothing() = runTest {

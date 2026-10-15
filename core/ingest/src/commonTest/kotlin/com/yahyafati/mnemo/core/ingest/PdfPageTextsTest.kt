@@ -9,7 +9,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** The text layer page by page (docs/pdf/ROADMAP.md, P5): what Auto mode uses to tell a page of text from a picture, on both PDF libraries. */
+/** The text layer page by page (ADR 0014, P5): what Auto mode uses to tell a page of text from a picture, on both PDF libraries. */
 class PdfPageTextsTest : PlatformTest() {
     private val pdf = newPdfExtractor()
 

@@ -7,7 +7,7 @@ package com.yahyafati.mnemo.core.sync.oauth
 data class OAuthResponse(val redirectUri: String, val parameters: Map<String, String>)
 
 /**
- * The part of sign-in that is different on every platform (docs/sync/ROADMAP.md S6): send the user to the system
+ * The part of sign-in that is different on every platform (ADR 0013 S6): send the user to the system
  * browser, and get the redirect back. Android opens the browser and receives a custom-scheme link in an activity; the
  * desktop listens on a loopback port. Everything else (PKCE, the `state` check, the token request) is shared.
  *

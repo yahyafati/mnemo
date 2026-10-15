@@ -20,8 +20,8 @@ import kotlin.test.assertTrue
 expect val fixtureSource: String
 
 /**
- * A collection moves between a phone and a computer as a backup (ROADMAP "Moving a collection
- * between devices"): a backup made on Android restores on the desktop, and one made on the
+ * A collection moves between a phone and a computer as a backup
+ * (`docs/desktop/install.md`, "Moving a collection between phone and desktop"): a backup made on Android restores on the desktop, and one made on the
  * desktop restores on Android. The fixtures in `resources/backups` were made by each platform
  * from [SampleCollection]; this test restores both on both targets, so each direction is checked
  * by the other platform's run.

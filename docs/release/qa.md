@@ -1,10 +1,10 @@
-# Mnemo — Pre-launch QA (release ROADMAP R3)
+# Mnemo — Pre-launch QA (Android)
 
-Every check below runs on the **release** build (R8 on), because that is what Play and F-Droid ship.
+Every check below runs on the **release** build (R8 on), because that is what users get.
 Debug builds skip minification, so a check that passes there proves little about missing keep rules.
 Record each result in [the results log](#results-log) with the device, OS and build. When every row
 is green, move the log's summary into [ADR 0008](../adr/0008-v1-polish.md) "Open" and empty that
-section (R3's exit).
+section.
 
 The commands that a machine can run are in `scripts/qa/device-checks.sh` (needs `adb`; run it with no
 arguments for the list). The rest needs a person looking at the screen or listening to the audio.
@@ -17,7 +17,7 @@ arguments for the list). The rest needs a person looking at the screen or listen
 |---|---|---|
 | Mid-range phone | A 60 Hz phone from the last 3–4 years (for example a Pixel 6a or Galaxy A5x) | Frame rate, TTS, dictation, most of the smoke test |
 | High-refresh phone | 90/120 Hz (Pixel 8 or a Galaxy S) | 120 fps |
-| Second launcher | Pixel Launcher **and** Samsung One UI | Widget, launcher icon, splash (R1's leftover check) |
+| Second launcher | Pixel Launcher **and** Samsung One UI | Widget, launcher icon, splash (the brand step's leftover check) |
 | Tablet or foldable emulator | 10" tablet and a foldable (API 35) | Layout pass |
 
 **Build:**
@@ -98,7 +98,7 @@ Do this on **Pixel Launcher and Samsung One UI**, both light and dark, and on th
       the widget comes back with data, not "Loading".
 - [ ] Remove it and add it again; clear the app's data and check it shows the empty state, not a crash.
 
-### 1.5 Launcher icon and splash (R1's leftover)
+### 1.5 Launcher icon and splash
 
 - [ ] Pixel: default icon and **themed icon** (Wallpaper & style › Themed icons); dark and light splash.
 - [ ] Samsung One UI: the icon isn't cropped or given an odd background; the splash isn't a blank frame.
@@ -120,7 +120,7 @@ Use your own keys. **Never** paste a key into an issue, a log, or this file.
       `wc -w`), tap Generate, start a stopwatch. Stop at the last card of the streamed queue. Cards
       should start appearing well before that. Accept them. Repeat with a hosted and a local model
       and record the model, since a small local model on a laptop CPU may legitimately miss 30 s;
-      write that down rather than hiding it. The claim in the ROADMAP is about "any configured
+      write that down rather than hiding it. The success criterion in PROJECT_OVERVIEW is about "any configured
       provider", so decide (and record) whether a slow local model changes the wording in the
       listing or only needs a note in the docs.
 - [ ] Also once each: PDF, link and dictation sources; Explain / Example / Rewrite while studying;
@@ -129,6 +129,27 @@ Use your own keys. **Never** paste a key into an issue, a log, or this file.
       Check that the issue text holds the output, the feature and the model, and no key.
 - [ ] To repeat these without spending tokens: `scripts/qa/device-checks.sh mock-ai` serves canned
       replies (this checks the plumbing, not real-provider behaviour).
+
+### 2.1 Real sources (PDF, links, books)
+
+On a phone and in the desktop window, with one hosted and one local model; a vision model for the PDF modes.
+Note what read well, token use and timing in the log.
+
+- [ ] **PDF** (ADR 0014): a scanned book chapter, handwritten notes, a maths-heavy scan, lecture slides, a
+      600-page textbook by chapter, a PDF with an OCR layer, an Internet Archive scan (often JPEG 2000: blank on
+      the desktop, see `docs/desktop/install.md`), a password-protected PDF. Every mode (Text, Auto, Read with AI,
+      Page images), the page grid, the large view and the figure cropper, and the Android `PdfRenderer` device test
+      (`./gradlew connectedDebugAndroidTest --tests "*AndroidPdfPageRendererTest*"`).
+- [ ] **Links** (ADR 0012): about 20 real links: Wikipedia in three languages (sections picker, a `#Fragment`, a
+      disambiguation page), a math-heavy article, news, blogs, documentation (MDN, Kotlin docs), a PDF link, a page
+      behind a cookie wall.
+- [ ] **Books** (ADR 0011): Gutenberg novels, a textbook with parts and sections, an EPUB 2 book, a Japanese book
+      (chapter count, order, titles, front and back matter, word counts); a 5 MB text opens in a couple of seconds
+      and a 100 MB illustrated book doesn't run out of memory; a DRM-protected book shows the DRM message; the
+      chapter list with TalkBack, the keyboard, large font, dark theme and wide windows; a book run over several
+      chapters.
+- [ ] The AI disclosure still matches what each source sends (the source text or page images, and the queue's
+      fronts; the deck's notes stay local).
 
 ## 3. Release smoke test (R8)
 
@@ -196,7 +217,7 @@ Turn on airplane mode (`scripts/qa/device-checks.sh airplane on`), then Wi-Fi an
       the study loop; P1: a core flow broken or a store-policy problem; P2: wrong but recoverable;
       P3: polish).
 - [ ] **No open P0 or P1.** P2/P3s are listed in the release notes' known issues or deferred.
-- [ ] The Android vitals and pre-launch report (R4) are checked again when the build goes up.
+- [ ] The Android vitals and pre-launch report (Play only) are checked again when the build goes up.
 
 ---
 
@@ -220,6 +241,9 @@ Build = `versionName (versionCode)` and how it was installed.
 | 2 Test connection, hosted | | | | | |
 | 2 Test connection, local | | | | | |
 | 2 Smart Extract 1,000 words < 30 s | | | | | |
+| 2.1 PDFs (list which) | | | | | |
+| 2.1 Links (list which) | | | | | |
+| 2.1 Books (list which) | | | | | |
 | 3 Fresh install and onboarding | | | | | |
 | 3 Import real `.apkg` | | | | | |
 | 3 Study, every card type | | | | | |

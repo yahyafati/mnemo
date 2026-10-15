@@ -8,7 +8,7 @@ import java.io.File
 import java.util.Properties
 
 /**
- * Where the window was when Mnemo last closed (desktop ROADMAP D7): the size and position it has when
+ * Where the window was when Mnemo last closed (desktop step D7): the size and position it has when
  * it is not maximized, in dp (what a Compose window state holds), and whether it was maximized.
  */
 data class SavedWindow(

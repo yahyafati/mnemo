@@ -37,7 +37,7 @@ class GoogleClient(val clientId: String, val clientSecret: String? = null) {
 val NoGoogleClient = GoogleClientConfigSource { null }
 
 /**
- * Everything about the Google account of the Drive sync location (docs/sync/ROADMAP.md S6): signing in through the
+ * Everything about the Google account of the Drive sync location (ADR 0013 S6): signing in through the
  * platform's [OAuthAuthorizer], keeping the **refresh token** in [SecretStore] (never in Room, a backup or a log),
  * handing out stores whose access tokens come from it, and signing out. The access token only ever lives in memory.
  * A token that Google revoked or expired is the "auth" error of the store: the user signs in again.

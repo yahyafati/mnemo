@@ -2,7 +2,7 @@
 
 Two routes use this page:
 
-- **Direct distribution** ([sideload-roadmap.md](sideload-roadmap.md)): the APK you publish on GitHub
+- **Direct distribution** ([README.md](README.md)): the APK you publish on GitHub
   Releases is signed with **your keystore**, and that key is what every phone checks on every update.
   **Android will not update an app whose signing key changed**: lose the key, or replace it, and every
   user has to uninstall (losing their data unless they backed it up first). Treat it as the app's identity.

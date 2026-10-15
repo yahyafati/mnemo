@@ -23,7 +23,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 configureReleaseSigning(this)
                 configureGoogleClientAndroid(this)
                 // AGP adds a dependency list, encrypted with a Google key, to the APK signing block.
-                // F-Droid's scanner rejects it (release ROADMAP R7). The bundle keeps its copy for Play.
+                // F-Droid's scanner rejects it (release step R7). The bundle keeps its copy for Play.
                 dependenciesInfo {
                     includeInApk = false
                 }

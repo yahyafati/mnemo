@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * A book on its way from the book import to Smart Extract (docs/epub/ROADMAP.md, B5): the import has
+ * A book on its way from the book import to Smart Extract (ADR 0011, B5): the import has
  * already read the file, so "Generate cards" hands over the parsed book instead of asking for the file
  * again. In memory only: nothing about a book is stored, and chapter text never travels as a navigation
  * argument. Smart Extract takes the offer as soon as it sees it, which empties this.

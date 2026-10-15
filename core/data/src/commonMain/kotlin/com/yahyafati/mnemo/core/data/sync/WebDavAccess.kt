@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
 /**
- * Everything about the account of a WebDAV sync location (docs/sync/ROADMAP.md S7): testing and keeping a password, which
+ * Everything about the account of a WebDAV sync location (ADR 0013 S7): testing and keeping a password, which
  * lives only in [SecretStore] (never in Room, the sync config, a backup or a log), handing out stores that read it, and
  * forgetting it. There is one WebDAV password per device, like one Google sign-in.
  */

@@ -17,7 +17,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Rendering pages with PDFBox (docs/pdf/ROADMAP.md, P3) on the fixtures; `scanned-jbig2.pdf` needs the `jbig2-imageio` plugin. */
+/** Rendering pages with PDFBox (ADR 0014, P3) on the fixtures; `scanned-jbig2.pdf` needs the `jbig2-imageio` plugin. */
 class PdfBoxPageRendererTest {
     private val renderer = PdfBoxPageRenderer()
     private val folder = createTempDirectory("render").toFile()

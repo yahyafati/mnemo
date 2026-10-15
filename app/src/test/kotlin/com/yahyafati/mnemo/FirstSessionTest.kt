@@ -23,7 +23,7 @@ import org.koin.test.KoinTest
 import org.junit.Assert.assertEquals
 
 /**
- * The new-user path end to end (ROADMAP Phase 6) on a real (in-memory) database: onboarding
+ * The new-user path end to end (Phase 6) on a real (in-memory) database: onboarding
  * creates the first deck, a card is added, studied and rated, and Analytics counts the review.
  */
 @Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")

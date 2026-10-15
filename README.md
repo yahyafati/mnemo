@@ -53,9 +53,9 @@ three things:
 
 ## Status
 
-Phases 0–6 of the [roadmap](docs/ROADMAP.md) are implemented, and the project is working towards
-v1.0 on Google Play and F-Droid (see the [release roadmap](docs/release/ROADMAP.md)). A few manual
-checks on real devices and providers are still open.
+Mnemo is feature-complete for v1 on Android and the desktop. What is left before the first release
+(manual checks on real devices and providers, the first CI runs) is listed in
+[docs/release/README.md](docs/release/README.md).
 
 ## Building
 
@@ -68,7 +68,7 @@ The JDK 25 toolchain that the unit tests use is downloaded by Gradle on first bu
 ./gradlew assembleRelease                        # R8-minified; unsigned without a keystore
 ```
 
-The desktop app (Windows, macOS, Linux; in progress, see [docs/desktop/ROADMAP.md](docs/desktop/ROADMAP.md))
+The desktop app (Windows, macOS, Linux; ADR 0010)
 runs with `./gradlew :desktop:run`. Its installers come from GitHub Releases, and
 [docs/desktop/install.md](docs/desktop/install.md) covers installing, updating, uninstalling and where the data
 lives. To build one yourself, on the system it is for (JDK 21 to run Gradle):
@@ -93,19 +93,19 @@ official Android UI → Domain → Data layering.
 
 | Path | What it holds |
 |---|---|
-| `app/` | The application shell, navigation, widget and onboarding |
-| `desktop/` | The desktop launcher (Windows, macOS, Linux), in progress |
+| `app/` | The Android launcher and home-screen widget |
+| `desktop/` | The desktop launcher (Windows, macOS, Linux) |
+| `shell/` | The app shell both launchers share: navigation, top and bottom bars, onboarding |
 | `feature/` | One module per feature: `analytics`, `browse`, `create`, `decks`, `settings`, `study` |
-| `core/` | Shared modules: `ai`, `anki`, `common`, `data`, `database`, `datastore`, `designsystem`, `domain`, `ingest`, `model`, `scheduler`, `security`, `testing`, `ui` |
+| `core/` | Shared modules: `ai`, `anki`, `common`, `data`, `database`, `datastore`, `designsystem`, `domain`, `ingest`, `model`, `scheduler`, `security`, `sync`, `testing`, `ui` |
 | `build-logic/` | Convention plugins that hold all shared Gradle configuration |
-| `docs/` | Product, architecture, roadmap, decision records (ADRs), design mockups and release docs |
+| `docs/` | Product, architecture, decision records (ADRs), design mockups, release, desktop and sync docs |
 
 Feature modules never depend on each other; they navigate through routes in `:core:ui`. For the
 full picture read:
 
 - [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md): what the product is and why
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): modules, layers and rules
-- [docs/ROADMAP.md](docs/ROADMAP.md): the phases
 - [docs/adr/](docs/adr/): the decisions behind the design
 
 ## Privacy

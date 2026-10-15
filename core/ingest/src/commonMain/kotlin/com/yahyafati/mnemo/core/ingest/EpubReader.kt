@@ -32,7 +32,7 @@ data class EpubLimits(
 )
 
 /**
- * An EPUB read into chapters (docs/epub/ROADMAP.md B1, ADR 0011). The chapters are the table of
+ * An EPUB read into chapters (ADR 0011 B1). The chapters are the table of
  * contents' (EPUB 3 `nav`, EPUB 2 `toc.ncx`), else the reading order's files. Text only: images,
  * MathML, page numbers, footnotes and ruby readings are left out. A chapter's text is Markdown ([MarkdownText]):
  * headings, emphasis, lists, quotes, code and tables keep their marks (ADR 0012). A book with DRM fails with

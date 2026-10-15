@@ -80,7 +80,6 @@ Roborazzi baselines in `feature/*/src/test/screenshots` show the intended layout
 
 ## Before publishing
 
-- [ ] Decide licensing and distribution (`distribution.md`).
 - [ ] App signing key (Play App Signing) and release `signingConfig` (never committed).
 - [ ] Contact address in the privacy policy, and host it at a public URL for the listing (Pages workflow: `play-console.md` §2).
 - [ ] `versionCode`/`versionName` for 1.0.

@@ -23,7 +23,7 @@ class CollectionSession internal constructor(
 }
 
 /**
- * Opens the collection in [directories], in the order the data layer needs (ADR 0010, ROADMAP D4):
+ * Opens the collection in [directories], in the order the data layer needs (ADR 0010, desktop step D4):
  *
  * 1. Take the single-instance lock: the database and preferences files must not be opened by two
  *    processes. A restart waits [restartWaitMillis] for the old process to let go.

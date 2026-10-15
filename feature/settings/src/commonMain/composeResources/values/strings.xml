@@ -246,7 +246,7 @@
     <string name="feature_settings_privacy_permissions_title">Permissions</string>
     <string name="feature_settings_privacy_permissions">Internet: only for AI providers and links you open in Smart Extract. A phone also asks for Notifications (reminders and progress of long imports) and, only while you dictate, the Microphone (speech is recognized on your device where it can be). A computer asks for no permissions.</string>
 
-    <!-- Sync (docs/sync/ROADMAP.md S5) -->
+    <!-- Sync (ADR 0013 S5) -->
     <string name="feature_settings_sync">Sync</string>
     <string name="feature_settings_sync_row">Sync between devices</string>
     <string name="feature_settings_sync_row_off">Off. Keep your devices in step through storage you own.</string>

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-28
-- **Context for:** ROADMAP Phase 1, "Card rendering (`:core:ui`)"; ARCHITECTURE §8 ("A Compose Markdown renderer")
+- **Context for:** Phase 1, "Card rendering (`:core:ui`)"; ARCHITECTURE §8 ("A Compose Markdown renderer")
 
 ## Context
 
@@ -31,7 +31,7 @@ the one screen that must hold 60/120 fps.
 
 - Cloze rendering is a styling choice in one place, and the parser is unit-tested on the JVM
   (`MarkdownTest`).
-- No tables, images, footnotes or HTML. Images and LaTeX arrive in Phase 2 with media (ROADMAP),
+- No tables, images, footnotes or HTML. Images and LaTeX arrive in Phase 2 with media,
   which extends this renderer; LaTeX still uses a WebView only for cards that contain math.
 - Anki decks with rich HTML templates will need a mapping on import (Phase 2, "how much Anki
   templating to support").

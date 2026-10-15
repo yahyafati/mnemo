@@ -18,7 +18,7 @@ import java.net.URI
 import java.net.URLDecoder
 
 /**
- * Google sign-in on a computer (docs/sync/ROADMAP.md S6): the default browser opens the consent page and Google sends it
+ * Google sign-in on a computer (ADR 0013 S6): the default browser opens the consent page and Google sends it
  * back to `http://127.0.0.1:<port>`, where this class listens, on the loopback address only, until one answer has come
  * or the wait ends. A plain [ServerSocket] (`java.base`) rather than `jdk.httpserver`, so the packaged runtime needs no
  * further module. The listener lives for one sign-in. A request that isn't an answer (the browser asking for an icon)

@@ -55,7 +55,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** Reading a PDF page with a vision model (docs/pdf/ROADMAP.md, P5): the page image in the request, the reply as text, the usage log. */
+/** Reading a PDF page with a vision model (ADR 0014, P5): the page image in the request, the reply as text, the usage log. */
 class PdfReadRepositoryTest : PlatformTest() {
     private val directories = TestAppDirectories()
     private val db = inMemoryDatabase()

@@ -20,7 +20,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 
-/** Anki import and export against a real database (ROADMAP Phase 2 exit criteria). */
+/** Anki import and export against a real database (Phase 2 exit criteria). */
 class AnkiTransferTest : PlatformTest() {
     private fun collection() = TransferTestCollection(tmp.newFolder())
 

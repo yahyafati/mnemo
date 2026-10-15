@@ -24,7 +24,7 @@ import java.time.Duration
 import java.time.LocalDate
 
 /**
- * Everything on the Analytics screen (ROADMAP Phase 5, ADR 0007): true retention, review volume,
+ * Everything on the Analytics screen (Phase 5, ADR 0007): true retention, review volume,
  * average stability, time saved, the forgetting curve, activity and streak, per-deck maturity and
  * recall, the due forecast and the hardest cards. The database aggregates; this combines the
  * aggregates with the user's FSRS model.

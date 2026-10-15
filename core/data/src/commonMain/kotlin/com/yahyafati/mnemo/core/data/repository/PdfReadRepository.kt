@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 
 /**
- * Reading the pages of a PDF with a vision model (docs/pdf/ROADMAP.md, P5; ADR 0014). Nothing here touches the
+ * Reading the pages of a PDF with a vision model (ADR 0014, P5). Nothing here touches the
  * database except the token-usage log; the text goes to Smart Extract's box, where the user can fix it.
  */
 interface PdfReadRepository {

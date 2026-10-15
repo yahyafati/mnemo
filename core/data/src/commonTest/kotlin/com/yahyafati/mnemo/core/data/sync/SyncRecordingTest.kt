@@ -22,7 +22,7 @@ import org.junit.After
 import org.junit.Test
 
 /**
- * The outbox through the real repositories (docs/sync/ROADMAP.md S1): whatever they write while sync is
+ * The outbox through the real repositories (ADR 0013 S1): whatever they write while sync is
  * on lands in `sync_changes`, with the columns that changed, without any of them knowing about sync.
  */
 class SyncRecordingTest : PlatformTest() {

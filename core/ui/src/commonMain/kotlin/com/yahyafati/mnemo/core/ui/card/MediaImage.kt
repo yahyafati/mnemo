@@ -74,7 +74,7 @@ fun MediaImage(src: String, alt: String, modifier: Modifier = Modifier) {
 
 /**
  * An image that isn't in media storage yet, shown the way [MediaImage] shows a stored one: a figure cut from a PDF page for
- * a card in the review queue (docs/pdf/ROADMAP.md, P7), which is stored when the card is accepted. At most [maxHeight] tall.
+ * a card in the review queue (ADR 0014, P7), which is stored when the card is accepted. At most [maxHeight] tall.
  */
 @Composable
 fun MediaFileImage(file: java.io.File, alt: String, modifier: Modifier = Modifier, maxHeight: Dp = MAX_HEIGHT) {

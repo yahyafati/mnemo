@@ -41,7 +41,7 @@ class GoogleAccessTokens(
 }
 
 /**
- * The sign-in dance (docs/sync/ROADMAP.md S6): PKCE, the browser through the platform's [OAuthAuthorizer], the `state`
+ * The sign-in dance (ADR 0013 S6): PKCE, the browser through the platform's [OAuthAuthorizer], the `state`
  * check, and the code exchange. What comes back is a refresh token for the caller to keep; this class keeps nothing.
  */
 class GoogleSignIn(private val oauth: GoogleOAuth, private val authorizer: OAuthAuthorizer) {

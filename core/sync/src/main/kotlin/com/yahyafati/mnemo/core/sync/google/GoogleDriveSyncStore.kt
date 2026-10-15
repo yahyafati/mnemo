@@ -32,7 +32,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /**
- * A sync location in the hidden app-data folder of the user's Google Drive (docs/sync/ROADMAP.md S6, ADR 0013), over
+ * A sync location in the hidden app-data folder of the user's Google Drive (ADR 0013 S6), over
  * Drive's REST v3 API and OkHttp: no Google library, no Play Services.
  *
  * Drive has no folders Mnemo can see here and allows two files with one name, so, like [FolderSyncStore], the layout is

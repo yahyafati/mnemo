@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 
 /**
  * WCAG 2.1 AA contrast for the brand palette in both themes: 4.5:1 for text roles on the
- * backgrounds they are used on, 3:1 for outlines and large text (ROADMAP Phase 6, accessibility).
+ * backgrounds they are used on, 3:1 for outlines and large text (Phase 6, accessibility).
  * Dynamic color comes from the system and is Android's responsibility.
  */
 class ColorContrastTest {

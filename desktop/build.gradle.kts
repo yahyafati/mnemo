@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.aboutlibraries.jvm)
 }
 
-// The desktop launcher (docs/desktop/ROADMAP.md, ADR 0010). It starts the data layer (D4): the
+// The desktop launcher (ADR 0010). It starts the data layer (D4): the
 // collection's directory and its single-instance lock, a staged restore, and the Koin graph. The
 // window shows the app shell (D6), the same UI as the Android app.
 compose.desktop {
@@ -16,7 +16,7 @@ compose.desktop {
 
 // The portable Linux build: the app image (the launcher and its Java runtime, no installer) as a
 // .tar.gz that unpacks into `Mnemo/`. The JetBrains plugin has no format for it; only Linux needs one,
-// because the other systems' installers already are a single file to download (desktop ROADMAP D8).
+// because the other systems' installers already are a single file to download (desktop step D8).
 tasks.register<Tar>("packagePortable") {
     group = "compose desktop"
     description = "Packs the Linux app image as Mnemo-<version>-linux-<arch>.tar.gz."

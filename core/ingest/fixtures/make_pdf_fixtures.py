@@ -1,5 +1,5 @@
 """
-Builds the PDF fixtures in ../src/commonTest/resources/pdf/ (docs/pdf/ROADMAP.md, P0).
+Builds the PDF fixtures in ../src/commonTest/resources/pdf/ (ADR 0014, P0).
 
     python3 -m venv /tmp/pdfenv && /tmp/pdfenv/bin/pip install pymupdf pillow
     # tiffcp (libtiff) must be on the PATH: `brew install libtiff` / `apt install libtiff-tools`

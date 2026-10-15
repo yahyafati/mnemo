@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * The property the merge exists for (docs/sync/ROADMAP.md S3, working rule 3): two or three devices make random edits,
+ * The property the merge exists for (ADR 0013 S3): two or three devices make random edits,
  * reviews, undos, deletes and deck creations while offline, sync in random orders, and once everyone has synced they
  * hold the same rows, with every review that was ever given still in the log.
  */

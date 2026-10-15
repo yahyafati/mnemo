@@ -53,7 +53,7 @@ class DecksViewModel(
     syncRepository: SyncRepository,
 ) : ViewModel() {
     /**
-     * The sync status while it needs the user, else null (docs/sync/ROADMAP.md S5): a restore waiting for a choice, a
+     * The sync status while it needs the user, else null (ADR 0013 S5): a restore waiting for a choice, a
      * problem only a person can fix, or a day without a good round. While everything works there is nothing to show.
      * A status that will deserve a banner only later is shown when its time comes.
      */

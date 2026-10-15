@@ -42,7 +42,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Figures on queued cards (docs/pdf/ROADMAP.md, P7): opening the crop screen, cutting, changing, removing, and what accepting stores. */
+/** Figures on queued cards (ADR 0014, P7): opening the crop screen, cutting, changing, removing, and what accepting stores. */
 class SmartExtractFigureTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

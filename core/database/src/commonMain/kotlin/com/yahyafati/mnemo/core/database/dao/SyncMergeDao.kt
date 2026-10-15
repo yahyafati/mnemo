@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 
 /**
- * The queries the merge engine runs after it has applied other devices' changes (docs/sync/ROADMAP.md S3): finding
+ * The queries the merge engine runs after it has applied other devices' changes (ADR 0013 S3): finding
  * rows two devices made differently, and rows that ended up pointing at something that was deleted. They are plain
  * writes, so the sync triggers record them like any other, which is how a device's merge result reaches the others.
  */

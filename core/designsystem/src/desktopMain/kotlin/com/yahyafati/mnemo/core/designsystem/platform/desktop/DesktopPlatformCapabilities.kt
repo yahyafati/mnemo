@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.core.designsystem.platform.desktop
 import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
 
 /**
- * What the desktop app offers at first (desktop ROADMAP, "Not on desktop"): no wallpaper colors,
+ * What the desktop app offers (ADR 0010): no wallpaper colors,
  * daily reminder, widget, dictation, text-to-speech or share sheet, and no permissions to ask for
  * at run time; but a keyboard and a mouse (D7).
  */

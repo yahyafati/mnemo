@@ -20,7 +20,7 @@ data class AcceptResult(val acceptedIds: List<String>, val cardCount: Int, val f
  * Saves reviewed cards (ARCHITECTURE §5.2, step 7): one note each, `source = AI`, all in one
  * transaction. Cards the user edited into something invalid are left in the queue.
  *
- * A card from PDF pages can come with a [CardFigure] (docs/pdf/ROADMAP.md, P7), a crop of its page: it is stored as media
+ * A card from PDF pages can come with a [CardFigure] (ADR 0014, P7), a crop of its page: it is stored as media
  * and `![](media:<sha256>)` is added to the figure's side of the card. Only cards that are saved store anything; the
  * media is stored before the notes, so a save that fails leaves a file no note refers to, which the media clean-up
  * collects after a day (ADR 0004).

@@ -38,7 +38,7 @@ internal class Applied(val changes: Int, val files: Int, val replayedCards: Int)
 }
 
 /**
- * Applies other devices' change files (docs/sync/ROADMAP.md S3, ADR 0013), all in one transaction with
+ * Applies other devices' change files (ADR 0013 S3), all in one transaction with
  * `sync_state.applying` set so that nothing is echoed back. Applying a file twice changes nothing, and the result
  * does not depend on the order the files arrive in: every rule compares stamps (or takes a minimum or maximum), never
  * "what I have now" against "what just came".

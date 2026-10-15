@@ -97,7 +97,7 @@ sealed interface SourceResult {
     data class Failure(val problem: SourceProblem, val detail: String? = null) : SourceResult
 }
 
-/** What a PDF is before any of its text is read (docs/pdf/ROADMAP.md, P1 and P2). */
+/** What a PDF is before any of its text is read (ADR 0014, P1 and P2). */
 data class PdfInfo(
     val pageCount: Int,
     /** The document's own title, or its file name when it has none. */
@@ -219,7 +219,7 @@ enum class DictationProblem {
     RecognizerError,
 }
 
-/** How large a rendered PDF page is (docs/pdf/ROADMAP.md, P3): the token knob for pages sent to a vision model. */
+/** How large a rendered PDF page is (ADR 0014, P3): the token knob for pages sent to a vision model. */
 enum class PdfQuality(val longEdge: Int) {
     /** 1,568 px on the long side: legible body text and small print on a page of the usual size. */
     Standard(1_568),
@@ -245,7 +245,7 @@ sealed interface PdfPageResult {
 }
 
 /**
- * How the pages of a PDF are read in Smart Extract (docs/pdf/ROADMAP.md, P5–P6; ADR 0014). The first three end in the
+ * How the pages of a PDF are read in Smart Extract (ADR 0014, P5–P6). The first three end in the
  * same editable text box; [PageImages] has no box: the page images themselves are the source.
  */
 enum class PdfReadMode {
@@ -270,7 +270,7 @@ enum class PdfReadMode {
 }
 
 /**
- * Pages sent as images to card generation (docs/pdf/ROADMAP.md, P6; ADR 0014): how they are grouped into requests and
+ * Pages sent as images to card generation (ADR 0014, P6): how they are grouped into requests and
  * how many cards a group is worth, since it has no text to count.
  */
 object PageImageBatches {

@@ -33,7 +33,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * A whole collection on the desktop (ROADMAP D4): an empty data directory, an Anki package
+ * A whole collection on the desktop (desktop step D4): an empty data directory, an Anki package
  * imported, cards studied through the use cases, a backup, a restore at the next start and an
  * export, all through the desktop graph (bundled SQLite, plain files, jobs on coroutines).
  */

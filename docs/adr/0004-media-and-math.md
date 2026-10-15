@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
-- **Context for:** ROADMAP Phase 2 (media, backup and export); ARCHITECTURE §5.4, §6, §8
+- **Context for:** Phase 2 (media, backup and export); ARCHITECTURE §5.4, §6, §8
 
 ## Decision
 

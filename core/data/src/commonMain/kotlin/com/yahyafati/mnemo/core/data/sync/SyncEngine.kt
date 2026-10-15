@@ -32,7 +32,7 @@ data class SyncReport(
 }
 
 /**
- * One round of syncing with a location (docs/sync/ROADMAP.md S3, ADR 0013): send what changed here, apply what the
+ * One round of syncing with a location (ADR 0013 S3): send what changed here, apply what the
  * other devices sent, send the result of that (a deck merge or a replayed schedule is a change like any other), say
  * who this device is, and fetch media files that are missing. Nothing in it decides *when* to run or *which* location:
  * that is `SyncRepository`'s (S4), which also makes sure two rounds never overlap.

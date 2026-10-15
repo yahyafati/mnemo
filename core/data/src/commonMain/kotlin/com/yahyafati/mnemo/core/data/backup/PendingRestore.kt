@@ -15,7 +15,7 @@ import java.io.File
  * The restored database keeps this device's sync identity (its `sync_state.deviceId`) and has sync
  * turned off, because the backup may come from another device: restored as it is, a second device
  * would pose as the first in the sync location. What to do with the sync data is then the user's call
- * (docs/sync/ROADMAP.md S4).
+ * (ADR 0013 S4).
  */
 object PendingRestore {
     internal const val READY = "READY"

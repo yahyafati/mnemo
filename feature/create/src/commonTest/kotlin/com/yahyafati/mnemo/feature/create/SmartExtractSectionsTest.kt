@@ -28,7 +28,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Smart Extract's link sections (docs/web/ROADMAP.md, W4): a page's sections can be chosen, and the box follows. */
+/** Smart Extract's link sections (ADR 0012, W4): a page's sections can be chosen, and the box follows. */
 class SmartExtractSectionsTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

@@ -93,7 +93,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The page grid of Cards from page images (docs/pdf/ROADMAP.md, P6): a thumbnail of every page of the open PDF with a checkbox,
+ * The page grid of Cards from page images (ADR 0014, P6): a thumbnail of every page of the open PDF with a checkbox,
  * standing where the text box is in the other modes. Ticking only sends [SmartExtractAction.TogglePdfPage]: the Pages field
  * is the single source of what is ticked, so the field and the grid never disagree. The grid scrolls inside a fixed height,
  * since it sits in the screen's own scrolling column; thumbnails are drawn as they come into view.

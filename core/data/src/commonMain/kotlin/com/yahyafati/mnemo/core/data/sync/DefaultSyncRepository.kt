@@ -39,7 +39,7 @@ import java.util.UUID
 class SyncProblemException(val problem: SyncProblem, message: String) : Exception(message)
 
 /**
- * [SyncRepository] on the merge engine (docs/sync/ROADMAP.md S4). One [Mutex] serializes everything: a round that is
+ * [SyncRepository] on the merge engine (ADR 0013 S4). One [Mutex] serializes everything: a round that is
  * running makes [syncNow] return [SyncResult.Busy] and makes the lifecycle calls wait.
  *
  * State lives in three places that are only ever changed together under the mutex: `sync_state.enabled` (the database:

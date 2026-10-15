@@ -54,7 +54,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** Cards from page images through the real screen and ViewModel (docs/pdf/ROADMAP.md, P6): tick pages, confirm, review, open a card's page. */
+/** Cards from page images through the real screen and ViewModel (ADR 0014, P6): tick pages, confirm, review, open a card's page. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 // Tall, so the whole workshop is on screen: a click on a page of the grid needs it in view, and the grid scrolls on its own.

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
-- **Context for:** ROADMAP Phase 3; PROJECT_OVERVIEW §5; ARCHITECTURE §5.3, §10
+- **Context for:** Phase 3; PROJECT_OVERVIEW §5; ARCHITECTURE §5.3, §10
 
 ## Decision
 

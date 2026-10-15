@@ -73,11 +73,11 @@ import java.io.File
  * notes. Nothing is saved until a card is accepted; cards that arrived before a failure stay in
  * the queue, and Retry resumes at the part that failed.
  *
- * A link whose page has sections (a Wikipedia article's, docs/web/ROADMAP.md, W4) fills the box with the chosen ones:
+ * A link whose page has sections (a Wikipedia article's, ADR 0012, W4) fills the box with the chosen ones:
  * all of them, or the one a `#Fragment` in the link names. Choosing others rewrites the box, after asking if the user
  * has edited it. The page's text and sections stay here, not in the UI state.
  *
- * A PDF (docs/pdf/ROADMAP.md, P1) is opened, not just read: the repository keeps a copy and the Pages field chooses
+ * A PDF (ADR 0014, P1) is opened, not just read: the repository keeps a copy and the Pages field chooses
  * which of its pages the box holds, so any 300 pages of a long PDF can be used. Applying other pages rewrites the box,
  * after asking if the user has edited it. The open PDF is closed when another source replaces it or the text is
  * cleared; a copy that outlives the ViewModel is deleted by the repository when it is a day old.
@@ -93,7 +93,7 @@ import java.io.File
  * provider's, then the images'), then sends the pages three to a request on the Read PDF pages route (the one that must see
  * images), each card naming its page; the queue keeps a card's pages so Regenerate sends the same images again.
  *
- * The Epub source (docs/epub/ROADMAP.md, B5) reads a book into chapters, kept here and not in the UI
+ * The Epub source (ADR 0011, B5) reads a book into chapters, kept here and not in the UI
  * state, and puts one chapter's text in the box like a PDF's. When the book's chapter decks exist
  * (made by the book import) the chapter's deck is selected, found by computing its name.
  *

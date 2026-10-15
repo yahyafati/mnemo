@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Cards from page images (docs/pdf/ROADMAP.md, P6): the PDF's pages in groups, one request each. Part `i` of the run is
+ * Cards from page images (ADR 0014, P6): the PDF's pages in groups, one request each. Part `i` of the run is
  * sent with the images of `batches[i]`, rendered at [quality]; its text is only the pages' text layer.
  */
 data class PageBatches(val handle: PdfHandle, val quality: PdfQuality, val batches: List<List<Int>>) {

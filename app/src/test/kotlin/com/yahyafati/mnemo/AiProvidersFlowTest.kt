@@ -24,7 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /**
- * With no provider, the AI entry point shows a setup prompt instead of failing (ROADMAP Phase 3),
+ * With no provider, the AI entry point shows a setup prompt instead of failing (Phase 3),
  * and it leads through adding one.
  */
 @Config(application = TestMnemoApplication::class, qualifiers = "w411dp-h891dp-xxhdpi")

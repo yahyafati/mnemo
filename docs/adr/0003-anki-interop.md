@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
-- **Resolves:** PROJECT_OVERVIEW §11, "Card template flexibility" (ROADMAP: decide by Phase 2)
+- **Resolves:** PROJECT_OVERVIEW §11, "Card template flexibility" (decided in Phase 2)
 
 ## Context
 

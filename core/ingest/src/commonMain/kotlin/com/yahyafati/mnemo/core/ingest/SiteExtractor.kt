@@ -8,7 +8,7 @@ import okhttp3.HttpUrl
  * `:core:data`'s `dataModule` and handed to [WebPageExtractor] in a list; the first whose [handles] is true
  * is asked, and [GenericExtractor] reads whatever no site claims.
  *
- * Rules for an implementation (the checklist is in docs/web/ROADMAP.md, "Adding a site extractor"):
+ * Rules for an implementation (the checklist is in ADR 0012, "Adding a site extractor"):
  * - Contact only the host in the link or that site's own API or raw-content host, and say which in the doc
  *   comment. No third-party readers or proxies, no login, no way round a paywall.
  * - Fetch only through the [PageFetcher] you are given (it applies the User-Agent and [PageFetcher.MAX_BYTES]),

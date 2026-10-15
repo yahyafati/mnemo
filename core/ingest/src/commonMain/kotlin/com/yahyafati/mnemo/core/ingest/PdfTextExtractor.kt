@@ -29,7 +29,7 @@ interface PdfTextExtractor {
     /**
      * The text layer of each of [pages] on its own (1-based; ones the PDF doesn't have are left out), cleaned like
      * [extract]'s text and empty for a page with none. For deciding, page by page, which pages need their image read
-     * (docs/pdf/ROADMAP.md, P5); [PdfPageText.hasText] says whether a page's text is enough. Not limited to [MAX_PAGES].
+     * (ADR 0014, P5); [PdfPageText.hasText] says whether a page's text is enough. Not limited to [MAX_PAGES].
      */
     fun pageTexts(input: InputStream, pages: List<Int>): PdfPageTextsResult
 
@@ -75,7 +75,7 @@ internal fun pdfSourceResult(rawText: String, cut: Boolean, title: String?, file
 internal class RawBookmark(val title: String?, val level: Int, val page: Int?)
 
 /**
- * The bookmarks a picker can use (docs/pdf/ROADMAP.md, P2): in order, with a title and a page the PDF has, no deeper
+ * The bookmarks a picker can use (ADR 0014, P2): in order, with a title and a page the PDF has, no deeper
  * than [PdfOutlineItem.MAX_LEVEL] and no more than [PdfOutlineItem.MAX_ITEMS]. A bookmark that leads nowhere is
  * dropped; the ones under it keep their own level.
  */

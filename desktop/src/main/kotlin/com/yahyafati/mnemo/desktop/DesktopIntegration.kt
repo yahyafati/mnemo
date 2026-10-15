@@ -27,7 +27,7 @@ internal fun connectedScreens(): List<ScreenArea> {
 }
 
 /**
- * What the operating system expects of an application that a window doesn't cover (desktop ROADMAP D7):
+ * What the operating system expects of an application that a window doesn't cover (desktop step D7):
  * the macOS application menu's About, Settings and Quit, the Dock icon, and files handed to the app
  * by the system (dropped on its Dock icon, or opened with it once the installers register the types, D8).
  * Anything a system doesn't have is skipped.

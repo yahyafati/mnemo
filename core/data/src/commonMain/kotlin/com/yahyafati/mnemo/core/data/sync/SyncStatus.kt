@@ -50,7 +50,7 @@ enum class SyncProblem {
     Other,
 }
 
-/** What the sync is doing, for Settings and the indicators (docs/sync/ROADMAP.md S4). */
+/** What the sync is doing, for Settings and the indicators (ADR 0013 S4). */
 sealed interface SyncStatus {
     /** Sync was never set up on this device, or it left. */
     data object Off : SyncStatus
@@ -103,7 +103,7 @@ val SyncStatus.lastSyncAt: Instant?
 val SYNC_QUIET_PERIOD: Duration = Duration.ofDays(1)
 
 /**
- * From when the user should be told that sync needs them (docs/sync/ROADMAP.md S5), or null while nothing is wrong:
+ * From when the user should be told that sync needs them (ADR 0013 S5), or null while nothing is wrong:
  * [Instant.EPOCH] for what only a person can fix (a restore waiting for a choice, a passphrase, a location that needs
  * joining again, a refused folder), a day after the last good round for what may mend itself (no network, anything
  * unexplained). While everything works there is no indicator at all.

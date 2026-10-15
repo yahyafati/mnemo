@@ -120,7 +120,7 @@ class StudyScreenTest {
     }
 
     /**
-     * Accessibility (ROADMAP Phase 6): every control is labelled for TalkBack and at least 48dp to
+     * Accessibility (Phase 6): every control is labelled for TalkBack and at least 48dp to
      * touch, and the swipe answers are offered as accessibility actions too.
      */
     @Test

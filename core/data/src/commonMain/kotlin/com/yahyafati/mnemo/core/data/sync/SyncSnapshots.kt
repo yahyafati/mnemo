@@ -85,7 +85,7 @@ internal class SnapshotHead(
 internal class BuiltSnapshot(val bytes: ByteArray, val head: SnapshotHead)
 
 /**
- * The whole collection as a file (docs/sync/ROADMAP.md S4, ADR 0013 "As built (S4)"): every row of the synced tables
+ * The whole collection as a file (ADR 0013 "As built (S4)"): every row of the synced tables
  * with the stamps this device keeps for them, and where it stands in each device's change files. A device that joins
  * loads it and is then in the state of the one that wrote it: it applies the files after that, and every later
  * merge decides as it would there.

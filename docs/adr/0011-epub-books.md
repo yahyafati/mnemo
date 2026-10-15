@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-02
-- **Context for:** `docs/epub/ROADMAP.md` (B0–B7); ADR 0006 (AI card creation); ARCHITECTURE §5.2
+- **Context for:** steps B0–B7; ADR 0006 (AI card creation); ARCHITECTURE §5.2
 
 ## Decision
 

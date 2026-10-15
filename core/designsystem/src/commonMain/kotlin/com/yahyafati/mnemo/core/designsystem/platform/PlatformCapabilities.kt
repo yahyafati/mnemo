@@ -6,8 +6,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 /**
  * What the platform can do that a screen may want to offer. Shared UI reads these instead of
  * checking the operating system, and hides what isn't there: the desktop app has no widget, no
- * reminder notification, no dictation and no text-to-speech at first (desktop ROADMAP, "Not on
- * desktop").
+ * reminder notification, no dictation and no text-to-speech (ADR 0010).
  *
  * These say whether a platform has the feature at all. Whether it works right now (a speech
  * recognizer being installed, a permission being granted) is asked where it is used.
@@ -42,7 +41,7 @@ data class PlatformCapabilities(
      */
     val shareFiles: Boolean = true,
     /**
-     * A computer's keyboard and mouse (desktop ROADMAP D7): screens show the keyboard shortcuts in
+     * A computer's keyboard and mouse (desktop step D7): screens show the keyboard shortcuts in
      * hints, label icon buttons with hover tooltips, and offer right-click menus and drop targets.
      * The key handlers themselves work everywhere (a tablet with a keyboard uses them too); this
      * says whether to advertise them. Off by default, unlike the flags above: the phone is the

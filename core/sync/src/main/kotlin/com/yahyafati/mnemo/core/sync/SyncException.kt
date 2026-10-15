@@ -3,8 +3,8 @@ package com.yahyafati.mnemo.core.sync
 import java.io.IOException
 
 /**
- * Everything that can go wrong while talking to a sync location. A store reports the first five (the four the
- * roadmap names, plus a file that exists already); the format layer reports the others. All are [IOException]s,
+ * Everything that can go wrong while talking to a sync location. A store reports the first five (offline, auth,
+ * quota, not found, plus a file that exists already); the format layer reports the others. All are [IOException]s,
  * so a caller that doesn't care which can catch one type, and a caller that does can `when` over the sealed
  * class.
  */

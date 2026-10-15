@@ -226,7 +226,7 @@ class DecksViewModelTest {
         assertNull(state.decks.single { it.name == "Biology" }.recall)
     }
 
-    // --- the sync banner (docs/sync/ROADMAP.md S5) ---------------------------------------------------------------
+    // --- the sync banner (ADR 0013 S5) ---------------------------------------------------------------
 
     private val syncFolder = SyncBackend.Folder("/sync")
 

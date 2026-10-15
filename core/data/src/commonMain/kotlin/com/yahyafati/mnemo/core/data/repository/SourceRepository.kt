@@ -44,7 +44,7 @@ interface SourceRepository {
     suspend fun readBook(source: SourceInput.Epub): BookResult
 
     /**
-     * Opens a picked PDF for reading in pieces (docs/pdf/ROADMAP.md, P1): checks its size, copies it into the cache
+     * Opens a picked PDF for reading in pieces (ADR 0014, P1): checks its size, copies it into the cache
      * (so it can be read again, and by the page renderer later, without another permission) and counts its pages.
      * Copies left over from earlier are deleted when they are a day old. Close the handle when done.
      */
@@ -57,7 +57,7 @@ interface SourceRepository {
     suspend fun readPdf(handle: PdfHandle, pages: PageRanges?): SourceResult
 
     /**
-     * The text layer of each of [pages] of an opened PDF, on its own and empty for a page with none (docs/pdf/ROADMAP.md,
+     * The text layer of each of [pages] of an opened PDF, on its own and empty for a page with none (ADR 0014,
      * P5): what Auto mode and the "no text" count tell the pages that have text from the ones that are only a picture.
      */
     suspend fun pageTexts(handle: PdfHandle, pages: List<Int>): PdfPageTextsResult
@@ -66,7 +66,7 @@ interface SourceRepository {
     suspend fun closePdf(handle: PdfHandle)
 
     /**
-     * A JPEG of [page] (1-based) of an opened PDF at [quality], in `cache/pdf/<id>/` (docs/pdf/ROADMAP.md, P3). Rendered
+     * A JPEG of [page] (1-based) of an opened PDF at [quality], in `cache/pdf/<id>/` (ADR 0014, P3). Rendered
      * once and reused until the PDF is closed. A page with nothing on it fails as [SourceProblem.BlankPage]: a scan the
      * renderer couldn't decode looks the same.
      */
@@ -77,7 +77,7 @@ interface SourceRepository {
 
     /**
      * The part of [page] that [region] names, drawn from the page itself ([PdfQuality.FIGURE_EDGE] px on its long side) as a PNG
-     * or a JPEG file in `cache/pdf/<id>/`, for a figure on a card (docs/pdf/ROADMAP.md, P7). The same page and region are drawn
+     * or a JPEG file in `cache/pdf/<id>/`, for a figure on a card (ADR 0014, P7). The same page and region are drawn
      * once. A region with nothing on it fails as [SourceProblem.BlankPage].
      */
     suspend fun cropPdfPage(handle: PdfHandle, page: Int, region: PageRegion): PdfPageResult
@@ -240,7 +240,7 @@ internal class DefaultSourceRepository(
 
     private fun pdfCopy(handle: PdfHandle) = File(pdfFolder(), "${safeId(handle)}.pdf")
 
-    /** The pages rendered from a PDF (docs/pdf/ROADMAP.md, P3) sit in a folder named by its id. */
+    /** The pages rendered from a PDF (ADR 0014, P3) sit in a folder named by its id. */
     private fun pdfPages(handle: PdfHandle) = File(pdfFolder(), safeId(handle))
 
     /** A copy is deleted when its PDF is closed; one a closed window or a killed process left behind goes after a day. */

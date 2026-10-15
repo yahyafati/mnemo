@@ -142,7 +142,7 @@
     <string name="feature_decks_error_storage">The file couldn't be read or written. Check storage space and try again.</string>
     <string name="feature_decks_error_unknown">Something went wrong. Try again.</string>
 
-    <!-- Sync banner (docs/sync/ROADMAP.md S5) -->
+    <!-- Sync banner (ADR 0013 S5) -->
     <string name="feature_decks_sync_title">Sync needs your attention</string>
     <string name="feature_decks_sync_open">Open</string>
     <string name="feature_decks_sync_restored">Sync is paused after a restore. Choose which collection to keep.</string>

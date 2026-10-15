@@ -46,7 +46,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Cards from page images in Smart Extract (docs/pdf/ROADMAP.md, P6): the grid and the Pages field, the run, the queue, retry and regenerate. */
+/** Cards from page images in Smart Extract (ADR 0014, P6): the grid and the Pages field, the run, the queue, retry and regenerate. */
 class SmartExtractPageImagesTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

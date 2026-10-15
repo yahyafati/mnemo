@@ -33,7 +33,7 @@ data class StudyAssistUiState(
     /** Waiting for the provider notice to be accepted. */
     val disclosure: AiRoute? = null,
 ) {
-    /** Study-time AI shows only when a provider is configured (ROADMAP Phase 4). */
+    /** Study-time AI shows only when a provider is configured (Phase 4). */
     val available: Boolean get() = explainRoute != null || rewriteRoute != null
 
     fun routeFor(assist: StudyAssist): AiRoute? = if (assist.task == AiTask.Rewrite) rewriteRoute else explainRoute

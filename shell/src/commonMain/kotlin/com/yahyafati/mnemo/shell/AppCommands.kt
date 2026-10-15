@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
  * Something the user asked the app to do from outside the screen in front of them: a menu item, a
- * keyboard shortcut, a file dropped on the window (desktop ROADMAP D7). The shell ([MnemoRoot])
+ * keyboard shortcut, a file dropped on the window (desktop step D7). The shell ([MnemoRoot])
  * carries them out, so every route to an action (menu, key, drop) goes through one place.
  */
 sealed interface AppCommand {
@@ -95,7 +95,7 @@ enum class FileKind {
     /** A Mnemo backup: `.zip`. Restored. */
     Backup,
 
-    /** A book: `.epub`. Read into chapters, one deck each (docs/epub/ROADMAP.md). */
+    /** A book: `.epub`. Read into chapters, one deck each (ADR 0011). */
     Epub,
 
     Unknown,

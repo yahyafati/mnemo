@@ -16,7 +16,7 @@ import kotlinx.serialization.json.long
 import kotlinx.serialization.json.longOrNull
 
 /**
- * Rows of the synced tables as JSON objects, for the merge engine (docs/sync/ROADMAP.md S3). Every column of
+ * Rows of the synced tables as JSON objects, for the merge engine (ADR 0013 S3). Every column of
  * these tables is an integer, a real, text or null, so a row converts to JSON and back without a mapping per
  * table (a boolean is 0 or 1, a list of strings is the JSON text Room already stores). Which columns exist
  * comes from [SYNCED_TABLES], and a column the caller names that isn't in the table is refused, so a change file

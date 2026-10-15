@@ -28,7 +28,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/** Page transcription (docs/pdf/ROADMAP.md, P5): the prompt, the cleaning of a reply, and one request through a mock server. */
+/** Page transcription (ADR 0014, P5): the prompt, the cleaning of a reply, and one request through a mock server. */
 class PageTranscriptionTest {
     private val server = MockWebServer()
     private val client = PageTranscriptionClient(ChatTextRunner(OpenAiCompatibleClient(OkHttpClient())))

@@ -348,7 +348,7 @@
     <string name="feature_create_coauthor_not_applicable">This rewrite can't be applied: it left a side empty or changed the cloze numbers.</string>
     <string name="feature_create_coauthor_disclosure">this deck's cards as plain text (up to 150), and your messages,</string>
 
-    <!-- Import a book (EPUB): docs/epub/ROADMAP.md, B4 -->
+    <!-- Import a book (EPUB): ADR 0011, B4 -->
     <string name="feature_create_book_title">Import a book</string>
     <string name="feature_create_book_back">Back</string>
     <string name="feature_create_book_untitled">Untitled book</string>
@@ -399,7 +399,7 @@
     <string name="feature_create_book_no_text">This book has no text to read, only pictures.</string>
     <string name="feature_create_book_unsupported">This isn't an EPUB book Mnemo can read.</string>
 
-    <!-- Smart Extract's EPUB source: docs/epub/ROADMAP.md, B5 -->
+    <!-- Smart Extract's EPUB source: ADR 0011, B5 -->
     <string name="feature_create_epub_pick">Choose an EPUB</string>
     <string name="feature_create_epub_hint">The book is read on your device. Pick one chapter and its text goes in the box below. Books with DRM can't be read.</string>
     <string name="feature_create_epub_chapter_choose">Choose a chapter</string>
@@ -410,7 +410,7 @@
     <string name="feature_create_epub_chapters_title">Chapters of %1$s</string>
     <string name="feature_create_epub_cancel">Cancel</string>
 
-    <!-- Smart Extract's link sections: docs/web/ROADMAP.md, W4 -->
+    <!-- Smart Extract's link sections: ADR 0012, W4 -->
     <string name="feature_create_sections_choose">Choose sections</string>
     <plurals name="feature_create_sections_summary">
         <item quantity="one">%1$d of %2$d section in the box · %3$d words</item>
@@ -436,7 +436,7 @@
     <string name="feature_create_nonempty_confirm">Add cards</string>
     <string name="feature_create_nonempty_cancel">Choose another deck</string>
 
-    <!-- A book run, several chapters in order: docs/epub/ROADMAP.md, B6 -->
+    <!-- A book run, several chapters in order: ADR 0011, B6 -->
     <string name="feature_create_batch_confirm_title">Generate cards for these chapters?</string>
     <plurals name="feature_create_batch_confirm_chapters">
         <item quantity="one">%1$d chapter · %2$d words</item>

@@ -43,7 +43,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Reading PDF pages with AI in Smart Extract (docs/pdf/ROADMAP.md, P5): the modes, the confirmation, the notices, progress, resume and the cache. */
+/** Reading PDF pages with AI in Smart Extract (ADR 0014, P5): the modes, the confirmation, the notices, progress, resume and the cache. */
 class SmartExtractPdfReadTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

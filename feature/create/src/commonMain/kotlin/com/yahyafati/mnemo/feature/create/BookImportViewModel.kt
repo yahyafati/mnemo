@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Imports a book (EPUB) as one deck per chapter (docs/epub/ROADMAP.md, B4, ADR 0011): reads the file,
+ * Imports a book (EPUB) as one deck per chapter (ADR 0011, B4): reads the file,
  * lets the user pick chapters and name the book's deck, and creates the decks, empty. Reading is
  * read-only; decks are made only by [BookImportAction.Create] or by confirming a book run
  * ([BookImportAction.ConfirmBatch], B6), which makes them and then hands the run to Smart Extract. Nothing is

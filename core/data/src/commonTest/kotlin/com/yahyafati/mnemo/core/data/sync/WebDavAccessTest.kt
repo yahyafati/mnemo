@@ -27,7 +27,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * The WebDAV account behind the location (docs/sync/ROADMAP.md S7): the password is kept only in [FileSecretStore], is
+ * The WebDAV account behind the location (ADR 0013 S7): the password is kept only in [FileSecretStore], is
  * checked before it is kept, and goes when the device stops syncing. The server is a MockWebServer that answers `PROPFIND`,
  * `MKCOL` and file requests for one folder.
  */

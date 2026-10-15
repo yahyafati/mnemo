@@ -11,7 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** Reading chosen pages of a PDF (docs/pdf/ROADMAP.md, P1), on both PDF libraries. */
+/** Reading chosen pages of a PDF (ADR 0014, P1), on both PDF libraries. */
 class PdfPagesTest : PlatformTest() {
     private val pdf = newPdfExtractor()
 

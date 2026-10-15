@@ -23,7 +23,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Mnemo → `.apkg` → Mnemo loses nothing (ROADMAP Phase 2 exit criterion). */
+/** Mnemo → `.apkg` → Mnemo loses nothing (Phase 2 exit criterion). */
 class RoundTripTest {
     @get:Rule
     val tmp = TemporaryFolder()
@@ -176,7 +176,7 @@ class RoundTripTest {
         }
     }
 
-    /** A figure cut from a PDF page (docs/pdf/ROADMAP.md, P7) is a field ending in `![](media:<hash>)`, with no alt text. */
+    /** A figure cut from a PDF page (ADR 0014, P7) is a field ending in `![](media:<hash>)`, with no alt text. */
     @Test
     fun aFigureFromAPdfPageIsInTheExportedPackageAndComesBackInItsField() {
         val front = "What does the arrow show?\n\n![](media:$pngHash)"

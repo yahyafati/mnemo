@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
-- **Context for:** ROADMAP Phase 5; PROJECT_OVERVIEW §4.4, §4.5; ARCHITECTURE §6; ADR 0001
+- **Context for:** Phase 5; PROJECT_OVERVIEW §4.4, §4.5; ARCHITECTURE §6; ADR 0001
 
 ## Decision
 

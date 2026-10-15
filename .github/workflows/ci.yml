@@ -38,7 +38,7 @@ jobs:
             **/build/reports/tests/
             **/build/reports/lint-results-*.html
 
-  # Desktop (docs/desktop/ROADMAP.md, ADR 0010). The tests load the native libraries the desktop
+  # Desktop (ADR 0010). The tests load the native libraries the desktop
   # app depends on (bundled SQLite, zstd, Skia) and run the shared data layer on the desktop
   # target (`desktopTest` in every Kotlin Multiplatform module, `:desktop:test` for the whole
   # collection flow), so this job runs on all three OSes; `:core:anki` reads real Anki packages
@@ -108,7 +108,7 @@ jobs:
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
 
-  # Shared code may not import Android APIs (docs/desktop/ROADMAP.md, D3).
+  # Shared code may not import Android APIs (ADR 0010, D3).
   android-imports:
     name: Android imports
     runs-on: ubuntu-latest

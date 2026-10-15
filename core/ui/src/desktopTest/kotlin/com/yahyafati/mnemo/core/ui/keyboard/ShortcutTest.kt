@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** What counts as a shortcut being pressed, and what it is called on each system (desktop ROADMAP D7). */
+/** What counts as a shortcut being pressed, and what it is called on each system (desktop step D7). */
 @OptIn(InternalComposeUiApi::class) // the only way to make a key event without a window
 class ShortcutTest {
     // A key going down, as the window delivers it: the key, what it would type, and which modifiers are down.

@@ -8,7 +8,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** The menu bar shows the same shortcuts the app handles (desktop ROADMAP D7). */
+/** The menu bar shows the same shortcuts the app handles (desktop step D7). */
 class DesktopMenuTest {
     @Test
     fun theCommandKeyIsCommandOnMacAndControlElsewhere() {

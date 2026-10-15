@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-29
-- **Context for:** release ROADMAP R0–R7; PROJECT_OVERVIEW §11; ADR 0008 "Open"; `docs/release/distribution.md`
+- **Context for:** release steps R0–R7 ([release/README.md](../release/README.md)); ADR 0008 "Open"
 
 ## Decision
 

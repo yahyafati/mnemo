@@ -6,7 +6,7 @@ import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.SourceProblem
 
 /**
- * Importing a book (docs/epub/ROADMAP.md, B4): a file is read into chapters, the user picks the ones
+ * Importing a book (ADR 0011, B4): a file is read into chapters, the user picks the ones
  * to make decks for, and the decks are created empty. Nothing is saved until [BookImportAction.Create].
  */
 data class BookImportUiState(
@@ -44,7 +44,7 @@ data class BookImportUiState(
 }
 
 /**
- * What a book run (docs/epub/ROADMAP.md, B6) would send, shown before anything is: [chapterIds] in book order,
+ * What a book run (ADR 0011, B6) would send, shown before anything is: [chapterIds] in book order,
  * their [words], and the number of AI [requests] (one per part [GenerateCardsUseCase.split] cuts them into).
  */
 data class BatchPlan(val chapterIds: List<Int>, val words: Int, val requests: Int)

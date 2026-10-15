@@ -91,7 +91,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Crops a figure out of a page for a queued card (docs/pdf/ROADMAP.md, P7): the page, large, with a rectangle over it to
+ * Crops a figure out of a page for a queued card (ADR 0014, P7): the page, large, with a rectangle over it to
  * move by its body and resize by its corners (arrow keys move it and Shift + arrow keys resize it, for a keyboard), a
  * choice of the card's Front or Back, and Add figure. The rectangle is kept as a [PageRegion], fractions of the page, so
  * what is drawn on this picture is what is cut from the page at full size. Esc or the button closes it.

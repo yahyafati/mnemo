@@ -131,7 +131,7 @@ class FsrsOptimizerTest {
         assertNull(optimizer.optimize(few))
     }
 
-    /** Analytics must stay responsive with 100k+ reviews (ROADMAP Phase 5); fitting runs in the background. */
+    /** Analytics must stay responsive with 100k+ reviews (Phase 5); fitting runs in the background. */
     @Test
     fun fitsAHundredThousandReviewsQuickly() {
         val copies = 100_000 / all.sumOf { it.size } + 1

@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.core.domain
 import com.yahyafati.mnemo.core.model.Deck
 
 /**
- * Deck names for a book (docs/epub/ROADMAP.md, B3): `Book::01 Chapter`. [CreateBookDecksUseCase] makes the decks
+ * Deck names for a book (ADR 0011, B3): `Book::01 Chapter`. [CreateBookDecksUseCase] makes the decks
  * with them, and "generate cards later" (B5) finds a chapter's deck by computing the same name, so both go
  * through here.
  *

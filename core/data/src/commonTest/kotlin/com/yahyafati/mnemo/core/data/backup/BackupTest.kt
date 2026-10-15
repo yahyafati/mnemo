@@ -35,7 +35,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
 
-/** Backup → fresh install → restore recovers decks, cards, history and media (ROADMAP Phase 2). */
+/** Backup → fresh install → restore recovers decks, cards, history and media (Phase 2). */
 class BackupTest : PlatformTest() {
     private val directories = TestAppDirectories()
     private val clock = TestClock()

@@ -94,7 +94,7 @@ internal object Migration4To5 : Migration(4, 5) {
 }
 
 /**
- * Sync (docs/sync/ROADMAP.md S1, ADR 0013): this device's identity and the outbox that triggers fill
+ * Sync (ADR 0013 S1): this device's identity and the outbox that triggers fill
  * while sync is on, plus the schedule that each review produced (null for the old ones) so a replay can
  * start from any review. Sync is off, so nothing changes for the user.
  */
@@ -119,7 +119,7 @@ internal object Migration5To6 : Migration(5, 6) {
 }
 
 /**
- * The merge engine's bookkeeping (docs/sync/ROADMAP.md S3): the stamp of every field this device has written or
+ * The merge engine's bookkeeping (ADR 0013 S3): the stamp of every field this device has written or
  * applied, and the newest change file of each device. Empty, and unused, until sync is turned on.
  */
 internal object Migration6To7 : Migration(6, 7) {

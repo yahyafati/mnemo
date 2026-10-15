@@ -1,7 +1,7 @@
 package com.yahyafati.mnemo.core.model
 
 /**
- * A set of pages of a PDF, as the Pages field of Smart Extract writes them (docs/pdf/ROADMAP.md, P1): `1-10, 14, 20-25`.
+ * A set of pages of a PDF, as the Pages field of Smart Extract writes them (ADR 0014, P1): `1-10, 14, 20-25`.
  * Pages are positions in the file, 1-based. Kept as sorted runs that don't touch, so two sets with the same pages are
  * equal however they were typed.
  */

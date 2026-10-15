@@ -45,7 +45,7 @@ interface UserSettingsRepository {
 
     suspend fun setOnboardingCompleted(value: Boolean)
 
-    /** What the PDF source did last time (docs/pdf/ROADMAP.md, P5): remembered for the next PDF. */
+    /** What the PDF source did last time (ADR 0014, P5): remembered for the next PDF. */
     suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality)
 
     /** The user accepted sending page images to [providerId] (ADR 0014); asked once per provider. */

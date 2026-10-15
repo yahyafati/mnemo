@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** The rules both page renderers share (docs/pdf/ROADMAP.md, P3): sizes, the size limit and telling a white page from a written one. */
+/** The rules both page renderers share (ADR 0014, P3): sizes, the size limit and telling a white page from a written one. */
 class PdfRenderingTest {
     @Test
     fun theLongSideGetsTheEdgeAndTheShortSideKeepsTheShape() {

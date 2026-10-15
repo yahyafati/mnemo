@@ -1,6 +1,6 @@
 # Google Drive sync: client ids and build settings
 
-Google Drive is a backend of sync (ADR 0013, roadmap S6). A build offers it only if it was made with a Google OAuth
+Google Drive is a backend of sync (ADR 0013, step S6). A build offers it only if it was made with a Google OAuth
 client; a fork, an F-Droid build or a CI run without the settings below simply has no Drive option and never touches
 the owner's Google project. **Nothing here is committed.** Settings come from environment variables or `local.properties`
 (ignored by git), like the signing settings (`docs/release/signing.md`).

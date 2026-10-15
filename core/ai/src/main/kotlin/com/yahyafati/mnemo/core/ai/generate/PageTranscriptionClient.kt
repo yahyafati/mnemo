@@ -6,7 +6,7 @@ import com.yahyafati.mnemo.core.model.AiCapabilities
 import kotlinx.coroutines.flow.Flow
 
 /**
- * One transcription request: the image of a PDF page in, its text out (docs/pdf/ROADMAP.md, P5). The reply is
+ * One transcription request: the image of a PDF page in, its text out (ADR 0014, P5). The reply is
  * plain text, so there is no schema, and it streams when the model can. A model that refuses images ends the reply
  * with `MnemoError.ImagesNotAccepted` ([ChatTextRunner]); the request is never repeated without the image.
  */

@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * What Robolectric can check of the Android renderer (docs/pdf/ROADMAP.md, P3). It can't run the platform's
+ * What Robolectric can check of the Android renderer (ADR 0014, P3). It can't run the platform's
  * `PdfRenderer` at all (its native class needs a JDK internal this JVM lacks), so whether a real page comes out
  * legible is checked on a device: `app/src/androidTest/.../pdf/AndroidPdfPageRendererTest`.
  */

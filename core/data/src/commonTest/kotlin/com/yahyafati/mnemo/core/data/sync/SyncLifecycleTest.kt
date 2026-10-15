@@ -47,7 +47,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The lifecycle around the merge (docs/sync/ROADMAP.md S4): create, join, leave, snapshots and clean-up, a device that
+ * The lifecycle around the merge (ADR 0013 S4): create, join, leave, snapshots and clean-up, a device that
  * was away too long, restore. Every node is a whole device (database file, config, secrets, repository) and the
  * location is one [InMemorySyncStore], so nothing here touches a network.
  */

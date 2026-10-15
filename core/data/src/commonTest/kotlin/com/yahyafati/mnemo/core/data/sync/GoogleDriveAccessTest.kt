@@ -29,7 +29,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * The Google account behind the Drive location (docs/sync/ROADMAP.md S6): sign-in keeps only a refresh token, in
+ * The Google account behind the Drive location (ADR 0013 S6): sign-in keeps only a refresh token, in
  * [FileSecretStore]; the store it hands out refreshes access tokens from it; signing out forgets it and tells Google.
  * Google is a MockWebServer that behaves like the token endpoint and an empty app-data folder.
  */

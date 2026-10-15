@@ -1,9 +1,8 @@
-# Play Console setup (release ROADMAP R4)
+# Play Console setup
 
 Everything you type or click in the Play Console, in order, with the answers ready to paste. The
-repo side of R4 is done (this page, the hosted privacy policy, the release notes); the boxes that
-need your account, identity or judgment are marked **(owner)** and ticked in
-[ROADMAP.md](ROADMAP.md) when you finish them. Texts come from [store-listing.md](store-listing.md),
+repo side is done (this page, the hosted privacy policy, the release notes); the boxes that
+need your account, identity or judgment are marked **(owner)**. Texts come from [store-listing.md](store-listing.md),
 graphics from [assets/](assets/README.md).
 
 ## 0. Order of work
@@ -250,4 +249,5 @@ app-signing key:
 - [ ] Internal test build installed from Play on a real device; pre-launch report reviewed
 - [ ] Policy status shows no warnings
 
-When this list is done, tick the boxes in [ROADMAP.md](ROADMAP.md) R4 and start R5.
+When this list is done, start the closed test: 12+ testers for 14 consecutive days, at least one update
+during it, then apply for production access and roll out in stages.

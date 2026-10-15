@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.core.ui.files
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 
-// The system dialogs that hand Mnemo a file or a folder (desktop ROADMAP D3). Each returns a
+// The system dialogs that hand Mnemo a file or a folder (desktop step D3). Each returns a
 // launcher and reports the chosen location, a string that `DocumentAccess` (`:core:common`) opens.
 // A cancelled dialog reports nothing.
 //

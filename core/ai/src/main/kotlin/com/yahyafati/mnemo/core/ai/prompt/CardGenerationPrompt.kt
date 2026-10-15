@@ -37,7 +37,7 @@ data class CardGenerationPrompt(
     /** Regenerating: the card the user rejected, which the one new card replaces. */
     val replacing: Pair<String, String>? = null,
     /**
-     * Cards from page images (docs/pdf/ROADMAP.md, P6): the PDF pages (1-based, in order) whose [images] are the
+     * Cards from page images (ADR 0014, P6): the PDF pages (1-based, in order) whose [images] are the
      * source, one image per page. Then [source] is only their text layer, which may be empty, wrong or missing.
      */
     val pages: List<Int> = emptyList(),

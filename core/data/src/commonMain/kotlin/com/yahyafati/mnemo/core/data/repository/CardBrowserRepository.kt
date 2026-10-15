@@ -5,7 +5,7 @@ import com.yahyafati.mnemo.core.model.CardQuery
 import com.yahyafati.mnemo.core.model.StudyCard
 import kotlinx.coroutines.flow.Flow
 
-/** The card browser: every card, searchable and filterable, with bulk edits (ROADMAP Phase 2). */
+/** The card browser: every card, searchable and filterable, with bulk edits (Phase 2). */
 interface CardBrowserRepository {
     /** Cards matching [query], paged, each with its note and deck name. */
     fun browse(query: CardQuery): Flow<PagingData<StudyCard>>

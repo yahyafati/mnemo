@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 
 /**
  * Guards the PDF fixtures (`src/commonTest/resources/pdf`, made by `core/ingest/fixtures/make_pdf_fixtures.py`,
- * docs/pdf/ROADMAP.md P0) so a regeneration can't silently change what later steps' tests rely on.
+ * ADR 0014 P0) so a regeneration can't silently change what later steps' tests rely on.
  * Reads them with PDFBox directly, not through the app's classes.
  */
 class PdfFixturesTest {
@@ -83,7 +83,7 @@ class PdfFixturesTest {
         open("mixed.pdf").use { doc ->
             assertEquals(6, doc.numberOfPages)
             for (i in 0 until 6) {
-                val hasText = doc.visibleChars(i) >= 30 // the Auto mode's MIN_PAGE_CHARS (docs/pdf/ROADMAP.md P5)
+                val hasText = doc.visibleChars(i) >= 30 // the Auto mode's MIN_PAGE_CHARS (ADR 0014 P5)
                 assertEquals(i % 2 == 0, hasText, "page ${i + 1}")
             }
         }

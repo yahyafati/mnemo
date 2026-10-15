@@ -26,7 +26,7 @@ interface CardGenerationRepository {
 }
 
 /**
- * Pages of an opened PDF sent as images with a request (docs/pdf/ROADMAP.md, P6; ADR 0014): [pages] (1-based, in order) are
+ * Pages of an opened PDF sent as images with a request (ADR 0014, P6): [pages] (1-based, in order) are
  * rendered at [quality] and attached. A page that renders blank is left out; the request is not made if none is left.
  */
 data class PageImages(val handle: PdfHandle, val quality: PdfQuality, val pages: List<Int>)

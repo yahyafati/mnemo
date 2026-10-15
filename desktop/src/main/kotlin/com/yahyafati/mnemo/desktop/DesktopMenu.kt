@@ -23,7 +23,7 @@ internal fun Shortcut.toKeyShortcut(mac: Boolean = isMac): KeyShortcut? {
 }
 
 /**
- * The window's menu bar (desktop ROADMAP D7). Every item sends an [AppCommand], as the key handlers
+ * The window's menu bar (desktop step D7). Every item sends an [AppCommand], as the key handlers
  * in the app do, and shows the same shortcut. Text editing keys (Undo, Cut, Copy, Paste) are not here:
  * a text field handles them, and on macOS a menu shortcut would take them from the field.
  */

@@ -27,7 +27,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** Reading PDF pages with AI (docs/pdf/ROADMAP.md, P5): which pages come from where, resume, cache, blank pages and the limit. */
+/** Reading PDF pages with AI (ADR 0014, P5): which pages come from where, resume, cache, blank pages and the limit. */
 class ReadPdfPagesUseCaseTest {
     private val sources = FakeSourceRepository()
     private val reading = FakePdfReadRepository()

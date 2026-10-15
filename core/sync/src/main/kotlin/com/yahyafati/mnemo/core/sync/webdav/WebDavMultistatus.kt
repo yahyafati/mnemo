@@ -4,7 +4,7 @@ package com.yahyafati.mnemo.core.sync.webdav
 internal class WebDavEntry(val href: String, val isCollection: Boolean)
 
 /**
- * Reads the `href`s of a `PROPFIND` answer (docs/sync/ROADMAP.md S7). The store needs nothing else, so this is a few
+ * Reads the `href`s of a `PROPFIND` answer (ADR 0013 S7). The store needs nothing else, so this is a few
  * strict patterns instead of an XML parser: servers disagree on namespace prefixes (`d:`, `D:`, `ns0:`, none), which the
  * patterns allow, and a parser would bring doctype and entity handling that has nothing to do here. Only the five
  * predefined entities and numeric references are decoded, and a document that declares entities of its own is refused.

@@ -4,7 +4,7 @@
     python3 scripts/fdroid/fastlane.py          # validate; exits 1 on any problem
     python3 scripts/fdroid/fastlane.py --sync   # copy the graphics from docs/release/assets first
 
-F-Droid reads these files from the app repo at the tagged commit (release ROADMAP R7). The
+F-Droid reads these files from the app repo at the tagged commit (release step R7). The
 graphics are copies of docs/release/assets (plain files, not symlinks, so F-Droid's checkout
 needs nothing special); --sync is the only place that maps one to the other, and the check fails
 when a copy has drifted. No dependencies: the PNG size is read from the header.

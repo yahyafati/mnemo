@@ -1,10 +1,10 @@
 # ADR 0012: Web extraction
 
-- **Status:** Accepted on the proposed defaults of `docs/web/ROADMAP.md` (2026-10-02). The owner has not
+- **Status:** Accepted on the web plan's proposed defaults (2026-10-02). The owner has not
   confirmed them yet; the points marked **(owner)** below are the ones to change if they disagree. W1 and W2
   build on this, so a change after they land costs more.
 - **Date:** 2026-10-02
-- **Context for:** `docs/web/ROADMAP.md` (W0–W7); ADR 0006 (AI card creation); ADR 0011 (EPUB books);
+- **Context for:** steps W0–W7; ADR 0006 (AI card creation); ADR 0011 (EPUB books);
   ARCHITECTURE §5.2
 
 ## Decision
@@ -140,7 +140,7 @@ A new site is one class in `core/ingest/.../ingest/site/`, its fixtures and its 
 4. The site's terms allow automated reading of that content, and its User-Agent and rate rules are followed.
 5. Fixtures with licence notes in the README, a test per URL shape, and a case where `handles` is true but the
    page is not one it reads (it returns null).
-6. It is added to the `sites` list in `dataModule`, to the roadmap's table and to this ADR's list below.
+6. It is added to the `sites` list in `dataModule`, and to this ADR's list below.
 
 Sites: Wikipedia (W3, `WikipediaExtractor`). Not planned: video sites (transcripts need an unofficial endpoint or a key their terms do
 not allow) and paywalled news (not circumvented).

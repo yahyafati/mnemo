@@ -4,7 +4,7 @@
     python3 scripts/desktop/check-android-imports.py           # check (CI)
     python3 scripts/desktop/check-android-imports.py --list    # print every file that imports one
 
-The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android. That
+The desktop app (ADR 0010) shares the domain, data and UI code with Android. That
 code may not import Android APIs: each Android API sits behind an interface (`AppDirectories`,
 `DocumentAccess`, `PlatformCapabilities`, `MathRenderer`, ...) whose Android implementation lives
 in a directory named `android`. A module that has turned into a Kotlin Multiplatform module (D4
@@ -108,7 +108,7 @@ def main() -> int:
             print(f"  {failure}", file=sys.stderr)
         print(
             "Put the API behind an interface and its implementation in a directory named `android`\n"
-            "or in `androidMain` (see the docstring of this script and docs/desktop/ROADMAP.md, D3).",
+            "or in `androidMain` (see the docstring of this script and ADR 0010, D3).",
             file=sys.stderr,
         )
         return 1

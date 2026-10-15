@@ -17,7 +17,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/** The outbox and the device state (docs/sync/ROADMAP.md S1): what the triggers record, and when. */
+/** The outbox and the device state (ADR 0013 S1): what the triggers record, and when. */
 class SyncTriggersTest : PlatformTest() {
     private lateinit var db: MnemoDatabase
 

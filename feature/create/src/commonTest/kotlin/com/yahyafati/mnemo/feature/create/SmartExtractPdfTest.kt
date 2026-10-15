@@ -34,7 +34,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Smart Extract's PDF pages (docs/pdf/ROADMAP.md, P1): the Pages field chooses what the box holds. */
+/** Smart Extract's PDF pages (ADR 0014, P1): the Pages field chooses what the box holds. */
 class SmartExtractPdfTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

@@ -188,7 +188,7 @@ class StatsDaoTest : PlatformTest() {
         assertEquals(listOf("a" to 30L, "b" to 10L, "b" to 20L), logs.getReviewPoints(listOf("a", "b")).map { it.cardId to it.reviewedAt })
     }
 
-    /** ROADMAP Phase 5 exit check: analytics stay responsive with 100k+ reviews. */
+    /** Phase 5 exit check: analytics stay responsive with 100k+ reviews. */
     @Test
     fun staysFastWithAHundredThousandReviews() = runTest {
         val cards = 20_000

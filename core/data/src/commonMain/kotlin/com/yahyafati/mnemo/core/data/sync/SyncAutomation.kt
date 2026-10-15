@@ -14,7 +14,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * What makes sync run by itself while the app is open (docs/sync/ROADMAP.md S4): a round when syncing turns on or the
+ * What makes sync run by itself while the app is open (ADR 0013 S4): a round when syncing turns on or the
  * app starts, and one a few seconds after the last edit, which is also right after a study session ends (every answer
  * is an edit, and the delay only passes once they stop). The rounds while the app is closed are [SyncBackgroundWork]'s
  * (WorkManager on Android; on the desktop an in-process timer), which this keeps scheduled exactly while sync is on.

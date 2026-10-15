@@ -22,7 +22,7 @@ internal class Packed(val changes: Int, val files: Int) {
 }
 
 /**
- * Turns the outbox into change files (docs/sync/ROADMAP.md S3). The file is written before the outbox is cleared,
+ * Turns the outbox into change files (ADR 0013 S3). The file is written before the outbox is cleared,
  * so a crash in between sends the changes again (as a new file with newer stamps, which changes nothing where it
  * arrives) instead of losing them.
  *

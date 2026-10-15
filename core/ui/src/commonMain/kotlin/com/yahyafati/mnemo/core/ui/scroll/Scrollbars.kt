@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-// Scrollbars for a mouse (desktop ROADMAP D7). A phone scrolls by touch and draws a fleeting indicator
+// Scrollbars for a mouse (desktop step D7). A phone scrolls by touch and draws a fleeting indicator
 // of its own; a computer needs a bar to see where it is in a long page and to drag. These draw one on the
 // end edge of the box they sit in, over the content, and only on the desktop.
 

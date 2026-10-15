@@ -369,7 +369,7 @@ private fun UndoRow(onAction: (StudyAction) -> Unit, modifier: Modifier = Modifi
 }
 
 /**
- * The keys of the study screen (desktop ROADMAP D7), all typed characters or command keys, so typing an
+ * The keys of the study screen (desktop step D7), all typed characters or command keys, so typing an
  * answer never triggers one. Space and Enter show the answer; 1–4 rate it
  * (or, on a multiple choice card, pick an option); Ctrl/⌘+Z undoes; E edits the note.
  */

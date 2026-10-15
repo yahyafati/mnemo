@@ -13,7 +13,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
 
 /**
- * A key combination (desktop ROADMAP D7). There are two kinds.
+ * A key combination (desktop step D7). There are two kinds.
  *
  * - A **key** with modifiers ([key], [primary], [shift], [alt]): Ctrl/⌘+N, Ctrl+Enter, Esc. [primary] is the
  *   platform's command key, ⌘ on macOS and Ctrl elsewhere. It matches the key going down with exactly

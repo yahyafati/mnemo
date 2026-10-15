@@ -37,7 +37,7 @@ object OAuthRedirectHub {
 }
 
 /**
- * Google sign-in on a phone (docs/sync/ROADMAP.md S6): the system browser opens the consent page, and Google sends the
+ * Google sign-in on a phone (ADR 0013 S6): the system browser opens the consent page, and Google sends the
  * browser back to a custom-scheme link, `<package name>:/oauth2redirect`, which `OAuthRedirectActivity` receives. This
  * is the scheme Google documents for an Android OAuth client with the custom URI scheme switched on (ADR 0013).
  * No library: the request is one `ACTION_VIEW`. The system browser, not a WebView, because Google refuses embedded ones.

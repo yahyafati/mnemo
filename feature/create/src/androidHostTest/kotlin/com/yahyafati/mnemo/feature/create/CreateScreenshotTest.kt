@@ -167,7 +167,7 @@ class CreateScreenshotTest {
         MnemoTheme { BookImportScreen(BookImportUiState(problem = SourceProblem.Drm), onAction = {}, onClose = {}) }
     }
 
-    /** Smart Extract with a 612-page PDF open: the Pages field (docs/pdf/ROADMAP.md, P1), valid or with an error under it. */
+    /** Smart Extract with a 612-page PDF open: the Pages field (ADR 0014, P1), valid or with an error under it. */
     @androidx.compose.runtime.Composable
     private fun PdfPages(dark: Boolean, error: PdfPagesError?) {
         val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
@@ -198,7 +198,7 @@ class CreateScreenshotTest {
         }
     }
 
-    /** The PDF source with a model that reads images set up (docs/pdf/ROADMAP.md, P5): the mode, the quality, and where a read is. */
+    /** The PDF source with a model that reads images set up (ADR 0014, P5): the mode, the quality, and where a read is. */
     @androidx.compose.runtime.Composable
     private fun PdfRead(
         dark: Boolean,
@@ -242,7 +242,7 @@ class CreateScreenshotTest {
     }
 
     /**
-     * Cards from page images (docs/pdf/ROADMAP.md, P6): the grid of a 12-page deck of slides with four pages ticked, and the queue
+     * Cards from page images (ADR 0014, P6): the grid of a 12-page deck of slides with four pages ticked, and the queue
      * under it with two cards that name their pages. The pictures are generated: a shade for each page.
      */
     @androidx.compose.runtime.Composable

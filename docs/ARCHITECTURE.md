@@ -48,7 +48,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 - **UI** holds no business logic. A ViewModel exposes one `StateFlow<XxxUiState>` and takes user actions as function calls (`onAction(StudyAction.Rate(Good))`).
 - **Domain** use cases are small, single-purpose classes (`operator fun invoke`). They are only used where logic combines several repositories or is shared between features. A ViewModel may call a repository directly for simple reads.
 - **Data**: repositories expose `Flow` for observable data and `suspend` functions for one-shot operations. They map between database entities / network DTOs and `:core:model` types. Entities and DTOs never leave the data layer.
-- **Threading**: repositories are main-safe. They switch to an injected `@Dispatcher(IO)` or `Default` dispatcher internally. The UI never picks dispatchers.
+- **Threading**: repositories are main-safe. They switch to an injected IO or Default dispatcher (`MnemoDispatchers`) internally. The UI never picks dispatchers.
 - **Errors**: expected failures (network, parse, quota) are returned as a `sealed` result type from `:core:common`, not thrown. Only programmer errors are thrown.
 
 ## 3. Module map
@@ -104,7 +104,7 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 | `:core:common` | JVM lib | `Result`/error types, dispatchers (`MnemoDispatchers`), time/clock abstraction, `commonModule` (Koin), and the platform seams of §4.3 (`AppDirectories`, `DocumentAccess`) |
 | `:core:testing` | KMP lib | Fakes (repositories, clock), test dispatchers, `PlatformTest` (Robolectric on Android, plain JUnit on desktop), `inMemoryDatabase()`, `TestAppDirectories` |
 
-**Dependency rules** (enforced in review, and later with a Gradle check):
+**Dependency rules** (enforced in review; `scripts/desktop/check-android-imports.py` checks the platform rule):
 
 1. `feature → core` only. **No `feature → feature` dependencies.** Features navigate to each other through route types declared in `:core:ui/navigation`.
 2. `:core:model`, `:core:scheduler`, and `:core:common` depend on nothing but the Kotlin stdlib, coroutines, and kotlinx.serialization.
@@ -115,215 +115,28 @@ Mnemo follows the official Android app architecture guide (UI → Domain → Dat
 
 ```
 mnemo/
-├── CLAUDE.md
-├── build.gradle.kts                  # root: plugin aliases (apply false)
-├── settings.gradle.kts               # includeBuild("build-logic"), include(...) all modules, repositories
-├── gradle.properties
-├── gradle/
-│   ├── libs.versions.toml            # the only place versions/dependencies are declared
-│   └── wrapper/
-│
-├── build-logic/                      # Gradle convention plugins (shared module config)
-│   ├── settings.gradle.kts
-│   └── convention/
-│       ├── build.gradle.kts
-│       └── src/main/kotlin/
-│           ├── AndroidApplicationConventionPlugin.kt   # mnemo.android.application
-│           ├── AndroidComposeConventionPlugin.kt       # mnemo.android.compose
-│           ├── JvmLibraryConventionPlugin.kt           # mnemo.jvm.library
-│           ├── KmpLibraryConventionPlugin.kt           # mnemo.kmp.library (Android + desktop targets)
-│           ├── KmpComposeConventionPlugin.kt           # mnemo.kmp.compose (Compose Multiplatform)
-│           ├── KmpFeatureConventionPlugin.kt           # mnemo.kmp.feature (lib+compose+koin+core deps; features and :shell)
-│           ├── DesktopApplicationConventionPlugin.kt   # mnemo.desktop.application (:desktop)
-│           └── com/yahyafati/mnemo/buildlogic/
-│               ├── KotlinAndroid.kt                    # compileSdk 37, minSdk 29, Java 11
-│               └── ProjectExtensions.kt                # `libs` accessor
-│
-├── app/
-│   ├── build.gradle.kts
-│   └── src/
-│       ├── main/
-│       │   ├── AndroidManifest.xml
-│       │   ├── keepRules/*.keep                         # R8 rules (merged by AGP)
-│       │   ├── res/                                     # launcher icons, strings, themes.xml (splash)
-│       │   └── java/com/yahyafati/mnemo/
-│       │       ├── MnemoApplication.kt                  # starts Koin, WorkManager config
-│       │       ├── MainActivity.kt                      # splash, edge-to-edge, setContent { MnemoRoot(…) }
-│       │       └── widget/TodayWidget.kt                # home-screen widget (RemoteViews) + updater
-│       ├── test/                                        # app tests on TestMnemoApplication (first session, navigation, DI graph)
-│       └── androidTest/
-│
-├── shell/src/commonMain/kotlin/com/yahyafati/mnemo/shell/
-│   ├── MnemoRoot.kt                                     # settings → theme → onboarding or MnemoApp
-│   ├── MnemoApp.kt  MnemoAppState.kt                    # Scaffold + bottom bar (rail on wide windows) + NavHost
-│   ├── MainViewModel.kt  ShellModule.kt                 # theme prefs, onboarding state, deep links
-│   ├── navigation/ MnemoNavHost.kt TopLevelDestination.kt
-│   └── onboarding/OnboardingScreen.kt                   # first run
-│
-├── desktop/
-│   ├── config/                                          # licenses only the desktop bundles (the Java runtime)
-│   ├── icons/                                           # PNG, ICO and ICNS for the installers and Anki package files (generate_desktop_icons.py)
-│   └── src/main/kotlin/com/yahyafati/mnemo/desktop/     # Main.kt, DesktopApp.kt, Startup.kt (openCollection), DesktopModules.kt,
-│                                                        # DesktopMenu.kt, WindowPlacement.kt, DesktopIntegration.kt, OpenRequests.kt
-│
-├── core/
-│   ├── model/src/main/kotlin/com/yahyafati/mnemo/core/model/
-│   │   ├── Deck.kt  Note.kt  NoteType.kt  Card.kt  CardState.kt
-│   │   ├── Rating.kt  ReviewLog.kt  Media.kt  Transfer.kt
-│   │   ├── Stats.kt  RetentionStats.kt                  # analytics aggregates and results (ADR 0007)
-│   │   ├── markdown/ Markdown.kt MarkdownHtml.kt        # card Markdown (ADR 0002, 0004)
-│   │   ├── AiProvider.kt  AiProviderPreset.kt  AiEndpoint.kt  GeneratedCard.kt
-│   │   └── UserSettings.kt
-│   │
-│   ├── common/src/main/kotlin/com/yahyafati/mnemo/core/common/
-│   │   ├── result/MnemoResult.kt  result/MnemoError.kt
-│   │   ├── dispatchers/Dispatcher.kt                    # @Dispatcher(IO|Default) qualifier
-│   │   └── time/Clock.kt
-│   │
-│   ├── scheduler/src/
-│   │   ├── main/kotlin/com/yahyafati/mnemo/core/scheduler/
-│   │   │   ├── Fsrs.kt                                  # next states for each rating
-│   │   │   ├── FsrsParameters.kt
-│   │   │   ├── Retrievability.kt
-│   │   │   ├── SchedulingInfo.kt                        # interval preview for the rating buttons
-│   │   │   └── optimizer/FsrsOptimizer.kt               # fits parameters from the ReviewLog (ADR 0007)
-│   │   ├── fixtures/make_optimizer_fixtures.py          # py-fsrs reference data for the optimizer
-│   │   └── test/                                        # reference-vector tests
-│   │
-│   ├── database/
-│   │   ├── schemas/                                     # exported Room schema JSON (committed)
-│   │   └── src/main/kotlin/com/yahyafati/mnemo/core/database/
-│   │       ├── MnemoDatabase.kt
-│   │       ├── entity/ DeckEntity.kt NoteEntity.kt NoteTypeEntity.kt CardEntity.kt
-│   │       │           ReviewLogEntity.kt MediaEntity.kt AiEntities.kt
-│   │       ├── dao/    DeckDao.kt NoteDao.kt CardDao.kt ReviewLogDao.kt
-│   │       │           MediaDao.kt AiProviderDao.kt StatsDao.kt
-│   │       ├── converter/ Converters.kt                 # Instant, lists, JSON maps
-│   │       ├── migration/ Migrations.kt
-│   │       └── di/DatabaseModule.kt
-│   │
-│   ├── datastore/src/main/kotlin/com/yahyafati/mnemo/core/datastore/
-│   │   ├── UserPreferencesDataSource.kt                 # theme, dynamic color, reminders, limits
-│   │   ├── UserPreferencesSerializer.kt
-│   │   └── di/DataStoreModule.kt
-│   │
-│   ├── security/src/main/kotlin/com/yahyafati/mnemo/core/security/
-│   │   ├── SecretCipher.kt                              # AES-GCM with a Keystore key
-│   │   ├── SecretStore.kt                               # encrypted files in noBackupFilesDir
-│   │   └── di/SecurityModule.kt
-│   │
-│   ├── ai/src/
-│   │   ├── main/kotlin/com/yahyafati/mnemo/core/ai/
-│   │   │   ├── client/OpenAiCompatibleClient.kt         # /models, /chat/completions (+SSE via okhttp-sse)
-│   │   │   ├── client/ProviderConfig.kt                 # baseUrl, key, headers, timeout
-│   │   │   ├── dto/ Chat.kt Models.kt                   # requests, responses, stream chunks
-│   │   │   ├── probe/ConnectionProbe.kt                 # test connection + capability detection
-│   │   │   ├── probe/ModelHeuristics.kt
-│   │   │   ├── prompt/ CardGenerationPrompt.kt StudyAssistPrompt.kt
-│   │   │   ├── schema/GeneratedCardsSchema.kt           # JSON schemas for response_format
-│   │   │   ├── parse/ GeneratedCardParser.kt JsonRepair.kt ParsedCard.kt PlainTextCards.kt
-│   │   │   └── generate/ ChatTextRunner.kt              # one request, streamed or not, with fallbacks
-│   │   │                 CardGenerationClient.kt StudyAssistClient.kt
-│   │   └── test/                                        # MockWebServer + resources/replies/ parser fixtures
-│   │
-│   ├── anki/src/
-│   │   ├── main/kotlin/com/yahyafati/mnemo/core/anki/
-│   │   │   ├── ApkgReader.kt  ApkgWriter.kt
-│   │   │   ├── AnkiCollection.kt                        # legacy (anki2) and new (anki21b) schemas
-│   │   │   └── mapper/AnkiMapper.kt                     # Anki notetypes/revlog → Mnemo models
-│   │   └── test/resources/*.apkg                        # sample decks
-│   │
-│   ├── ingest/src/main/kotlin/com/yahyafati/mnemo/core/ingest/
-│   │   ├── PdfTextExtractor.kt                          # PdfBox text layer (page selection, page count), no OCR
-│   │   ├── PdfPageRenderer.kt                           # a page (or a region of one, P7) as JPEG/PNG; shared size/ink rules (P3)
-│   │   ├── WebPageExtractor.kt                          # a link: site extractor, else generic; PDF links
-│   │   ├── PageFetcher.kt  SiteExtractor.kt             # the one GET (limits, User-Agent); a site's own rules (ADR 0012)
-│   │   ├── GenericExtractor.kt  ContentFinder.kt        # jsoup page → main element (scored) → Markdown
-│   │   ├── MarkdownText.kt  MarkdownSections.kt         # HTML → Markdown; headings → sections
-│   │   ├── site/WikipediaExtractor.kt  WikipediaArticle.kt  # REST API (Parsoid HTML) → article + sections
-│   │   ├── SpeechTranscriber.kt                         # on-device SpeechRecognizer
-│   │   └── TextChunker.kt                               # + TextCleanup
-│   │
-│   ├── data/src/main/kotlin/com/yahyafati/mnemo/core/data/
-│   │   ├── repository/
-│   │   │   ├── DeckRepository.kt          OfflineDeckRepository.kt
-│   │   │   ├── CardRepository.kt          OfflineCardRepository.kt
-│   │   │   ├── ReviewRepository.kt        OfflineReviewRepository.kt
-│   │   │   ├── StatsRepository.kt         OfflineStatsRepository.kt
-│   │   │   ├── AiProviderRepository.kt    DefaultAiProviderRepository.kt
-│   │   │   ├── CardGenerationRepository.kt DefaultCardGenerationRepository.kt
-│   │   │   ├── StudyAssistRepository.kt   SourceRepository.kt   ProviderConfigs.kt
-│   │   │   ├── ImportExportRepository.kt  DefaultImportExportRepository.kt
-│   │   │   ├── MediaRepository.kt         FileMediaRepository.kt
-│   │   │   └── UserSettingsRepository.kt
-│   │   ├── mapper/                                      # Entity/DTO ↔ model
-│   │   ├── scheduling/FsrsOptimization.kt               # review log → optimizer → apply if better
-│   │   ├── work/ TransferWorkers.kt ReminderWorker.kt OptimizeFsrsWorker.kt
-│   │   └── di/DataModule.kt                             # repositories, AI/ingest clients, workers (Koin)
-│   │
-│   ├── domain/src/main/kotlin/com/yahyafati/mnemo/core/domain/
-│   │   ├── BuildStudyQueueUseCase.kt
-│   │   ├── AnswerCardUseCase.kt                         # scheduler + review log + card update
-│   │   ├── UndoLastAnswerUseCase.kt
-│   │   ├── GenerateCardsUseCase.kt                      # parts → AI → validate → dedupe (+ RegenerateCardUseCase)
-│   │   ├── AcceptGeneratedCardsUseCase.kt
-│   │   ├── GeneratedCardValidator.kt
-│   │   ├── GetTodaySummaryUseCase.kt                    # due/new/learning, est. minutes
-│   │   ├── ComputeRetentionStatsUseCase.kt              # everything on Analytics
-│   │   ├── GetRetentionOverviewUseCase.kt               # Decks: retained, mastered, retention health
-│   │   └── FindDuplicateNotesUseCase.kt                 # Co-Author duplicates, on device
-│   │
-│   ├── designsystem/src/
-│   │   ├── commonMain/composeResources/                 # font/ (Newsreader, Hanken Grotesk, JetBrains Mono), drawable/mnemo_logo.xml, files/licenses
-│   │   ├── androidMain/ desktopMain/                    # dynamic color, PlatformCapabilities for each platform
-│   │   └── commonMain/kotlin/com/yahyafati/mnemo/core/designsystem/
-│   │       ├── theme/ Theme.kt Color.kt Type.kt Shape.kt Spacing.kt
-│   │       ├── icon/MnemoIcons.kt                       # Material Symbols mapping
-│   │       └── component/ MnemoButton.kt MnemoChip.kt StatTile.kt
-│   │                      RatingBar.kt ProgressHeader.kt StreakBadge.kt
-│   │                      MnemoTopBar.kt MnemoNavigationBar.kt MnemoNavigationRail.kt EmptyState.kt
-│   │
-│   ├── ui/src/commonMain/kotlin/com/yahyafati/mnemo/core/ui/  # strings in commonMain/composeResources/values
-│   │   ├── navigation/Routes.kt                         # @Serializable route types used across features
-│   │   ├── card/ CardFace.kt CardInteractions.kt MarkdownText.kt MathText.kt MathPainter.kt
-│   │   │         audio/CardAudio.kt                     # the interface; MediaPlayer + TextToSpeech in androidMain, javax.sound in desktopMain
-│   │   ├── adaptive/WindowLayout.kt                     # material3-adaptive: wide, short, tabletop
-│   │   ├── deck/DeckCard.kt
-│   │   └── chart/ ForgettingCurveChart.kt ReviewHeatmap.kt ForecastBars.kt StackedBar.kt
-│   │
-│   └── testing/src/main/kotlin/com/yahyafati/mnemo/core/testing/
-│       ├── repository/Fake*Repository.kt
-│       └── MainDispatcherRule.kt  TestClock.kt
-│
-├── feature/
-│   ├── decks/      (structure below)
-│   ├── study/
-│   ├── create/
-│   ├── browse/
-│   ├── analytics/
-│   └── settings/
-│
-└── docs/
-    ├── PROJECT_OVERVIEW.md
-    ├── ARCHITECTURE.md
-    ├── release/                                         # store listing, privacy policy, distribution options
-    ├── design/                                          # HTML design references (not shipped)
-    │   ├── decks.html
-    │   ├── active-study-review.html
-    │   ├── ai-card-creator.html
-    │   └── analytics.html
-    └── adr/                                             # architecture decision records
-        ├── 0001-fsrs-as-scheduler.md
-        ├── 0002-in-house-markdown-renderer.md
-        ├── 0003-anki-interop.md
-        ├── 0004-media-and-math.md
-        ├── 0005-ai-providers-and-secrets.md
-        ├── 0006-ai-card-creation.md
-        ├── 0007-analytics-and-fsrs-optimizer.md
-        ├── 0008-v1-polish.md
-        ├── 0009-license-and-distribution.md
-        └── 0010-desktop-with-compose-multiplatform.md
+├── CLAUDE.md                 # the working guide: commands, build setup, conventions per area
+├── settings.gradle.kts       # every module, repositories (only here)
+├── gradle/libs.versions.toml # every dependency and plugin version
+├── build-logic/convention/   # convention plugins: mnemo.android.application, mnemo.jvm.library,
+│                             #   mnemo.kmp.{library,compose,feature,room}, mnemo.desktop.application
+├── app/                      # Android launcher: MainActivity, MnemoApplication, widget, keep rules, app tests
+├── desktop/                  # desktop launcher: Main.kt, openCollection, menu, window placement, installers' icons
+├── shell/                    # MnemoRoot, MnemoApp, MnemoNavHost, onboarding, MainViewModel
+├── core/<module>/            # see §3; KMP modules: src/{commonMain,androidMain,desktopMain,commonTest,androidHostTest,desktopTest}
+│                             #         JVM modules: src/{main,test}
+├── feature/<feature>/        # see §4.1
+├── scripts/                  # CI checks, QA helpers, release and download-page builders
+├── fastlane/                 # F-Droid texts, changelogs and graphics
+└── docs/                     # this file, PROJECT_OVERVIEW.md, adr/, design/, release/, desktop/, sync/
 ```
+
+Notable non-code folders: `core/database/schemas/` (exported Room schemas, committed),
+`core/database/src/commonTest/resources/fixtures` (a real database per schema version),
+`core/data/src/commonTest/resources/backups` (a backup from each platform), `core/anki/src/test/resources`
+(packages written by real Anki), `core/ingest/src/commonTest/resources/{pdf,web}` (PDF and saved-page fixtures),
+`core/ai/src/test/resources/replies` (malformed model replies), and each feature's
+`src/androidHostTest/screenshots` (Roborazzi baselines).
 
 ### 4.1 Feature module layout
 
@@ -355,7 +168,7 @@ feature/study/
 
 ### 4.3 Platform seams
 
-The desktop app (docs/desktop/ROADMAP.md) shares the domain, data and UI code with Android, so shared code never calls an Android API. Each one sits behind an interface, and its Android implementation lives in a package named `android`, next to the interface's module (`.../android/AndroidXxx.kt`). In a multiplatform module (D4 on) the Android implementations are in `androidMain` and the desktop ones beside them in `desktopMain` (`.../desktop/DesktopXxx.kt`); where a Koin module needs the platform's part it calls an `expect` function (`createDatabase()`, `createSecretCipher()`) or an `expect val` (`dataLayerModules`). `scripts/desktop/check-android-imports.py` (CI) fails on an Android import anywhere else, apart from a short, shrinking list of files that have not moved yet.
+The desktop app (ADR 0010) shares the domain, data and UI code with Android, so shared code never calls an Android API. Each one sits behind an interface, and its Android implementation lives in a package named `android`, next to the interface's module (`.../android/AndroidXxx.kt`). In a multiplatform module (D4 on) the Android implementations are in `androidMain` and the desktop ones beside them in `desktopMain` (`.../desktop/DesktopXxx.kt`); where a Koin module needs the platform's part it calls an `expect` function (`createDatabase()`, `createSecretCipher()`) or an `expect val` (`dataLayerModules`). `scripts/desktop/check-android-imports.py` (CI) fails on an Android import anywhere else, apart from a short, shrinking list of files that have not moved yet.
 
 | Seam | Interface (module) | Android implementation | Desktop |
 |---|---|---|---|
@@ -379,7 +192,7 @@ Shared UI reads what it needs from these instead of the operating system: `Local
 
 ### 4.4 The desktop experience
 
-What makes the desktop app a desktop app sits in shared modules, gated by `PlatformCapabilities.keyboardAndMouse`, with the window itself in `:desktop` (ROADMAP D7, ADR 0010 "Findings from D7"):
+What makes the desktop app a desktop app sits in shared modules, gated by `PlatformCapabilities.keyboardAndMouse`, with the window itself in `:desktop` (ADR 0010 "Findings from D7"):
 
 - **Keyboard.** `Shortcuts` (`:core:ui/keyboard`) is the one table of key combinations; screens handle them with `Modifier.shortcuts`, the menu bar shows them, and `ShortcutsDialog` (`:shell`) lists them. Global ones, and everything a menu item or a dropped file asks for, are `AppCommand`s sent to `AppCommands` and carried out by `MnemoRoot`; the shell keeps the keyboard focus so they work on every screen.
 - **Mouse.** `MnemoIconButton` (tooltips), `clickCursor()`, `ContextMenuHost` (right-click menus), `ScrollbarBox` (scrollbars) and `Modifier.fileDropTarget` are `expect` functions or modifiers in `:core:ui` and `:core:designsystem`; on Android they add nothing.
@@ -423,7 +236,7 @@ SmartExtractViewModel
   8. AcceptGeneratedCardsUseCase → notes (source = AI) + cards in one transaction
 ```
 
-A PDF adds a step before 1 (docs/pdf/ROADMAP.md, ADR 0014). `SourceRepository.openPdf` copies the file into `cache/pdf/`
+A PDF adds a step before 1 (ADR 0014). `SourceRepository.openPdf` copies the file into `cache/pdf/`
 and the user picks pages (a range or a chapter). The mode then decides what step 1 produces:
 
 ```
@@ -461,7 +274,7 @@ Books (EPUB, ADR 0011) enter before step 1: `SourceRepository.readBook` → `Epu
 ## 6. Data layer details
 
 - **Room** with KSP, on its multiplatform driver API (`SQLiteConnection`, `RoomRawQuery`, `useWriterConnection { immediateTransaction { … } }`): the same entities, DAOs and migrations build the Android database (framework SQLite driver) and the desktop one (bundled SQLite driver, same file format). Schemas are exported to `core/database/schemas/` and committed. Every schema change gets a migration, a `MigrationTest` case (it runs on both targets) and a fixture database of the new version in `core/database/src/commonTest/resources/fixtures`. Destructive migration is never allowed.
-- **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Sync (`docs/sync/ROADMAP.md`, ADR 0013) builds on this: triggers record every local change in an outbox while it is on, and review logs are never hard-deleted (Undo is a soft delete). The merge engine (`:core:data/sync`, `SyncEngine`) packs the outbox into change files, applies other devices' files in one transaction and merges per field by a hybrid logical clock; its bookkeeping (`sync_field_clocks`, `sync_seqs`) is local to the device and never synced.
+- **IDs** are UUID strings. Each row has `createdAt`/`updatedAt` and a `deletedAt` soft-delete column. Sync (ADR 0013) builds on this: triggers record every local change in an outbox while it is on, and review logs are never hard-deleted (Undo is a soft delete). The merge engine (`:core:data/sync`, `SyncEngine`) packs the outbox into change files, applies other devices' files in one transaction and merges per field by a hybrid logical clock; its bookkeeping (`sync_field_clocks`, `sync_seqs`) is local to the device and never synced.
 - **Indices** on `Card(due, state, deckId)`, `ReviewLog(cardId, reviewedAt)`, and `Note(deckId)` keep the queue and stats queries fast.
 - **Stats** are computed with SQL aggregates in `StatsDao`, not by loading rows into memory. Retrievability, which needs `pow`, comes from per-deck buckets of `elapsed days / stability` (ADR 0007).
 - **Media** is content-addressed (`sha256`) and garbage-collected by a worker when no note references it.
@@ -482,29 +295,29 @@ The HTML mockups define the look. These tokens are ported into `:core:designsyst
 
 Theme decisions:
 
-- **The brand palette is the default.** Material You dynamic color is an opt-in setting in Appearance. This changes the current template, which enables dynamic color by default.
-- Fonts are bundled in `res/font/` so the app works offline. No downloadable Google Fonts.
+- **The brand palette is the default.** Material You dynamic color is an opt-in setting in Appearance.
+- Fonts are bundled in `core/designsystem/src/commonMain/composeResources/font` so the app works offline. No downloadable Google Fonts.
 - Navigation matches the mockups' bottom bar: **Decks · Study · Create · Analytics**. Settings is reached from the top-bar avatar.
 
 ## 8. Technology stack
 
 | Concern | Library |
 |---|---|
-| UI | Jetpack Compose (BOM), Material 3, `material3-adaptive` for tablets |
-| Navigation | Navigation Compose with type-safe `@Serializable` routes |
+| UI | Compose Multiplatform (Jetpack Compose on Android), Material 3, `material3-adaptive` for tablets |
+| Navigation | Navigation Compose (JetBrains artifacts) with type-safe `@Serializable` routes |
 | DI | Koin (`koin-android`, `koin-compose-viewmodel`, `koin-androidx-workmanager`); each module exposes a `xxxModule` (ADR 0010) |
 | Async | Kotlin Coroutines + Flow |
-| Database | Room (KSP) |
+| Database | Room (KSP) on the driver API: framework SQLite on Android, bundled SQLite on the desktop |
 | Preferences | DataStore |
 | Networking | OkHttp + kotlinx.serialization (SSE via `okhttp-sse`) |
-| Background | WorkManager |
+| Background | WorkManager on Android; coroutine job queues on the desktop |
 | Serialization | kotlinx.serialization (DTOs, routes, JSON fields) |
-| Markdown / math | A Compose Markdown renderer, plus KaTeX/MathJax in a lightweight WebView only for cards that contain math |
-| PDF | Android `PdfRenderer` for page images (`AndroidPdfPageRenderer`; PDFBox on the desktop); a PDF text-extraction library (e.g. PdfBox-Android) for text |
+| Markdown / math | An in-house Markdown subset rendered natively (ADR 0002); math through KaTeX in a WebView on Android and JLaTeXMath on the desktop |
+| PDF | PdfBox-Android (Android) and Apache PDFBox (desktop) for text; Android `PdfRenderer` and PDFBox + `jbig2-imageio` for page images |
 | Charts | Custom Compose `Canvas` charts (forgetting curve, heatmap), with no heavy chart dependency |
 | Testing | JUnit, Turbine, kotlinx-coroutines-test, OkHttp MockWebServer, Room `MigrationTestHelper`, Compose UI test, Roborazzi (screenshot tests against the design) |
 
-Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.jetbrains.kotlin.android` plugin), everything declared in `gradle/libs.versions.toml`, repositories only in `settings.gradle.kts`, and R8 rules in `src/main/keepRules/`. Pure JVM modules apply `org.jetbrains.kotlin.jvm`. KSP must be added to the catalog for Room and Hilt.
+Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.jetbrains.kotlin.android` plugin), everything declared in `gradle/libs.versions.toml`, repositories only in `settings.gradle.kts`, and R8 rules in `app/src/main/keepRules/`. Pure JVM modules apply `org.jetbrains.kotlin.jvm`.
 
 ## 9. Testing strategy
 
@@ -524,11 +337,3 @@ Build constraints (from `CLAUDE.md`): AGP 9 with **built-in Kotlin** (no `org.je
 - Sync (ADR 0013): off until the user turns it on; then only the chosen folder, Google Drive's hidden app-data folder (scope `drive.appdata`) or one WebDAV address is contacted, by `:core:sync` (`:core:ai` is the only AI client). Files are encrypted on the device with a key from the user's passphrase (AES-256-GCM, PBKDF2) when one is set. The passphrase's key, the Google refresh token and the WebDAV password are in `SecretStore`, never in Room, a backup, `config.json` or a log; AI providers and their keys are never synced. A WebDAV address follows the AI providers' rule (HTTPS, or a local address), and no sync client follows redirects.
 - No analytics or crash-reporting SDKs. Logs never include card content or keys.
 - Encrypted keys live in `noBackupFilesDir`, which Android never backs up; the Keystore key does not survive a restore anyway. On the desktop they are in a `secrets` directory that no backup or export reads, and the AES key is in the OS keychain (Windows Credential Manager, macOS Keychain, Secret Service), or, where there is none, in an owner-only `secrets.key` file: Settings says which (D6).
-
-## 11. Migration from the current template
-
-1. Add `build-logic/` convention plugins and KSP, Hilt, Room, and Navigation to the version catalog.
-2. Create `:core:designsystem` and move `ui/theme/*` there, updated with the tokens from §7.
-3. Create `:core:model`, `:core:common`, `:core:scheduler`, `:core:database`, and `:core:data`.
-4. Add `:feature:decks` and `:feature:study`, and replace `Greeting` in `MainActivity` with `MnemoApp()`.
-5. Add the remaining modules milestone by milestone (see the roadmap in `PROJECT_OVERVIEW.md`).

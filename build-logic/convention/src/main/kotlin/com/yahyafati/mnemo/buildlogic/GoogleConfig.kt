@@ -4,7 +4,7 @@ import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.Project
 
 /**
- * The Google OAuth clients of the Drive sync backend (docs/sync/ROADMAP.md S6, ADR 0013). They are build configuration,
+ * The Google OAuth clients of the Drive sync backend (ADR 0013 S6). They are build configuration,
  * read like the signing settings (environment variables, then `local.properties`) and never committed: a build without
  * them (a fork, F-Droid, CI without the secrets) simply doesn't offer Google Drive, and never touches the owner's quota
  * or consent screen.

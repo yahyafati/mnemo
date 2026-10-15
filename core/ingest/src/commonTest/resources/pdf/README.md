@@ -1,6 +1,6 @@
 # PDF fixtures
 
-Test PDFs for Smart Extract's PDF source (docs/pdf/ROADMAP.md, ADR 0014). All of them are **made by us** from
+Test PDFs for Smart Extract's PDF source (ADR 0014). All of them are **made by us** from
 text written for the purpose, with the PDF base-14 fonts only: there is no third-party content, and nothing
 here is shipped in the app. Together they are about 370 KB.
 
@@ -34,5 +34,5 @@ overlap; no test needs an exact match.
   on it yet (P3's instrumented test does).
 - There is no JPEG 2000 fixture: the desktop does not decode it (ADR 0014, "P0 findings").
 - The scanned pages are rendered at 150 dpi; real scans are often 300 dpi or more, so token and legibility numbers
-  from these files say little about the *High* quality setting. The owner's measurements (ROADMAP P0) should use
+  from these files say little about the *High* quality setting. The owner's measurements (P0) should use
   real material as well.

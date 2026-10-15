@@ -8,7 +8,7 @@ import com.yahyafati.mnemo.core.model.RetentionOverview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
-/** The Decks screen's retention tiles and per-deck retention health (ROADMAP Phase 5). */
+/** The Decks screen's retention tiles and per-deck retention health (Phase 5). */
 class GetRetentionOverviewUseCase(
     private val statsRepository: StatsRepository,
     private val settingsRepository: UserSettingsRepository,

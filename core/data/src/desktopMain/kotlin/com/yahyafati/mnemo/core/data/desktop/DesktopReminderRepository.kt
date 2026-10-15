@@ -5,7 +5,7 @@ import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.ReminderSettings
 
 /**
- * The daily reminder is a phone feature (ROADMAP "Not on desktop"): the desktop keeps the choice,
+ * The daily reminder is a phone feature: the desktop keeps the choice,
  * so a backup restored from a phone round-trips it, but shows no notification.
  */
 internal class DesktopReminderRepository(

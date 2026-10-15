@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.core.ui.files
 import androidx.compose.ui.Modifier
 
 /**
- * Takes files dragged from the file manager and dropped on this element (desktop ROADMAP D7). A phone
+ * Takes files dragged from the file manager and dropped on this element (desktop step D7). A phone
  * has no such drag, so there this does nothing.
  *
  * - [accepts] says whether a file name is one this target opens; a drag with none of those is not

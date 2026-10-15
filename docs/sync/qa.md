@@ -1,4 +1,4 @@
-# Sync: QA runbook (sync ROADMAP S8)
+# Sync: QA runbook
 
 The pass that decides whether sync is announced in a release. It is the sync twin of the desktop runbook
 ([../desktop/qa.md](../desktop/qa.md)) and the Android one ([../release/qa.md](../release/qa.md)): same layout, same

@@ -3,7 +3,7 @@ package com.yahyafati.mnemo.core.data.sync
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Syncing this device's collection with a location of the user's (docs/sync/ROADMAP.md S4, ADR 0013): the lifecycle
+ * Syncing this device's collection with a location of the user's (ADR 0013 S4): the lifecycle
  * around the merge engine, which only knows how to run one round. One at a time: two rounds never overlap, and
  * creating, joining and leaving wait for a round that is running.
  *

@@ -1,4 +1,4 @@
-# Mnemo for desktop: QA runbook (desktop ROADMAP D9)
+# Mnemo for desktop: QA runbook
 
 The pass that decides whether desktop v1.0 goes public. Every check runs on the **installer a user would
 download**, not on `:desktop:run`: the packaged app has a trimmed Java runtime (D8), file associations and

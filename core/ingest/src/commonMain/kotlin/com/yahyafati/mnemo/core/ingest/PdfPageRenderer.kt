@@ -8,7 +8,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Renders pages of a PDF file to JPEG (docs/pdf/ROADMAP.md, P3, ADR 0014): Android's `PdfRenderer` on the phone,
+ * Renders pages of a PDF file to JPEG (ADR 0014, P3): Android's `PdfRenderer` on the phone,
  * Apache PDFBox on the desktop. Blocking; call it off the main thread. Nothing is kept between calls: a renderer
  * holds no pages, and the repository caches the files.
  */
@@ -23,7 +23,7 @@ interface PdfPageRenderer {
 
     /**
      * The part of [page] (1-based) that [region] names, drawn from the page itself at [longEdge] px on the crop's long side
-     * (docs/pdf/ROADMAP.md, P7): a figure for a card. A small region is drawn larger, not cut out of a small picture. The
+     * (ADR 0014, P7): a figure for a card. A small region is drawn larger, not cut out of a small picture. The
      * image is a PNG or a JPEG, whichever is smaller (a diagram is, usually, the PNG; a photograph the JPEG), on a white
      * background, and is made smaller when it would be over [MAX_IMAGE_BYTES].
      *

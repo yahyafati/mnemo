@@ -12,7 +12,7 @@ data class PixelRect(val left: Int, val top: Int, val width: Int, val height: In
 }
 
 /**
- * The part of a PDF page a figure is cut from (docs/pdf/ROADMAP.md, P7): a rectangle as fractions (0 to 1) of the
+ * The part of a PDF page a figure is cut from (ADR 0014, P7): a rectangle as fractions (0 to 1) of the
  * page's width and height, counted from the top left of the page **as it is shown** (rotation applied). Fractions,
  * not points or pixels, so one region means the same place at any rendering size, and a crop drawn on a small
  * preview is cut from a large render.

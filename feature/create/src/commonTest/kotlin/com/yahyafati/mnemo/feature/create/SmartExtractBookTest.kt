@@ -35,7 +35,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Smart Extract's EPUB source (docs/epub/ROADMAP.md, B5): a book's chapter becomes the text, its deck the destination. */
+/** Smart Extract's EPUB source (ADR 0011, B5): a book's chapter becomes the text, its deck the destination. */
 class SmartExtractBookTest : PlatformTest() {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

@@ -38,7 +38,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-/** Cards from page images through the real client, against MockWebServer (docs/pdf/ROADMAP.md, P6). */
+/** Cards from page images through the real client, against MockWebServer (ADR 0014, P6). */
 class PageImageGenerationTest : PlatformTest() {
     private val directories = TestAppDirectories()
     private val secrets = FileSecretStore(directories, SoftwareSecretCipher(), Dispatchers.Unconfined)

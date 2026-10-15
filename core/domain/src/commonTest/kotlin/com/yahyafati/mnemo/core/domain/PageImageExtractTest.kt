@@ -27,7 +27,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
-/** Cards from page images in the use cases (docs/pdf/ROADMAP.md, P6): one request per group of pages, resume, regenerate. */
+/** Cards from page images in the use cases (ADR 0014, P6): one request per group of pages, resume, regenerate. */
 class PageImageExtractTest {
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()

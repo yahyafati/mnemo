@@ -20,7 +20,7 @@ import java.io.File
 import kotlin.math.max
 
 /**
- * The real `PdfRenderer` on a device (docs/pdf/ROADMAP.md, P3): Robolectric can't run it, so this is the only automatic
+ * The real `PdfRenderer` on a device (ADR 0014, P3): Robolectric can't run it, so this is the only automatic
  * check that PDFium draws the fixtures. `./gradlew :app:connectedDebugAndroidTest --tests "*AndroidPdfPageRendererTest"`.
  * The fixtures are the ones in `core/ingest/src/commonTest/resources/pdf`, added to this test's assets.
  */

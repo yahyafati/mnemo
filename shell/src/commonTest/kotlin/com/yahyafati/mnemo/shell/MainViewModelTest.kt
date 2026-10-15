@@ -26,7 +26,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** What the desktop's menu bar and drop target ask of the shell (desktop ROADMAP D7). */
+/** What the desktop's menu bar and drop target ask of the shell (desktop step D7). */
 class MainViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

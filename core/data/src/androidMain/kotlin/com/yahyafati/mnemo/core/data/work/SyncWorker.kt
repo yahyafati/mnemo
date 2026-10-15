@@ -6,7 +6,7 @@ import androidx.work.WorkerParameters
 import com.yahyafati.mnemo.core.data.sync.SyncRepository
 
 /**
- * One sync round while the app isn't open (docs/sync/ROADMAP.md S4). It always succeeds: a round that couldn't reach the
+ * One sync round while the app isn't open (ADR 0013 S4). It always succeeds: a round that couldn't reach the
  * location is in `SyncRepository.status`, and the periodic work runs again by itself, so a retry with backoff would only
  * spend battery.
  */

@@ -178,7 +178,7 @@ class DesktopApplicationConventionPlugin : Plugin<Project> {
 
 /**
  * Windows' key for "this MSI replaces that one". Generated once, and it must never change: an upgrade
- * of an installed Mnemo finds its predecessor by it (desktop ROADMAP D8).
+ * of an installed Mnemo finds its predecessor by it (desktop step D8).
  */
 private const val WINDOWS_UPGRADE_UUID = "a1a68559-dc4a-4cae-b01c-2658a81e35d0"
 

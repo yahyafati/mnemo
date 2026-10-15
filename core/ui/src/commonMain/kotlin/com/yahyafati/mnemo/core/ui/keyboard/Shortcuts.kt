@@ -4,7 +4,7 @@ import androidx.compose.ui.input.key.Key
 
 /**
  * Every keyboard shortcut of the app, in one place so the handlers, the menu bar and the shortcuts
- * sheet (`?`) can't disagree (desktop ROADMAP D7).
+ * sheet (`?`) can't disagree (desktop step D7).
  *
  * Plain characters (Space, Enter, the digits, E, `?`) are matched as typed characters, which a focused text
  * field consumes, so typing in a field never triggers them (see [Shortcut]). Shortcuts with the command key

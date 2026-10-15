@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * What a page is read from (docs/pdf/ROADMAP.md, P5): its text layer, a transcription made earlier in this session,
+ * What a page is read from (ADR 0014, P5): its text layer, a transcription made earlier in this session,
  * or a new transcription (one request).
  */
 enum class PageSource { Layer, Cached, Transcribe }
@@ -83,7 +83,7 @@ class PageTranscriptionCache {
 }
 
 /**
- * Reading the pages of a PDF into Smart Extract's box when the text layer isn't enough (docs/pdf/ROADMAP.md, P5;
+ * Reading the pages of a PDF into Smart Extract's box when the text layer isn't enough (ADR 0014, P5;
  * ADR 0014). [plan] says which pages come from where; [run] then goes through them in order, one request per page
  * that needs one, and keeps what it has when one fails so Resume can go on from it. Nothing is saved.
  *

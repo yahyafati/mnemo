@@ -1,6 +1,6 @@
 # Web extraction fixtures
 
-Saved pages for `WebPageExtractor` and its site extractors (docs/web/ROADMAP.md, ADR 0012). Tests serve
+Saved pages for `WebPageExtractor` and its site extractors (ADR 0012). Tests serve
 them from MockWebServer; nothing here is read from the network at test time and none of it is shipped
 in the app.
 

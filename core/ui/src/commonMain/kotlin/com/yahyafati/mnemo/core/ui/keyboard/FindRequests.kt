@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
- * Asks the card browser to put the cursor in its search box (Find, desktop ROADMAP D7). The shell owns
+ * Asks the card browser to put the cursor in its search box (Find, desktop step D7). The shell owns
  * one and provides it with [LocalFindRequests]; the browser collects [requests]. A feature can't call
  * another, and a shortcut works from any screen, so the ask goes through here.
  */

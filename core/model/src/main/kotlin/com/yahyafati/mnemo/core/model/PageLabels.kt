@@ -2,7 +2,7 @@ package com.yahyafati.mnemo.core.model
 
 /**
  * The printed page numbers of a PDF (`i`, `ii`, … `xii`, `1`, `2`, …), as [PdfInfo.labels] has them, written the way
- * the page count line shows them: `i–xii, 1–600` (docs/pdf/ROADMAP.md, P2).
+ * the page count line shows them: `i–xii, 1–600` (ADR 0014, P2).
  */
 object PageLabels {
     /** [first] to [last] are the labels of pages [firstPage] to [lastPage] (1-based), each continuing the one before. */

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gets the files of one release ready to attach (sideload roadmap S2).
+"""Gets the files of one release ready to attach (docs/release/README.md).
 
 Run by the `release` job of `.github/workflows/release.yml` on the downloaded build artifacts:
 

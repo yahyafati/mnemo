@@ -12,7 +12,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Remembering the window between runs (desktop ROADMAP D7). */
+/** Remembering the window between runs (desktop step D7). */
 class WindowPlacementTest {
     @get:Rule
     val folder = TemporaryFolder()

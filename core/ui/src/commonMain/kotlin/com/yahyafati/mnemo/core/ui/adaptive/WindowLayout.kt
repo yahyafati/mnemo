@@ -41,7 +41,7 @@ fun currentWindowLayout(): WindowLayout {
 
 /**
  * How wide the body of a screen may get before it stops growing and stays centered, so lines stay
- * readable on a maximized desktop window (desktop ROADMAP D7). Unlimited until the shell sets it: a
+ * readable on a maximized desktop window (desktop step D7). Unlimited until the shell sets it: a
  * phone or tablet uses all its width.
  */
 val LocalMaxContentWidth = staticCompositionLocalOf { Dp.Unspecified }

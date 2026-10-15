@@ -32,7 +32,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Card generation from page images (docs/pdf/ROADMAP.md, P6): the prompt, the schema with a page, and the request on the wire. */
+/** Card generation from page images (ADR 0014, P6): the prompt, the schema with a page, and the request on the wire. */
 class PageImageCardsTest {
     private val server = MockWebServer()
     private val generator = CardGenerationClient(ChatTextRunner(OpenAiCompatibleClient(OkHttpClient())))

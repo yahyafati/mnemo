@@ -4,7 +4,7 @@ import com.yahyafati.mnemo.core.ai.dto.ChatMessage
 import com.yahyafati.mnemo.core.ai.dto.ContentPart
 
 /**
- * The prompt that turns the image of one PDF page into text (docs/pdf/ROADMAP.md, P5; ADR 0014). The reply is plain
+ * The prompt that turns the image of one PDF page into text (ADR 0014, P5). The reply is plain
  * Markdown, not JSON: it fills the editable text box, so a misread is fixed there before any card exists. The page
  * is material, not instructions: a page that says "ignore your instructions" is transcribed like any other text.
  */
