@@ -37,7 +37,9 @@ import com.yahyafati.mnemo.core.database.migration.ALL_MIGRATIONS
 import com.yahyafati.mnemo.core.database.sync.SyncTriggers
 import com.yahyafati.mnemo.core.database.sync.ensureSyncState
 import com.yahyafati.mnemo.core.model.NoteType
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.json.Json
 
 /**
@@ -93,13 +95,23 @@ abstract class MnemoDatabase : RoomDatabase() {
         const val NAME = "mnemo.db"
 
         /**
+         * Room's own threads, kept apart from `Dispatchers.IO` on purpose. With the framework driver (Android)
+         * every invalidation refresh blocks a thread until the connection is free, and a transaction holds the
+         * connection while its block may need an IO thread of its own (a repository's `withContext(io)`). On the
+         * shared 64 IO threads, a burst of refreshes took them all and the transaction could never finish:
+         * every query hung until the app was restarted. This view has its own limit, so IO always has room.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        internal val QUERY_DISPATCHER: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(32)
+
+        /**
          * Finishes a [builder] made by the platform (a file path or a `Context` differ, see
          * `MnemoDatabase.build` in `androidMain` and `desktopMain`).
          */
         fun configure(builder: RoomDatabase.Builder<MnemoDatabase>, driver: SQLiteDriver): MnemoDatabase =
             builder
                 .setDriver(driver)
-                .setQueryCoroutineContext(Dispatchers.IO)
+                .setQueryCoroutineContext(QUERY_DISPATCHER)
                 .addMigrations(*ALL_MIGRATIONS)
                 .addCallback(SeedBuiltInNoteTypes)
                 .addCallback(SyncSetup)
