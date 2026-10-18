@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.ChapterDeckRequest
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
@@ -19,6 +20,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
@@ -72,7 +74,7 @@ class SmartExtractBookTest : PlatformTest() {
         aiProviders = providers,
         deckRepository = decks,
         sources = sources,
-        generateCards = GenerateCardsUseCase(generation, cards),
+        generateCards = GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository())),
         regenerateCard = RegenerateCardUseCase(generation, cards),
         acceptCards = AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()),
         bookHandoff = handoff,
@@ -244,7 +246,8 @@ class SmartExtractBookTest : PlatformTest() {
         val vm = viewModel()
         vm.pick()
         vm.onAction(SmartExtractAction.SelectChapter(0))
-        assertEquals(3, vm.uiState.value.requests)
+        // Three parts and the request that summarises them (ADR 0015, C4).
+        assertEquals(4, vm.uiState.value.requests)
 
         vm.onAction(SmartExtractAction.TextChanged("Short"))
         assertEquals(1, vm.uiState.value.requests)

@@ -1,6 +1,8 @@
 package com.yahyafati.mnemo.core.domain
 
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
+import com.yahyafati.mnemo.core.data.repository.SummaryRequest
+import com.yahyafati.mnemo.core.data.repository.SummaryResult
 import com.yahyafati.mnemo.core.model.AiCapabilities
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
@@ -8,6 +10,7 @@ import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.CardFigure
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.MediaRef
@@ -17,6 +20,7 @@ import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -32,7 +36,8 @@ import kotlin.test.assertTrue
 class SmartExtractUseCasesTest {
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()
-    private val generate = GenerateCardsUseCase(generation, cards)
+    private val contexts = FakeSourceContextRepository()
+    private val generate = GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(contexts))
     private val regenerate = RegenerateCardUseCase(generation, cards)
     private val media = FakeMediaRepository()
     private val accept = AcceptGeneratedCardsUseCase(cards, media)
@@ -235,5 +240,92 @@ class SmartExtractUseCasesTest {
         assertEquals(listOf("What is a cell?", "The unit of life"), noteWith("What is a cell?").fields)
         assertEquals("Mitochondrion", noteWith("Which organelle").fields[1])
         assertTrue(media.stored.isEmpty())
+    }
+
+    // The context summary (ADR 0015, C4)
+
+    private fun summarized(parts: List<SourcePart>, summarize: String? = "The whole source.", context: String = "") =
+        ExtractRequest(parts, ExtractOptions(), deckId = null, title = "Choices", context = context, summarize = summarize)
+
+    private val threeParts = listOf(SourcePart("One"), SourcePart("Two"), SourcePart("Three"))
+
+    @Test
+    fun theSummaryIsWrittenBeforeTheFirstPartAndSentWithEveryPart() = runTest {
+        contexts.respond = { SummaryResult.Success("About loss aversion.") }
+        val events = generate(route, summarized(threeParts)).toList()
+
+        assertEquals(
+            listOf("SummaryStarted", "SummaryReady", "PartStarted", "PartStarted", "PartStarted", "Finished"),
+            events.map { it::class.simpleName },
+        )
+        assertEquals("About loss aversion.", assertIs<ExtractEvent.SummaryReady>(events[1]).text)
+        assertEquals(listOf("About loss aversion.", "About loss aversion.", "About loss aversion."), generation.requests.map { it.context })
+        // The request names the source, its title and the cards' language, and goes to the route that was asked.
+        val request = contexts.requests.single()
+        assertEquals(SummaryRequest("The whole source.", "Choices", language = null), request)
+        assertEquals(route, contexts.routes.single())
+    }
+
+    @Test
+    fun aFailedSummaryEndsTheRunBeforeAnyPart() = runTest {
+        contexts.respond = { SummaryResult.Failure(AiFailure(AiProblem.RateLimited)) }
+        val events = generate(route, summarized(threeParts)).toList()
+
+        assertEquals(listOf("SummaryStarted", "SummaryFailed"), events.map { it::class.simpleName })
+        assertEquals(AiProblem.RateLimited, assertIs<ExtractEvent.SummaryFailed>(events.last()).failure.problem)
+        assertTrue(generation.requests.isEmpty())
+    }
+
+    @Test
+    fun aSummaryThatExistsIsSentWithoutAskingAgain() = runTest {
+        val events = generate(route, summarized(threeParts, summarize = null, context = "Already written.")).toList()
+
+        assertTrue(events.none { it is ExtractEvent.SummaryStarted })
+        assertTrue(contexts.requests.isEmpty())
+        assertEquals(listOf("Already written.", "Already written.", "Already written."), generation.requests.map { it.context })
+    }
+
+    @Test
+    fun noSummaryMeansNoContext() = runTest {
+        generate(route, summarized(threeParts, summarize = null)).toList()
+        assertEquals(listOf("", "", ""), generation.requests.map { it.context })
+    }
+
+    @Test
+    fun theLanguageOfTheCardsIsTheLanguageOfTheSummary() = runTest {
+        generate(route, ExtractRequest(threeParts, ExtractOptions(language = "Spanish"), deckId = null, summarize = "Source.")).toList()
+        assertEquals("Spanish", contexts.requests.single().language)
+    }
+
+    @Test
+    fun regenerateSendsTheSummaryToo() = runTest {
+        generation.answer(FakeCardGenerationRepository.card("A better question?", "Answer."))
+        regenerate(route, FakeCardGenerationRepository.card("Vague?", "Yes."), SourcePart("The story."), ExtractOptions(), deckId = null, context = "About loss aversion.")
+        assertEquals("About loss aversion.", generation.requests.single().context)
+    }
+
+    @Test
+    fun theOptionsSayWhichSourcesGetASummary() {
+        val auto = ExtractOptions()
+        assertEquals(listOf(false, false, true, true), (1..4).map { auto.makesSummary(it) })
+        assertEquals(listOf(0, 1, 2, 4, 5), listOf(0, 1, 2, 3, 4).map { auto.requests(it) })
+        val off = ExtractOptions(contextSummary = ContextSummary.Off)
+        assertEquals(listOf(0, 1, 2, 3, 4), listOf(0, 1, 2, 3, 4).map { off.requests(it) })
+    }
+
+    @Test
+    fun theCacheKeepsASummaryPerTextModelAndLanguage() {
+        val cache = SourceSummaryCache()
+        cache["Text", "model", null] = "Summary."
+
+        assertEquals("Summary.", cache["Text", "model", null])
+        assertNull(cache["Text", "other-model", null])
+        assertNull(cache["Text", "model", "Spanish"])
+        assertNull(cache["Other text", "model", null])
+
+        cache["Text", "model", null] = "Edited."
+        assertEquals("Edited.", cache["Text", "model", null])
+        cache.clear()
+        assertNull(cache["Text", "model", null])
     }
 }

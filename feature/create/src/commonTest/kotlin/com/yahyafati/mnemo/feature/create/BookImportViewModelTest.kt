@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.feature.create
 import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
@@ -16,6 +17,7 @@ import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import kotlinx.coroutines.flow.first
@@ -62,7 +64,7 @@ class BookImportViewModelTest : PlatformTest() {
         sources = sources,
         deckRepository = decks,
         createBookDecks = CreateBookDecksUseCase(decks),
-        generateCards = GenerateCardsUseCase(generation, FakeCardRepository()),
+        generateCards = GenerateCardsUseCase(generation, FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
     )
@@ -275,8 +277,9 @@ class BookImportViewModelTest : PlatformTest() {
 
         val plan = assertNotNull(vm.uiState.value.batchPlan)
         // Content only, in book order; the blank chapter has nothing to send.
+        // One chapter has three parts, which also takes the request that summarises it (ADR 0015, C4).
         val counts = vm.uiState.value.wordCounts
-        assertEquals(BatchPlan(chapterIds = listOf(1, 2), words = counts.getValue(1) + counts.getValue(2), requests = 4), plan)
+        assertEquals(BatchPlan(chapterIds = listOf(1, 2), words = counts.getValue(1) + counts.getValue(2), requests = 5), plan)
         assertEquals("Groq", vm.uiState.value.route?.provider?.name)
         assertTrue(decks.getDecks().isEmpty())
         assertNull(handoff.offer.value)

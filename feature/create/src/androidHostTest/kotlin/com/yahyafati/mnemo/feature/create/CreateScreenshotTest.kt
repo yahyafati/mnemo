@@ -449,6 +449,41 @@ class CreateScreenshotTest {
         }
     }
 
+    @Test
+    fun contextSummaryLight() = captureRoboImage("src/androidHostTest/screenshots/create_extract_context_light.png") { ContextSummaryCard() }
+
+    /** Smart Extract after a run on a long chapter: the summary that went with every part, open above the queue (ADR 0015, C4). */
+    @androidx.compose.runtime.Composable
+    private fun ContextSummaryCard() {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val text = "Loss aversion is the tendency to feel a loss more strongly than an equal gain."
+        MnemoTheme {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Psychology::Decisions")),
+                    deckId = "d",
+                    text = text,
+                    title = "Choices under risk",
+                    parts = 5,
+                    generation = GenerationState.Done(2),
+                    context = SourceContext(
+                        "A chapter on how people decide under risk. It builds up prospect theory: losses weigh more than gains, and the reference point decides what counts as a loss. " +
+                            "The shipwreck story illustrates loss aversion; the taxi-driver study illustrates the reference point.",
+                        expanded = true,
+                    ),
+                    queue = listOf(
+                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What is loss aversion?", "Feeling a loss more strongly than an equal gain.", listOf("decisions")), SourcePart(text)),
+                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::reference point}} decides what counts as a loss.", ""), SourcePart(text)),
+                    ),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
+    }
+
     /** Smart Extract in the middle of a book run: chapter 3 of 8 is done and waits for its review. */
     @androidx.compose.runtime.Composable
     private fun BatchRun(dark: Boolean) {

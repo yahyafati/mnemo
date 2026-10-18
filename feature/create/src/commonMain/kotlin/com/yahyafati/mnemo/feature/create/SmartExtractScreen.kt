@@ -82,6 +82,7 @@ import com.yahyafati.mnemo.core.model.CardArchetype
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.DisclosureStep
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.Overlap
@@ -336,6 +337,22 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_stop
 import com.yahyafati.mnemo.feature.create.resources.feature_create_text
 import com.yahyafati.mnemo.feature.create.resources.feature_create_type_basic
 import com.yahyafati.mnemo.feature.create.resources.feature_create_type_cloze
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_context_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_auto
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_auto_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_done
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_edit
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_hide
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_off_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_show
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_summary
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summarizing
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summary_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summary_skip
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import java.time.Instant
@@ -412,6 +429,11 @@ internal fun SmartExtractScreen(
                 ) {
                     if (onImportBook != null) item(key = "book") { BookImportEntry(onImportBook, Modifier.widthIn(max = 680.dp)) }
                     item(key = "workshop") { Workshop(uiState, uiState.route, pageFiles, onAction, onSetUpAi, Modifier.widthIn(max = 680.dp)) }
+                    uiState.context?.let { context ->
+                        item(key = "context") {
+                            ContextCard(context, canEdit = !uiState.isGenerating, modelId = uiState.route.modelId, onAction = onAction, modifier = Modifier.widthIn(max = 680.dp))
+                        }
+                    }
                     item(key = "queue-header") { QueueHeader(uiState, onAction, Modifier.widthIn(max = 680.dp)) }
                     itemsIndexed(uiState.queue, key = { _, item -> item.card.id }) { index, item ->
                         ReviewCard(
@@ -701,9 +723,9 @@ private fun BatchBanner(batch: BookBatch, generation: GenerationState, nothingTo
             Text(
                 text = stringResource(
                     when (generation) {
-                        is GenerationState.Running -> Res.string.feature_create_batch_hint_running
+                        is GenerationState.Running, GenerationState.Summarizing -> Res.string.feature_create_batch_hint_running
                         is GenerationState.Done -> if (nothingToLearn) Res.string.feature_create_batch_hint_nothing else Res.string.feature_create_batch_hint_review
-                        is GenerationState.Failed, is GenerationState.PageUnreadable -> Res.string.feature_create_batch_hint_failed
+                        is GenerationState.Failed, is GenerationState.PageUnreadable, is GenerationState.SummaryFailed -> Res.string.feature_create_batch_hint_failed
                         GenerationState.Idle -> Res.string.feature_create_batch_hint_idle
                     },
                 ),
@@ -1448,6 +1470,7 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
             Overlap.Always -> add(stringResource(Res.string.feature_create_advanced_overlap_always))
             Overlap.Off -> add(stringResource(Res.string.feature_create_advanced_overlap_off))
         }
+        if (options.contextSummary == ContextSummary.Off) add(stringResource(Res.string.feature_create_advanced_context_off))
     }
     Column {
         Row(
@@ -1485,6 +1508,7 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
                 onCheckedChange = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
             )
             OverlapPicker(options.overlap) { onAction(SmartExtractAction.SetOverlap(it)) }
+            ContextSummaryPicker(options.contextSummary) { onAction(SmartExtractAction.SetContextSummary(it)) }
         }
     }
 }
@@ -1523,6 +1547,89 @@ private fun overlapLabel(overlap: Overlap) = stringResource(
     },
 )
 
+/** *Context summary* (ADR 0015, C4): one field, one focus stop, with a line saying what the choice does. */
+@Composable
+private fun ContextSummaryPicker(summary: ContextSummary, onSelect: (ContextSummary) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs),
+        modifier = Modifier.padding(vertical = MnemoTheme.spacing.sm),
+    ) {
+        OptionDropdown(
+            value = contextSummaryLabel(summary),
+            label = stringResource(Res.string.feature_create_context_summary),
+            leadingIcon = MnemoIcons.Sparkle,
+            options = ContextSummary.entries.map { choice -> contextSummaryLabel(choice) to { onSelect(choice) } },
+        )
+        Hint(
+            stringResource(
+                when (summary) {
+                    ContextSummary.Auto -> Res.string.feature_create_context_auto_hint
+                    ContextSummary.Off -> Res.string.feature_create_context_off_hint
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun contextSummaryLabel(summary: ContextSummary) = stringResource(
+    when (summary) {
+        ContextSummary.Auto -> Res.string.feature_create_context_auto
+        ContextSummary.Off -> Res.string.feature_create_context_off
+    },
+)
+
+/**
+ * The summary of the whole source that goes with every part (ADR 0015, C4): its first line and Show, then the whole of it,
+ * which the user can fix with Edit (not while a run is going) or report, since it is AI output.
+ */
+@Composable
+private fun ContextCard(context: SourceContext, canEdit: Boolean, modelId: String, onAction: (SmartExtractAction) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val spacing = MnemoTheme.spacing
+    Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = colors.surfaceContainerLow) {
+        Column(Modifier.padding(horizontal = spacing.md, vertical = spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.feature_create_context_title).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (context.text.isNotBlank()) ReportAiButton(AiReport(AiReportKind.ContextSummary, context.text, modelId), compact = true)
+                if (context.editing) {
+                    TextButton(onClick = { onAction(SmartExtractAction.DoneEditingContext) }) { Text(stringResource(Res.string.feature_create_context_done)) }
+                } else if (canEdit) {
+                    TextButton(onClick = { onAction(SmartExtractAction.EditContext) }) { Text(stringResource(Res.string.feature_create_context_edit)) }
+                }
+            }
+            if (context.editing) {
+                OutlinedTextField(
+                    value = context.text,
+                    onValueChange = { onAction(SmartExtractAction.ContextChanged(it)) },
+                    label = { Text(stringResource(Res.string.feature_create_context_label)) },
+                    minLines = 3,
+                    maxLines = 10,
+                    shape = MaterialTheme.shapes.small,
+                    colors = editorFieldColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Text(
+                    text = context.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (context.expanded) Int.MAX_VALUE else 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                TextButton(onClick = { onAction(SmartExtractAction.ToggleContext) }) {
+                    Text(stringResource(if (context.expanded) Res.string.feature_create_context_hide else Res.string.feature_create_context_show))
+                }
+            }
+            if (context.expanded) Hint(stringResource(Res.string.feature_create_context_hint))
+        }
+    }
+}
+
 @Composable
 private fun SwitchRow(title: String, summary: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
@@ -1545,6 +1652,22 @@ private fun SwitchRow(title: String, summary: String, checked: Boolean, onChecke
 private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtractAction) -> Unit) {
     val colors = MaterialTheme.colorScheme
     when (val generation = uiState.generation) {
+        GenerationState.Summarizing -> Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.feature_create_summarizing),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                MnemoButton(
+                    text = stringResource(Res.string.feature_create_stop),
+                    onClick = { onAction(SmartExtractAction.Stop) },
+                    style = MnemoButtonStyle.Secondary,
+                    leadingIcon = MnemoIcons.Stop,
+                )
+            }
+        }
         is GenerationState.Running -> Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1585,6 +1708,26 @@ private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtra
                                 .padding(MnemoTheme.spacing.sm),
                         )
                         TextButton(onClick = { onAction(SmartExtractAction.Retry) }) { Text(stringResource(Res.string.feature_create_retry)) }
+                    }
+                }
+            }
+            if (generation is GenerationState.SummaryFailed) {
+                Surface(shape = MaterialTheme.shapes.small, color = colors.errorContainer, contentColor = colors.onErrorContainer) {
+                    Column(Modifier.padding(start = MnemoTheme.spacing.md, end = MnemoTheme.spacing.xs, top = MnemoTheme.spacing.xs, bottom = MnemoTheme.spacing.xs)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(MnemoIcons.Error, null, Modifier.size(18.dp))
+                            Text(
+                                text = stringResource(Res.string.feature_create_summary_failed, aiFailureText(generation.failure)),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(MnemoTheme.spacing.sm),
+                            )
+                        }
+                        Row {
+                            TextButton(onClick = { onAction(SmartExtractAction.Retry) }) { Text(stringResource(Res.string.feature_create_retry)) }
+                            TextButton(onClick = { onAction(SmartExtractAction.GenerateWithoutContext) }) { Text(stringResource(Res.string.feature_create_summary_skip)) }
+                        }
                     }
                 }
             }

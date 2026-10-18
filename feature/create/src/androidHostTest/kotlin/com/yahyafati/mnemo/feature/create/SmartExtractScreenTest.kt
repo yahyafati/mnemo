@@ -23,9 +23,13 @@ import com.yahyafati.mnemo.core.designsystem.platform.PlatformCapabilities
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.AiCapabilities
+import com.yahyafati.mnemo.core.model.AiFailure
+import com.yahyafati.mnemo.core.model.AiProblem
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
@@ -43,6 +47,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
@@ -80,7 +85,7 @@ class SmartExtractScreenTest {
         runBlocking { decks.saveDeck("Neuroscience") }
         SmartExtractViewModel(
             providers, decks, sources,
-            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()), BookHandoff(),
+            GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository())), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()), BookHandoff(),
             FakeUserSettingsRepository(), ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
         )
     }
@@ -261,6 +266,93 @@ class SmartExtractScreenTest {
         composeRule.onNodeWithText("Overlap: always").performScrollTo().assertExists()
         state = state.copy(options = state.options.copy(overlap = Overlap.Off))
         composeRule.onNodeWithText("Overlap: off").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun theContextSummaryIsChosenInTheAdvancedOptionsAndNamedWhenClosedIfOff() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Some text.",
+                showAdvanced = true,
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("Context summary").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Auto").performScrollTo().performClick()
+        composeRule.onNodeWithText("Off", useUnmergedTree = true).performClick()
+        assertEquals(SmartExtractAction.SetContextSummary(ContextSummary.Off), actions.last())
+
+        state = state.copy(showAdvanced = false)
+        composeRule.onNodeWithText("No summary").assertDoesNotExist()
+        state = state.copy(options = state.options.copy(contextSummary = ContextSummary.Off))
+        composeRule.onNodeWithText("No summary").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun theContextCardShowsAFirstLineThenTheWholeSummaryAndCanBeEdited() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "One\n---\nTwo\n---\nThree",
+                generation = GenerationState.Done(0),
+                context = SourceContext("A chapter on loss aversion. The shipwreck story illustrates it."),
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("CONTEXT"))
+        composeRule.onNodeWithText("CONTEXT").assertExists()
+        composeRule.onNodeWithText("Sent with every part", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Show").performClick()
+        assertEquals(SmartExtractAction.ToggleContext, actions.last())
+        composeRule.onNodeWithText("Edit").performClick()
+        assertEquals(SmartExtractAction.EditContext, actions.last())
+
+        // Open, it explains what it is; every piece of AI output can be reported.
+        state = state.copy(context = state.context?.copy(expanded = true))
+        composeRule.onNodeWithText("Sent with every part", substring = true).assertExists()
+        composeRule.onNodeWithText("Hide").assertExists()
+        composeRule.onAllNodesWithContentDescription("Report").assertCountEquals(1)
+
+        state = state.copy(context = state.context?.copy(editing = true))
+        composeRule.onNodeWithText("Context summary").assertExists()
+        composeRule.onNodeWithText("Done").performClick()
+        assertEquals(SmartExtractAction.DoneEditingContext, actions.last())
+
+        // Not while a run is going: the parts still to be sent read it as it is when they start.
+        state = state.copy(generation = GenerationState.Running(1, 3), context = state.context?.copy(editing = false))
+        composeRule.onNodeWithText("Edit").assertDoesNotExist()
+    }
+
+    @Test
+    fun aFailedSummaryOffersToTryAgainOrToGoOnWithoutIt() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "One\n---\nTwo\n---\nThree",
+                generation = GenerationState.Summarizing,
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("Reading the whole source…").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Stop").performClick()
+        assertEquals(SmartExtractAction.Stop, actions.last())
+
+        state = state.copy(generation = GenerationState.SummaryFailed(AiFailure(AiProblem.RateLimited)))
+        composeRule.onNodeWithText("Couldn't summarise the source", substring = true).performScrollTo().assertExists()
+        composeRule.onNodeWithText("Retry").performClick()
+        assertEquals(SmartExtractAction.Retry, actions.last())
+        composeRule.onNodeWithText("Generate without context").performClick()
+        assertEquals(SmartExtractAction.GenerateWithoutContext, actions.last())
     }
 
     @Test

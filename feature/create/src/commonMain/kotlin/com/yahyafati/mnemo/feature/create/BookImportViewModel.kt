@@ -15,6 +15,7 @@ import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
+import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.SourceInput
 import kotlinx.coroutines.CancellationException
@@ -148,7 +149,8 @@ class BookImportViewModel(
                 batchPlan = BatchPlan(
                     chapterIds = chapters.map { chapter -> chapter.id },
                     words = chapters.sumOf { chapter -> state.wordCounts[chapter.id] ?: 0 },
-                    requests = chapters.sumOf { chapter -> generateCards.split(chapter.text).size },
+                    // A chapter of three parts or more also takes the request that summarises it (ADR 0015, C4); the run starts from the default options.
+                    requests = chapters.sumOf { chapter -> generateCards.requests(generateCards.split(chapter.text).size, ExtractOptions()) },
                 ),
             )
         }

@@ -6,8 +6,11 @@ import com.yahyafati.mnemo.core.data.repository.GenerationRequest
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
 import com.yahyafati.mnemo.core.data.repository.PageTranscription
 import com.yahyafati.mnemo.core.data.repository.PdfReadRepository
+import com.yahyafati.mnemo.core.data.repository.SourceContextRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
 import com.yahyafati.mnemo.core.data.repository.StudyAssistRepository
+import com.yahyafati.mnemo.core.data.repository.SummaryRequest
+import com.yahyafati.mnemo.core.data.repository.SummaryResult
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AssistUpdate
 import com.yahyafati.mnemo.core.model.BookResult
@@ -247,6 +250,21 @@ class FakeCoAuthorRepository : CoAuthorRepository {
  * [PdfReadRepository] that answers each page with [respond]: by default a transcription naming its page. [transcribed]
  * records every request as `(route, handle, page, quality)`.
  */
+/** [SourceContextRepository] that answers each request with [respond]: by default a summary that names the title. */
+class FakeSourceContextRepository : SourceContextRepository {
+    val requests = mutableListOf<SummaryRequest>()
+
+    /** The route of each request in [requests], in the same order. */
+    val routes = mutableListOf<AiRoute>()
+    var respond: suspend (SummaryRequest) -> SummaryResult = { request -> SummaryResult.Success("Summary of ${request.title ?: "the source"}.") }
+
+    override suspend fun summarize(route: AiRoute, request: SummaryRequest): SummaryResult {
+        requests += request
+        routes += route
+        return respond(request)
+    }
+}
+
 class FakePdfReadRepository : PdfReadRepository {
     val transcribed = mutableListOf<TranscriptionRequest>()
     var respond: suspend (page: Int) -> PageTranscription = { page -> PageTranscription.Success("Transcription of page $page.") }

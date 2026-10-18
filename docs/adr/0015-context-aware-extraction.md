@@ -1,7 +1,7 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0–C3 are built ("As built" below); C4–C7 are open.
+  C0–C4 are built ("As built" below); C5–C7 are open.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -508,3 +508,55 @@ each adds its own block.
   limit and size), `CardGenerationPromptTest` (the block, its place, escaping), `RequestGoldenTest`,
   `SmartExtractUseCasesTest` (Regenerate sends the part with its overlap), `SmartExtractViewModelTest` (the setting reaches
   the split; Regenerate keeps the overlap after the setting and the box changed) and `SmartExtractScreenTest`.
+
+## As built (C4, 2026-10-18)
+
+- `SourceSummaryPrompt` and `SourceSummaryClient` (`:core:ai`) are `PageTranscriptionPrompt`'s shape: plain Markdown, no
+  schema, streamed when the model can. The system message asks for at most 150 words in the ADR's three parts and
+  names the language when the cards have one (the summary is written in it, which is why the cache is keyed by it);
+  `clean` takes off a code fence and cuts a reply at `MAX_CHARS` (1,500) at a sentence. A skim is announced in the user
+  message ("outline and the opening of each section, with […] where text was left out"). `PromptFence.escape`
+  (internal) is the one place that escapes `<source>`, `<before>` and `<context>` tags; `CardGenerationPrompt` has a
+  `context` field that writes the `<context>` block between the list of known cards and the path line, and leaves it
+  out when blank. Goldens: `smart-extract-part.json` now carries a context, and `smart-extract-summary.json` is the
+  summary request.
+- `SummaryInput.of(text, budget = 3,000)` (`:core:ingest`) is the whole text, or a skim. With three or more headings
+  it is the outline (as many headings as fit in a third of the budget, spread evenly if there are more) plus each
+  section's opening: its first paragraphs up to the section's share of the rest, a first paragraph that is longer cut at
+  a sentence, `[…]` after anything left out. The lead (text before the first heading) weighs three shares and the
+  last section with a body two; if a share would be under 25 words, sections are thinned out evenly (the lead and the
+  last kept). Without headings (or with fewer than three) it is the first 1,500 words, the last 500 and pieces of
+  about 100 words from the middle of evenly spaced stretches between, joined by `[…]`. A skim is always within the
+  budget (tested with 2,000 headings, one huge paragraph and Japanese).
+- `SourceContextRepository.summarize(route, SummaryRequest(text, title, language))` (`:core:data`, `SummaryResult`)
+  builds the `SummaryInput`, logs usage on the route's task (even for a failed reply) and tidies the answer; a blank
+  reply is `InvalidResponse`. `SummarizeSourceUseCase` (`:core:domain`) wraps it, and `SourceSummaryCache` is the
+  session cache (text, model, language), like `PageTranscriptionCache`. Whether a source gets a summary is
+  `ExtractOptions.makesSummary(parts)` (`ContextSummary { Auto, Off }`, default Auto; at least
+  `MIN_PARTS_FOR_SUMMARY` = 3 parts) and `ExtractOptions.requests(parts)` is the number of requests the app shows
+  (`SmartExtractUiState.requests` is now derived from `parts` and the options, so changing the setting changes the
+  hint at once; the book import's confirmation uses the default options). The count ignores the cache: it is what a
+  first run costs.
+- `ExtractRequest(context, summarize)`: `summarize` is the whole text to summarise first, `context` a summary that
+  exists (cached or edited). `GenerateCardsUseCase` emits `SummaryStarted`, then `SummaryReady(text)` or
+  `SummaryFailed(failure)`, which ends the run before any part. `GenerationRequest.context` and
+  `RegenerateCardUseCase(context = …)` carry it to the prompt.
+- In the ViewModel the summary is in `SmartExtractUiState.context` (`SourceContext(text, expanded, editing)`), the
+  cache is `summaries`, and `GenerationState` gained `Summarizing` and `SummaryFailed`. Retry after a failed summary
+  asks again; **Generate without context** goes on with none. Edit is refused while a run is going, so a part is
+  always sent with the summary as it was when the run last started or resumed; an edit goes into the cache, which is how
+  Resume, Regenerate (it sends the summary on screen) and a second Generate use it. A page-image run, ClearText and the
+  next chapter of a book run clear the card.
+- The **Context** card (`ContextCard` in `SmartExtractScreen.kt`) sits above the queue: first line and Show, then the
+  whole text and a line saying what it is; Edit/Done, and `ReportAiButton` (`AiReportKind.ContextSummary`). Advanced ›
+  **Context summary** (Auto / Off, `ContextSummaryPicker`) says "No summary" in the closed row when off. Not persisted
+  yet (C5).
+- Privacy: the Smart Extract row of `docs/release/privacy-policy.md` says a long source also sends its text, or a
+  skim of it, for the summary. The in-app disclosure ("the source text you entered …") stays true.
+- Tests: `SummaryInputTest`, `SourceSummaryTest` (prompt, cleaning, a mock-server request, the context block and its
+  escaping), `RequestGoldenTest`, `SmartExtractUseCasesTest` (order of events, failure, cache, language, Regenerate),
+  `SmartExtractContextTest` (when it is made, the count, the cache on Resume, a second Generate, an edit used by
+  Resume, Regenerate and Generate, failure with Retry and Generate without context, Stop, Clear),
+  `SmartExtractScreenTest`, and the screenshots `create_extract_context_light.png` and the re-recorded
+  `create_extract_advanced_light.png`. `ExtractRequestDump` (QA) still sends parts without a summary: judge the
+  summary's effect in the app, or extend the dump in C7.

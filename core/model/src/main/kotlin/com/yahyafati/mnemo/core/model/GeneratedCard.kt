@@ -40,6 +40,15 @@ enum class Overlap {
     Off,
 }
 
+/** Whether a long source is summarised before its parts are sent (ADR 0015, C4). */
+enum class ContextSummary {
+    /** One request writes a summary when the source has at least [ExtractOptions.MIN_PARTS_FOR_SUMMARY] parts. */
+    Auto,
+
+    /** Never. */
+    Off,
+}
+
 /** What the user asked Smart Extract for. */
 data class ExtractOptions(
     val density: ExtractDensity = ExtractDensity.Balanced,
@@ -53,14 +62,25 @@ data class ExtractOptions(
     val skipIllustrations: Boolean = true,
     /** Which parts are sent with the end of the part before them, as context only (ADR 0015, C3). */
     val overlap: Overlap = Overlap.WithinSections,
+    /** Whether a long source gets a short summary that is sent with every part (ADR 0015, C4). */
+    val contextSummary: ContextSummary = ContextSummary.Auto,
 ) {
     /** At most how many cards [words] of source should give: a ceiling, since a part may hold fewer ideas (ADR 0015). */
     fun targetCards(words: Int): Int =
         (words / density.wordsPerCard).coerceIn(MIN_CARDS_PER_REQUEST, MAX_CARDS_PER_REQUEST)
 
+    /** A source of [parts] parts gets a summary: it is on, and a one- or two-part source is its own context. */
+    fun makesSummary(parts: Int): Boolean = contextSummary == ContextSummary.Auto && parts >= MIN_PARTS_FOR_SUMMARY
+
+    /** How many requests a source of [parts] parts takes, the summary's included; 0 for no parts. */
+    fun requests(parts: Int): Int = if (parts <= 0) 0 else parts + if (makesSummary(parts)) 1 else 0
+
     companion object {
         const val MIN_CARDS_PER_REQUEST = 3
         const val MAX_CARDS_PER_REQUEST = 40
+
+        /** The fewest parts for which Auto writes a summary (ADR 0015, C4). */
+        const val MIN_PARTS_FOR_SUMMARY = 3
 
         /** Languages offered in the picker, besides "same as the source". */
         val Languages = listOf(

@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.feature.create
 
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.SourceInput
@@ -14,6 +15,7 @@ import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
@@ -59,7 +61,7 @@ class SmartExtractSectionsTest : PlatformTest() {
         aiProviders = FakeAiProviderRepository(),
         deckRepository = FakeDeckRepository(),
         sources = sources,
-        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
+        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         regenerateCard = RegenerateCardUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
         acceptCards = AcceptGeneratedCardsUseCase(FakeCardRepository(), FakeMediaRepository()),
         bookHandoff = BookHandoff(),

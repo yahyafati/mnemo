@@ -19,6 +19,7 @@ import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -32,7 +33,7 @@ import kotlin.test.assertIs
 class PageImageExtractTest {
     private val generation = FakeCardGenerationRepository()
     private val cards = FakeCardRepository()
-    private val generate = GenerateCardsUseCase(generation, cards)
+    private val generate = GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository()))
     private val regenerate = RegenerateCardUseCase(generation, cards)
     private val handle = PdfHandle("pdf-1", PdfInfo(30, "Slides"))
     private val route = AiRoute(

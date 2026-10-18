@@ -7,6 +7,7 @@ import com.yahyafati.mnemo.core.domain.GeneratedCardValidator
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
@@ -48,8 +49,8 @@ data class SmartExtractUiState(
     val truncated: Boolean = false,
     /** The page read was a disambiguation page: a list of other articles, worth saying before cards are made from it. */
     val disambiguation: Boolean = false,
-    /** How many requests [text] is sent in (one per part); 0 for no text. More than one is worth saying. */
-    val requests: Int = 0,
+    /** How many parts [text] is split into; 0 for no text. */
+    val parts: Int = 0,
     /** The sections of the page the link was read from (W4), null when the page has none to pick from. */
     val sections: SectionsSummary? = null,
     val showSections: Boolean = false,
@@ -72,6 +73,8 @@ data class SmartExtractUiState(
     /** The Advanced options (ADR 0015) are open. */
     val showAdvanced: Boolean = false,
     val generation: GenerationState = GenerationState.Idle,
+    /** The summary of the whole source that went with the parts (ADR 0015, C4); null when the run made none. */
+    val context: SourceContext? = null,
     val queue: List<QueueItem> = emptyList(),
     /** Proposed cards dropped this session, as duplicates or as unusable. */
     val duplicatesSkipped: Int = 0,
@@ -104,7 +107,10 @@ data class SmartExtractUiState(
 
     private fun cardsFor(words: Int) = maxOf(options.targetCards(words), words / options.density.wordsPerCard)
 
-    val isGenerating: Boolean get() = generation is GenerationState.Running
+    /** How many requests [text] is sent in: one per part, and one for the context summary when it is made (ADR 0015, C4). More than one is worth saying. */
+    val requests: Int get() = options.requests(parts)
+
+    val isGenerating: Boolean get() = generation is GenerationState.Running || generation == GenerationState.Summarizing
 
     /**
      * The run ended and the model proposed nothing at all, not even a duplicate (ADR 0015, C1): the text had nothing worth a
@@ -134,6 +140,12 @@ data class SmartExtractUiState(
 
     val deckPath: String? get() = decks.firstOrNull { it.id == deckId }?.path
 }
+
+/**
+ * The context summary shown above the review queue (ADR 0015, C4): [text] goes with every part still to be sent and
+ * with Regenerate. [expanded]: the whole of it is shown, not its first line. [editing]: it is a text field.
+ */
+data class SourceContext(val text: String, val expanded: Boolean = false, val editing: Boolean = false)
 
 /**
  * The sections of a page (a Wikipedia article's), whose chosen ones make up the text in the box. The text stays in
@@ -293,6 +305,12 @@ data class FigureEdit(
 
 sealed interface GenerationState {
     data object Idle : GenerationState
+
+    /** The request that summarises the whole source is going on; the first part follows it (ADR 0015, C4). */
+    data object Summarizing : GenerationState
+
+    /** The summary request failed, so no part was sent. Retry asks again; Generate without context goes on without it. */
+    data class SummaryFailed(val failure: AiFailure) : GenerationState
 
     /** Working on [part] (0-based) of [parts]; with page images, [pages] are the ones this request sends. */
     data class Running(val part: Int, val parts: Int, val pages: List<Int> = emptyList()) : GenerationState
@@ -496,6 +514,22 @@ sealed interface SmartExtractAction {
 
     /** *Overlap between parts* (ADR 0015, C3). */
     data class SetOverlap(val overlap: Overlap) : SmartExtractAction
+
+    /** *Context summary* (ADR 0015, C4). */
+    data class SetContextSummary(val summary: ContextSummary) : SmartExtractAction
+
+    /** Shows the whole context summary, or only its first line. */
+    data object ToggleContext : SmartExtractAction
+
+    /** Starts editing the context summary; not while a run is going. */
+    data object EditContext : SmartExtractAction
+
+    data class ContextChanged(val text: String) : SmartExtractAction
+
+    data object DoneEditingContext : SmartExtractAction
+
+    /** After a failed summary: goes on with the parts without one. */
+    data object GenerateWithoutContext : SmartExtractAction
 
     data object Generate : SmartExtractAction
 

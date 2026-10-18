@@ -11,6 +11,7 @@ import com.yahyafati.mnemo.core.domain.GetRetentionOverviewUseCase
 import com.yahyafati.mnemo.core.domain.GetTodaySummaryUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.StudySchedulerReplayer
 import com.yahyafati.mnemo.core.domain.UndoLastAnswerUseCase
 import com.yahyafati.mnemo.core.data.sync.ScheduleReplayer
@@ -31,6 +32,7 @@ val domainModule = module {
     factoryOf(::GetTodaySummaryUseCase)
     factoryOf(::ReadPdfPagesUseCase)
     factoryOf(::RegenerateCardUseCase)
+    factoryOf(::SummarizeSourceUseCase)
     factoryOf(::UndoLastAnswerUseCase)
 
     // The sync merge replays reviews that two devices gave the same card (`:core:data` can't see `StudyScheduler`).

@@ -17,6 +17,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
@@ -27,6 +28,7 @@ import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import kotlinx.coroutines.runBlocking
@@ -60,7 +62,7 @@ class BookImportScreenTest {
         sources = sources,
         deckRepository = decks,
         createBookDecks = CreateBookDecksUseCase(decks),
-        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
+        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
     )

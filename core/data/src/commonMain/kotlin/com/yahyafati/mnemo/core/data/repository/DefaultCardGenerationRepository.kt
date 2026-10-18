@@ -135,6 +135,7 @@ internal fun cardsPrompt(request: GenerationRequest, pageNumbers: List<Int> = em
         path = request.source.path,
         continued = request.source.continued,
         overlap = request.source.overlap,
+        context = request.context,
         replacing = replacing?.let { it.front to it.back },
         pages = pageNumbers,
         images = images,

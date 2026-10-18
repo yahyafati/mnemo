@@ -57,6 +57,8 @@ data class GenerationRequest(
     val replacing: GeneratedCard? = null,
     /** Cards from page images: the pages sent as images; null for a text source. */
     val pages: PageImages? = null,
+    /** The summary of the whole source (ADR 0015, C4), sent as context with the part; blank for none. */
+    val context: String = "",
 ) {
     val text: String get() = source.text
 }

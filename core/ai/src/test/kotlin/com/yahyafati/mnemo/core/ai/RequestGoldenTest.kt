@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.ai.prompt.CoAuthorChatPrompt
 import com.yahyafati.mnemo.core.ai.prompt.CoAuthorContext
 import com.yahyafati.mnemo.core.ai.prompt.CoAuthorSuggestPrompt
 import com.yahyafati.mnemo.core.ai.prompt.DeckCardLine
+import com.yahyafati.mnemo.core.ai.prompt.SourceSummaryPrompt
 import com.yahyafati.mnemo.core.ai.prompt.StudyAssistPrompt
 import com.yahyafati.mnemo.core.ai.schema.GeneratedCardsSchema
 import com.yahyafati.mnemo.core.model.ExtractOptions
@@ -61,13 +62,22 @@ class RequestGoldenTest {
         path = listOf("Cell biology", "2. Energy", "2.3 The Krebs cycle"),
         continued = true,
         overlap = "The citric acid cycle starts with acetyl-CoA.\n\nIt ends where it began, with oxaloacetate.",
+        context = "A chapter on how cells make energy.\nThe yeast story illustrates fermentation.",
         replacing = "Old front" to "Old back",
+    )
+
+    private val summary = SourceSummaryPrompt(
+        source = "# Cell biology\n\nMitochondria make ATP (with \\frac{a}{b} and \"quotes\").\n\n## Energy\n\nThe yeast story.",
+        title = "Cell biology",
+        skimmed = true,
+        language = "Spanish",
     )
 
     private val requests: Map<String, ChatRequest> = mapOf(
         "smart-extract-schema" to request(smartExtract.messages(), GeneratedCardsSchema.cardsFormat),
         "smart-extract-stream" to request(smartExtract.messages(), GeneratedCardsSchema.cardsFormat, streaming = true),
         "smart-extract-part" to request(smartExtractPart.messages()),
+        "smart-extract-summary" to request(summary.messages(), streaming = true),
         "smart-extract-repair" to request(
             smartExtract.messages() + ChatMessage("assistant", "Sure! Here are some cards.") + ChatMessage.user(CardGenerationPrompt.REPAIR),
             GeneratedCardsSchema.cardsFormat,

@@ -45,6 +45,11 @@ data class CardGenerationPrompt(
      * Blank for none.
      */
     val overlap: String = "",
+    /**
+     * A short summary of the whole source (ADR 0015, C4), sent as context only: what it is about and what its main
+     * examples illustrate. It is model output derived from the source, so it is fenced like the source. Blank for none.
+     */
+    val context: String = "",
     /** Regenerating: the card the user rejected, which the one new card replaces. */
     val replacing: Pair<String, String>? = null,
     /**
@@ -110,6 +115,13 @@ data class CardGenerationPrompt(
             appendLine("These cards already exist. Don't repeat them:")
             shownAvoid.forEach { appendLine("- ${it.replace('\n', ' ').take(MAX_AVOID_CHARS)}") }
         }
+        if (context.isNotBlank()) {
+            appendLine()
+            appendLine("About the whole source, for context only (write cards only from <source>):")
+            appendLine("<context>")
+            appendLine(fenced(context.trim()))
+            appendLine("</context>")
+        }
         where()?.let {
             appendLine()
             appendLine("Where this part is: $it")
@@ -164,8 +176,8 @@ data class CardGenerationPrompt(
         else -> "pages ${pages.dropLast(1).joinToString(", ")} and ${pages.last()}"
     }
 
-    /** A `<source>`, `<before>` or the closing tag of either in the text (a page about HTML, or a trick) must not end a fence. */
-    private fun fenced(text: String) = text.replace(FENCE_TAG) { "&lt;${it.groupValues[1]}${it.groupValues[2].lowercase()}" }
+    /** A `<source>`, `<before>`, `<context>` or the closing tag of one (a page about HTML, or a trick) must not end a fence. */
+    private fun fenced(text: String) = PromptFence.escape(text)
 
     private fun densityHint() = when (options.density) {
         ExtractDensity.Concise -> "Only the high-yield facts a student must know."
@@ -194,7 +206,6 @@ data class CardGenerationPrompt(
 
     companion object {
         private const val PATH_SEPARATOR = " › "
-        private val FENCE_TAG = Regex("""<(/?)(source|before)\b""", RegexOption.IGNORE_CASE)
         const val MAX_AVOID = 60
         private const val MAX_AVOID_CHARS = 120
 

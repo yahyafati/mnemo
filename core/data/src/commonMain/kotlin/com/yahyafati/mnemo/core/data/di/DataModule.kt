@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.generate.ChatTextRunner
 import com.yahyafati.mnemo.core.ai.generate.CoAuthorClient
 import com.yahyafati.mnemo.core.ai.generate.PageTranscriptionClient
+import com.yahyafati.mnemo.core.ai.generate.SourceSummaryClient
 import com.yahyafati.mnemo.core.ai.generate.StudyAssistClient
 import com.yahyafati.mnemo.core.ai.probe.ConnectionProbe
 import com.yahyafati.mnemo.core.common.di.dispatcher
@@ -26,6 +27,7 @@ import com.yahyafati.mnemo.core.data.repository.DefaultAiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultCardGenerationRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultCoAuthorRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultPdfReadRepository
+import com.yahyafati.mnemo.core.data.repository.DefaultSourceContextRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultSourceRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultStudyAssistRepository
 import com.yahyafati.mnemo.core.data.repository.DefaultUserSettingsRepository
@@ -38,6 +40,7 @@ import com.yahyafati.mnemo.core.data.repository.OfflineDeckRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineReviewRepository
 import com.yahyafati.mnemo.core.data.repository.OfflineStatsRepository
 import com.yahyafati.mnemo.core.data.repository.PdfReadRepository
+import com.yahyafati.mnemo.core.data.repository.SourceContextRepository
 import com.yahyafati.mnemo.core.data.repository.ProviderConfigs
 import com.yahyafati.mnemo.core.data.repository.ReviewRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
@@ -114,6 +117,9 @@ val dataModule = module {
     factory {
         DefaultPdfReadRepository(get(), get(), get(), get(), dispatcher(MnemoDispatchers.IO))
     } bind PdfReadRepository::class
+    factory {
+        DefaultSourceContextRepository(get(), get(), get(), dispatcher(MnemoDispatchers.IO))
+    } bind SourceContextRepository::class
     factoryOf(::OfflineStatsRepository) bind StatsRepository::class
 
     factoryOf(::ProviderConfigs)
@@ -165,6 +171,7 @@ val dataModule = module {
     factory { CardGenerationClient(get()) }
     factory { StudyAssistClient(get()) }
     factory { PageTranscriptionClient(get()) }
+    factory { SourceSummaryClient(get()) }
     factory { CoAuthorClient(get()) }
     // Shares the AI client's connection pool; it follows redirects on its own copy of the client.
     // Site extractors (ADR 0012) go in `sites`, one class each.
