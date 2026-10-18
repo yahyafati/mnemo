@@ -1,0 +1,11 @@
+# zstd-kmp (sync files, Anki collections and media) ships no R8 rules. Its native library looks up
+# these two classes with FindClass and reads their progress fields by name, so renaming either one
+# aborts the process on the first compression or decompression.
+-keep class com.squareup.zstd.ZstdCompressor {
+    int inputBytesProcessed;
+    int outputBytesProcessed;
+}
+-keep class com.squareup.zstd.ZstdDecompressor {
+    int inputBytesProcessed;
+    int outputBytesProcessed;
+}
