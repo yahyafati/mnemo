@@ -1,7 +1,8 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0–C6 are built ("As built" below); C7 is open.
+  C0–C7 are built ("As built" below); what is still open is the owner's card-quality pass with a real provider
+  (`docs/release/qa.md` §2.1), which decides whether any of the guessed numbers change.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -617,3 +618,24 @@ each adds its own block.
   level, a heading standing alone, partial and out-of-order selections, bookmarks of unchosen pages absent, none for a PDF
   without bookmarks, headings alone are `NoText`, and `SourcePlanner` giving the parts the bookmark path) and
   `SmartExtractViewModelTest` (the headings stay in the box, the splitter gets the PDF's title as root).
+
+## As built (C7, 2026-10-18)
+
+- **No number changed.** Tuning needs a provider and a person who labels cards, and neither was part of this step: the
+  overlap (100 words), the summary's threshold (three parts) and budget (3,000 words), the half-full rule (600 words)
+  and the tiny-body size (150 words) are as C2–C4 built them. `docs/release/qa.md` §2.1 says how to judge them (below) and
+  what to write down; if the pass moves one, change it where it is defined (`SourceOverlap.OVERLAP_WORDS`,
+  `ExtractOptions.MIN_PARTS_FOR_SUMMARY`, `SummaryInput.BUDGET_WORDS`, the constants in `SourcePlanner`), update the
+  golden files and the tests that name it, and add the new value here.
+- **The QA tool now sends what a full run sends.** C4 left `ExtractRequestDump` without the summary. It now writes
+  `<name>.summary.json` for a text that gets one (`MNEMO_EXTRACT_SUMMARY`: `auto` as the app decides, `off`, or `always`,
+  because all QA texts but one are too short for `auto`) and puts `{{MNEMO_SUMMARY}}` where each part carries the
+  summary; `MNEMO_EXTRACT_OVERLAP` sets the overlap. `extract-checks.py run` sends the summary request first, cleans the
+  reply as `SourceSummaryPrompt.clean` does (code fence, 1,500 characters at a sentence), puts it in the parts' requests,
+  and leaves `<name>.summary.txt` to read; `--summary` and `--overlap` are its options. The dump also split with
+  `Overlap.WithinSections` whatever the setting was before; it now passes the setting to the split.
+- The dump took `scripts/qa/extract/README.md` for a text and sent it as one; it skips it now.
+- **The pass the owner runs** (`docs/release/qa.md` §2.1): the QA texts three times (headings and paths only, the
+  defaults, summary and overlap always), then a book run and a long article in the app. The results go in the log there.
+- Docs brought up to date: ARCHITECTURE §5.2 (parts by `SourcePlanner`, the summary, the empty answer), CLAUDE.md's
+  Smart Extract entry. The store listing and the F-Droid texts don't describe the card estimate, so they are unchanged.

@@ -8,7 +8,10 @@ send the requests and count the cards; whether a card is about an idea or about 
     extract-checks.py summary <cards.csv>...                count cards per text and the labels a person filled in
 
 `requests` and `run` take --density (Concise, Balanced, Comprehensive), --archetypes (Definition,Cloze,...),
---no-skip-illustrations, and --sources <dir> (default scripts/qa/extract). The requests come from the app's own code
+--no-skip-illustrations, --overlap (WithinSections, Always, Off), --summary (auto: a text of three or more parts, as the
+app does; off; always: also for a text of one or two parts, which the short QA texts need to show what the summary does)
+and --sources <dir> (default scripts/qa/extract). A text that gets a summary is sent its summary request first, and the
+reply (cleaned as the app cleans it) goes into every part's request, so the cards are those of a full run. The requests come from the app's own code
 (`ExtractRequestDump`, a desktopTest of :core:data, run through Gradle), so they are exactly what Smart Extract sends,
 except that the cards of earlier parts are not listed to the model: this script drops repeated fronts itself.
 
@@ -36,6 +39,9 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SOURCES = ROOT / "scripts" / "qa" / "extract"
 THINK = re.compile(r"<think>.*?</think>", re.S)
 LABELS = ("idea", "illustration", "bad")
+PLACEHOLDER = "{{MNEMO_SUMMARY}}"
+FENCED = re.compile(r"^```[A-Za-z]*\s*\n(.*?)\n?```$", re.S)
+SUMMARY_MAX_CHARS = 1_500  # SourceSummaryPrompt.MAX_CHARS
 
 
 def write_requests(args, out: Path) -> list:
@@ -45,6 +51,8 @@ def write_requests(args, out: Path) -> list:
     env["MNEMO_EXTRACT_DENSITY"] = args.density
     env["MNEMO_EXTRACT_ARCHETYPES"] = args.archetypes
     env["MNEMO_EXTRACT_SKIP_ILLUSTRATIONS"] = "0" if args.no_skip_illustrations else "1"
+    env["MNEMO_EXTRACT_OVERLAP"] = args.overlap
+    env["MNEMO_EXTRACT_SUMMARY"] = args.summary
     gradle = ROOT / ("gradlew.bat" if os.name == "nt" else "gradlew")
     command = [str(gradle), ":core:data:desktopTest", "--tests", "*ExtractRequestDump*", "--rerun", "-q"]
     print("Writing the requests with Gradle…", file=sys.stderr)
@@ -85,6 +93,18 @@ def cards_of(reply: str) -> list:
     return []
 
 
+def clean_summary(reply: str) -> str:
+    """SourceSummaryPrompt.clean: out of a code fence, trimmed, cut at a sentence when longer than 1,500 characters."""
+    text = THINK.sub("", reply).strip()
+    match = FENCED.match(text)
+    text = match.group(1).strip() if match else text
+    if len(text) <= SUMMARY_MAX_CHARS:
+        return text
+    cut = text[:SUMMARY_MAX_CHARS]
+    end = max(cut.rfind(mark) for mark in ".!?。！？")
+    return cut[: end + 1] if end >= SUMMARY_MAX_CHARS // 2 else cut.rstrip() + "…"
+
+
 def key(front: str) -> str:
     return re.sub(r"\W+", " ", front).strip().lower()
 
@@ -96,6 +116,7 @@ def run(args):
     api_key = os.environ.get("MNEMO_QA_API_KEY")
     rows, seen = [], defaultdict(set)
     totals = Counter()
+    summaries = {}  # summary request file -> the cleaned reply
     for entry in manifest:
         body = json.loads((out / entry["request"]).read_text())
         body["model"] = args.model
@@ -103,6 +124,19 @@ def run(args):
             body.pop("response_format", None)
         started = time.monotonic()
         try:
+            name = entry.get("summary_request")
+            if name and name not in summaries:
+                summary_body = json.loads((out / name).read_text())
+                summary_body["model"] = args.model
+                reply = send(args.url, api_key, summary_body, args.timeout)["choices"][0]["message"].get("content") or ""
+                summaries[name] = clean_summary(reply)
+                (out / name.replace(".json", ".txt")).write_text(summaries[name])
+                print(f"{entry['source']} summary: {len(summaries[name].split())} words, {time.monotonic() - started:.1f} s")
+                started = time.monotonic()
+            if name:
+                # In the request's JSON, not its text: the summary has quotes and line breaks.
+                raw = json.dumps(body, ensure_ascii=False)
+                body = json.loads(raw.replace(json.dumps(PLACEHOLDER)[1:-1], json.dumps(summaries[name], ensure_ascii=False)[1:-1]))
             response = send(args.url, api_key, body, args.timeout)
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:300]
@@ -159,6 +193,8 @@ def add_request_options(parser):
     parser.add_argument("--sources", default=str(DEFAULT_SOURCES), help="folder of .md/.txt texts")
     parser.add_argument("--density", default="Balanced", choices=["Concise", "Balanced", "Comprehensive"])
     parser.add_argument("--archetypes", default="Definition,Cloze", help="comma-separated: Definition, Cloze, MultipleChoice, CaseStudy")
+    parser.add_argument("--overlap", default="WithinSections", choices=["WithinSections", "Always", "Off"])
+    parser.add_argument("--summary", default="auto", choices=["auto", "off", "always"], help="context summary: as the app does, never, or for every text")
     parser.add_argument("--no-skip-illustrations", action="store_true", help="turn Skip examples and anecdotes off")
 
 
