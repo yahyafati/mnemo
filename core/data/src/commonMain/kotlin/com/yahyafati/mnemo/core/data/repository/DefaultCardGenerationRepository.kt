@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.SourcePart
@@ -29,7 +30,7 @@ internal class DefaultCardGenerationRepository(
     private val sources: SourceRepository,
     private val ioDispatcher: CoroutineDispatcher,
 ) : CardGenerationRepository {
-    override fun split(text: String, root: List<String>): List<SourcePart> = splitSource(text, root)
+    override fun split(text: String, root: List<String>, overlap: Overlap): List<SourcePart> = splitSource(text, root, overlap)
 
     override fun generate(route: AiRoute, request: GenerationRequest): Flow<GenerationUpdate> = flow {
         val config = configs.forProvider(route.provider)
@@ -109,7 +110,8 @@ internal class DefaultCardGenerationRepository(
 }
 
 /** How Smart Extract splits a source into the parts sent one request each, along its headings (ADR 0015, C2). */
-internal fun splitSource(text: String, root: List<String> = emptyList()): List<SourcePart> = SourcePlanner.plan(text, root)
+internal fun splitSource(text: String, root: List<String> = emptyList(), overlap: Overlap = Overlap.WithinSections): List<SourcePart> =
+    SourcePlanner.plan(text, root, overlap = overlap)
 
 /**
  * The prompt for one [request]; with page images, [pageNumbers] are the pages that rendered and [images] their pictures.
@@ -132,6 +134,7 @@ internal fun cardsPrompt(request: GenerationRequest, pageNumbers: List<Int> = em
         parts = request.parts,
         path = request.source.path,
         continued = request.source.continued,
+        overlap = request.source.overlap,
         replacing = replacing?.let { it.front to it.back },
         pages = pageNumbers,
         images = images,

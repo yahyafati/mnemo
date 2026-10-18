@@ -84,6 +84,7 @@ import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
@@ -119,6 +120,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_accepted
 import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced
 import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_examples_kept
 import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_hide
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_overlap_always
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_overlap_off
 import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_show
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_case
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_choice
@@ -208,6 +211,13 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_conf
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_always
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_always_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_off_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_within
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_within_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_blank
@@ -1433,6 +1443,11 @@ private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
 private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (SmartExtractAction) -> Unit) {
     val changed = buildList {
         if (!options.skipIllustrations) add(stringResource(Res.string.feature_create_advanced_examples_kept))
+        when (options.overlap) {
+            Overlap.WithinSections -> Unit
+            Overlap.Always -> add(stringResource(Res.string.feature_create_advanced_overlap_always))
+            Overlap.Off -> add(stringResource(Res.string.feature_create_advanced_overlap_off))
+        }
     }
     Column {
         Row(
@@ -1469,9 +1484,44 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
                 checked = options.skipIllustrations,
                 onCheckedChange = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
             )
+            OverlapPicker(options.overlap) { onAction(SmartExtractAction.SetOverlap(it)) }
         }
     }
 }
+
+/** *Overlap between parts* (ADR 0015, C3): one field, one focus stop, with a line saying what the choice does. */
+@Composable
+private fun OverlapPicker(overlap: Overlap, onSelect: (Overlap) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs),
+        modifier = Modifier.padding(vertical = MnemoTheme.spacing.sm),
+    ) {
+        OptionDropdown(
+            value = overlapLabel(overlap),
+            label = stringResource(Res.string.feature_create_overlap),
+            leadingIcon = MnemoIcons.Duplicate,
+            options = Overlap.entries.map { choice -> overlapLabel(choice) to { onSelect(choice) } },
+        )
+        Hint(
+            stringResource(
+                when (overlap) {
+                    Overlap.WithinSections -> Res.string.feature_create_overlap_within_hint
+                    Overlap.Always -> Res.string.feature_create_overlap_always_hint
+                    Overlap.Off -> Res.string.feature_create_overlap_off_hint
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun overlapLabel(overlap: Overlap) = stringResource(
+    when (overlap) {
+        Overlap.WithinSections -> Res.string.feature_create_overlap_within
+        Overlap.Always -> Res.string.feature_create_overlap_always
+        Overlap.Off -> Res.string.feature_create_overlap_off
+    },
+)
 
 @Composable
 private fun SwitchRow(title: String, summary: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {

@@ -263,6 +263,15 @@
     <string name="feature_create_skip_illustrations_on">Cards are about the ideas, not the stories and examples that explain them.</string>
     <string name="feature_create_skip_illustrations_off">Examples, stories and case histories may get cards of their own.</string>
     <string name="feature_create_advanced_examples_kept">Examples get cards</string>
+    <string name="feature_create_overlap">Overlap between parts</string>
+    <string name="feature_create_overlap_within">Within sections</string>
+    <string name="feature_create_overlap_always">Always</string>
+    <string name="feature_create_overlap_off">Off</string>
+    <string name="feature_create_overlap_within_hint">A part that goes on with a section also gets the end of the part before it, as context only.</string>
+    <string name="feature_create_overlap_always_hint">Every part after the first also gets the end of the part before it, as context only.</string>
+    <string name="feature_create_overlap_off_hint">Each part is sent on its own.</string>
+    <string name="feature_create_advanced_overlap_always">Overlap: always</string>
+    <string name="feature_create_advanced_overlap_off">Overlap: off</string>
     <plurals name="feature_create_generate">
         <item quantity="one">Generate up to %1$d card</item>
         <item quantity="other">Generate up to %1$d cards</item>

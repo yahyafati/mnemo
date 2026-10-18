@@ -1,6 +1,7 @@
 package com.yahyafati.mnemo.core.ingest
 
 import com.yahyafati.mnemo.core.ingest.SourceOutline.Section
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.WordCount
 
@@ -19,7 +20,10 @@ import com.yahyafati.mnemo.core.model.WordCount
  *    one before it, unless rule 5 keeps them apart (a short last chapter is not added to the previous chapter's end).
  *
  * A part's path is the root, then the headings of the deepest section that holds all of it; the headings of the
- * sections it holds whole are in its text. Sizes are [WordCount]. The same text always gives the same parts.
+ * sections it holds whole are in its text. Sizes are [WordCount]. The same text and settings always give the same parts.
+ *
+ * Each part after the first may carry the end of the part before it ([SourcePart.overlap], ADR 0015, C3), as the
+ * [Overlap] setting says. It is context for the model and is not counted in a part's size.
  */
 object SourcePlanner {
     /** A title in a path is cut to this many characters. */
@@ -32,17 +36,29 @@ object SourcePlanner {
      * [text] in parts of at most [maxWords] (a folded tail or a cut text's last piece may hold a quarter more, as with
      * [TextChunker], and the tiny texts before a first subsection an eighth). [root] is where the text itself is: the book and the chapter, or the page's or document's
      * title; empty for pasted text. A first heading that repeats the root's last entry is left out of the path.
+     * [overlap] says which parts get the end of the part before them; it never changes where the text is cut.
      */
-    fun plan(text: String, root: List<String> = emptyList(), maxWords: Int = TextChunker.DEFAULT_MAX_WORDS): List<SourcePart> {
+    fun plan(
+        text: String,
+        root: List<String> = emptyList(),
+        maxWords: Int = TextChunker.DEFAULT_MAX_WORDS,
+        overlap: Overlap = Overlap.WithinSections,
+    ): List<SourcePart> {
         require(maxWords > 0)
         if (text.isBlank()) return emptyList()
         val packer = Packer(maxWords)
         packer.section(SourceOutline.of(text).root, emptyList())
         val parts = packer.finish()
         val rootPath = cleanRoot(root)
-        return parts.map { part ->
+        return parts.mapIndexed { index, part ->
             val headings = part.context.mapNotNull { it.title }.map(::cut)
-            SourcePart(part.text, path(rootPath, headings), part.continued)
+            val carries = index > 0 && when (overlap) {
+                Overlap.WithinSections -> part.continued
+                Overlap.Always -> true
+                Overlap.Off -> false
+            }
+            val before = if (carries) SourceOverlap.tail(parts[index - 1].text) else ""
+            SourcePart(part.text, path(rootPath, headings), part.continued, before)
         }
     }
 

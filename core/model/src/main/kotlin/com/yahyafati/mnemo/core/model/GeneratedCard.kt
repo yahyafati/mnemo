@@ -28,6 +28,18 @@ enum class ExtractDensity(
     Comprehensive(40),
 }
 
+/** Which parts of a source are sent with the end of the part before them (ADR 0015, C3). */
+enum class Overlap {
+    /** Only a part that goes on with a section an earlier part started. */
+    WithinSections,
+
+    /** Every part after the first, across headings too. */
+    Always,
+
+    /** None. */
+    Off,
+}
+
 /** What the user asked Smart Extract for. */
 data class ExtractOptions(
     val density: ExtractDensity = ExtractDensity.Balanced,
@@ -39,6 +51,8 @@ data class ExtractOptions(
      * Off for readers who want the stories, as in history, law or medicine.
      */
     val skipIllustrations: Boolean = true,
+    /** Which parts are sent with the end of the part before them, as context only (ADR 0015, C3). */
+    val overlap: Overlap = Overlap.WithinSections,
 ) {
     /** At most how many cards [words] of source should give: a ceiling, since a part may hold fewer ideas (ADR 0015). */
     fun targetCards(words: Int): Int =

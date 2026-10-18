@@ -60,6 +60,7 @@ class RequestGoldenTest {
         parts = 3,
         path = listOf("Cell biology", "2. Energy", "2.3 The Krebs cycle"),
         continued = true,
+        overlap = "The citric acid cycle starts with acetyl-CoA.\n\nIt ends where it began, with oxaloacetate.",
         replacing = "Old front" to "Old back",
     )
 

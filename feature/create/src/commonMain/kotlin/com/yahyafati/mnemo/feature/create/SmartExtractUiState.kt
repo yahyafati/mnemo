@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.model.CardArchetype
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.DisclosureStep
@@ -492,6 +493,9 @@ sealed interface SmartExtractAction {
 
     /** *Skip examples and anecdotes* (ADR 0015, C1). */
     data class SetSkipIllustrations(val skip: Boolean) : SmartExtractAction
+
+    /** *Overlap between parts* (ADR 0015, C3). */
+    data class SetOverlap(val overlap: Overlap) : SmartExtractAction
 
     data object Generate : SmartExtractAction
 

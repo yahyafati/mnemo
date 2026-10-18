@@ -63,6 +63,7 @@ class ExtractRequestDump {
                             put("words", SourceText.countWords(part.text))
                             put("path", part.path.joinToString(" › "))
                             put("continued", part.continued)
+                            put("overlap_words", SourceText.countWords(part.overlap))
                             put("request", name)
                         },
                     )

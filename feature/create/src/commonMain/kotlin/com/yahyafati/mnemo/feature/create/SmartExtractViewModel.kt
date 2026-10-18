@@ -426,6 +426,7 @@ class SmartExtractViewModel(
             is SmartExtractAction.SetLanguage -> updateOptions { it.copy(language = action.language) }
             SmartExtractAction.ToggleAdvanced -> _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
             is SmartExtractAction.SetSkipIllustrations -> updateOptions { it.copy(skipIllustrations = action.skip) }
+            is SmartExtractAction.SetOverlap -> updateOptions { it.copy(overlap = action.overlap) }
             SmartExtractAction.Generate -> generate()
             SmartExtractAction.Stop -> {
                 generationJob?.cancel()
@@ -1103,7 +1104,7 @@ class SmartExtractViewModel(
         stopDictation()
         withDisclosure(route) {
             val current = _uiState.value
-            val parts = generateCards.split(current.text, current.pathRoot())
+            val parts = generateCards.split(current.text, current.pathRoot(), current.options.overlap)
             if (parts.isEmpty()) return@withDisclosure
             run = Run(parts, current.options, current.title, current.deckId)
             launchGeneration(route, fromPart = 0)

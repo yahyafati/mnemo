@@ -16,6 +16,7 @@ import com.yahyafati.mnemo.core.model.CoAuthorDeck
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PageRanges
 import com.yahyafati.mnemo.core.model.PageRegion
 import com.yahyafati.mnemo.core.model.PdfHandle
@@ -63,8 +64,12 @@ class FakeCardGenerationRepository : CardGenerationRepository {
     /** The roots [split] was given, in order. */
     val roots = mutableListOf<List<String>>()
 
-    override fun split(text: String, root: List<String>): List<SourcePart> {
+    /** The overlap settings [split] was given, in order. */
+    val overlaps = mutableListOf<Overlap>()
+
+    override fun split(text: String, root: List<String>, overlap: Overlap): List<SourcePart> {
         roots += root
+        overlaps += overlap
         return splitter(text, root)
     }
 

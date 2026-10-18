@@ -131,12 +131,12 @@ class SmartExtractUseCasesTest {
     fun regenerateReplacesWithSomethingNew() = runTest {
         val old = card("What is ATP?", "Energy").copy(id = "old", chunkIndex = 1)
         generation.answer(card("What is atp", "Same thing"), card("Why do cells need ATP?", "To power reactions"))
-        val part = SourcePart("Part two", listOf("Biology", "Energy"), continued = true)
+        val part = SourcePart("Part two", listOf("Biology", "Energy"), continued = true, overlap = "The end of part one.")
         val result = regenerate(route, old, part, ExtractOptions(), deckId = null)
 
         assertEquals("Why do cells need ATP?", assertIs<RegenerateResult.Replaced>(result).card.front)
         val sent = generation.requests.single()
-        // The same part, path and all, as the card was first made from.
+        // The same part, path, overlap and all, as the card was first made from.
         assertEquals(part, sent.source)
         assertEquals(old, sent.replacing)
 

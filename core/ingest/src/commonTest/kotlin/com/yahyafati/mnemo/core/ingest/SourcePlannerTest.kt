@@ -1,9 +1,11 @@
 package com.yahyafati.mnemo.core.ingest
 
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.WordCount
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SourcePlannerTest {
@@ -230,5 +232,69 @@ class SourcePlannerTest {
         val first = SourcePlanner.plan(text, listOf("Root"))
         assertEquals(first, SourcePlanner.plan(text, listOf("Root")))
         assertCovers(text, first)
+    }
+
+    // Overlap (ADR 0015, C3)
+    private val continuedText = doc(section("## Short", 20), section("## Long", 40, 40, 40, 40, 40))
+
+    @Test
+    fun withinSectionsOnlyAContinuedPartGetsTheEndOfThePartBefore() {
+        val parts = SourcePlanner.plan(continuedText, listOf("Notes"), maxWords = 100)
+        assertEquals(listOf(false, false, true, true), parts.map { it.continued })
+        assertEquals(listOf("", "", SourceOverlap.tail(parts[1].text), SourceOverlap.tail(parts[2].text)), parts.map { it.overlap })
+        assertTrue(parts[2].text.isNotBlank() && parts[2].overlap.isNotBlank())
+        assertTrue(parts[1].text.endsWith(parts[2].overlap))
+    }
+
+    @Test
+    fun withinSectionsIsTheDefault() {
+        assertEquals(SourcePlanner.plan(continuedText, maxWords = 100, overlap = Overlap.WithinSections), SourcePlanner.plan(continuedText, maxWords = 100))
+    }
+
+    @Test
+    fun alwaysGivesEveryPartAfterTheFirstOneAcrossHeadings() {
+        val parts = SourcePlanner.plan(continuedText, maxWords = 100, overlap = Overlap.Always)
+        assertEquals("", parts.first().overlap)
+        for (index in 1 until parts.size) assertEquals(SourceOverlap.tail(parts[index - 1].text), parts[index].overlap)
+        // The second part starts a section of its own (it isn't continued) and still has one.
+        assertFalse(parts[1].continued)
+        assertTrue(parts[1].overlap.isNotEmpty())
+    }
+
+    @Test
+    fun offGivesNone() {
+        val parts = SourcePlanner.plan(continuedText, maxWords = 100, overlap = Overlap.Off)
+        assertTrue(parts.all { it.overlap.isEmpty() })
+    }
+
+    @Test
+    fun nothingComesBeforeThePartOne() {
+        for (mode in Overlap.entries) assertEquals("", SourcePlanner.plan(continuedText, maxWords = 100, overlap = mode).first().overlap)
+    }
+
+    @Test
+    fun theSettingNeverChangesWhereTheTextIsCut() {
+        val text = doc("Lead.", "# A", section("## A1", 300, 300), section("## A2", 900), "# B", section("## B1", 1500), section("## B2", 50))
+        val shapes = Overlap.entries.map { mode -> SourcePlanner.plan(text, listOf("Root"), overlap = mode).map { Triple(it.text, it.path, it.continued) } }
+        assertEquals(1, shapes.distinct().size)
+    }
+
+    @Test
+    fun aTextWithoutHeadingsGivesEveryPartAfterTheFirstItsOverlapInEveryMode() {
+        val text = (1..12).joinToString("\n\n") { para(150, "p$it-") }
+        val within = SourcePlanner.plan(text)
+        assertEquals(within, SourcePlanner.plan(text, overlap = Overlap.Always))
+        assertEquals("", within.first().overlap)
+        assertTrue(within.drop(1).all { it.overlap.isNotEmpty() })
+    }
+
+    @Test
+    fun anOverlapNeverHoldsMoreThanTheLimitAndIsNotCountedInThePart() {
+        val text = doc("# A", section("## A1", 300, 300), section("## A2", 900))
+        val parts = SourcePlanner.plan(text, overlap = Overlap.Always)
+        assertTrue(parts.all { WordCount.count(it.overlap) <= SourceOverlap.OVERLAP_WORDS })
+        assertTrue(parts.all { WordCount.count(it.text) <= TextChunker.DEFAULT_MAX_WORDS + TextChunker.DEFAULT_MAX_WORDS / 4 })
+        // The text itself holds no overlap: the parts in order are still the whole text.
+        assertCovers(text, parts)
     }
 }

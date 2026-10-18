@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourcePart
@@ -77,8 +78,8 @@ class GenerateCardsUseCase(
     private val generation: CardGenerationRepository,
     private val cardRepository: CardRepository,
 ) {
-    /** [text] split into the parts sent one request each; [root] begins their paths (see [CardGenerationRepository.split]). */
-    fun split(text: String, root: List<String> = emptyList()): List<SourcePart> = generation.split(text, root)
+    /** [text] split into the parts sent one request each; [root] begins their paths and [overlap] gives some the end of the part before (see [CardGenerationRepository.split]). */
+    fun split(text: String, root: List<String> = emptyList(), overlap: Overlap = Overlap.WithinSections): List<SourcePart> = generation.split(text, root, overlap)
 
     operator fun invoke(route: AiRoute, request: ExtractRequest): Flow<ExtractEvent> = flow {
         val seen = HashSet<String>()

@@ -1,7 +1,7 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0–C2 are built ("As built" below); C3–C7 are open.
+  C0–C3 are built ("As built" below); C4–C7 are open.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -476,3 +476,35 @@ each adds its own block.
   `AiGenerationRepositoriesTest`, `SmartExtractUseCasesTest` (every part and Regenerate send their path),
   `SmartExtractViewModelTest` (Regenerate keeps the part and path after the box changed; a PDF's and pasted text's
   roots) and `SmartExtractBookTest` (book › chapter).
+
+## As built (C3, 2026-10-18)
+
+- `Overlap { WithinSections, Always, Off }` and `ExtractOptions.overlap` (default `WithinSections`) are in `:core:model`;
+  `SourcePart(text, path, continued, overlap = "")` gained the text. `SourcePlanner.plan(text, root, maxWords, overlap)`
+  takes the setting as a parameter, so a plan is still a pure function of its arguments; it never changes where the
+  text is cut, only what each part carries. `CardGenerationRepository.split` and `GenerateCardsUseCase.split` take it
+  after the root (default `WithinSections`), and the ViewModel passes `options.overlap` when a run starts. The
+  request-count hint under the box doesn't re-split on a change of setting: the overlap never changes the number of parts.
+- `SourceOverlap.tail(text, maxWords = OVERLAP_WORDS)` (`:core:ingest`) is the end of a part: its last paragraphs
+  (blank-line separated) that fit in 100 words by `WordCount`, never a part of a paragraph unless the last one alone
+  is over the limit. Then it is cut at a sentence (`TextChunker.SENTENCE_END`, now `internal`, so Japanese and Chinese
+  full stops count), and a single sentence over the limit is cut at a word, or a character in Japanese and Chinese, with
+  "…" in front. Fences and tables are not treated specially: a code block with blank lines in it can be cut inside, which
+  is harmless for context that only tells the model what came before.
+- Which parts get one: `WithinSections` the continued ones (a text without headings: every part after the first),
+  `Always` every part after the first, `Off` none. Nothing comes before part 1. The overlap is the tail of the previous
+  part's `text` (never of its own overlap), and isn't counted against the part's 1,200 words.
+- `CardGenerationPrompt(overlap = …)` writes the `<before>` block of the ADR after the "Where this part is" line (or
+  after the avoid list when there is no path) and before the source label, and leaves it out when blank. `fenced()`
+  now escapes `<source>` and `<before>` tags, opening and closing, in every fenced text, the path and the overlap
+  included. Only `smart-extract-part.json` changes among the golden files (its part now has an overlap).
+- The part in the queue carries the overlap (`QueueItem.part`), so Regenerate sends the same overlap as the first
+  request, even if the setting was changed afterwards, as it already did for the path.
+- Advanced › **Overlap between parts** (`OverlapPicker` in `SmartExtractScreen.kt`) is an `OptionDropdown` with a line
+  saying what the choice does, below *Skip examples and anecdotes*: one focus stop, as the other fields. Closed, the
+  row names a changed setting ("Overlap: always", "Overlap: off"). Not persisted yet (C5). Only
+  `create_extract_advanced_light.png` changes among the screenshot baselines (the collapsed default has nothing new).
+- Tests: `SourceOverlapTest`, `SourcePlannerTest` (each mode, nothing before part 1, no change to the cut, no headings,
+  limit and size), `CardGenerationPromptTest` (the block, its place, escaping), `RequestGoldenTest`,
+  `SmartExtractUseCasesTest` (Regenerate sends the part with its overlap), `SmartExtractViewModelTest` (the setting reaches
+  the split; Regenerate keeps the overlap after the setting and the box changed) and `SmartExtractScreenTest`.

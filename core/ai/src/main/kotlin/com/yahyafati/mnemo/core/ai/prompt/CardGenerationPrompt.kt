@@ -40,6 +40,11 @@ data class CardGenerationPrompt(
      */
     val path: List<String> = emptyList(),
     val continued: Boolean = false,
+    /**
+     * The end of the text just before this part (ADR 0015, C3), sent as context only: no card is to come from it.
+     * Blank for none.
+     */
+    val overlap: String = "",
     /** Regenerating: the card the user rejected, which the one new card replaces. */
     val replacing: Pair<String, String>? = null,
     /**
@@ -109,6 +114,13 @@ data class CardGenerationPrompt(
             appendLine()
             appendLine("Where this part is: $it")
         }
+        if (overlap.isNotBlank()) {
+            appendLine()
+            appendLine("The end of the text just before this part, already covered. It is context only: write no cards from it.")
+            appendLine("<before>")
+            appendLine(fenced(overlap.trim()))
+            appendLine("</before>")
+        }
         appendLine()
         val label = buildString {
             append(if (fromImages) "Pages" else "Source")
@@ -152,8 +164,8 @@ data class CardGenerationPrompt(
         else -> "pages ${pages.dropLast(1).joinToString(", ")} and ${pages.last()}"
     }
 
-    /** A `<source>` or `</source>` in the text (a page about HTML, or a trick) must not end the fence. */
-    private fun fenced(text: String) = text.replace(SOURCE_TAG, "&lt;$1source")
+    /** A `<source>`, `<before>` or the closing tag of either in the text (a page about HTML, or a trick) must not end a fence. */
+    private fun fenced(text: String) = text.replace(FENCE_TAG) { "&lt;${it.groupValues[1]}${it.groupValues[2].lowercase()}" }
 
     private fun densityHint() = when (options.density) {
         ExtractDensity.Concise -> "Only the high-yield facts a student must know."
@@ -182,7 +194,7 @@ data class CardGenerationPrompt(
 
     companion object {
         private const val PATH_SEPARATOR = " › "
-        private val SOURCE_TAG = Regex("""<(/?)source\b""", RegexOption.IGNORE_CASE)
+        private val FENCE_TAG = Regex("""<(/?)(source|before)\b""", RegexOption.IGNORE_CASE)
         const val MAX_AVOID = 60
         private const val MAX_AVOID_CHARS = 120
 

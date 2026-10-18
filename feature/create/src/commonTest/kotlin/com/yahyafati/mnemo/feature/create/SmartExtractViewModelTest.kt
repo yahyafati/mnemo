@@ -16,6 +16,7 @@ import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfOpenResult
@@ -329,6 +330,45 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.DiscardAll)
         assertTrue(vm.state.queue.isEmpty())
         assertTrue(cards.notes.value.isEmpty())
+    }
+
+    @Test
+    fun theOverlapSettingGoesToTheSplitAndTheRequests() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.WithinSections, generation.overlaps.last())
+        assertEquals(Overlap.WithinSections, generation.requests.last().options.overlap)
+
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Always))
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.Always, generation.overlaps.last())
+        assertEquals(Overlap.Always, generation.requests.last().options.overlap)
+
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Off))
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.Off, generation.overlaps.last())
+    }
+
+    @Test
+    fun regenerateSendsTheSameOverlapAsTheFirstRequest() = runTest {
+        val vm = readyViewModel(text = "One\n---\nTwo")
+        generation.splitter = { text, root ->
+            text.split("\n---\n").mapIndexed { i, part -> SourcePart(part, root, continued = i > 0, overlap = if (i > 0) "End of part ${i}." else "") }
+        }
+        generation.respond = { request -> flowOf(GenerationUpdate.Card(card("What does ${request.text} say?", "A").copy(id = "part-${request.part}", chunkIndex = request.part)), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+        val second = vm.state.queue.last()
+        assertEquals("End of part 1.", second.part.overlap)
+        assertEquals("End of part 1.", generation.requests.last().source.overlap)
+
+        // The setting and the box change afterwards; the card is still regenerated from its own part, overlap included.
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Off))
+        vm.onAction(SmartExtractAction.TextChanged("Something else entirely."))
+        generation.answer(card("Why does it matter?", "Because."))
+        vm.onAction(SmartExtractAction.Regenerate(second.card.id))
+        assertEquals("End of part 1.", generation.requests.last().source.overlap)
+        assertEquals("End of part 1.", vm.state.queue.last().part.overlap)
     }
 
     @Test

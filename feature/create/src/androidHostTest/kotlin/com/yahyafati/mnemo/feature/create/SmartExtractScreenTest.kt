@@ -35,6 +35,7 @@ import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
@@ -232,6 +233,34 @@ class SmartExtractScreenTest {
         // Closed again, the row says what isn't at its default.
         state = state.copy(showAdvanced = false, options = state.options.copy(skipIllustrations = false))
         composeRule.onNodeWithText("Examples get cards").assertExists()
+    }
+
+    @Test
+    fun theOverlapIsChosenInTheAdvancedOptionsAndNamedWhenClosedIfChanged() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Some text.",
+                showAdvanced = true,
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("Within sections").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Overlap between parts").assertExists()
+        composeRule.onNodeWithText("Within sections").performClick()
+        composeRule.onNodeWithText("Always").performClick()
+        assertEquals(SmartExtractAction.SetOverlap(Overlap.Always), actions.last())
+
+        // The default says nothing when the row is closed; a change does.
+        state = state.copy(showAdvanced = false)
+        composeRule.onNodeWithText("Overlap: always").assertDoesNotExist()
+        state = state.copy(options = state.options.copy(overlap = Overlap.Always))
+        composeRule.onNodeWithText("Overlap: always").performScrollTo().assertExists()
+        state = state.copy(options = state.options.copy(overlap = Overlap.Off))
+        composeRule.onNodeWithText("Overlap: off").performScrollTo().assertExists()
     }
 
     @Test

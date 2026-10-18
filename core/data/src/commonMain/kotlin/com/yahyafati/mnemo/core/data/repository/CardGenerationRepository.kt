@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.SourcePart
@@ -18,8 +19,9 @@ interface CardGenerationRepository {
     /**
      * [text] split into the parts sent one request each, in order, each with its path (ADR 0015, C2). [root] is where
      * the text is: the book and the chapter, or the page's or document's title; empty for pasted or dictated text.
+     * [overlap] says which parts also carry the end of the part before them (ADR 0015, C3).
      */
-    fun split(text: String, root: List<String> = emptyList()): List<SourcePart>
+    fun split(text: String, root: List<String> = emptyList(), overlap: Overlap = Overlap.WithinSections): List<SourcePart>
 
     /**
      * Asks [route] for cards from one part of a source. Emits each card as soon as the reply
