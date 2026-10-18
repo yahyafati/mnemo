@@ -33,6 +33,7 @@ import com.yahyafati.mnemo.core.model.CardFigure
 import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.FigureSide
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PageImageBatches
@@ -245,7 +246,14 @@ class SmartExtractViewModel(
     private val imageDisclosed = mutableSetOf<String>()
     private var disclosureSteps: List<DisclosureStep> = emptyList()
 
+    /** The user changed an Advanced option before the remembered ones arrived: theirs wins. */
+    private var advancedChosen = false
+
     init {
+        viewModelScope.launch {
+            val remembered = userSettings.settings.first().extractAdvanced
+            if (!advancedChosen) updateOptions { it.withAdvanced(remembered) }
+        }
         viewModelScope.launch {
             combine(aiProviders.observeEffectiveRoutes(), deckRepository.observeDeckSummaries()) { routes, decks ->
                 Triple(routes[AiTask.Extract], routes[AiTask.ReadPages], decks.map { DeckOption(it.deck.id, it.path, it.totalCount) }.sortedBy { it.path.lowercase() })
@@ -435,11 +443,11 @@ class SmartExtractViewModel(
             is SmartExtractAction.ToggleArchetype -> updateOptions {
                 it.copy(archetypes = if (action.archetype in it.archetypes) it.archetypes - action.archetype else it.archetypes + action.archetype)
             }
-            is SmartExtractAction.SetLanguage -> updateOptions { it.copy(language = action.language) }
+            is SmartExtractAction.SetLanguage -> updateAdvanced { it.copy(language = action.language) }
             SmartExtractAction.ToggleAdvanced -> _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
-            is SmartExtractAction.SetSkipIllustrations -> updateOptions { it.copy(skipIllustrations = action.skip) }
-            is SmartExtractAction.SetOverlap -> updateOptions { it.copy(overlap = action.overlap) }
-            is SmartExtractAction.SetContextSummary -> updateOptions { it.copy(contextSummary = action.summary) }
+            is SmartExtractAction.SetSkipIllustrations -> updateAdvanced { it.copy(skipIllustrations = action.skip) }
+            is SmartExtractAction.SetOverlap -> updateAdvanced { it.copy(overlap = action.overlap) }
+            is SmartExtractAction.SetContextSummary -> updateAdvanced { it.copy(contextSummary = action.summary) }
             SmartExtractAction.ToggleContext -> updateContext { it.copy(expanded = !it.expanded) }
             // Editing waits for a run to end: the parts still to be sent read the summary as it is when they start.
             SmartExtractAction.EditContext -> if (!_uiState.value.isGenerating) updateContext { it.copy(expanded = true, editing = true) }
@@ -488,6 +496,14 @@ class SmartExtractViewModel(
 
     private fun updateOptions(transform: (ExtractOptions) -> ExtractOptions) =
         _uiState.update { it.copy(options = transform(it.options)) }
+
+    /** Changes one of the Advanced options and remembers the lot for the next source (ADR 0015, C5). */
+    private fun updateAdvanced(transform: (ExtractAdvanced) -> ExtractAdvanced) {
+        advancedChosen = true
+        updateOptions { it.withAdvanced(transform(it.advanced)) }
+        val advanced = _uiState.value.options.advanced
+        viewModelScope.launch { userSettings.setExtractAdvanced(advanced) }
+    }
 
     private fun read(source: SourceInput) {
         endBatch()

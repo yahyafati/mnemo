@@ -49,6 +49,18 @@ enum class ContextSummary {
     Off,
 }
 
+/**
+ * The Smart Extract options that are preferences rather than choices per source (ADR 0015, C5): remembered in
+ * [UserSettings.extractAdvanced] and shown under *Advanced*. Density and card styles stay per screen.
+ */
+data class ExtractAdvanced(
+    val skipIllustrations: Boolean = true,
+    val contextSummary: ContextSummary = ContextSummary.Auto,
+    val overlap: Overlap = Overlap.WithinSections,
+    /** The cards' language, as an English name ("Spanish"); null keeps the source's language. */
+    val language: String? = null,
+)
+
 /** What the user asked Smart Extract for. */
 data class ExtractOptions(
     val density: ExtractDensity = ExtractDensity.Balanced,
@@ -65,6 +77,18 @@ data class ExtractOptions(
     /** Whether a long source gets a short summary that is sent with every part (ADR 0015, C4). */
     val contextSummary: ContextSummary = ContextSummary.Auto,
 ) {
+    /** The part of the options that is remembered. */
+    val advanced: ExtractAdvanced
+        get() = ExtractAdvanced(skipIllustrations, contextSummary, overlap, language)
+
+    /** These options with the remembered part replaced by [value]. */
+    fun withAdvanced(value: ExtractAdvanced): ExtractOptions = copy(
+        skipIllustrations = value.skipIllustrations,
+        contextSummary = value.contextSummary,
+        overlap = value.overlap,
+        language = value.language,
+    )
+
     /** At most how many cards [words] of source should give: a ceiling, since a part may hold fewer ideas (ADR 0015). */
     fun targetCards(words: Int): Int =
         (words / density.wordsPerCard).coerceIn(MIN_CARDS_PER_REQUEST, MAX_CARDS_PER_REQUEST)

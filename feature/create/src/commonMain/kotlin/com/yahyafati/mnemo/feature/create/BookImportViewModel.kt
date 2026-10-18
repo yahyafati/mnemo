@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.yahyafati.mnemo.core.data.repository.AiProviderRepository
 import com.yahyafati.mnemo.core.data.repository.DeckRepository
 import com.yahyafati.mnemo.core.data.repository.SourceRepository
+import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.domain.BookDeckNames
 import com.yahyafati.mnemo.core.domain.BookDecks
 import com.yahyafati.mnemo.core.domain.ChapterDeckRequest
@@ -15,6 +16,7 @@ import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.SourceInput
@@ -47,6 +49,7 @@ class BookImportViewModel(
     private val generateCards: GenerateCardsUseCase,
     private val aiProviders: AiProviderRepository,
     private val bookHandoff: BookHandoff,
+    private val userSettings: UserSettingsRepository,
 ) : ViewModel() {
     private val initialLocation: String? = savedStateHandle[LOCATION_KEY]
 
@@ -54,6 +57,9 @@ class BookImportViewModel(
     val uiState: StateFlow<BookImportUiState> = _uiState.asStateFlow()
 
     private var decks: List<Deck> = emptyList()
+
+    /** The Advanced options Smart Extract will start the run with (ADR 0015, C5): they decide whether a chapter is summarised. */
+    private var advanced = ExtractAdvanced()
     private var readJob: Job? = null
 
     private val runStarts = Channel<Unit>(Channel.CONFLATED)
@@ -62,6 +68,7 @@ class BookImportViewModel(
     val runStarted: Flow<Unit> = runStarts.receiveAsFlow()
 
     init {
+        viewModelScope.launch { userSettings.settings.collect { advanced = it.extractAdvanced } }
         viewModelScope.launch {
             deckRepository.observeDecks().collect { live ->
                 decks = live
@@ -149,8 +156,8 @@ class BookImportViewModel(
                 batchPlan = BatchPlan(
                     chapterIds = chapters.map { chapter -> chapter.id },
                     words = chapters.sumOf { chapter -> state.wordCounts[chapter.id] ?: 0 },
-                    // A chapter of three parts or more also takes the request that summarises it (ADR 0015, C4); the run starts from the default options.
-                    requests = chapters.sumOf { chapter -> generateCards.requests(generateCards.split(chapter.text).size, ExtractOptions()) },
+                    // A chapter of three parts or more also takes the request that summarises it (ADR 0015, C4); the run starts from the remembered Advanced options.
+                    requests = chapters.sumOf { chapter -> generateCards.requests(generateCards.split(chapter.text).size, ExtractOptions().withAdvanced(advanced)) },
                 ),
             )
         }

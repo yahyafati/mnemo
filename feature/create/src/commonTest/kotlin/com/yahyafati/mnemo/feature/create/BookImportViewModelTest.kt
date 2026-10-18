@@ -67,6 +67,7 @@ class BookImportViewModelTest : PlatformTest() {
         generateCards = GenerateCardsUseCase(generation, FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
+        userSettings = com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository(),
     )
 
     /** Picks [file] and waits for it to be read (the localized fallbacks are read off the main thread). */

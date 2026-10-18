@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.testing.repository
 import com.yahyafati.mnemo.core.data.repository.UserSettingsRepository
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
@@ -47,6 +48,8 @@ class FakeUserSettingsRepository(initial: UserSettings = UserSettings()) : UserS
 
     override suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) =
         settings.update { it.copy(pdfReadMode = mode, pdfQuality = quality) }
+
+    override suspend fun setExtractAdvanced(value: ExtractAdvanced) = settings.update { it.copy(extractAdvanced = value) }
 
     override suspend fun acceptImageDisclosure(providerId: String) =
         settings.update { it.copy(imageDisclosureProviders = it.imageDisclosureProviders + providerId) }

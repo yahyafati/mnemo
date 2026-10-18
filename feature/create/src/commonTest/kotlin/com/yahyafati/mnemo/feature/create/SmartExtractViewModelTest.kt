@@ -12,8 +12,10 @@ import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
@@ -67,6 +69,8 @@ class SmartExtractViewModelTest {
         disclosureAcceptedAt = Instant.EPOCH, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
     )
 
+    private val settings = FakeUserSettingsRepository()
+
     private fun viewModel() = SmartExtractViewModel(
         aiProviders = providers,
         deckRepository = decks,
@@ -75,7 +79,7 @@ class SmartExtractViewModelTest {
         regenerateCard = RegenerateCardUseCase(generation, cards),
         acceptCards = AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()),
         bookHandoff = handoff,
-        userSettings = FakeUserSettingsRepository(),
+        userSettings = settings,
         readPdfPages = ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
     )
 
@@ -140,6 +144,51 @@ class SmartExtractViewModelTest {
 
         vm.onAction(SmartExtractAction.ToggleAdvanced)
         assertFalse(vm.state.showAdvanced)
+    }
+
+    @Test
+    fun theAdvancedOptionsAreRememberedForTheNextSource() = runTest {
+        val first = readyViewModel()
+        first.onAction(SmartExtractAction.SetSkipIllustrations(false))
+        first.onAction(SmartExtractAction.SetOverlap(Overlap.Always))
+        first.onAction(SmartExtractAction.SetContextSummary(ContextSummary.Off))
+        first.onAction(SmartExtractAction.SetLanguage("Spanish"))
+        // Density and card styles are choices for this screen only.
+        first.onAction(SmartExtractAction.SetDensity(ExtractDensity.Concise))
+        first.onAction(SmartExtractAction.ToggleArchetype(CardArchetype.CaseStudy))
+
+        assertEquals(
+            ExtractAdvanced(skipIllustrations = false, contextSummary = ContextSummary.Off, overlap = Overlap.Always, language = "Spanish"),
+            settings.settings.value.extractAdvanced,
+        )
+
+        val second = viewModel()
+        val options = second.state.options
+        assertEquals(settings.settings.value.extractAdvanced, options.advanced)
+        assertEquals(ExtractDensity.Balanced, options.density)
+        assertFalse(CardArchetype.CaseStudy in options.archetypes)
+        assertFalse(second.state.showAdvanced)
+
+        // Back to the defaults is remembered too, the language included.
+        second.onAction(SmartExtractAction.SetLanguage(null))
+        second.onAction(SmartExtractAction.SetSkipIllustrations(true))
+        second.onAction(SmartExtractAction.SetOverlap(Overlap.WithinSections))
+        second.onAction(SmartExtractAction.SetContextSummary(ContextSummary.Auto))
+        assertEquals(ExtractAdvanced(), settings.settings.value.extractAdvanced)
+        assertEquals(ExtractAdvanced(), viewModel().state.options.advanced)
+    }
+
+    @Test
+    fun rememberedOptionsReachTheRequest() = runTest {
+        settings.setExtractAdvanced(ExtractAdvanced(skipIllustrations = false, overlap = Overlap.Off, language = "German"))
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        val options = generation.requests.last().options
+        assertFalse(options.skipIllustrations)
+        assertEquals(Overlap.Off, options.overlap)
+        assertEquals("German", options.language)
     }
 
     @Test

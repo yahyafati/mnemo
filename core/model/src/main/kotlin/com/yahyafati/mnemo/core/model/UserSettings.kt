@@ -37,6 +37,8 @@ data class UserSettings(
     val pdfReadMode: PdfReadMode? = null,
     /** The resolution page images are sent at when a PDF is read with AI. */
     val pdfQuality: PdfQuality = PdfQuality.Standard,
+    /** Smart Extract's Advanced options, remembered between sources (ADR 0015, C5). */
+    val extractAdvanced: ExtractAdvanced = ExtractAdvanced(),
 ) {
     fun hasAcceptedImages(providerId: String): Boolean = providerId in imageDisclosureProviders
 }

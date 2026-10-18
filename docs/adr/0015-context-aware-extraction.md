@@ -1,7 +1,7 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0–C4 are built ("As built" below); C5–C7 are open.
+  C0–C5 are built ("As built" below); C6–C7 are open.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -560,3 +560,28 @@ each adds its own block.
   `SmartExtractScreenTest`, and the screenshots `create_extract_context_light.png` and the re-recorded
   `create_extract_advanced_light.png`. `ExtractRequestDump` (QA) still sends parts without a summary: judge the
   summary's effect in the app, or extend the dump in C7.
+
+## As built (C5, 2026-10-18)
+
+- `ExtractAdvanced(skipIllustrations, contextSummary, overlap, language)` (`:core:model`, next to `ExtractOptions`) is the
+  remembered part of the options; `ExtractOptions.advanced` reads it and `withAdvanced(value)` writes it, so density and
+  card styles can't be overwritten by accident. `UserSettings.extractAdvanced` holds it, `UserSettingsRepository.setExtractAdvanced`
+  writes all four at once (a null language removes its key, so "same as the source" is never a remembered language),
+  and `FakeUserSettingsRepository` mirrors it. DataStore keys: `extract_skip_illustrations`, `extract_context_summary`,
+  `extract_overlap` (enum names, an unknown one falls back to the default like every enum there) and `extract_language`.
+- `SmartExtractViewModel` reads the remembered options when it starts (unless the user already changed one before they
+  arrived) and `SetSkipIllustrations`, `SetOverlap`, `SetContextSummary` and `SetLanguage` go through `updateAdvanced`,
+  which updates the screen and saves the lot. A Regenerate or Resume still sends the options the run started with.
+  `BookImportViewModel` now takes `UserSettingsRepository` and counts a chapter's requests (the summary's included)
+  with the remembered options, since a book run starts from them.
+- The card language picker moved from the options card into Advanced, as its first field. Closed, the row lists what is
+  not at its default, language first: "Spanish · Overlap: always · No summary". The text may take two lines (on a phone
+  it would otherwise be cut off), then ellipsis. Opening the section needs one more click for a language than before;
+  the owner agreed to that in the ADR.
+- Tests: `UserPreferencesDataSourceTest` (every field, the language going back to null), `UserSettingsRepositoryTest`
+  (`:core:data`, over a real file), `SmartExtractViewModelTest` (a new ViewModel starts with the saved Advanced
+  options and the default density and styles; going back to the defaults is saved; saved options reach the request),
+  `SmartExtractScreenTest` (language in Advanced, the closed line), `AdvancedOptionsKeysTest` (`desktopTest`: Tab visits
+  the language, switch, overlap and summary fields once each). Screenshots: `create_extract_advanced_changed_light.png` is new (closed,
+  three changes), `create_extract_advanced_light.png` shows the open section with the language, and every Smart Extract
+  baseline is one row shorter (the language is gone from the main card), which is why more than these two PNGs changed.

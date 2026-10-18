@@ -65,6 +65,7 @@ class BookImportScreenTest {
         generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
+        userSettings = com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository(),
     )
 
     private fun showScreen(closed: () -> Unit = {}) {

@@ -293,6 +293,35 @@ class SmartExtractScreenTest {
     }
 
     @Test
+    fun theCardLanguageIsChosenInTheAdvancedOptionsAndNamedFirstWhenClosed() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Some text.",
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        // It is no longer one of the everyday choices.
+        composeRule.onNodeWithText("Card language").assertDoesNotExist()
+        state = state.copy(showAdvanced = true)
+        composeRule.onNodeWithText("Card language").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Same as the source").performClick()
+        composeRule.onNodeWithText("Spanish").performClick()
+        assertEquals(SmartExtractAction.SetLanguage("Spanish"), actions.last())
+
+        // The default says nothing when the row is closed; a language comes before the other changes.
+        state = state.copy(showAdvanced = false)
+        composeRule.onNodeWithText("Spanish").assertDoesNotExist()
+        state = state.copy(
+            options = state.options.copy(language = "Spanish", overlap = Overlap.Always, contextSummary = ContextSummary.Off),
+        )
+        composeRule.onNodeWithText("Spanish · Overlap: always · No summary").performScrollTo().assertExists()
+    }
+
+    @Test
     fun theContextCardShowsAFirstLineThenTheWholeSummaryAndCanBeEdited() {
         val actions = mutableListOf<SmartExtractAction>()
         var state by mutableStateOf(
@@ -309,7 +338,7 @@ class SmartExtractScreenTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("CONTEXT"))
         composeRule.onNodeWithText("CONTEXT").assertExists()
         composeRule.onNodeWithText("Sent with every part", substring = true).assertDoesNotExist()
-        composeRule.onNodeWithText("Show").performClick()
+        composeRule.onNodeWithText("Show").performScrollTo().performClick()
         assertEquals(SmartExtractAction.ToggleContext, actions.last())
         composeRule.onNodeWithText("Edit").performClick()
         assertEquals(SmartExtractAction.EditContext, actions.last())

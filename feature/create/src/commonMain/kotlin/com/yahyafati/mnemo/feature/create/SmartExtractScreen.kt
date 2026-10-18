@@ -681,7 +681,6 @@ private fun Workshop(
             )
             DensitySlider(uiState) { onAction(SmartExtractAction.SetDensity(it)) }
             ArchetypePicker(uiState.options.archetypes) { onAction(SmartExtractAction.ToggleArchetype(it)) }
-            LanguagePicker(uiState.options.language) { onAction(SmartExtractAction.SetLanguage(it)) }
             AdvancedOptions(uiState.options, uiState.showAdvanced, onAction)
 
             // A book run generates by itself and moves on through the banner; a Generate button here would only invite a second request.
@@ -1447,9 +1446,10 @@ private fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchety
 }
 
 @Composable
-private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
+private fun LanguagePicker(language: String?, modifier: Modifier = Modifier, onSelect: (String?) -> Unit) {
     val sameAsSource = stringResource(Res.string.feature_create_language_source)
     OptionDropdown(
+        modifier = modifier,
         value = language ?: sameAsSource,
         label = stringResource(Res.string.feature_create_language),
         leadingIcon = MnemoIcons.Translate,
@@ -1464,6 +1464,7 @@ private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
 @Composable
 private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (SmartExtractAction) -> Unit) {
     val changed = buildList {
+        options.language?.let { add(it) }
         if (!options.skipIllustrations) add(stringResource(Res.string.feature_create_advanced_examples_kept))
         when (options.overlap) {
             Overlap.WithinSections -> Unit
@@ -1490,7 +1491,7 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
                 text = if (open) "" else changed.joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f)
@@ -1499,6 +1500,7 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
             Icon(if (open) MnemoIcons.ExpandLess else MnemoIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (open) {
+            LanguagePicker(options.language, Modifier.padding(vertical = MnemoTheme.spacing.sm)) { onAction(SmartExtractAction.SetLanguage(it)) }
             SwitchRow(
                 title = stringResource(Res.string.feature_create_skip_illustrations),
                 summary = stringResource(

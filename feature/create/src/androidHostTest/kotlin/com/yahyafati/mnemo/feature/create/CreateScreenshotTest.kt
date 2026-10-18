@@ -19,6 +19,9 @@ import com.yahyafati.mnemo.core.ui.card.MediaImageLoader
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.model.AiCapabilities
+import com.yahyafati.mnemo.core.model.ContextSummary
+import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
@@ -428,9 +431,12 @@ class CreateScreenshotTest {
     @Test
     fun advancedOpenAndNothingToLearn() = captureRoboImage("src/androidHostTest/screenshots/create_extract_advanced_light.png") { AdvancedOpen() }
 
-    /** Smart Extract with its Advanced options open (ADR 0015) after a run on a story that had nothing to learn. */
+    @Test
+    fun advancedChangedAndClosed() = captureRoboImage("src/androidHostTest/screenshots/create_extract_advanced_changed_light.png") { AdvancedOpen(open = false, changed = true) }
+
+    /** Smart Extract with its Advanced options open (ADR 0015) after a run on a story that had nothing to learn; or closed with settings changed (C5). */
     @androidx.compose.runtime.Composable
-    private fun AdvancedOpen() {
+    private fun AdvancedOpen(open: Boolean = true, changed: Boolean = false) {
         val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
         MnemoTheme {
             SmartExtractScreen(
@@ -440,7 +446,12 @@ class CreateScreenshotTest {
                     decks = listOf(DeckOption("d", "Novels::Prologue")),
                     deckId = "d",
                     text = "The ferry to Vaasa left at six in the evening, and by half past five the queue of cars already reached back past the petrol station.",
-                    showAdvanced = true,
+                    showAdvanced = open,
+                    options = if (changed) {
+                        ExtractOptions(language = "Spanish", overlap = Overlap.Always, contextSummary = ContextSummary.Off)
+                    } else {
+                        ExtractOptions()
+                    },
                     generation = GenerationState.Done(0),
                 ),
                 onAction = {},
