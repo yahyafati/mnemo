@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://yahyafati.github.io/mnemo/"><b>Download</b></a> for Android, Windows, macOS and Linux
+  <a href="https://mnemo.yahyafati.com/"><b>Download</b></a> for Android, Windows, macOS and Linux
 </p>
 
 <p align="center">
