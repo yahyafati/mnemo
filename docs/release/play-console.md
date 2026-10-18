@@ -34,7 +34,7 @@ graphics from [assets/](assets/README.md).
    `main` (or run the *Pages* workflow by hand). `.github/workflows/pages.yml` runs
    `scripts/pages/build.py`, which **refuses to build while the placeholder or a missing email is
    in the policy**, and publishes:
-   - `https://mnemo.yahyafati.com/`: a one-page site (the listing's website)
+   - `https://mnemo.yahyafati.com/`: the home page (the listing's website)
    - `https://mnemo.yahyafati.com/privacy/`: the privacy policy (the listing's policy URL)
 3. Open both URLs in a private window and check the table renders and the address is there.
 4. Point the app at the hosted policy: set `ProjectLinks.PRIVACY_POLICY` (`:core:model`) to the

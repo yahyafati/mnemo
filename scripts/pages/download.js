@@ -1,5 +1,6 @@
-// The page works without this script: every download is in the table. With it, the visitor's own system
-// gets a big button on top, and the current version and date appear. Nothing else is fetched or stored.
+// The pages work without this script: their button leads to every download. With it, each button
+// downloads the build for the visitor's own system, and the current version and date appear.
+// Nothing else is fetched or stored.
 (function () {
   "use strict";
 
@@ -16,79 +17,99 @@
     return null;
   }
 
-  var pick = document.getElementById("pick");
-  var rows = {};
-  Array.prototype.forEach.call(document.querySelectorAll("tr[data-os]"), function (row) {
-    rows[row.getAttribute("data-os")] = row;
-  });
-
-  var system = systemOf(navigator.userAgent, navigator.platform);
-  if (pick && system === "ios") {
-    pick.textContent = "Mnemo is not available for iPhone or iPad. You can use it on a computer or an Android phone: all downloads are below.";
-    pick.className = "notice";
-    pick.hidden = false;
-  } else if (pick && system && rows[system]) {
-    var row = rows[system];
-    var link = document.createElement("a");
-    link.className = "button";
-    link.href = row.querySelector("a").href;
-    link.textContent = "Download for " + row.getAttribute("data-label");
-    pick.appendChild(link);
-    var note = row.getAttribute("data-note");
-    if (note) {
-      var small = document.createElement("p");
-      small.className = "small";
-      small.textContent = note;
-      pick.appendChild(small);
-    }
-    // A browser says "Intel" on every Mac, so the Apple Silicon button gets the Intel build as its alternative.
-    var other = rows[system + "-intel"];
-    if (other) {
-      var alt = document.createElement("p");
-      alt.className = "small";
-      alt.appendChild(document.createTextNode("Not sure which Mac you have? Choose Apple menu \u203a About This Mac: \u201cChip\u201d says Apple M1 or later, \u201cProcessor\u201d says Intel. "));
-      var altLink = document.createElement("a");
-      altLink.href = other.querySelector("a").href;
-      altLink.textContent = "Download for " + other.getAttribute("data-label");
-      alt.appendChild(altLink);
-      pick.appendChild(alt);
-    }
-    var more = document.createElement("p");
-    more.className = "small";
-    more.innerHTML = 'Not your system? <a href="#all-files">Every file is below</a>, and <a href="#install">what to click when your system warns you</a>.';
-    pick.appendChild(more);
-    pick.hidden = false;
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.appendChild(document.createTextNode(text));
+    return node;
   }
 
-  var status = document.getElementById("release-status");
-  var none = document.getElementById("no-release");
-  if (!status || !window.fetch) return;
-  var api = status.getAttribute("data-api");
-  fetch(api, { headers: { Accept: "application/vnd.github+json" } })
+  function link(href, text) {
+    var a = el("a", null, text);
+    a.href = href;
+    return a;
+  }
+
+  var list = document.getElementById("files");
+  if (!list) return;
+  var files = {};
+  Array.prototype.forEach.call(list.querySelectorAll("a[data-os]"), function (a) {
+    files[a.getAttribute("data-os")] = a;
+  });
+  var system = systemOf(navigator.userAgent, navigator.platform);
+  var gets = document.querySelectorAll("[data-get]");
+
+  Array.prototype.forEach.call(gets, function (get) {
+    var help = get.getAttribute("data-help") || "";
+    var button = get.querySelector(".button");
+    var after = button;
+    function add(node) {
+      after.parentNode.insertBefore(node, after.nextSibling);
+      after = node;
+    }
+
+    if (system === "ios") {
+      button.href = help + "#all-files";
+      button.textContent = "See all downloads";
+      add(el("p", "small", "Mnemo is not available for iPhone or iPad. It runs on Android phones and on computers."));
+      return;
+    }
+    var file = files[system];
+    if (!file) return;
+    button.href = file.href;
+    button.textContent = "Download for " + file.getAttribute("data-label");
+
+    var note = file.getAttribute("data-note");
+    if (note) {
+      var p = el("p", "small", note + " ");
+      p.appendChild(link(help + "#" + file.getAttribute("data-section"), "What to click"));
+      add(p);
+    }
+    // A browser says "Intel" on every Mac, so the Apple Silicon button gets the Intel build as its alternative.
+    var other = files[system + "-intel"];
+    if (other) {
+      var alt = el("p", "small", "Mac with an Intel processor? ");
+      alt.appendChild(link(other.href, "Get this version instead"));
+      add(alt);
+    }
+    Array.prototype.forEach.call(get.querySelectorAll("[data-other]"), function (span) {
+      span.appendChild(document.createTextNode(" · "));
+      span.appendChild(link(help + "#all-files", "Other systems"));
+    });
+  });
+
+  var releases = document.querySelectorAll("[data-release]");
+  var none = document.querySelectorAll("[data-none]");
+  if (!window.fetch) return;
+  fetch(list.getAttribute("data-api"), { headers: { Accept: "application/vnd.github+json" } })
     .then(function (response) {
       if (response.status === 404) {
         // Nothing published yet: do not point at downloads that do not exist.
-        status.hidden = true;
-        if (pick) pick.hidden = true;
-        if (none) none.hidden = false;
+        Array.prototype.forEach.call(gets, function (get) { get.hidden = true; });
+        Array.prototype.forEach.call(releases, function (line) { line.hidden = true; });
+        Array.prototype.forEach.call(none, function (notice) { notice.hidden = false; });
         return null;
       }
       return response.ok ? response.json() : null;
     })
     .then(function (release) {
       if (!release || !release.tag_name) return;
-      var text = "Version " + release.tag_name.replace(/^v/, "");
+      var version = "Version " + release.tag_name.replace(/^v/, "");
+      var text = version;
       if (release.published_at) {
         var when = new Date(release.published_at);
         if (!isNaN(when)) {
           text += ", released " + when.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
         }
       }
-      status.textContent = text + " · ";
-      var notes = document.createElement("a");
-      notes.href = release.html_url || status.getAttribute("data-fallback");
-      notes.textContent = "release notes";
-      status.appendChild(notes);
+      Array.prototype.forEach.call(releases, function (line) {
+        if (line.hasAttribute("data-short")) {
+          line.textContent = " · " + version;
+          return;
+        }
+        line.textContent = text + " · ";
+        line.appendChild(link(release.html_url || list.getAttribute("data-fallback"), "What's new"));
+      });
     })
     .catch(function () { /* offline or rate-limited: the static line stays */ });
 })();

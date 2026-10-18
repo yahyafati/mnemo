@@ -14,6 +14,7 @@ on:
       - docs/release/privacy-policy.md
       - docs/desktop/install.md          # the page's install notes are written from it
       - docs/release/assets/**           # icon and screenshots
+      - core/designsystem/src/commonMain/composeResources/font/**   # the app's fonts, used by the site
       - scripts/pages/**
       - scripts/release/prepare-release.py   # the stable file names the page links to
       - .github/workflows/pages.yml
