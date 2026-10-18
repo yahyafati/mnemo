@@ -7,7 +7,7 @@ Mnemo is GPL-3.0-or-later and free (ADR 0009). The source of a release is the pu
 
 | Channel | State | How |
 |---|---|---|
-| **GitHub Releases + download page** (the first route) | Built, not yet run on GitHub | A `v*` tag runs `.github/workflows/release.yml`: the signed universal APK, the desktop installers (`.msi`, `.dmg` for Apple Silicon and Intel, `.deb`, `.rpm`, Linux `.tar.gz`), stable-name copies, one `SHA256SUMS.txt` and a draft release (`scripts/release/prepare-release.py`; notes from [release-notes.md](release-notes.md) + the F-Droid changelog). `pages.yml` deploys the download page and the privacy policy (`scripts/pages/`) to `https://yahyafati.github.io/mnemo/`. Android updates through Obtainium (filter `^Mnemo-android\.apk$`); the desktop installs over itself. |
+| **GitHub Releases + download page** (the first route) | Built, not yet run on GitHub | A `v*` tag runs `.github/workflows/release.yml`: the signed universal APK, the desktop installers (`.msi`, `.dmg` for Apple Silicon and Intel, `.deb`, `.rpm`, Linux `.tar.gz`), stable-name copies, one `SHA256SUMS.txt` and a draft release (`scripts/release/prepare-release.py`; notes from [release-notes.md](release-notes.md) + the F-Droid changelog). `pages.yml` deploys the download page and the privacy policy (`scripts/pages/`) to `https://mnemo.yahyafati.com/`. Android updates through Obtainium (filter `^Mnemo-android\.apk$`); the desktop installs over itself. |
 | **F-Droid** | Recipe ready, merge request not opened | [fdroid.md](fdroid.md), recipe [fdroid/com.yahyafati.mnemo.yml](fdroid/com.yahyafati.mnemo.yml), texts in `fastlane/metadata/android/en-US/`. F-Droid signs with its own key. |
 | **Google Play** | Prepared, account not set up | [play-console.md](play-console.md) (every form, in order) and [store-listing.md](store-listing.md) (texts, data safety). Needs a 14-day closed test with 12+ testers before production. |
 
@@ -31,8 +31,9 @@ Mnemo is GPL-3.0-or-later and free (ADR 0009). The source of a release is the pu
 
 ## Open (owner)
 
-- **GitHub:** Settings › Pages › Source = GitHub Actions, then run `pages.yml` once and switch
-  `ProjectLinks.PRIVACY_POLICY` to `https://yahyafati.github.io/mnemo/privacy/` once it loads; turn on private
+- **GitHub:** Settings › Pages › Source = GitHub Actions and Custom domain = `mnemo.yahyafati.com` (DNS: a `CNAME`
+  from `mnemo` to `yahyafati.github.io`; then Enforce HTTPS), then run `pages.yml` once and switch
+  `ProjectLinks.PRIVACY_POLICY` to `https://mnemo.yahyafati.com/privacy/` once it loads; turn on private
   vulnerability reporting (`SECURITY.md` links to it); a tag ruleset so only the owner can push `v*`.
 - **Signing:** check both keystore backups open and record the SHA-256 fingerprint; put the keystore and passwords
   in the Actions secrets and the fingerprint in `MNEMO_CERT_SHA256` ([signing.md](signing.md)); decide to reuse the

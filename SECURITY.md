@@ -20,7 +20,7 @@ in a following release. If you want credit in the release notes, say so.
 ## Supported versions
 
 Only the latest release gets fixes. Updates are not automatic: see
-[Updates](https://yahyafati.github.io/mnemo/#updates) on the download page.
+[Updates](https://mnemo.yahyafati.com/#updates) on the download page.
 
 ## Out of scope
 
