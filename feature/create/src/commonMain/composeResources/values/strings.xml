@@ -256,9 +256,16 @@
     <string name="feature_create_archetype_case">Case study</string>
     <string name="feature_create_language">Card language</string>
     <string name="feature_create_language_source">Same as the source</string>
+    <string name="feature_create_advanced">Advanced</string>
+    <string name="feature_create_advanced_show">Show advanced options</string>
+    <string name="feature_create_advanced_hide">Hide advanced options</string>
+    <string name="feature_create_skip_illustrations">Skip examples and anecdotes</string>
+    <string name="feature_create_skip_illustrations_on">Cards are about the ideas, not the stories and examples that explain them.</string>
+    <string name="feature_create_skip_illustrations_off">Examples, stories and case histories may get cards of their own.</string>
+    <string name="feature_create_advanced_examples_kept">Examples get cards</string>
     <plurals name="feature_create_generate">
-        <item quantity="one">Generate ~%1$d card</item>
-        <item quantity="other">Generate ~%1$d cards</item>
+        <item quantity="one">Generate up to %1$d card</item>
+        <item quantity="other">Generate up to %1$d cards</item>
     </plurals>
     <string name="feature_create_generate_empty">Generate cards</string>
     <string name="feature_create_stop">Stop</string>
@@ -271,6 +278,7 @@
 
     <string name="feature_create_queue">Review queue</string>
     <string name="feature_create_queue_empty">Generated cards appear here as they arrive. Nothing is saved until you accept it.</string>
+    <string name="feature_create_queue_nothing">No cards: there was nothing worth remembering in this text. Stories, narrative and front matter often have none.</string>
     <plurals name="feature_create_queue_skipped">
         <item quantity="one">%1$d proposed card was left out as a duplicate or unusable.</item>
         <item quantity="other">%1$d proposed cards were left out as duplicates or unusable.</item>
@@ -456,6 +464,7 @@
     <string name="feature_create_batch_progress">Chapter %1$d of %2$d</string>
     <string name="feature_create_batch_hint_running">Generating this chapter's cards…</string>
     <string name="feature_create_batch_hint_review">Review the cards below and accept the ones you want, then go on to the next chapter.</string>
+    <string name="feature_create_batch_hint_nothing">No cards: this chapter has nothing worth remembering, as is common for stories and front matter. Go on to the next chapter.</string>
     <string name="feature_create_batch_hint_failed">This chapter stopped early. Try again, or skip it.</string>
     <string name="feature_create_batch_hint_idle">Generate this chapter's cards, or skip it.</string>
     <string name="feature_create_batch_next">Next chapter</string>

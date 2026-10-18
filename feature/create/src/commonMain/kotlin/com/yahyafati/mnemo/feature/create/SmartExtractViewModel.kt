@@ -423,6 +423,8 @@ class SmartExtractViewModel(
                 it.copy(archetypes = if (action.archetype in it.archetypes) it.archetypes - action.archetype else it.archetypes + action.archetype)
             }
             is SmartExtractAction.SetLanguage -> updateOptions { it.copy(language = action.language) }
+            SmartExtractAction.ToggleAdvanced -> _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
+            is SmartExtractAction.SetSkipIllustrations -> updateOptions { it.copy(skipIllustrations = action.skip) }
             SmartExtractAction.Generate -> generate()
             SmartExtractAction.Stop -> {
                 generationJob?.cancel()

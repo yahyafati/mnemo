@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.ai.parse.ParsedCard
 import com.yahyafati.mnemo.core.model.NoteKind
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -56,8 +57,28 @@ class GeneratedCardParserTest {
             "refusal.txt" to 0,
             "invalid-cards.json" to 1,
             "pages.json" to 6,
+            "empty-cards.json" to 0,
+            "empty-cards-fenced.txt" to 0,
         )
         for ((name, count) in expected) assertEquals(count, cards(name).size, name)
+    }
+
+    @Test
+    fun anEmptyListIsAnAnswerAndNotAMistake() {
+        fun isEmptyAnswer(text: String) = GeneratedCardParser().run {
+            feed(text)
+            finish()
+            isEmptyAnswer
+        }
+        assertTrue(isEmptyAnswer(fixture("empty-cards.json")))
+        assertTrue(isEmptyAnswer(fixture("empty-cards-fenced.txt")))
+        assertTrue(isEmptyAnswer("[]"))
+        // Unreadable, or not plainly empty: these still get a repair request.
+        assertFalse(isEmptyAnswer(fixture("refusal.txt")))
+        assertFalse(isEmptyAnswer("""{"cards": [{"question": 1}]}"""))
+        assertFalse(isEmptyAnswer("""{"cards": [], "note": "Here are the cards"}"""))
+        assertFalse(isEmptyAnswer(""))
+        assertFalse(isEmptyAnswer(fixture("clean-schema.json")))
     }
 
     @Test

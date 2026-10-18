@@ -424,6 +424,30 @@ class CreateScreenshotTest {
         }
     }
 
+    @Test
+    fun advancedOpenAndNothingToLearn() = captureRoboImage("src/androidHostTest/screenshots/create_extract_advanced_light.png") { AdvancedOpen() }
+
+    /** Smart Extract with its Advanced options open (ADR 0015) after a run on a story that had nothing to learn. */
+    @androidx.compose.runtime.Composable
+    private fun AdvancedOpen() {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        MnemoTheme {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Novels::Prologue")),
+                    deckId = "d",
+                    text = "The ferry to Vaasa left at six in the evening, and by half past five the queue of cars already reached back past the petrol station.",
+                    showAdvanced = true,
+                    generation = GenerationState.Done(0),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
+    }
+
     /** Smart Extract in the middle of a book run: chapter 3 of 8 is done and waits for its review. */
     @androidx.compose.runtime.Composable
     private fun BatchRun(dark: Boolean) {

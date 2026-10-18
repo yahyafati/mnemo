@@ -24,7 +24,7 @@ sealed interface CardEvent {
  * One Smart Extract request (PROJECT_OVERVIEW §5.3, steps 3–4). Asks for structured output when
  * the model supports it, streams when it can, and emits each card as soon as the reply completes
  * it. A reply with no readable cards gets one repair request, which shows the model its own
- * answer and asks for the JSON again.
+ * answer and asks for the JSON again; an empty list (`{"cards": []}`) is an answer, not a mistake (ADR 0015).
  */
 class CardGenerationClient(private val runner: ChatTextRunner) {
     fun generate(config: ProviderConfig, model: String, capabilities: AiCapabilities, prompt: CardsPrompt): Flow<CardEvent> = flow {
@@ -50,7 +50,7 @@ class CardGenerationClient(private val runner: ChatTextRunner) {
                 return@flow
             }
             parser.finish().forEach { emit(CardEvent.Card(it)) }
-            if (parser.count == 0 && !repaired) {
+            if (parser.count == 0 && !parser.isEmptyAnswer && !repaired) {
                 repaired = true
                 messages = prompt.messages() +
                     ChatMessage("assistant", parser.text.take(MAX_ECHO_CHARS).ifBlank { "(no reply)" }) +

@@ -98,6 +98,47 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun aRunThatProposesNothingSaysThereWasNothingToLearn() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        assertFalse(vm.state.nothingToLearn)
+        vm.onAction(SmartExtractAction.Generate)
+
+        assertEquals(GenerationState.Done(added = 0), vm.state.generation)
+        assertTrue(vm.state.nothingToLearn)
+    }
+
+    @Test
+    fun aRunWhoseCardsWereAllDroppedIsNotNothingToLearn() = runTest {
+        val vm = readyViewModel()
+        // The model proposed a card, which was dropped as unusable: the text did have something in it.
+        generation.respond = { flowOf(GenerationUpdate.Card(card("", "A")), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        assertEquals(GenerationState.Done(added = 0), vm.state.generation)
+        assertEquals(1, vm.state.invalidSkipped)
+        assertFalse(vm.state.nothingToLearn)
+    }
+
+    @Test
+    fun skippingIllustrationsIsOnUntilTheUserTurnsItOff() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        assertFalse(vm.state.showAdvanced)
+        vm.onAction(SmartExtractAction.Generate)
+        assertTrue(generation.requests.last().options.skipIllustrations)
+
+        vm.onAction(SmartExtractAction.ToggleAdvanced)
+        assertTrue(vm.state.showAdvanced)
+        vm.onAction(SmartExtractAction.SetSkipIllustrations(false))
+        vm.onAction(SmartExtractAction.Generate)
+        assertFalse(generation.requests.last().options.skipIllustrations)
+
+        vm.onAction(SmartExtractAction.ToggleAdvanced)
+        assertFalse(vm.state.showAdvanced)
+    }
+
+    @Test
     fun theQueueFillsWhileCardsStreamIn() = runTest {
         val vm = readyViewModel()
         val stream = generation.streamed()

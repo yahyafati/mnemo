@@ -127,7 +127,7 @@ class SmartExtractPageImagesScreenTest {
         composeRule.onNodeWithText("2-3").assertExists() // the Pages field says the same
 
         // Nothing is sent until the user has agreed to the request and, once, to the notice about images.
-        composeRule.onNodeWithText("Generate ~8 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 8 cards").performClick()
         composeRule.onNodeWithText("Make cards from page images?").assertExists()
         assertEquals(0, generation.requests.size)
         composeRule.onNodeWithText("Make cards").performClick()
@@ -159,7 +159,7 @@ class SmartExtractPageImagesScreenTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Page 2").performClick()
-        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 4 cards").performClick()
         composeRule.onNodeWithText("Make cards").performClick()
         composeRule.onNodeWithText("Continue").performClick()
         composeRule.onNodeWithText("What is on the slide?").assertExists()
@@ -200,7 +200,7 @@ class SmartExtractPageImagesScreenTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Page 2").performClick()
-        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 4 cards").performClick()
         composeRule.onNodeWithText("Make cards").performClick()
         composeRule.onNodeWithText("Continue").performClick()
         composeRule.onNodeWithText("Add figure").performClick()

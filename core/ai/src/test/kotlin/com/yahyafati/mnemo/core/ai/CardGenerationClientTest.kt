@@ -169,6 +169,17 @@ class CardGenerationClientTest {
     }
 
     @Test
+    fun anEmptyListGetsNoRepair() = runTest {
+        server.enqueue(completion("""{"cards": []}"""))
+        val events = generator.generate(config, "m", AiCapabilities(jsonOutput = true, streaming = false), prompt).toList()
+
+        val done = assertIs<CardEvent.Done>(events.single())
+        assertNull(done.error)
+        assertEquals(1, done.requests)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
     fun onlyOneRepair() = runTest {
         server.enqueue(completion("No."))
         server.enqueue(completion("Still no."))

@@ -16,7 +16,8 @@ import kotlinx.serialization.json.JsonPrimitive
  * reasoning models are dropped.
  *
  * [finish] handles what can only be judged at the end: a reply with no card objects gets one more
- * look as a whole (JSON with the cards nested in strings, or plain "Q: … A: …" text).
+ * look as a whole (JSON with the cards nested in strings, or plain "Q: … A: …" text), and a reply that
+ * is an empty list (`{"cards": []}`) is told apart from an unreadable one ([isEmptyAnswer]).
  */
 class GeneratedCardParser {
     private val buffer = StringBuilder()
@@ -33,6 +34,13 @@ class GeneratedCardParser {
 
     /** The reply so far, without reasoning blocks: for a repair request. */
     val text: String get() = buffer.toString()
+
+    /**
+     * After [finish]: the reply was a valid answer with no cards, `{"cards": []}` or a bare `[]` (ADR 0015: a part with
+     * nothing worth a card). Such a reply needs no repair; an unreadable one does.
+     */
+    var isEmptyAnswer: Boolean = false
+        private set
 
     private class Frame(val open: Char, val start: Int) {
         /** A card was found inside; this object is a wrapper, not a card. */
@@ -56,9 +64,18 @@ class GeneratedCardParser {
             emptyList()
         }
         if (cardCount > 0) return cards
-        val fallback = wholeReply().ifEmpty { PlainTextCards.parse(buffer.toString()) }
+        val json = replyJson()
+        val fallback = json?.let(::cardsIn).orEmpty().ifEmpty { PlainTextCards.parse(buffer.toString()) }
         cardCount += fallback.size
+        isEmptyAnswer = fallback.isEmpty() && json != null && json.isEmptyList()
         return fallback
+    }
+
+    /** `{"cards": []}` or `[]`: nothing else in the object, so a reply with stray keys is still repaired. */
+    private fun JsonElement.isEmptyList(): Boolean = when (this) {
+        is JsonArray -> isEmpty()
+        is JsonObject -> size == 1 && (this["cards"] as? JsonArray)?.isEmpty() == true
+        else -> false
     }
 
     private fun scan(): List<ParsedCard> {
@@ -93,16 +110,18 @@ class GeneratedCardParser {
         return found
     }
 
-    /** The whole reply as JSON (repaired), with cards found anywhere in it, even inside strings. */
-    private fun wholeReply(): List<ParsedCard> {
+    /** The whole reply as JSON (repaired), or null when there is none. */
+    private fun replyJson(): JsonElement? {
         val text = buffer.toString()
         val start = text.indexOfFirst { it == '{' || it == '[' }
-        if (start < 0) return emptyList()
+        if (start < 0) return null
         val end = text.indexOfLast { it == '}' || it == ']' }
         val candidate = if (end > start) text.substring(start, end + 1) else text.substring(start)
-        val element = JsonRepair.parse(candidate) ?: JsonRepair.parse(candidate, closeOpen = true) ?: return emptyList()
-        return mutableListOf<ParsedCard>().also { collect(element, it, depth = 0) }
+        return JsonRepair.parse(candidate) ?: JsonRepair.parse(candidate, closeOpen = true)
     }
+
+    /** Cards found anywhere in [element], even inside strings. */
+    private fun cardsIn(element: JsonElement): List<ParsedCard> = mutableListOf<ParsedCard>().also { collect(element, it, depth = 0) }
 
     private fun collect(element: JsonElement, into: MutableList<ParsedCard>, depth: Int) {
         if (depth > MAX_DEPTH) return

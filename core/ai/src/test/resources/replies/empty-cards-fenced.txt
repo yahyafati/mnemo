@@ -1,0 +1,4 @@
+<think>The passage is a story with no facts to learn.</think>
+```json
+{"cards": []}
+```

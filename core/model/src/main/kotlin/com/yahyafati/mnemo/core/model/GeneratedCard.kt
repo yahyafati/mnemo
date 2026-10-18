@@ -34,8 +34,13 @@ data class ExtractOptions(
     val archetypes: Set<CardArchetype> = setOf(CardArchetype.Definition, CardArchetype.Cloze),
     /** The cards' language, as an English name ("Spanish"); null keeps the source's language. */
     val language: String? = null,
+    /**
+     * Cards are about the ideas, not about the examples, anecdotes and stories that illustrate them (ADR 0015, C1).
+     * Off for readers who want the stories, as in history, law or medicine.
+     */
+    val skipIllustrations: Boolean = true,
 ) {
-    /** About how many cards [words] of source should give. */
+    /** At most how many cards [words] of source should give: a ceiling, since a part may hold fewer ideas (ADR 0015). */
     fun targetCards(words: Int): Int =
         (words / density.wordsPerCard).coerceIn(MIN_CARDS_PER_REQUEST, MAX_CARDS_PER_REQUEST)
 

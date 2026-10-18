@@ -40,6 +40,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -110,32 +111,14 @@ import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_add
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_alt
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_change
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_back
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_front
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_remove
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_missing
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_removed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_title
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_message
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_requests
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_send
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_use
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
-import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_pages
-import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_page_failed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page
-import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page_open
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_into
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_no_deck
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accepted
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_examples_kept
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_hide
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_show
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_case
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_choice
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_cloze
@@ -151,6 +134,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_finish
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_idle
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_nothing
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_review
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_running
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_label
@@ -166,6 +150,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_card_discard
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_edit
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_number
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page_open
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_regenerate
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_balanced
@@ -195,10 +181,19 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_pick
 import com.yahyafati.mnemo.feature.create.resources.feature_create_extra
 import com.yahyafati.mnemo.feature.create.resources.feature_create_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_add
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_alt
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_change
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_back
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_front
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_remove
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_missing
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_removed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_front
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generate
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generate_empty
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generating
+import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_part
 import com.yahyafati.mnemo.feature.create.resources.feature_create_language
 import com.yahyafati.mnemo.feature.create.resources.feature_create_language_source
@@ -212,14 +207,21 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_conf
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
+import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_blank
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail_printed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_use
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_send
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_requests
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_send
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_hint
@@ -227,6 +229,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_no_vision
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_text
@@ -236,6 +240,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_no_text_r
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_long
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_malformed
@@ -265,9 +270,11 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_too_l
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_wrong
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_empty
+import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_nothing
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_skipped
 import com.yahyafati.mnemo.feature.create.resources.feature_create_reading
 import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_page_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_retry
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_choose
@@ -281,6 +288,9 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_repl
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_summary
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title_untitled
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations_on
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_manage
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_setup
@@ -619,7 +629,7 @@ private fun Workshop(
                 }
             }
 
-            uiState.batch?.let { BatchBanner(it, uiState.generation, onAction) }
+            uiState.batch?.let { BatchBanner(it, uiState.generation, uiState.nothingToLearn, onAction) }
             SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
             if (LocalPlatformCapabilities.current.keyboardAndMouse) Hint(stringResource(Res.string.feature_create_drop_file_hint))
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
@@ -639,6 +649,7 @@ private fun Workshop(
             DensitySlider(uiState) { onAction(SmartExtractAction.SetDensity(it)) }
             ArchetypePicker(uiState.options.archetypes) { onAction(SmartExtractAction.ToggleArchetype(it)) }
             LanguagePicker(uiState.options.language) { onAction(SmartExtractAction.SetLanguage(it)) }
+            AdvancedOptions(uiState.options, uiState.showAdvanced, onAction)
 
             // A book run generates by itself and moves on through the banner; a Generate button here would only invite a second request.
             if (uiState.batch == null || uiState.generation !is GenerationState.Done) GenerateControls(uiState, onAction)
@@ -665,7 +676,7 @@ private fun Workshop(
  * run goes on only when the user presses Next (or Skip), so a failed chapter waits here for Retry or Skip.
  */
 @Composable
-private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction: (SmartExtractAction) -> Unit) {
+private fun BatchBanner(batch: BookBatch, generation: GenerationState, nothingToLearn: Boolean, onAction: (SmartExtractAction) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
     Surface(shape = MaterialTheme.shapes.small, color = colors.secondaryContainer, contentColor = colors.onSecondaryContainer) {
@@ -680,7 +691,7 @@ private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction:
                 text = stringResource(
                     when (generation) {
                         is GenerationState.Running -> Res.string.feature_create_batch_hint_running
-                        is GenerationState.Done -> Res.string.feature_create_batch_hint_review
+                        is GenerationState.Done -> if (nothingToLearn) Res.string.feature_create_batch_hint_nothing else Res.string.feature_create_batch_hint_review
                         is GenerationState.Failed, is GenerationState.PageUnreadable -> Res.string.feature_create_batch_hint_failed
                         GenerationState.Idle -> Res.string.feature_create_batch_hint_idle
                     },
@@ -1413,6 +1424,72 @@ private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
     )
 }
 
+/**
+ * The Advanced options (ADR 0015): closed by default, so the card shows only the everyday choices. Closed, the row says
+ * which settings are not at their defaults, so nothing changed is hidden.
+ */
+@Composable
+private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (SmartExtractAction) -> Unit) {
+    val changed = buildList {
+        if (!options.skipIllustrations) add(stringResource(Res.string.feature_create_advanced_examples_kept))
+    }
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickCursor()
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = stringResource(if (open) Res.string.feature_create_advanced_hide else Res.string.feature_create_advanced_show),
+                    onClick = { onAction(SmartExtractAction.ToggleAdvanced) },
+                ),
+        ) {
+            Label(stringResource(Res.string.feature_create_advanced))
+            Text(
+                text = if (open) "" else changed.joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = MnemoTheme.spacing.sm),
+            )
+            Icon(if (open) MnemoIcons.ExpandLess else MnemoIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (open) {
+            SwitchRow(
+                title = stringResource(Res.string.feature_create_skip_illustrations),
+                summary = stringResource(
+                    if (options.skipIllustrations) Res.string.feature_create_skip_illustrations_on else Res.string.feature_create_skip_illustrations_off,
+                ),
+                checked = options.skipIllustrations,
+                onCheckedChange = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(title: String, summary: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickCursor()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+    ) {
+        Column(Modifier.weight(1f).padding(end = MnemoTheme.spacing.sm)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Hint(summary)
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
 @Composable
 private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtractAction) -> Unit) {
     val colors = MaterialTheme.colorScheme
@@ -1507,7 +1584,10 @@ private fun QueueHeader(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             HorizontalDivider(Modifier.weight(1f), color = colors.surfaceContainerHighest)
         }
         if (uiState.queue.isEmpty()) {
-            Hint(stringResource(Res.string.feature_create_queue_empty), Modifier.align(Alignment.CenterHorizontally))
+            Hint(
+                text = stringResource(if (uiState.nothingToLearn) Res.string.feature_create_queue_nothing else Res.string.feature_create_queue_empty),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val skipped = uiState.duplicatesSkipped + uiState.invalidSkipped

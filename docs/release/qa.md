@@ -150,6 +150,10 @@ Note what read well, token use and timing in the log.
       chapters.
 - [ ] The AI disclosure still matches what each source sends (the source text or page images, and the queue's
       fronts; the deck's notes stay local).
+- [ ] **Card quality** (ADR 0015): `scripts/qa/extract-checks.py run --url <base> --model <id>` sends the texts in
+      `scripts/qa/extract` exactly as Smart Extract would (key in `MNEMO_QA_API_KEY`), and writes `cards.csv`. Label
+      each card `idea`, `illustration` or `bad`, then `extract-checks.py summary <cards.csv>`. Repeat after each C step
+      with the same model and density, and record cards per text and the illustration share.
 
 ## 3. Release smoke test (R8)
 
@@ -244,6 +248,7 @@ Build = `versionName (versionCode)` and how it was installed.
 | 2.1 PDFs (list which) | | | | | |
 | 2.1 Links (list which) | | | | | |
 | 2.1 Books (list which) | | | | | |
+| 2.1 Card quality after C1 (model, density) | | | | | |
 | 3 Fresh install and onboarding | | | | | |
 | 3 Import real `.apkg` | | | | | |
 | 3 Study, every card type | | | | | |

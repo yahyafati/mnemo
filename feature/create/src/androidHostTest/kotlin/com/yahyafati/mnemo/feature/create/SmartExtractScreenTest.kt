@@ -101,7 +101,7 @@ class SmartExtractScreenTest {
         composeRule.onNodeWithText("7 words").assertExists()
 
         // First request to this provider: the notice comes first.
-        composeRule.onNodeWithText("Generate ~3 cards").performScrollTo().performClick()
+        composeRule.onNodeWithText("Generate up to 3 cards").performScrollTo().performClick()
         composeRule.onNodeWithText("Send to Ollama?").assertExists()
         composeRule.onNodeWithText("Continue").performClick()
 
@@ -206,6 +206,50 @@ class SmartExtractScreenTest {
         assertEquals(SmartExtractAction.CancelBatchDiscard, actions.last())
         composeRule.onNodeWithText("Discard and continue").performClick()
         assertEquals(SmartExtractAction.ConfirmBatchDiscard, actions.last())
+    }
+
+    @Test
+    fun advancedOptionsAreClosedUntilAsked() {
+        val actions = mutableListOf<SmartExtractAction>()
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Some text.",
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }
+
+        composeRule.onNodeWithText("Skip examples and anecdotes").assertDoesNotExist()
+        composeRule.onNodeWithText("ADVANCED").performScrollTo().performClick()
+        assertEquals(SmartExtractAction.ToggleAdvanced, actions.last())
+
+        state = state.copy(showAdvanced = true)
+        composeRule.onNodeWithText("Skip examples and anecdotes").performScrollTo().performClick()
+        assertEquals(SmartExtractAction.SetSkipIllustrations(false), actions.last())
+
+        // Closed again, the row says what isn't at its default.
+        state = state.copy(showAdvanced = false, options = state.options.copy(skipIllustrations = false))
+        composeRule.onNodeWithText("Examples get cards").assertExists()
+    }
+
+    @Test
+    fun aRunWithNoCardsSaysThereWasNothingToLearn() {
+        val chapters = listOf("Prologue", "One").mapIndexed { i, title -> ChapterOption(i, title, 100, ChapterKind.Content, false) }
+        var state by mutableStateOf(
+            SmartExtractUiState(
+                isLoading = false,
+                route = AiRoute(AiTask.Extract, ollama, "llama3.2", AiCapabilities(), usesDefault = true),
+                text = "Once upon a time.",
+                generation = GenerationState.Done(0),
+            ),
+        )
+        composeRule.setContent { MnemoTheme { SmartExtractScreen(state, {}, onSetUpAi = {}) } }
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("No cards: there was nothing worth remembering", substring = true))
+
+        state = state.copy(batch = BookBatch(chapters, position = 0))
+        composeRule.onNodeWithText("No cards: this chapter has nothing worth remembering", substring = true).assertExists()
+        composeRule.onNodeWithText("Next chapter").assertExists()
     }
 
     @Test

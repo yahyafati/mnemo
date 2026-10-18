@@ -67,6 +67,8 @@ data class SmartExtractUiState(
     val dictationAvailable: Boolean = true,
     val dictation: DictationState = DictationState.Off,
     val options: ExtractOptions = ExtractOptions(),
+    /** The Advanced options (ADR 0015) are open. */
+    val showAdvanced: Boolean = false,
     val generation: GenerationState = GenerationState.Idle,
     val queue: List<QueueItem> = emptyList(),
     /** Proposed cards dropped this session, as duplicates or as unusable. */
@@ -101,6 +103,13 @@ data class SmartExtractUiState(
     private fun cardsFor(words: Int) = maxOf(options.targetCards(words), words / options.density.wordsPerCard)
 
     val isGenerating: Boolean get() = generation is GenerationState.Running
+
+    /**
+     * The run ended and the model proposed nothing at all, not even a duplicate (ADR 0015, C1): the text had nothing worth a
+     * card, as is common for stories and front matter.
+     */
+    val nothingToLearn: Boolean
+        get() = generation is GenerationState.Done && generation.added == 0 && queue.isEmpty() && duplicatesSkipped == 0 && invalidSkipped == 0
 
     /** The model PDF pages are read with can see images, so Auto, Read pages with AI and Cards from page images can be chosen. */
     val canReadPages: Boolean get() = readRoute?.capabilities?.vision == true
@@ -475,6 +484,12 @@ sealed interface SmartExtractAction {
 
     /** Null: the same language as the source. */
     data class SetLanguage(val language: String?) : SmartExtractAction
+
+    /** Opens or closes the Advanced options. */
+    data object ToggleAdvanced : SmartExtractAction
+
+    /** *Skip examples and anecdotes* (ADR 0015, C1). */
+    data class SetSkipIllustrations(val skip: Boolean) : SmartExtractAction
 
     data object Generate : SmartExtractAction
 
