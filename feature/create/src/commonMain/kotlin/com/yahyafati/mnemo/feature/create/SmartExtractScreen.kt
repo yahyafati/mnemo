@@ -679,9 +679,17 @@ private fun Workshop(
                 onSelect = { onAction(SmartExtractAction.SelectDeck(it)) },
                 onNewDeck = { onAction(SmartExtractAction.ShowDeckDialog) },
             )
-            DensitySlider(uiState) { onAction(SmartExtractAction.SetDensity(it)) }
+            DensitySlider(uiState.options.density) { onAction(SmartExtractAction.SetDensity(it)) }
             ArchetypePicker(uiState.options.archetypes) { onAction(SmartExtractAction.ToggleArchetype(it)) }
-            AdvancedOptions(uiState.options, uiState.showAdvanced, onAction)
+            AdvancedOptions(
+                options = uiState.options,
+                open = uiState.showAdvanced,
+                onToggle = { onAction(SmartExtractAction.ToggleAdvanced) },
+                onLanguage = { onAction(SmartExtractAction.SetLanguage(it)) },
+                onSkipIllustrations = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
+                onOverlap = { onAction(SmartExtractAction.SetOverlap(it)) },
+                onContextSummary = { onAction(SmartExtractAction.SetContextSummary(it)) },
+            )
 
             // A book run generates by itself and moves on through the banner; a Generate button here would only invite a second request.
             if (uiState.batch == null || uiState.generation !is GenerationState.Done) GenerateControls(uiState, onAction)
@@ -1392,9 +1400,9 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
     }
 }
 
+/** How many cards to ask for; also in the book run's dialog. */
 @Composable
-private fun DensitySlider(uiState: SmartExtractUiState, onSelect: (ExtractDensity) -> Unit) {
-    val density = uiState.options.density
+internal fun DensitySlider(density: ExtractDensity, onSelect: (ExtractDensity) -> Unit) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label(stringResource(Res.string.feature_create_density), Modifier.weight(1f))
@@ -1422,8 +1430,9 @@ private fun densityLabel(density: ExtractDensity) = stringResource(
     },
 )
 
+/** Which kinds of card to write; also in the book run's dialog. */
 @Composable
-private fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchetype) -> Unit) {
+internal fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchetype) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
         Label(stringResource(Res.string.feature_create_archetypes))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
@@ -1459,10 +1468,18 @@ private fun LanguagePicker(language: String?, modifier: Modifier = Modifier, onS
 
 /**
  * The Advanced options (ADR 0015): closed by default, so the card shows only the everyday choices. Closed, the row says
- * which settings are not at their defaults, so nothing changed is hidden.
+ * which settings are not at their defaults, so nothing changed is hidden. Also in the book run's dialog.
  */
 @Composable
-private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (SmartExtractAction) -> Unit) {
+internal fun AdvancedOptions(
+    options: ExtractOptions,
+    open: Boolean,
+    onToggle: () -> Unit,
+    onLanguage: (String?) -> Unit,
+    onSkipIllustrations: (Boolean) -> Unit,
+    onOverlap: (Overlap) -> Unit,
+    onContextSummary: (ContextSummary) -> Unit,
+) {
     val changed = buildList {
         options.language?.let { add(it) }
         if (!options.skipIllustrations) add(stringResource(Res.string.feature_create_advanced_examples_kept))
@@ -1483,7 +1500,7 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
                 .clickable(
                     role = Role.Button,
                     onClickLabel = stringResource(if (open) Res.string.feature_create_advanced_hide else Res.string.feature_create_advanced_show),
-                    onClick = { onAction(SmartExtractAction.ToggleAdvanced) },
+                    onClick = onToggle,
                 ),
         ) {
             Label(stringResource(Res.string.feature_create_advanced))
@@ -1500,17 +1517,17 @@ private fun AdvancedOptions(options: ExtractOptions, open: Boolean, onAction: (S
             Icon(if (open) MnemoIcons.ExpandLess else MnemoIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (open) {
-            LanguagePicker(options.language, Modifier.padding(vertical = MnemoTheme.spacing.sm)) { onAction(SmartExtractAction.SetLanguage(it)) }
+            LanguagePicker(options.language, Modifier.padding(vertical = MnemoTheme.spacing.sm), onLanguage)
             SwitchRow(
                 title = stringResource(Res.string.feature_create_skip_illustrations),
                 summary = stringResource(
                     if (options.skipIllustrations) Res.string.feature_create_skip_illustrations_on else Res.string.feature_create_skip_illustrations_off,
                 ),
                 checked = options.skipIllustrations,
-                onCheckedChange = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
+                onCheckedChange = onSkipIllustrations,
             )
-            OverlapPicker(options.overlap) { onAction(SmartExtractAction.SetOverlap(it)) }
-            ContextSummaryPicker(options.contextSummary) { onAction(SmartExtractAction.SetContextSummary(it)) }
+            OverlapPicker(options.overlap, onOverlap)
+            ContextSummaryPicker(options.contextSummary, onContextSummary)
         }
     }
 }

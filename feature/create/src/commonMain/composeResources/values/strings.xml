@@ -428,6 +428,7 @@
     <string name="feature_create_book_generate">Generate cards</string>
     <string name="feature_create_book_generate_all">Create decks and generate</string>
     <string name="feature_create_book_done">Done</string>
+    <string name="feature_create_book_open_extract">Open in Smart Extract without decks</string>
     <string name="feature_create_book_another">Import another book</string>
     <string name="feature_create_book_no_text">This book has no text to read, only pictures.</string>
     <string name="feature_create_book_unsupported">This isn't an EPUB book Mnemo can read.</string>
@@ -483,6 +484,8 @@
     <string name="feature_create_batch_confirm_cost_remote">Your provider may charge for these requests.</string>
     <string name="feature_create_batch_confirm_how">The decks are created first. Then Smart Extract goes through the chapters in order, one at a time: you review each chapter's cards before the next one starts. Nothing is saved until you accept cards, and you can stop at any point.</string>
     <string name="feature_create_batch_confirm_setup">Generating cards needs an AI provider. You can still create the decks without one.</string>
+    <string name="feature_create_batch_confirm_settings">These settings are used for every chapter. You can still change them in Smart Extract between chapters.</string>
+    <string name="feature_create_batch_confirm_no_style">Choose at least one card style.</string>
     <string name="feature_create_batch_confirm_start">Create and start</string>
     <string name="feature_create_batch_confirm_cancel">Cancel</string>
     <string name="feature_create_batch_label">Book run</string>

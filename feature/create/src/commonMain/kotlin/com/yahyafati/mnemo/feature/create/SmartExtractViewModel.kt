@@ -214,8 +214,8 @@ class SmartExtractViewModel(
     /** The deck path of the chosen chapter, until the decks list has it (the first emission may come later). */
     private var preferredDeckPath: String? = null
 
-    /** The run waiting for the user to agree to discard the queue before it starts. */
-    private class PendingBatch(val chapterIds: List<Int>, val deckIds: Map<Int, String>)
+    /** The run waiting for the user to agree to discard the queue before it starts, with the card settings chosen for it. */
+    private class PendingBatch(val chapterIds: List<Int>, val deckIds: Map<Int, String>, val options: ExtractOptions?)
 
     private var pendingBatch: PendingBatch? = null
 
@@ -282,7 +282,7 @@ class SmartExtractViewModel(
                     // A run generates at once, which needs the provider route: wait for the first load when this
                     // ViewModel was made by the handoff itself.
                     _uiState.first { !it.isLoading }
-                    startBatch(offer.batch, offer.deckIds)
+                    startBatch(offer.batch, offer.deckIds, offer.options)
                 }
             }
         }
@@ -1012,14 +1012,15 @@ class SmartExtractViewModel(
     }
 
     /**
-     * Starts a run over [chapterIds] (book order, chapters without text left out) with their decks [deckIds].
-     * A queue that still has cards, or a generation under way, is the user's: they are asked before it is discarded.
+     * Starts a run over [chapterIds] (book order, chapters without text left out) with their decks [deckIds] and the
+     * card settings [options] the user chose for it (null keeps this screen's). A queue that still has cards, or a
+     * generation under way, is the user's: they are asked before it is discarded.
      */
-    private fun startBatch(chapterIds: List<Int>, deckIds: Map<Int, String>) {
+    private fun startBatch(chapterIds: List<Int>, deckIds: Map<Int, String>, options: ExtractOptions? = null) {
         val book = book ?: return
         val ids = chapterIds.distinct().filter { id -> book.chapters.any { it.id == id && it.text.isNotBlank() } }
         if (ids.isEmpty()) return
-        val plan = PendingBatch(ids, deckIds)
+        val plan = PendingBatch(ids, deckIds, options)
         val state = _uiState.value
         if (state.queue.isNotEmpty() || state.isGenerating) {
             pendingBatch = plan
@@ -1035,6 +1036,11 @@ class SmartExtractViewModel(
         generationJob?.cancel()
         run = null
         batchDecks = plan.deckIds
+        plan.options?.let { options ->
+            // Chosen just now in the book's dialog, which also remembered its Advanced part: the remembered ones arriving late mustn't undo it.
+            advancedChosen = true
+            updateOptions { options }
+        }
         val chapters = plan.chapterIds.mapNotNull { id -> book.chapters.firstOrNull { it.id == id }?.option() }
         _uiState.update { it.withoutQueue().copy(batch = BookBatch(chapters, position = 0), batchConfirmation = null) }
         enterBatchChapter()

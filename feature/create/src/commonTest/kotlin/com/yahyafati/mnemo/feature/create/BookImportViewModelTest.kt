@@ -10,6 +10,7 @@ import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.Deck
+import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
@@ -20,6 +21,11 @@ import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository
+import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ContextSummary
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
+import com.yahyafati.mnemo.core.model.ExtractDensity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -38,6 +44,7 @@ class BookImportViewModelTest : PlatformTest() {
     private val handoff = BookHandoff()
     private val providers = FakeAiProviderRepository()
     private val generation = FakeCardGenerationRepository()
+    private val settings = FakeUserSettingsRepository()
 
     private val file = "/books/origin.epub"
 
@@ -67,7 +74,7 @@ class BookImportViewModelTest : PlatformTest() {
         generateCards = GenerateCardsUseCase(generation, FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
-        userSettings = com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository(),
+        userSettings = settings,
     )
 
     /** Picks [file] and waits for it to be read (the localized fallbacks are read off the main thread). */
@@ -245,7 +252,28 @@ class BookImportViewModelTest : PlatformTest() {
         val offer = assertNotNull(handoff.offer.value)
         assertEquals("My Origin", offer.bookName)
         assertEquals(listOf("Contents", "Variation", "Struggle", "Index"), offer.book.chapters.map { it.title })
-        assertNull(offer.chapterId)
+        // The first chapter that got a deck goes in the box at once, to be edited before anything is generated.
+        assertEquals(1, offer.chapterId)
+        assertTrue(offer.batch.isEmpty())
+    }
+
+    @Test
+    fun aChapterCanBeOpenedInSmartExtractWithoutMakingDecks() = runTest {
+        provide()
+        val vm = viewModel()
+        vm.open()
+        vm.onAction(BookImportAction.ToggleChapter(1))
+        assertEquals(2, vm.uiState.value.chapterToOpen)
+
+        vm.onAction(BookImportAction.OpenInSmartExtract)
+        val offer = assertNotNull(handoff.offer.value)
+        assertEquals(2, offer.chapterId)
+        assertTrue(offer.batch.isEmpty())
+        assertTrue(decks.getDecks().isEmpty(), "no deck is made")
+
+        // With nothing checked, the book's first content chapter is the one.
+        vm.onAction(BookImportAction.SelectNone)
+        assertEquals(1, vm.uiState.value.chapterToOpen)
     }
     private val provider = AiProvider(
         id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b",
@@ -280,7 +308,8 @@ class BookImportViewModelTest : PlatformTest() {
         // Content only, in book order; the blank chapter has nothing to send.
         // One chapter has three parts, which also takes the request that summarises it (ADR 0015, C4).
         val counts = vm.uiState.value.wordCounts
-        assertEquals(BatchPlan(chapterIds = listOf(1, 2), words = counts.getValue(1) + counts.getValue(2), requests = 5), plan)
+        assertEquals(BatchPlan(chapterIds = listOf(1, 2), words = counts.getValue(1) + counts.getValue(2), parts = listOf(3, 1)), plan)
+        assertEquals(5, vm.uiState.value.batchRequests)
         assertEquals("Groq", vm.uiState.value.route?.provider?.name)
         assertTrue(decks.getDecks().isEmpty())
         assertNull(handoff.offer.value)
@@ -346,6 +375,56 @@ class BookImportViewModelTest : PlatformTest() {
         assertEquals(false, vm.uiState.value.canGenerate)
         vm.onAction(BookImportAction.ShowBatch)
         assertNull(vm.uiState.value.batchPlan)
+    }
+
+    @Test
+    fun theRunsCardSettingsAreChosenInItsDialogAndHandedOver() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.ShowBatch)
+        assertEquals(ExtractOptions(), vm.uiState.value.options)
+
+        vm.onAction(BookImportAction.ToggleArchetype(CardArchetype.Cloze))
+        vm.onAction(BookImportAction.ToggleArchetype(CardArchetype.MultipleChoice))
+        vm.onAction(BookImportAction.SetDensity(ExtractDensity.Comprehensive))
+        vm.onAction(BookImportAction.SetLanguage("Spanish"))
+        // Without the summary the long chapter's extra request goes.
+        vm.onAction(BookImportAction.SetContextSummary(ContextSummary.Off))
+        assertEquals(4, vm.uiState.value.batchRequests)
+
+        vm.onAction(BookImportAction.ConfirmBatch)
+        vm.runStarted.first()
+        val options = assertNotNull(handoff.offer.value?.options)
+        assertEquals(setOf(CardArchetype.Definition, CardArchetype.MultipleChoice), options.archetypes)
+        assertEquals(ExtractDensity.Comprehensive, options.density)
+        assertEquals("Spanish", options.language)
+        assertEquals(ContextSummary.Off, options.contextSummary)
+        // The Advanced part is remembered, as Smart Extract remembers it.
+        assertEquals(ExtractAdvanced(contextSummary = ContextSummary.Off, language = "Spanish"), settings.settings.value.extractAdvanced)
+    }
+
+    @Test
+    fun theDialogStartsFromTheRememberedAdvancedOptions() = runTest {
+        settings.setExtractAdvanced(ExtractAdvanced(contextSummary = ContextSummary.Off))
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.uiState.first { it.options.contextSummary == ContextSummary.Off }
+        vm.onAction(BookImportAction.ShowBatch)
+        assertEquals(4, vm.uiState.value.batchRequests)
+    }
+
+    @Test
+    fun aRunWithoutACardStyleCantStart() = runTest {
+        val vm = viewModel()
+        vm.openRunBook()
+        vm.onAction(BookImportAction.ShowBatch)
+        vm.onAction(BookImportAction.ToggleArchetype(CardArchetype.Definition))
+        vm.onAction(BookImportAction.ToggleArchetype(CardArchetype.Cloze))
+        assertEquals(false, vm.uiState.value.canStartBatch)
+
+        vm.onAction(BookImportAction.ConfirmBatch)
+        assertTrue(decks.getDecks().isEmpty())
+        assertNull(handoff.offer.value)
     }
 
     @Test

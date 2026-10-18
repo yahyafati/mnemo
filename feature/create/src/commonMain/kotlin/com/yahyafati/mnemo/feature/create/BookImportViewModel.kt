@@ -17,7 +17,6 @@ import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.ExtractAdvanced
-import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.Deck
 import com.yahyafati.mnemo.core.model.SourceInput
 import kotlinx.coroutines.CancellationException
@@ -27,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,7 +36,9 @@ import kotlinx.coroutines.launch
  * lets the user pick chapters and name the book's deck, and creates the decks, empty. Reading is
  * read-only; decks are made only by [BookImportAction.Create] or by confirming a book run
  * ([BookImportAction.ConfirmBatch], B6), which makes them and then hands the run to Smart Extract. Nothing is
- * sent to an AI provider from here: the confirmation only shows what Smart Extract would send.
+ * sent to an AI provider from here: the confirmation only shows what Smart Extract would send, and asks for the card
+ * settings the run starts with. [BookImportAction.OpenInSmartExtract] hands the book over without making any deck, with
+ * a chapter's text in Smart Extract's box to be edited.
  *
  * [SavedStateHandle] key (from `BookImportRoute`): `location` is a file to read on arrival (a dropped
  * or opened one); without it the screen asks for a file.
@@ -58,8 +60,8 @@ class BookImportViewModel(
 
     private var decks: List<Deck> = emptyList()
 
-    /** The Advanced options Smart Extract will start the run with (ADR 0015, C5): they decide whether a chapter is summarised. */
-    private var advanced = ExtractAdvanced()
+    /** The user changed an Advanced option before the remembered ones arrived: theirs wins. */
+    private var advancedChosen = false
     private var readJob: Job? = null
 
     private val runStarts = Channel<Unit>(Channel.CONFLATED)
@@ -68,7 +70,11 @@ class BookImportViewModel(
     val runStarted: Flow<Unit> = runStarts.receiveAsFlow()
 
     init {
-        viewModelScope.launch { userSettings.settings.collect { advanced = it.extractAdvanced } }
+        viewModelScope.launch {
+            // The run starts from the remembered Advanced options (ADR 0015, C5): they decide whether a chapter is summarised.
+            val remembered = userSettings.settings.first().extractAdvanced
+            if (!advancedChosen) _uiState.update { it.copy(options = it.options.withAdvanced(remembered)) }
+        }
         viewModelScope.launch {
             deckRepository.observeDecks().collect { live ->
                 decks = live
@@ -94,12 +100,22 @@ class BookImportViewModel(
             BookImportAction.SelectContent -> _uiState.update { it.copy(checked = it.contentIds()) }
             is BookImportAction.BookNameChanged -> _uiState.update { it.copy(bookName = action.name).withExisting() }
             BookImportAction.Create -> create()
-            BookImportAction.GenerateCards -> _uiState.value.let { state ->
-                // The decks exist now, so Smart Extract finds the chapter's deck by name.
-                state.book?.let { bookHandoff.offer(it, state.bookName) }
+            // After Create the decks exist, so Smart Extract finds the chapter's deck by name; without them it keeps its own.
+            BookImportAction.GenerateCards, BookImportAction.OpenInSmartExtract -> _uiState.value.let { state ->
+                state.book?.let { bookHandoff.offer(it, state.bookName, chapterId = state.chapterToOpen) }
             }
             BookImportAction.ShowBatch -> showBatch()
             BookImportAction.DismissBatch -> _uiState.update { it.copy(batchPlan = null) }
+            is BookImportAction.SetDensity -> _uiState.update { it.copy(options = it.options.copy(density = action.density)) }
+            is BookImportAction.ToggleArchetype -> _uiState.update {
+                val archetypes = it.options.archetypes
+                it.copy(options = it.options.copy(archetypes = if (action.archetype in archetypes) archetypes - action.archetype else archetypes + action.archetype))
+            }
+            BookImportAction.ToggleAdvanced -> _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
+            is BookImportAction.SetLanguage -> updateAdvanced { it.copy(language = action.language) }
+            is BookImportAction.SetSkipIllustrations -> updateAdvanced { it.copy(skipIllustrations = action.skip) }
+            is BookImportAction.SetOverlap -> updateAdvanced { it.copy(overlap = action.overlap) }
+            is BookImportAction.SetContextSummary -> updateAdvanced { it.copy(contextSummary = action.summary) }
             BookImportAction.ConfirmBatch -> confirmBatch()
             BookImportAction.Reset -> {
                 readJob?.cancel()
@@ -127,9 +143,18 @@ class BookImportViewModel(
         }
     }
 
-    /** Starts over with [state], keeping what doesn't come from the file: the provider route. */
+    /** Starts over with [state], keeping what doesn't come from the file: the provider route and the card settings. */
     private fun replace(state: BookImportUiState) {
-        _uiState.value = state.copy(route = _uiState.value.route)
+        val current = _uiState.value
+        _uiState.value = state.copy(route = current.route, options = current.options, showAdvanced = current.showAdvanced)
+    }
+
+    /** Changes one of the Advanced options and remembers the lot, as Smart Extract does (ADR 0015, C5). */
+    private fun updateAdvanced(transform: (ExtractAdvanced) -> ExtractAdvanced) {
+        advancedChosen = true
+        _uiState.update { it.copy(options = it.options.withAdvanced(transform(it.options.advanced))) }
+        val advanced = _uiState.value.options.advanced
+        viewModelScope.launch { userSettings.setExtractAdvanced(advanced) }
     }
 
     private fun BookImportUiState.contentIds(): Set<Int> = chapters.filter { it.kind == ChapterKind.Content }.mapTo(mutableSetOf()) { it.id }
@@ -156,8 +181,8 @@ class BookImportViewModel(
                 batchPlan = BatchPlan(
                     chapterIds = chapters.map { chapter -> chapter.id },
                     words = chapters.sumOf { chapter -> state.wordCounts[chapter.id] ?: 0 },
-                    // A chapter of three parts or more also takes the request that summarises it (ADR 0015, C4); the run starts from the remembered Advanced options.
-                    requests = chapters.sumOf { chapter -> generateCards.requests(generateCards.split(chapter.text).size, ExtractOptions().withAdvanced(advanced)) },
+                    // The requests follow from these and the dialog's settings: a chapter of three parts or more may also take the request that summarises it (ADR 0015, C4).
+                    parts = chapters.map { chapter -> generateCards.split(chapter.text).size },
                 ),
             )
         }
@@ -168,10 +193,10 @@ class BookImportViewModel(
         val state = _uiState.value
         val plan = state.batchPlan ?: return
         val book = state.book ?: return
-        if (state.route == null || !state.canGenerate) return
+        if (!state.canStartBatch || !state.canGenerate) return
         _uiState.update { it.copy(batchPlan = null) }
         createDecks(state) { made ->
-            bookHandoff.offer(book, state.bookName, batch = plan.chapterIds, deckIds = made.chapterDeckIds)
+            bookHandoff.offer(book, state.bookName, batch = plan.chapterIds, deckIds = made.chapterDeckIds, options = state.options)
             runStarts.trySend(Unit)
         }
     }

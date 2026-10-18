@@ -52,7 +52,6 @@ import com.yahyafati.mnemo.core.designsystem.component.MnemoTopBar
 import com.yahyafati.mnemo.core.designsystem.component.clickCursor
 import com.yahyafati.mnemo.core.designsystem.icon.MnemoIcons
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
-import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.ChapterKind
@@ -67,7 +66,9 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_cost_local
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_cost_remote
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_how
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_no_style
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_requests
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_settings
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_setup
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_start
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_confirm_title
@@ -98,6 +99,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_book_has_deck
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_name_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_no_text
+import com.yahyafati.mnemo.feature.create.resources.feature_create_book_open_extract
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_reading
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_select_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_book_select_content
@@ -194,7 +196,15 @@ internal fun BookImportScreen(
                     onGenerateCards()
                 },
             )
-            uiState.book != null -> ChapterPicker(uiState, uiState.book, onAction)
+            uiState.book != null -> ChapterPicker(
+                uiState = uiState,
+                book = uiState.book,
+                onAction = onAction,
+                onOpenInSmartExtract = {
+                    onAction(BookImportAction.OpenInSmartExtract)
+                    onGenerateCards()
+                },
+            )
             else -> EmptyState(
                 icon = MnemoIcons.Book,
                 title = stringResource(Res.string.feature_create_book_empty_title),
@@ -207,9 +217,8 @@ internal fun BookImportScreen(
     uiState.batchPlan?.let { plan ->
         BatchConfirmDialog(
             plan = plan,
-            route = uiState.route,
-            onConfirm = { onAction(BookImportAction.ConfirmBatch) },
-            onDismiss = { onAction(BookImportAction.DismissBatch) },
+            uiState = uiState,
+            onAction = onAction,
             onSetUp = {
                 onAction(BookImportAction.DismissBatch)
                 onSetUpAi()
@@ -219,20 +228,21 @@ internal fun BookImportScreen(
 }
 
 /**
- * What "Create decks and generate" would send, before it sends anything: the chapters, the words, the number of
- * AI requests and where they go. A model on the user's own machine costs nothing but time, and says so. Without a
- * provider the dialog is the setup prompt instead.
+ * What "Create decks and generate" would send, before it sends anything: the chapters, the words, the card settings
+ * the run starts with (the same choices as Smart Extract's), the number of AI requests and where they go. A model on
+ * the user's own machine costs nothing but time, and says so. Without a provider the dialog is the setup prompt instead.
  */
 @Composable
 private fun BatchConfirmDialog(
     plan: BatchPlan,
-    route: AiRoute?,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
+    uiState: BookImportUiState,
+    onAction: (BookImportAction) -> Unit,
     onSetUp: () -> Unit,
 ) {
+    val route = uiState.route
+    val requests = uiState.batchRequests
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { onAction(BookImportAction.DismissBatch) },
         title = { Text(stringResource(Res.string.feature_create_batch_confirm_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
@@ -243,8 +253,10 @@ private fun BatchConfirmDialog(
                 if (route == null) {
                     AiSetupPrompt(onSetUp = onSetUp, message = stringResource(Res.string.feature_create_batch_confirm_setup))
                 } else {
+                    BatchSettings(uiState, onAction)
+                    HorizontalDivider()
                     Text(
-                        pluralStringResource(Res.plurals.feature_create_batch_confirm_requests, plan.requests, plan.requests, route.provider.name, route.modelId),
+                        pluralStringResource(Res.plurals.feature_create_batch_confirm_requests, requests, requests, route.provider.name, route.modelId),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
@@ -264,10 +276,43 @@ private fun BatchConfirmDialog(
             }
         },
         confirmButton = {
-            if (route != null) TextButton(onClick = onConfirm) { Text(stringResource(Res.string.feature_create_batch_confirm_start)) }
+            if (route != null) {
+                TextButton(onClick = { onAction(BookImportAction.ConfirmBatch) }, enabled = uiState.canStartBatch) {
+                    Text(stringResource(Res.string.feature_create_batch_confirm_start))
+                }
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.feature_create_batch_confirm_cancel)) } },
+        dismissButton = {
+            TextButton(onClick = { onAction(BookImportAction.DismissBatch) }) { Text(stringResource(Res.string.feature_create_batch_confirm_cancel)) }
+        },
     )
+}
+
+/** The cards the run asks for, in every chapter: the card styles, the density and the Advanced options, as in Smart Extract. */
+@Composable
+private fun BatchSettings(uiState: BookImportUiState, onAction: (BookImportAction) -> Unit) {
+    val options = uiState.options
+    Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.md), modifier = Modifier.padding(vertical = MnemoTheme.spacing.xs)) {
+        Text(
+            stringResource(Res.string.feature_create_batch_confirm_settings),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ArchetypePicker(options.archetypes) { onAction(BookImportAction.ToggleArchetype(it)) }
+        if (options.archetypes.isEmpty()) {
+            Text(stringResource(Res.string.feature_create_batch_confirm_no_style), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+        DensitySlider(options.density) { onAction(BookImportAction.SetDensity(it)) }
+        AdvancedOptions(
+            options = options,
+            open = uiState.showAdvanced,
+            onToggle = { onAction(BookImportAction.ToggleAdvanced) },
+            onLanguage = { onAction(BookImportAction.SetLanguage(it)) },
+            onSkipIllustrations = { onAction(BookImportAction.SetSkipIllustrations(it)) },
+            onOverlap = { onAction(BookImportAction.SetOverlap(it)) },
+            onContextSummary = { onAction(BookImportAction.SetContextSummary(it)) },
+        )
+    }
 }
 
 @Composable
@@ -275,6 +320,7 @@ private fun ChapterPicker(
     uiState: BookImportUiState,
     book: BookSource,
     onAction: (BookImportAction) -> Unit,
+    onOpenInSmartExtract: () -> Unit,
 ) {
     val spacing = MnemoTheme.spacing
     Column(Modifier.fillMaxSize()) {
@@ -304,7 +350,7 @@ private fun ChapterPicker(
             }
             ScrollbarFor(listState)
         }
-        CreateBar(uiState, onAction, Modifier.widthIn(max = 680.dp).padding(horizontal = spacing.screenMargin, vertical = spacing.sm))
+        CreateBar(uiState, onAction, onOpenInSmartExtract, Modifier.widthIn(max = 680.dp).padding(horizontal = spacing.screenMargin, vertical = spacing.sm))
     }
 }
 
@@ -415,7 +461,7 @@ private fun ChapterRow(
 }
 
 @Composable
-private fun CreateBar(uiState: BookImportUiState, onAction: (BookImportAction) -> Unit, modifier: Modifier = Modifier) {
+private fun CreateBar(uiState: BookImportUiState, onAction: (BookImportAction) -> Unit, onOpenInSmartExtract: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs)) {
         if (uiState.createFailed) {
             Text(stringResource(Res.string.feature_create_book_create_failed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -436,6 +482,14 @@ private fun CreateBar(uiState: BookImportUiState, onAction: (BookImportAction) -
             style = MnemoButtonStyle.Secondary,
             leadingIcon = MnemoIcons.Sparkle,
             enabled = uiState.canGenerate,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // No decks: the chapter's text waits in Smart Extract's box, to be edited before anything is generated.
+        MnemoButton(
+            text = stringResource(Res.string.feature_create_book_open_extract),
+            onClick = onOpenInSmartExtract,
+            style = MnemoButtonStyle.Text,
+            enabled = uiState.chapterToOpen != null && !uiState.creating,
             modifier = Modifier.fillMaxWidth(),
         )
     }
