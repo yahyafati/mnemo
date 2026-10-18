@@ -6,7 +6,7 @@ import com.yahyafati.mnemo.core.ingest.RawBookmark
 import com.yahyafati.mnemo.core.ingest.pdfLabels
 import com.yahyafati.mnemo.core.ingest.pdfOutline
 import com.yahyafati.mnemo.core.ingest.pdfPageText
-import com.yahyafati.mnemo.core.ingest.pdfSourceResult
+import com.yahyafati.mnemo.core.ingest.pdfTextResult
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfInfoResult
 import com.yahyafati.mnemo.core.model.PdfOutlineItem
@@ -44,12 +44,12 @@ class PdfBoxTextExtractor : PdfTextExtractor {
                 lineSeparator = "\n"
                 paragraphEnd = "\n\n"
             }
-            val text = selection.runs.joinToString("\n\n") { run ->
+            val outline = pdfOutline(bookmarks(document), document.numberOfPages)
+            pdfTextResult(selection, outline, document.documentInformation?.title, fileName) { run ->
                 stripper.startPage = run.first
                 stripper.endPage = run.last
                 stripper.getText(document)
             }
-            pdfSourceResult(text, selection.cut, document.documentInformation?.title, fileName)
         }
     }
 

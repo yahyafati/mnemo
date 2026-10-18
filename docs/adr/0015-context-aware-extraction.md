@@ -1,7 +1,7 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0–C5 are built ("As built" below); C6–C7 are open.
+  C0–C6 are built ("As built" below); C7 is open.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -585,3 +585,35 @@ each adds its own block.
   the language, switch, overlap and summary fields once each). Screenshots: `create_extract_advanced_changed_light.png` is new (closed,
   three changes), `create_extract_advanced_light.png` shows the open section with the language, and every Smart Extract
   baseline is one row shorter (the language is gone from the main card), which is why more than these two PNGs changed.
+
+## As built (C6, 2026-10-18)
+
+- The bookmarks are written into the text by the PDF extractors themselves, not by Smart Extract: `pdfTextResult`
+  (`PdfTextExtractor.kt`, shared by `PdfBoxTextExtractor` and `PdfBoxAndroidTextExtractor`) takes the selection, the
+  outline (`pdfOutline(bookmarks(document), pageCount)`, the same list `inspect` gives as `PdfInfo.outline`, so the
+  picker and the headings agree) and a function that reads a run of pages. So every text-layer read gets them:
+  `SourceRepository.readPdf` (Smart Extract's Text and Auto first read, which `loadPdfPages` puts in the box) and a PDF
+  behind a link (`extract(input, fileName)`). `pageTexts` (the per-page layer that Auto's "which pages need AI" count
+  and `ReadPdfPagesUseCase` use) is unchanged, so **AI-transcribed pages and `PageImages` never get headings, and in a
+  mixed Auto read that goes to the AI the layer pages don't either**; only the free read does, as the step said.
+- A heading is `"#".repeat(level + 1) + " " + title`: a top-level bookmark is `##` (the title of the document is the
+  path's root, see C2, so `#` stays unused), then `###` and `####` (`PdfOutlineItem.MAX_LEVEL` is 3). It goes at the start
+  of the bookmark's page, as its own paragraph; a bookmark into the middle of a page is at that page's start, several
+  on one page are all there in outline order. Only bookmarks of pages that were read appear: a chapter that began before
+  the chosen pages leaves no heading, so such a read starts under the document's title alone.
+- A run of consecutive pages is cut where a bookmarked page starts and each piece is cleaned on its own (`pdfPageText`),
+  so `joinWrappedLines` never joins a line across a heading, and the pieces and headings are joined with blank lines. A
+  PDF with no bookmark on any chosen page goes through the old path unchanged (the same string as before).
+  Headings alone are not text: if every piece is blank the result is still `SourceProblem.NoText`, so a scanned PDF with
+  bookmarks keeps offering "Read them with AI". A bookmark's page without a text layer still gets its heading when other
+  chosen pages have text.
+- The heading is added to what the page already prints: a chapter-title page shows `## 1.1 Membranes` and then its own
+  "1.1 Membranes" line. That is harmless to the planner (an empty or one-line section under a heading); stripping the
+  duplicate would need a guess about the page's first line, so the box keeps both, visible and editable.
+- No change in `:core:model`, `SourceRepository` or `SmartExtractViewModel`: the headings are text, so the box, the
+  Pages field, the chapter picker (ticks derive from the field) and `SourcePlanner` (path root = the PDF's title) work as
+  before, and a user can delete a heading they don't want.
+- Tests: `PdfPagesTest` (both libraries: every bookmark of `outline.pdf` as a heading at the right page with the right
+  level, a heading standing alone, partial and out-of-order selections, bookmarks of unchosen pages absent, none for a PDF
+  without bookmarks, headings alone are `NoText`, and `SourcePlanner` giving the parts the bookmark path) and
+  `SmartExtractViewModelTest` (the headings stay in the box, the splitter gets the PDF's title as root).

@@ -477,6 +477,28 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun aPdfsBookmarkHeadingsStayInTheBoxAndTheSplitterGetsTheTitleAsRoot() = runTest {
+        // What the text layer read gives for a PDF with bookmarks (ADR 0015, C6): the bookmarks as headings in the text.
+        // The real planner turns them into paths (PdfPagesTest); here the box and the root it is given.
+        val text = "## Part I\n\n### Chapter 1\n\nOne.\n\n### Chapter 2\n\nTwo."
+        val vm = readyViewModel(text = "")
+        sources.pdfs["content://doc/1"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(pageCount = 4, title = "Lecture 3")))
+        sources.pdfText = { _, _ -> SourceResult.Success(SourceText(text, title = "Lecture 3")) }
+        val seen = mutableListOf<Pair<String, List<String>>>()
+        generation.splitter = { whole, root ->
+            seen += whole to root
+            listOf(SourcePart(whole, root))
+        }
+        vm.onAction(SmartExtractAction.SelectSource(SourceKind.Pdf))
+        vm.onAction(SmartExtractAction.PdfPicked("content://doc/1"))
+        assertEquals(text, vm.state.text) // the headings are in the box, editable like any other text
+
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(text to listOf("Lecture 3"), seen.last())
+        assertEquals(text, generation.requests.single().text)
+    }
+
+    @Test
     fun pdfsAndLinksFillTheTextBox() = runTest {
         val vm = readyViewModel(text = "")
         sources.pdfs["content://doc/1"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(pageCount = 4, title = "Lecture 3")))
