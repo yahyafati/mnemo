@@ -228,6 +228,8 @@ class SmartExtractBookTest : PlatformTest() {
         val request = generation.requests.single()
         assertEquals("Animals vary under domestication.", request.text)
         assertEquals("Origin — Variation", request.title)
+        // The path starts with the book and the chapter (ADR 0015, C2).
+        assertEquals(listOf("Origin", "Variation"), request.source.path)
         assertEquals(1, vm.uiState.value.queue.size)
         assertTrue(cards.notes.value.isEmpty(), "nothing is saved before Accept")
 

@@ -5,13 +5,14 @@ import com.yahyafati.mnemo.core.ai.generate.CardEvent
 import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.prompt.CardGenerationPrompt
 import com.yahyafati.mnemo.core.data.mapper.toAiFailure
-import com.yahyafati.mnemo.core.ingest.TextChunker
+import com.yahyafati.mnemo.core.ingest.SourcePlanner
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PdfPageResult
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,7 +29,7 @@ internal class DefaultCardGenerationRepository(
     private val sources: SourceRepository,
     private val ioDispatcher: CoroutineDispatcher,
 ) : CardGenerationRepository {
-    override fun split(text: String): List<String> = splitSource(text)
+    override fun split(text: String, root: List<String>): List<SourcePart> = splitSource(text, root)
 
     override fun generate(route: AiRoute, request: GenerationRequest): Flow<GenerationUpdate> = flow {
         val config = configs.forProvider(route.provider)
@@ -107,8 +108,8 @@ internal class DefaultCardGenerationRepository(
     private class RenderedPages(val numbers: List<Int>, val images: List<ContentPart.Image>, val unreadable: UnreadablePage?)
 }
 
-/** How Smart Extract splits a source into the parts sent one request each. */
-internal fun splitSource(text: String): List<String> = TextChunker.chunk(text)
+/** How Smart Extract splits a source into the parts sent one request each, along its headings (ADR 0015, C2). */
+internal fun splitSource(text: String, root: List<String> = emptyList()): List<SourcePart> = SourcePlanner.plan(text, root)
 
 /**
  * The prompt for one [request]; with page images, [pageNumbers] are the pages that rendered and [images] their pictures.
@@ -129,6 +130,8 @@ internal fun cardsPrompt(request: GenerationRequest, pageNumbers: List<Int> = em
         title = request.title,
         part = request.part + 1,
         parts = request.parts,
+        path = request.source.path,
+        continued = request.source.continued,
         replacing = replacing?.let { it.front to it.back },
         pages = pageNumbers,
         images = images,

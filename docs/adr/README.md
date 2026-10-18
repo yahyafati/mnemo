@@ -20,7 +20,7 @@ Each ADR records one decision, why it was made, and (for the later ones) what wa
 | [0012](0012-web-extraction.md) | Links as Markdown, site extractors (Wikipedia) |
 | [0013](0013-sync.md) | Sync between devices through user-owned storage, no server |
 | [0014](0014-pdf-pages-and-images.md) | PDF page ranges, AI reading of scanned pages, cards from page images, figures |
-| [0015](0015-context-aware-extraction.md) | Context-aware Smart Extract: fewer filler cards, heading-aware parts, overlap, a context summary (C0–C1 built) |
+| [0015](0015-context-aware-extraction.md) | Context-aware Smart Extract: fewer filler cards, heading-aware parts, overlap, a context summary (C0–C2 built) |
 
 ## Step names
 
@@ -36,7 +36,7 @@ listed the steps were removed once the work landed (they are in the git history)
 | W0–W7 | Web extraction | 0012 |
 | S0–S8 | Sync (S1 change recording, S2 format and stores, S3 merge engine, S4 lifecycle, S5 screen, S6 Google Drive, S7 WebDAV, S8 QA) | 0013 |
 | P0–P8 | PDF pages and images (P1 page ranges, P2 chapters, P3 rendering, P4 images in requests, P5 AI reading, P6 cards from page images, P7 figures, P8 polish) | 0014 |
-| C0–C7 | Context-aware Smart Extract (C1 fewer filler cards, C2 heading-aware parts, C3 overlap, C4 context summary, C5 Advanced settings, C6 PDF bookmarks as headings, C7 QA); C0 and C1 built | 0015 |
+| C0–C7 | Context-aware Smart Extract (C1 fewer filler cards, C2 heading-aware parts, C3 overlap, C4 context summary, C5 Advanced settings, C6 PDF bookmarks as headings, C7 QA); C0–C2 built | 0015 |
 
 "Sideload S0–S7" in older comments is the direct-distribution plan (GitHub Releases and the download page), now
 described in [`../release/README.md`](../release/README.md); it is unrelated to sync's S steps.

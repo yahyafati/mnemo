@@ -14,6 +14,7 @@ import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
@@ -47,7 +48,7 @@ class PageImageExtractTest {
     private val layers = listOf("layer 2-4", "", "layer 10")
 
     private fun request(fromPart: Int = 0, known: List<com.yahyafati.mnemo.core.model.GeneratedCard> = emptyList()) = ExtractRequest(
-        parts = layers, options = ExtractOptions(), deckId = "deck", fromPart = fromPart, known = known,
+        parts = layers.map(::SourcePart), options = ExtractOptions(), deckId = "deck", fromPart = fromPart, known = known,
         pages = PageBatches(handle, PdfQuality.High, batches),
     )
 
@@ -71,7 +72,7 @@ class PageImageExtractTest {
 
     @Test
     fun aTextRunSendsNoPages() = runTest {
-        generate(route, ExtractRequest(listOf("One part"), ExtractOptions(), deckId = null)).toList()
+        generate(route, ExtractRequest(listOf(SourcePart("One part")), ExtractOptions(), deckId = null)).toList()
 
         assertEquals(listOf(null), generation.requests.map { it.pages })
     }
@@ -106,7 +107,7 @@ class PageImageExtractTest {
     @Test
     fun everyPartNeedsItsGroupOfPages() {
         assertFailsWith<IllegalArgumentException> {
-            ExtractRequest(listOf("only one"), ExtractOptions(), deckId = null, pages = PageBatches(handle, PdfQuality.Standard, batches))
+            ExtractRequest(listOf(SourcePart("only one")), ExtractOptions(), deckId = null, pages = PageBatches(handle, PdfQuality.Standard, batches))
         }
     }
 
@@ -116,7 +117,7 @@ class PageImageExtractTest {
         generation.answer(card("What does the arrow show?", "Transport").copy(page = 7))
         val pages = PageImages(handle, PdfQuality.High, listOf(6, 7, 8))
 
-        val result = regenerate(route, old, "", ExtractOptions(), deckId = null, pages = pages)
+        val result = regenerate(route, old, SourcePart(""), ExtractOptions(), deckId = null, pages = pages)
 
         assertEquals(7, assertIs<RegenerateResult.Replaced>(result).card.page)
         val sent = generation.requests.single()
@@ -130,7 +131,7 @@ class PageImageExtractTest {
         val old = card("What is shown?", "A cell").copy(id = "old", page = 7)
         generation.respond = { flowOf(GenerationUpdate.Done(unreadablePage = UnreadablePage(7, SourceProblem.FileUnavailable))) }
 
-        val result = regenerate(route, old, "", ExtractOptions(), deckId = null, pages = PageImages(handle, PdfQuality.Standard, listOf(7)))
+        val result = regenerate(route, old, SourcePart(""), ExtractOptions(), deckId = null, pages = PageImages(handle, PdfQuality.Standard, listOf(7)))
 
         assertEquals(RegenerateResult.PageUnreadable(7, SourceProblem.FileUnavailable), result)
     }

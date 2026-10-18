@@ -26,6 +26,7 @@ import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.SavedAssistAnswer
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceText
@@ -51,8 +52,21 @@ class FakeCardGenerationRepository : CardGenerationRepository {
     val routes = mutableListOf<AiRoute>()
     var respond: (GenerationRequest) -> Flow<GenerationUpdate> = { flowOf(GenerationUpdate.Done()) }
 
-    /** Splits on "---" lines, so tests can make multi-part sources. */
-    override fun split(text: String): List<String> = text.split("\n---\n").map { it.trim() }.filter { it.isNotEmpty() }
+    /**
+     * How [split] cuts a text: by default on "---" lines, so tests can make multi-part sources, every part with the
+     * root as its path.
+     */
+    var splitter: (text: String, root: List<String>) -> List<SourcePart> = { text, root ->
+        text.split("\n---\n").map { it.trim() }.filter { it.isNotEmpty() }.map { SourcePart(it, root) }
+    }
+
+    /** The roots [split] was given, in order. */
+    val roots = mutableListOf<List<String>>()
+
+    override fun split(text: String, root: List<String>): List<SourcePart> {
+        roots += root
+        return splitter(text, root)
+    }
 
     override fun generate(route: AiRoute, request: GenerationRequest): Flow<GenerationUpdate> {
         requests += request

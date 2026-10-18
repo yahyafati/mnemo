@@ -34,6 +34,12 @@ data class CardGenerationPrompt(
     /** 1-based part and total, when a long source was split. */
     val part: Int? = null,
     val parts: Int? = null,
+    /**
+     * Where the part is in the source (ADR 0015, C2): the root, then the headings that hold it, outermost first.
+     * [continued]: the part goes on with a section an earlier part started.
+     */
+    val path: List<String> = emptyList(),
+    val continued: Boolean = false,
     /** Regenerating: the card the user rejected, which the one new card replaces. */
     val replacing: Pair<String, String>? = null,
     /**
@@ -99,6 +105,10 @@ data class CardGenerationPrompt(
             appendLine("These cards already exist. Don't repeat them:")
             shownAvoid.forEach { appendLine("- ${it.replace('\n', ' ').take(MAX_AVOID_CHARS)}") }
         }
+        where()?.let {
+            appendLine()
+            appendLine("Where this part is: $it")
+        }
         appendLine()
         val label = buildString {
             append(if (fromImages) "Pages" else "Source")
@@ -120,6 +130,17 @@ data class CardGenerationPrompt(
             appendLine(fenced(source.trim()))
             append("</source>")
         }
+    }
+
+    /**
+     * "Game Theory › 1. Introduction › 1.5 Nash Equilibrium (continued)", or null when there is no path or it would
+     * only repeat the title the source line names anyway. Titles come from the source, so they are escaped like it.
+     */
+    private fun where(): String? {
+        val titles = path.map { it.replace('\n', ' ').trim() }.filter { it.isNotEmpty() }
+        if (titles.isEmpty()) return null
+        if (!continued && titles.size == 1 && titles.single() == title?.trim()) return null
+        return fenced(titles.joinToString(PATH_SEPARATOR) + if (continued) " (continued)" else "")
     }
 
     private fun sourceWord() = if (fromImages) "attached page images" else "source below"
@@ -160,6 +181,7 @@ data class CardGenerationPrompt(
     }
 
     companion object {
+        private const val PATH_SEPARATOR = " › "
         private val SOURCE_TAG = Regex("""<(/?)source\b""", RegexOption.IGNORE_CASE)
         const val MAX_AVOID = 60
         private const val MAX_AVOID_CHARS = 120

@@ -36,6 +36,7 @@ import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
@@ -178,7 +179,7 @@ class SmartExtractScreenTest {
                 text = "Some text.",
                 batch = BookBatch(chapters, position = 1),
                 generation = GenerationState.Done(1),
-                queue = listOf(QueueItem(card("Front", "Back"), "Some text.")),
+                queue = listOf(QueueItem(card("Front", "Back"), SourcePart("Some text."))),
             ),
         )
         composeRule.setContent { MnemoTheme { SmartExtractScreen(state, { actions += it }, onSetUpAi = {}) } }

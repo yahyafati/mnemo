@@ -91,6 +91,7 @@ import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.AiReport
@@ -1861,8 +1862,8 @@ private fun SmartExtractScreenPreview() {
                 text = text,
                 generation = GenerationState.Running(0, 1),
                 queue = listOf(
-                    QueueItem(GeneratedCard("1", NoteKind.Basic, "Which structure is primary in fear-conditioned memory?", "The amygdala (basolateral complex).", listOf("limbic-system")), text),
-                    QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::basolateral complex}} receives cortical sensory input.", ""), text),
+                    QueueItem(GeneratedCard("1", NoteKind.Basic, "Which structure is primary in fear-conditioned memory?", "The amygdala (basolateral complex).", listOf("limbic-system")), SourcePart(text)),
+                    QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::basolateral complex}} receives cortical sensory input.", ""), SourcePart(text)),
                 ),
             ),
             onAction = {},

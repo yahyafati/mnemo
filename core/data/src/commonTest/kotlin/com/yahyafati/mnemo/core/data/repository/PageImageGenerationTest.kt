@@ -12,6 +12,7 @@ import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfPageResult
 import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.security.FileSecretStore
 import com.yahyafati.mnemo.core.testing.PlatformTest
@@ -75,7 +76,7 @@ class PageImageGenerationTest : PlatformTest() {
     }
 
     private fun request(vararg pages: Int, text: String = "", replacing: com.yahyafati.mnemo.core.model.GeneratedCard? = null) =
-        GenerationRequest(text, ExtractOptions(), part = 1, parts = 3, pages = PageImages(handle, PdfQuality.Standard, pages.toList()), replacing = replacing)
+        GenerationRequest(SourcePart(text), ExtractOptions(), part = 1, parts = 3, pages = PageImages(handle, PdfQuality.Standard, pages.toList()), replacing = replacing)
 
     @Test
     fun theRequestHasTheRenderedPagesInOrderAndTheirTextLayer() = runTest {

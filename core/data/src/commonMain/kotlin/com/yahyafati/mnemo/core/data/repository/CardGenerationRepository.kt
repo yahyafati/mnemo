@@ -6,6 +6,7 @@ import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import kotlinx.coroutines.flow.Flow
 
@@ -14,8 +15,11 @@ import kotlinx.coroutines.flow.Flow
  * except the token-usage log: cards are only proposals until the user accepts them.
  */
 interface CardGenerationRepository {
-    /** [text] split into the parts sent one request each, in order. */
-    fun split(text: String): List<String>
+    /**
+     * [text] split into the parts sent one request each, in order, each with its path (ADR 0015, C2). [root] is where
+     * the text is: the book and the chapter, or the page's or document's title; empty for pasted or dictated text.
+     */
+    fun split(text: String, root: List<String> = emptyList()): List<SourcePart>
 
     /**
      * Asks [route] for cards from one part of a source. Emits each card as soon as the reply
@@ -36,10 +40,10 @@ data class UnreadablePage(val page: Int, val problem: SourceProblem)
 
 data class GenerationRequest(
     /**
-     * One part of the source, from [CardGenerationRepository.split]. With [pages] it is only their text layer, which
-     * may be empty: the images are the source.
+     * One part of the source, from [CardGenerationRepository.split], with its path. With [pages] its text is only their
+     * text layer, which may be empty: the images are the source.
      */
-    val text: String,
+    val source: SourcePart,
     val options: ExtractOptions,
     /** 0-based part, and how many parts the source has. */
     val part: Int = 0,
@@ -51,7 +55,9 @@ data class GenerationRequest(
     val replacing: GeneratedCard? = null,
     /** Cards from page images: the pages sent as images; null for a text source. */
     val pages: PageImages? = null,
-)
+) {
+    val text: String get() = source.text
+}
 
 sealed interface GenerationUpdate {
     /** A card as the model wrote it; not yet validated. */

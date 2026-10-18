@@ -13,6 +13,7 @@ import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.MediaRef
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
@@ -46,6 +47,13 @@ class SmartExtractUseCasesTest {
 
     private fun request(text: String, deckId: String? = "deck", fromPart: Int = 0) =
         ExtractRequest(generate.split(text), ExtractOptions(), deckId, fromPart = fromPart)
+
+    @Test
+    fun everyPartIsSentWithItsPath() = runTest {
+        val parts = listOf(SourcePart("One", listOf("Book", "Ch 1")), SourcePart("Two", listOf("Book", "Ch 1", "1.5"), continued = true))
+        generate(route, ExtractRequest(parts, ExtractOptions(), deckId = null)).toList()
+        assertEquals(parts, generation.requests.map { it.source })
+    }
 
     @Test
     fun validCardsPassAndBadOnesAreSkipped() = runTest {
@@ -123,18 +131,20 @@ class SmartExtractUseCasesTest {
     fun regenerateReplacesWithSomethingNew() = runTest {
         val old = card("What is ATP?", "Energy").copy(id = "old", chunkIndex = 1)
         generation.answer(card("What is atp", "Same thing"), card("Why do cells need ATP?", "To power reactions"))
-        val result = regenerate(route, old, "Part two", ExtractOptions(), deckId = null)
+        val part = SourcePart("Part two", listOf("Biology", "Energy"), continued = true)
+        val result = regenerate(route, old, part, ExtractOptions(), deckId = null)
 
         assertEquals("Why do cells need ATP?", assertIs<RegenerateResult.Replaced>(result).card.front)
         val sent = generation.requests.single()
-        assertEquals("Part two", sent.text)
+        // The same part, path and all, as the card was first made from.
+        assertEquals(part, sent.source)
         assertEquals(old, sent.replacing)
 
         generation.answer(card("What is ATP?", "Energy"))
-        assertEquals(RegenerateResult.NothingNew, regenerate(route, old, "b", ExtractOptions(), deckId = null))
+        assertEquals(RegenerateResult.NothingNew, regenerate(route, old, SourcePart("b"), ExtractOptions(), deckId = null))
 
         generation.respond = { flowOf(GenerationUpdate.Done(AiFailure(AiProblem.RateLimited))) }
-        assertEquals(RegenerateResult.Failed(AiFailure(AiProblem.RateLimited)), regenerate(route, old, "b", ExtractOptions(), deckId = null))
+        assertEquals(RegenerateResult.Failed(AiFailure(AiProblem.RateLimited)), regenerate(route, old, SourcePart("b"), ExtractOptions(), deckId = null))
     }
 
     @Test

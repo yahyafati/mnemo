@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.data.repository.PageImages
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.ui.card.LocalMediaImageLoader
 import com.yahyafati.mnemo.core.ui.card.MediaImageLoader
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
@@ -289,12 +290,12 @@ class CreateScreenshotTest {
                         queue = listOf(
                             QueueItem(
                                 GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
-                                source = "",
+                                part = SourcePart(""),
                                 pages = pages,
                             ),
                             QueueItem(
                                 GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4),
-                                source = "",
+                                part = SourcePart(""),
                                 pages = pages,
                             ),
                         ),
@@ -325,7 +326,7 @@ class CreateScreenshotTest {
                     ReviewCard(
                         item = QueueItem(
                             GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
-                            source = "",
+                            part = SourcePart(""),
                             pages = pages,
                             figure = QueueFigure(2, PageRegion(0.1f, 0.2f, 0.9f, 0.7f), FigureSide.Back, java.io.File("fig-p2.png")),
                         ),
@@ -336,7 +337,7 @@ class CreateScreenshotTest {
                         canOpenPage = true,
                     )
                     ReviewCard(
-                        item = QueueItem(GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4), source = "", pages = pages),
+                        item = QueueItem(GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4), part = SourcePart(""), pages = pages),
                         number = 2,
                         editing = false,
                         modelId = "llama-4-scout",
@@ -467,8 +468,8 @@ class CreateScreenshotTest {
                     batch = BookBatch(chapters, position = 2),
                     generation = GenerationState.Done(2),
                     queue = listOf(
-                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What does natural selection act on?", "The variation that already exists in a population.", listOf("selection")), text),
-                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "Natural selection acts on {{c1::existing variation}}.", ""), text),
+                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What does natural selection act on?", "The variation that already exists in a population.", listOf("selection")), SourcePart(text)),
+                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "Natural selection acts on {{c1::existing variation}}.", ""), SourcePart(text)),
                     ),
                 ),
                 onAction = {},

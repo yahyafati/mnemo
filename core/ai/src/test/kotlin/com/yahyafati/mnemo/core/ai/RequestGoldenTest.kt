@@ -58,6 +58,8 @@ class RequestGoldenTest {
         title = "Cell biology",
         part = 2,
         parts = 3,
+        path = listOf("Cell biology", "2. Energy", "2.3 The Krebs cycle"),
+        continued = true,
         replacing = "Old front" to "Old back",
     )
 

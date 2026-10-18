@@ -20,6 +20,7 @@ import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceText
@@ -200,7 +201,7 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.Generate)
         assertEquals(GenerationState.Failed(AiFailure(AiProblem.Unreachable), part = 1, parts = 2), vm.state.generation)
         assertEquals(listOf("Q1", "Q2"), vm.state.queue.map { it.card.front })
-        assertEquals(listOf("Part one", "Part two"), vm.state.queue.map { it.source })
+        assertEquals(listOf("Part one", "Part two"), vm.state.queue.map { it.part.text })
 
         vm.onAction(SmartExtractAction.Retry)
         assertEquals(listOf(0, 1, 1), generation.requests.map { it.part })
@@ -331,6 +332,39 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun regenerateAsksWithTheCardsPartAndItsPath() = runTest {
+        val vm = readyViewModel(text = "")
+        sources.results[SourceInput.Link("example.com/nash")] = SourceResult.Success(SourceText("Part one\n---\nPart two", title = "Game Theory"))
+        generation.splitter = { text, root ->
+            text.split("\n---\n").mapIndexed { i, part -> SourcePart(part, root + "1.5 Nash Equilibrium", continued = i > 0) }
+        }
+        vm.onAction(SmartExtractAction.SelectSource(SourceKind.Link))
+        vm.onAction(SmartExtractAction.LinkChanged("example.com/nash"))
+        vm.onAction(SmartExtractAction.FetchLink)
+        generation.respond = { request -> flowOf(GenerationUpdate.Card(card("What does ${request.text} say?", "A").copy(id = "part-${request.part}", chunkIndex = request.part)), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        val second = SourcePart("Part two", listOf("Game Theory", "1.5 Nash Equilibrium"), continued = true)
+        assertEquals(listOf(SourcePart("Part one", listOf("Game Theory", "1.5 Nash Equilibrium")), second), generation.requests.map { it.source })
+        val fromSecond = vm.state.queue.last()
+        assertEquals(second, fromSecond.part)
+
+        // The box changes; the card is still regenerated from its own part, path and all.
+        vm.onAction(SmartExtractAction.TextChanged("Something else entirely."))
+        generation.answer(card("Why is a Nash equilibrium stable?", "Nobody gains by deviating alone."))
+        vm.onAction(SmartExtractAction.Regenerate(fromSecond.card.id))
+        assertEquals(second, generation.requests.last().source)
+        assertEquals(second, vm.state.queue.last().part)
+    }
+
+    @Test
+    fun pastedTextHasNoRoot() = runTest {
+        val vm = readyViewModel()
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(emptyList(), generation.requests.single().source.path)
+    }
+
+    @Test
     fun aDisambiguationPageIsFlaggedUntilTheNextReadOrClear() = runTest {
         val vm = readyViewModel(text = "")
         sources.results[SourceInput.Link("example.com/m")] = SourceResult.Success(SourceText("- Mercury (planet)", disambiguation = true))
@@ -372,6 +406,7 @@ class SmartExtractViewModelTest {
 
         vm.onAction(SmartExtractAction.Generate)
         assertEquals("Lecture 3", generation.requests.single().title)
+        assertEquals(listOf("Lecture 3"), generation.requests.single().source.path)
 
         vm.onAction(SmartExtractAction.ClearText)
         assertEquals("", vm.state.text)

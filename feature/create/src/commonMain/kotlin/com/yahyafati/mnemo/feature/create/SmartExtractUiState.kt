@@ -20,6 +20,7 @@ import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 
@@ -256,7 +257,8 @@ data class NonEmptyDeck(val path: String, val cards: Int)
 /** A proposed card in the review queue. [source] is the part of the text it came from, for regenerating. */
 data class QueueItem(
     val card: GeneratedCard,
-    val source: String,
+    /** The part of the source the card was made from, with its path: Regenerate asks with the same one. */
+    val part: SourcePart,
     val regenerating: Boolean = false,
     /** Cards from page images: the pages this card's request was sent with, so Regenerate sends the same ones. */
     val pages: PageImages? = null,

@@ -47,6 +47,7 @@ import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceSections
@@ -119,7 +120,7 @@ class SmartExtractViewModel(
 
     /** The source being generated from, kept so Retry can resume it. */
     private class Run(
-        val parts: List<String>,
+        val parts: List<SourcePart>,
         val options: ExtractOptions,
         val title: String?,
         val deckId: String?,
@@ -1040,6 +1041,18 @@ class SmartExtractViewModel(
         return deck
     }
 
+    /**
+     * Where the box's text is, the start of every part's path (ADR 0015, C2): the book and the chapter, else the page's
+     * or document's title (a PDF without one is named by its file); nothing for pasted or dictated text, which has no
+     * title. Emptying the box forgets the title, so text typed afterwards has no root either.
+     */
+    private fun SmartExtractUiState.pathRoot(): List<String> {
+        val title = title?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val book = book
+        val chapter = chapterId?.let { id -> book?.chapters?.firstOrNull { it.id == id } }
+        return if (book != null && chapter != null) listOf(book.title, chapter.title) else listOf(title)
+    }
+
     /** Sets the text and how many requests it takes (one per part), which the screen says when there are several. */
     private fun SmartExtractUiState.withText(text: String) =
         copy(text = text, requests = if (text.isBlank()) 0 else generateCards.split(text).size)
@@ -1090,7 +1103,7 @@ class SmartExtractViewModel(
         stopDictation()
         withDisclosure(route) {
             val current = _uiState.value
-            val parts = generateCards.split(current.text)
+            val parts = generateCards.split(current.text, current.pathRoot())
             if (parts.isEmpty()) return@withDisclosure
             run = Run(parts, current.options, current.title, current.deckId)
             launchGeneration(route, fromPart = 0)
@@ -1127,8 +1140,9 @@ class SmartExtractViewModel(
         _uiState.update { it.copy(generation = GenerationState.Running(0, pageRun.batches.size, pageRun.batches.first())) }
         generationJob = viewModelScope.launch {
             val layers = (sources.pageTexts(pageRun.handle, pageRun.batches.flatten()) as? PdfPageTextsResult.Success)?.texts.orEmpty()
+            val root = current.pathRoot()
             val parts = pageRun.batches.map { batch ->
-                batch.filter { PdfPageText.hasText(layers[it].orEmpty()) }.joinToString("\n\n") { "[Page $it]\n${layers.getValue(it).trim()}" }
+                SourcePart(batch.filter { PdfPageText.hasText(layers[it].orEmpty()) }.joinToString("\n\n") { "[Page $it]\n${layers.getValue(it).trim()}" }, root)
             }
             val run = Run(
                 parts = parts,
@@ -1209,7 +1223,7 @@ class SmartExtractViewModel(
                 val result = regenerateCard(
                     route = route,
                     card = item.card,
-                    source = item.source,
+                    source = item.part,
                     options = run?.options ?: current.options,
                     deckId = current.deckId,
                     title = run?.title ?: current.title,
@@ -1219,7 +1233,7 @@ class SmartExtractViewModel(
                 _uiState.update { s ->
                     when (result) {
                         is RegenerateResult.Replaced -> s.copy(
-                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.source, pages = images) else it },
+                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.part, pages = images) else it },
                             editingId = s.editingId.takeIf { it != id },
                         )
                         RegenerateResult.NothingNew -> s.copy(queue = s.queue.withRegenerating(id, false), message = ExtractMessage.NothingNew)

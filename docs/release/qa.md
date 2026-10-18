@@ -249,6 +249,7 @@ Build = `versionName (versionCode)` and how it was installed.
 | 2.1 Links (list which) | | | | | |
 | 2.1 Books (list which) | | | | | |
 | 2.1 Card quality after C1 (model, density) | | | | | |
+| 2.1 Card quality after C2: parts and paths (model, density) | | | | | |
 | 3 Fresh install and onboarding | | | | | |
 | 3 Import real `.apkg` | | | | | |
 | 3 Study, every card type | | | | | |

@@ -1,7 +1,7 @@
 # ADR 0015: Context-aware Smart Extract
 
 - **Status:** Accepted on the proposed defaults (2026-10-18): the owner agreed to every point marked **(owner)**.
-  C0 and C1 are built ("As built" below); C2–C7 are open.
+  C0–C2 are built ("As built" below); C3–C7 are open.
 - **Date:** 2026-10-18
 - **Context for:** steps C0–C7; ADR 0006 (AI card creation); ADR 0011 (EPUB books); ADR 0012 (web extraction);
   ADR 0014 (PDF pages); ARCHITECTURE §5.2
@@ -426,3 +426,53 @@ each adds its own block.
 - Tests: `CardGenerationPromptTest`, `GeneratedCardParserTest`, `CardGenerationClientTest.anEmptyListGetsNoRepair`,
   the re-recorded `smart-extract-*` golden files, three `SmartExtractViewModelTest` cases, two `SmartExtractScreenTest`
   cases, and the screenshot `create_extract_advanced_light.png` (five baselines re-recorded for the new row).
+
+## As built (C2, 2026-10-18)
+
+- `SourceOutline` (`:core:ingest`) reads the headings into a tree of `Section`s: `title`, `level`, `body` (the text
+  before the first subsection), `own` (the heading line and `body`), `text` (the whole section) and `children`, each
+  with its `WordCount`. Fences are skipped with the same patterns as `MarkdownSections`, which is unchanged. A title
+  loses closing hashes, link targets and emphasis and code marks; it is not `MarkdownText.plain`, which would take `1.`
+  off `1. Introduction` as a list marker. A level that skips one (`#` then `###`) is still a subsection.
+- `SourcePlanner.plan(text, root, maxWords = 1_200)` follows the six rules with these numbers and readings:
+  - "tiny" is a body of at most an eighth of a part (150 words) before a first subsection. Such texts wait and go in
+    front of whatever comes first inside (several in a row when a chapter and its first section both open with a
+    line), and may take that part over the limit by their size rather than have the section cut. The part is where
+    that first thing is: the tiny texts are only the way into it.
+  - "half full" is half a part (600 words); "a different parent" means outside the deepest section the part already
+    holds, so siblings and the children of an opened section join whatever the fill, and a cousin or an uncle only
+    joins a part under half full.
+  - A cut text (rule 4) is `TextChunker.chunk` of the section's own text (with any tiny texts in front). Its first
+    piece may join the current part; every later piece starts a part and is `continued`, and the last one takes what
+    follows under the usual rules. A text without headings is the root's own text, so its parts are exactly
+    `TextChunker.chunk`'s, the ones after the first `continued`, with only the root as their path.
+  - The tail fold obeys rule 5 too. Without that, the dump's `essay-with-headings.md` still came out as 343 and 1,320
+    words, with chapter 2 (148 words) folded onto the end of chapter 1; it is now 343, 1,172 and 148 words, with the
+    paths `Game Theory › 1. Introduction`, `Game Theory › 1. Introduction` and `Game Theory`.
+  - A part's path is the root, then the titles of the deepest section that holds all of it: the parent of a section
+    that is in whole (whose heading is in the text), the section itself for its own text or a piece of it. The root's
+    titles are tidied (spaces, empty ones and repeats dropped), every title is cut to 80 characters with "…", a first
+    heading equal to the root's last entry (ignoring case) is left out, and a path longer than six keeps its first
+    entry, "…" and its last four.
+- `SourcePart(text, path, continued)` (`:core:model`) has no `overlap` yet: C3 adds it. `CardGenerationRepository.split`
+  and `GenerateCardsUseCase.split` take the root (default none); `GenerationRequest.source` replaces `text` (still a
+  getter), and `ExtractRequest.parts`, `QueueItem.part` and `RegenerateCardUseCase(source = …)` carry the part. A
+  regenerated card is sent with its part's path, as before with `parts = 1` (no "part N of M").
+- The root is `SmartExtractUiState.pathRoot()` in `SmartExtractViewModel`: the book's and the chapter's titles when a
+  chapter is in the box, else the state's `title` (a link's page title, a PDF's title or file name, a file's name),
+  else none. Pasted and dictated text has no title, and emptying the box forgets it. A run of page images gives each
+  group's text layer the root alone as its path.
+- `CardGenerationPrompt` takes `path` and `continued` and writes `Where this part is: A › B › C (continued)` after
+  the list of known cards and before the source line. The line is left out when there is no path, and when the path
+  is only the title the source line names anyway and the part isn't continued (a link or PDF without headings). The
+  titles come from the source, so they are escaped like it. Only `smart-extract-part.json` changes among the golden
+  files (it is now a continued part with a three-level path); the others have no path and are byte for byte the same.
+- `ExtractRequestDump` splits each QA text with its title as the root, and `manifest.json` gains `path` and
+  `continued`. `FakeCardGenerationRepository` has a `splitter` (default: "---" lines, the root as every part's path)
+  and records the `roots` it was given.
+- Tests: `SourceOutlineTest` (9), `SourcePlannerTest` (each rule, the Game Theory table above, the root, title and
+  depth limits, CJK sizes, fences and tables, determinism, a short last chapter), `TextChunkerTest` unchanged,
+  `CardGenerationPromptTest` (the line, its place, when it is left out, escaping), `RequestGoldenTest`,
+  `AiGenerationRepositoriesTest`, `SmartExtractUseCasesTest` (every part and Regenerate send their path),
+  `SmartExtractViewModelTest` (Regenerate keeps the part and path after the box changed; a PDF's and pasted text's
+  roots) and `SmartExtractBookTest` (book › chapter).

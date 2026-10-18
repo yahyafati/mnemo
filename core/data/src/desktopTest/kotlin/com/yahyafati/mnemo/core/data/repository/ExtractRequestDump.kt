@@ -47,9 +47,10 @@ class ExtractRequestDump {
             for (file in files) {
                 val text = file.readText()
                 val title = text.lineSequence().firstOrNull { it.startsWith("# ") }?.removePrefix("# ")?.trim() ?: file.nameWithoutExtension
-                val parts = splitSource(text)
+                // A file read into the box has its title as the root of every part's path.
+                val parts = splitSource(text, listOf(title))
                 for ((index, part) in parts.withIndex()) {
-                    val prompt = cardsPrompt(GenerationRequest(text = part, options = options, part = index, parts = parts.size, title = title))
+                    val prompt = cardsPrompt(GenerationRequest(source = part, options = options, part = index, parts = parts.size, title = title))
                     val request = ChatRequest(model = "MODEL", messages = prompt.messages(), responseFormat = prompt.responseFormat)
                     val name = "${file.nameWithoutExtension}.part${index + 1}.json"
                     File(dir, name).writeText(json.encodeToString(ChatRequest.serializer(), request))
@@ -59,7 +60,9 @@ class ExtractRequestDump {
                             put("title", title)
                             put("part", index + 1)
                             put("parts", parts.size)
-                            put("words", SourceText.countWords(part))
+                            put("words", SourceText.countWords(part.text))
+                            put("path", part.path.joinToString(" › "))
+                            put("continued", part.continued)
                             put("request", name)
                         },
                     )
