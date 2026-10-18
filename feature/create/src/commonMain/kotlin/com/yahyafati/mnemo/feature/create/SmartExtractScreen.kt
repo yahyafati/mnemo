@@ -40,6 +40,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -81,8 +82,10 @@ import com.yahyafati.mnemo.core.model.CardArchetype
 import com.yahyafati.mnemo.core.model.ChapterKind
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.DisclosureStep
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.FigureSide
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.NoteKind
@@ -90,6 +93,7 @@ import com.yahyafati.mnemo.core.model.PageRangeError
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.ui.ai.AiDisclosureDialog
 import com.yahyafati.mnemo.core.ui.ai.AiReport
@@ -110,32 +114,16 @@ import com.yahyafati.mnemo.feature.create.component.DeckDropdown
 import com.yahyafati.mnemo.feature.create.component.OptionDropdown
 import com.yahyafati.mnemo.feature.create.component.editorFieldColors
 import com.yahyafati.mnemo.feature.create.resources.Res
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_add
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_alt
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_change
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_back
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_front
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_remove
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_missing
-import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_removed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_title
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_message
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_requests
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_send
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_use
-import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
-import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_pages
-import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_page_failed
-import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page
-import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page_open
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_into
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accept_no_deck
 import com.yahyafati.mnemo.feature.create.resources.feature_create_accepted
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_examples_kept
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_hide
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_overlap_always
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_overlap_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_show
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_case
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_choice
 import com.yahyafati.mnemo.feature.create.resources.feature_create_archetype_cloze
@@ -151,6 +139,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_finish
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_idle
+import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_nothing
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_review
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_hint_running
 import com.yahyafati.mnemo.feature.create.resources.feature_create_batch_label
@@ -166,6 +155,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_card_discard
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_done
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_edit
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_number
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page
+import com.yahyafati.mnemo.feature.create.resources.feature_create_card_page_open
 import com.yahyafati.mnemo.feature.create.resources.feature_create_card_regenerate
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density
 import com.yahyafati.mnemo.feature.create.resources.feature_create_density_balanced
@@ -195,10 +186,19 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_epub_pick
 import com.yahyafati.mnemo.feature.create.resources.feature_create_extra
 import com.yahyafati.mnemo.feature.create.resources.feature_create_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_add
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_alt
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_change
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_back
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_on_front
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figure_remove
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_missing
+import com.yahyafati.mnemo.feature.create.resources.feature_create_figures_removed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_front
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generate
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generate_empty
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generating
+import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_generating_part
 import com.yahyafati.mnemo.feature.create.resources.feature_create_language
 import com.yahyafati.mnemo.feature.create.resources.feature_create_language_source
@@ -212,14 +212,28 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_conf
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_message
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nonempty_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_nothing_new
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_always
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_always_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_off_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_within
+import com.yahyafati.mnemo.feature.create.resources.feature_create_overlap_within_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_page_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pages_list
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_blank
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapter_detail_printed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_chapters_use
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cancel
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_send
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_cards_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_message
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_requests
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_send
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_confirm_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_hint
@@ -227,6 +241,8 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_ai_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_auto_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_images_hint
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_no_vision
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_mode_text
@@ -236,6 +252,7 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_no_text_r
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_images
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_hint_long
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_pdf_pages_malformed
@@ -265,9 +282,11 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_too_l
 import com.yahyafati.mnemo.feature.create.resources.feature_create_problem_wrong
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_empty
+import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_nothing
 import com.yahyafati.mnemo.feature.create.resources.feature_create_queue_skipped
 import com.yahyafati.mnemo.feature.create.resources.feature_create_reading
 import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_regenerate_page_failed
 import com.yahyafati.mnemo.feature.create.resources.feature_create_retry
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_all
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_choose
@@ -281,6 +300,9 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_repl
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_summary
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title
 import com.yahyafati.mnemo.feature.create.resources.feature_create_sections_title_untitled
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_skip_illustrations_on
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_label
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_manage
 import com.yahyafati.mnemo.feature.create.resources.feature_create_smart_setup
@@ -315,6 +337,22 @@ import com.yahyafati.mnemo.feature.create.resources.feature_create_stop
 import com.yahyafati.mnemo.feature.create.resources.feature_create_text
 import com.yahyafati.mnemo.feature.create.resources.feature_create_type_basic
 import com.yahyafati.mnemo.feature.create.resources.feature_create_type_cloze
+import com.yahyafati.mnemo.feature.create.resources.feature_create_advanced_context_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_auto
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_auto_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_done
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_edit
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_hide
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_label
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_off
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_off_hint
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_show
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_summary
+import com.yahyafati.mnemo.feature.create.resources.feature_create_context_title
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summarizing
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summary_failed
+import com.yahyafati.mnemo.feature.create.resources.feature_create_summary_skip
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import java.time.Instant
@@ -391,6 +429,11 @@ internal fun SmartExtractScreen(
                 ) {
                     if (onImportBook != null) item(key = "book") { BookImportEntry(onImportBook, Modifier.widthIn(max = 680.dp)) }
                     item(key = "workshop") { Workshop(uiState, uiState.route, pageFiles, onAction, onSetUpAi, Modifier.widthIn(max = 680.dp)) }
+                    uiState.context?.let { context ->
+                        item(key = "context") {
+                            ContextCard(context, canEdit = !uiState.isGenerating, modelId = uiState.route.modelId, onAction = onAction, modifier = Modifier.widthIn(max = 680.dp))
+                        }
+                    }
                     item(key = "queue-header") { QueueHeader(uiState, onAction, Modifier.widthIn(max = 680.dp)) }
                     itemsIndexed(uiState.queue, key = { _, item -> item.card.id }) { index, item ->
                         ReviewCard(
@@ -619,7 +662,7 @@ private fun Workshop(
                 }
             }
 
-            uiState.batch?.let { BatchBanner(it, uiState.generation, onAction) }
+            uiState.batch?.let { BatchBanner(it, uiState.generation, uiState.nothingToLearn, onAction) }
             SourcePicker(uiState.sourceKind, uiState.dictationAvailable) { onAction(SmartExtractAction.SelectSource(it)) }
             if (LocalPlatformCapabilities.current.keyboardAndMouse) Hint(stringResource(Res.string.feature_create_drop_file_hint))
             if (uiState.sourceKind != SourceKind.Paste || uiState.reading || uiState.sourceProblem != null) SourcePanel(uiState, onAction)
@@ -636,9 +679,17 @@ private fun Workshop(
                 onSelect = { onAction(SmartExtractAction.SelectDeck(it)) },
                 onNewDeck = { onAction(SmartExtractAction.ShowDeckDialog) },
             )
-            DensitySlider(uiState) { onAction(SmartExtractAction.SetDensity(it)) }
+            DensitySlider(uiState.options.density) { onAction(SmartExtractAction.SetDensity(it)) }
             ArchetypePicker(uiState.options.archetypes) { onAction(SmartExtractAction.ToggleArchetype(it)) }
-            LanguagePicker(uiState.options.language) { onAction(SmartExtractAction.SetLanguage(it)) }
+            AdvancedOptions(
+                options = uiState.options,
+                open = uiState.showAdvanced,
+                onToggle = { onAction(SmartExtractAction.ToggleAdvanced) },
+                onLanguage = { onAction(SmartExtractAction.SetLanguage(it)) },
+                onSkipIllustrations = { onAction(SmartExtractAction.SetSkipIllustrations(it)) },
+                onOverlap = { onAction(SmartExtractAction.SetOverlap(it)) },
+                onContextSummary = { onAction(SmartExtractAction.SetContextSummary(it)) },
+            )
 
             // A book run generates by itself and moves on through the banner; a Generate button here would only invite a second request.
             if (uiState.batch == null || uiState.generation !is GenerationState.Done) GenerateControls(uiState, onAction)
@@ -665,7 +716,7 @@ private fun Workshop(
  * run goes on only when the user presses Next (or Skip), so a failed chapter waits here for Retry or Skip.
  */
 @Composable
-private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction: (SmartExtractAction) -> Unit) {
+private fun BatchBanner(batch: BookBatch, generation: GenerationState, nothingToLearn: Boolean, onAction: (SmartExtractAction) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val spacing = MnemoTheme.spacing
     Surface(shape = MaterialTheme.shapes.small, color = colors.secondaryContainer, contentColor = colors.onSecondaryContainer) {
@@ -679,9 +730,9 @@ private fun BatchBanner(batch: BookBatch, generation: GenerationState, onAction:
             Text(
                 text = stringResource(
                     when (generation) {
-                        is GenerationState.Running -> Res.string.feature_create_batch_hint_running
-                        is GenerationState.Done -> Res.string.feature_create_batch_hint_review
-                        is GenerationState.Failed, is GenerationState.PageUnreadable -> Res.string.feature_create_batch_hint_failed
+                        is GenerationState.Running, GenerationState.Summarizing -> Res.string.feature_create_batch_hint_running
+                        is GenerationState.Done -> if (nothingToLearn) Res.string.feature_create_batch_hint_nothing else Res.string.feature_create_batch_hint_review
+                        is GenerationState.Failed, is GenerationState.PageUnreadable, is GenerationState.SummaryFailed -> Res.string.feature_create_batch_hint_failed
                         GenerationState.Idle -> Res.string.feature_create_batch_hint_idle
                     },
                 ),
@@ -1349,9 +1400,9 @@ private fun SourceTextField(uiState: SmartExtractUiState, onAction: (SmartExtrac
     }
 }
 
+/** How many cards to ask for; also in the book run's dialog. */
 @Composable
-private fun DensitySlider(uiState: SmartExtractUiState, onSelect: (ExtractDensity) -> Unit) {
-    val density = uiState.options.density
+internal fun DensitySlider(density: ExtractDensity, onSelect: (ExtractDensity) -> Unit) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label(stringResource(Res.string.feature_create_density), Modifier.weight(1f))
@@ -1379,8 +1430,9 @@ private fun densityLabel(density: ExtractDensity) = stringResource(
     },
 )
 
+/** Which kinds of card to write; also in the book run's dialog. */
 @Composable
-private fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchetype) -> Unit) {
+internal fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchetype) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
         Label(stringResource(Res.string.feature_create_archetypes))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm), verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
@@ -1403,9 +1455,10 @@ private fun ArchetypePicker(selected: Set<CardArchetype>, onToggle: (CardArchety
 }
 
 @Composable
-private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
+private fun LanguagePicker(language: String?, modifier: Modifier = Modifier, onSelect: (String?) -> Unit) {
     val sameAsSource = stringResource(Res.string.feature_create_language_source)
     OptionDropdown(
+        modifier = modifier,
         value = language ?: sameAsSource,
         label = stringResource(Res.string.feature_create_language),
         leadingIcon = MnemoIcons.Translate,
@@ -1413,10 +1466,227 @@ private fun LanguagePicker(language: String?, onSelect: (String?) -> Unit) {
     )
 }
 
+/**
+ * The Advanced options (ADR 0015): closed by default, so the card shows only the everyday choices. Closed, the row says
+ * which settings are not at their defaults, so nothing changed is hidden. Also in the book run's dialog.
+ */
+@Composable
+internal fun AdvancedOptions(
+    options: ExtractOptions,
+    open: Boolean,
+    onToggle: () -> Unit,
+    onLanguage: (String?) -> Unit,
+    onSkipIllustrations: (Boolean) -> Unit,
+    onOverlap: (Overlap) -> Unit,
+    onContextSummary: (ContextSummary) -> Unit,
+) {
+    val changed = buildList {
+        options.language?.let { add(it) }
+        if (!options.skipIllustrations) add(stringResource(Res.string.feature_create_advanced_examples_kept))
+        when (options.overlap) {
+            Overlap.WithinSections -> Unit
+            Overlap.Always -> add(stringResource(Res.string.feature_create_advanced_overlap_always))
+            Overlap.Off -> add(stringResource(Res.string.feature_create_advanced_overlap_off))
+        }
+        if (options.contextSummary == ContextSummary.Off) add(stringResource(Res.string.feature_create_advanced_context_off))
+    }
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickCursor()
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = stringResource(if (open) Res.string.feature_create_advanced_hide else Res.string.feature_create_advanced_show),
+                    onClick = onToggle,
+                ),
+        ) {
+            Label(stringResource(Res.string.feature_create_advanced))
+            Text(
+                text = if (open) "" else changed.joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = MnemoTheme.spacing.sm),
+            )
+            Icon(if (open) MnemoIcons.ExpandLess else MnemoIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (open) {
+            LanguagePicker(options.language, Modifier.padding(vertical = MnemoTheme.spacing.sm), onLanguage)
+            SwitchRow(
+                title = stringResource(Res.string.feature_create_skip_illustrations),
+                summary = stringResource(
+                    if (options.skipIllustrations) Res.string.feature_create_skip_illustrations_on else Res.string.feature_create_skip_illustrations_off,
+                ),
+                checked = options.skipIllustrations,
+                onCheckedChange = onSkipIllustrations,
+            )
+            OverlapPicker(options.overlap, onOverlap)
+            ContextSummaryPicker(options.contextSummary, onContextSummary)
+        }
+    }
+}
+
+/** *Overlap between parts* (ADR 0015, C3): one field, one focus stop, with a line saying what the choice does. */
+@Composable
+private fun OverlapPicker(overlap: Overlap, onSelect: (Overlap) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs),
+        modifier = Modifier.padding(vertical = MnemoTheme.spacing.sm),
+    ) {
+        OptionDropdown(
+            value = overlapLabel(overlap),
+            label = stringResource(Res.string.feature_create_overlap),
+            leadingIcon = MnemoIcons.Duplicate,
+            options = Overlap.entries.map { choice -> overlapLabel(choice) to { onSelect(choice) } },
+        )
+        Hint(
+            stringResource(
+                when (overlap) {
+                    Overlap.WithinSections -> Res.string.feature_create_overlap_within_hint
+                    Overlap.Always -> Res.string.feature_create_overlap_always_hint
+                    Overlap.Off -> Res.string.feature_create_overlap_off_hint
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun overlapLabel(overlap: Overlap) = stringResource(
+    when (overlap) {
+        Overlap.WithinSections -> Res.string.feature_create_overlap_within
+        Overlap.Always -> Res.string.feature_create_overlap_always
+        Overlap.Off -> Res.string.feature_create_overlap_off
+    },
+)
+
+/** *Context summary* (ADR 0015, C4): one field, one focus stop, with a line saying what the choice does. */
+@Composable
+private fun ContextSummaryPicker(summary: ContextSummary, onSelect: (ContextSummary) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.xs),
+        modifier = Modifier.padding(vertical = MnemoTheme.spacing.sm),
+    ) {
+        OptionDropdown(
+            value = contextSummaryLabel(summary),
+            label = stringResource(Res.string.feature_create_context_summary),
+            leadingIcon = MnemoIcons.Sparkle,
+            options = ContextSummary.entries.map { choice -> contextSummaryLabel(choice) to { onSelect(choice) } },
+        )
+        Hint(
+            stringResource(
+                when (summary) {
+                    ContextSummary.Auto -> Res.string.feature_create_context_auto_hint
+                    ContextSummary.Off -> Res.string.feature_create_context_off_hint
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun contextSummaryLabel(summary: ContextSummary) = stringResource(
+    when (summary) {
+        ContextSummary.Auto -> Res.string.feature_create_context_auto
+        ContextSummary.Off -> Res.string.feature_create_context_off
+    },
+)
+
+/**
+ * The summary of the whole source that goes with every part (ADR 0015, C4): its first line and Show, then the whole of it,
+ * which the user can fix with Edit (not while a run is going) or report, since it is AI output.
+ */
+@Composable
+private fun ContextCard(context: SourceContext, canEdit: Boolean, modelId: String, onAction: (SmartExtractAction) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val spacing = MnemoTheme.spacing
+    Surface(modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = colors.surfaceContainerLow) {
+        Column(Modifier.padding(horizontal = spacing.md, vertical = spacing.sm), verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.feature_create_context_title).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (context.text.isNotBlank()) ReportAiButton(AiReport(AiReportKind.ContextSummary, context.text, modelId), compact = true)
+                if (context.editing) {
+                    TextButton(onClick = { onAction(SmartExtractAction.DoneEditingContext) }) { Text(stringResource(Res.string.feature_create_context_done)) }
+                } else if (canEdit) {
+                    TextButton(onClick = { onAction(SmartExtractAction.EditContext) }) { Text(stringResource(Res.string.feature_create_context_edit)) }
+                }
+            }
+            if (context.editing) {
+                OutlinedTextField(
+                    value = context.text,
+                    onValueChange = { onAction(SmartExtractAction.ContextChanged(it)) },
+                    label = { Text(stringResource(Res.string.feature_create_context_label)) },
+                    minLines = 3,
+                    maxLines = 10,
+                    shape = MaterialTheme.shapes.small,
+                    colors = editorFieldColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Text(
+                    text = context.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (context.expanded) Int.MAX_VALUE else 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                TextButton(onClick = { onAction(SmartExtractAction.ToggleContext) }) {
+                    Text(stringResource(if (context.expanded) Res.string.feature_create_context_hide else Res.string.feature_create_context_show))
+                }
+            }
+            if (context.expanded) Hint(stringResource(Res.string.feature_create_context_hint))
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(title: String, summary: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickCursor()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+    ) {
+        Column(Modifier.weight(1f).padding(end = MnemoTheme.spacing.sm)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Hint(summary)
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
 @Composable
 private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtractAction) -> Unit) {
     val colors = MaterialTheme.colorScheme
     when (val generation = uiState.generation) {
+        GenerationState.Summarizing -> Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.feature_create_summarizing),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                MnemoButton(
+                    text = stringResource(Res.string.feature_create_stop),
+                    onClick = { onAction(SmartExtractAction.Stop) },
+                    style = MnemoButtonStyle.Secondary,
+                    leadingIcon = MnemoIcons.Stop,
+                )
+            }
+        }
         is GenerationState.Running -> Column(verticalArrangement = Arrangement.spacedBy(MnemoTheme.spacing.sm)) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1457,6 +1727,26 @@ private fun GenerateControls(uiState: SmartExtractUiState, onAction: (SmartExtra
                                 .padding(MnemoTheme.spacing.sm),
                         )
                         TextButton(onClick = { onAction(SmartExtractAction.Retry) }) { Text(stringResource(Res.string.feature_create_retry)) }
+                    }
+                }
+            }
+            if (generation is GenerationState.SummaryFailed) {
+                Surface(shape = MaterialTheme.shapes.small, color = colors.errorContainer, contentColor = colors.onErrorContainer) {
+                    Column(Modifier.padding(start = MnemoTheme.spacing.md, end = MnemoTheme.spacing.xs, top = MnemoTheme.spacing.xs, bottom = MnemoTheme.spacing.xs)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(MnemoIcons.Error, null, Modifier.size(18.dp))
+                            Text(
+                                text = stringResource(Res.string.feature_create_summary_failed, aiFailureText(generation.failure)),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(MnemoTheme.spacing.sm),
+                            )
+                        }
+                        Row {
+                            TextButton(onClick = { onAction(SmartExtractAction.Retry) }) { Text(stringResource(Res.string.feature_create_retry)) }
+                            TextButton(onClick = { onAction(SmartExtractAction.GenerateWithoutContext) }) { Text(stringResource(Res.string.feature_create_summary_skip)) }
+                        }
                     }
                 }
             }
@@ -1507,7 +1797,10 @@ private fun QueueHeader(uiState: SmartExtractUiState, onAction: (SmartExtractAct
             HorizontalDivider(Modifier.weight(1f), color = colors.surfaceContainerHighest)
         }
         if (uiState.queue.isEmpty()) {
-            Hint(stringResource(Res.string.feature_create_queue_empty), Modifier.align(Alignment.CenterHorizontally))
+            Hint(
+                text = stringResource(if (uiState.nothingToLearn) Res.string.feature_create_queue_nothing else Res.string.feature_create_queue_empty),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val skipped = uiState.duplicatesSkipped + uiState.invalidSkipped
@@ -1781,8 +2074,8 @@ private fun SmartExtractScreenPreview() {
                 text = text,
                 generation = GenerationState.Running(0, 1),
                 queue = listOf(
-                    QueueItem(GeneratedCard("1", NoteKind.Basic, "Which structure is primary in fear-conditioned memory?", "The amygdala (basolateral complex).", listOf("limbic-system")), text),
-                    QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::basolateral complex}} receives cortical sensory input.", ""), text),
+                    QueueItem(GeneratedCard("1", NoteKind.Basic, "Which structure is primary in fear-conditioned memory?", "The amygdala (basolateral complex).", listOf("limbic-system")), SourcePart(text)),
+                    QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::basolateral complex}} receives cortical sensory input.", ""), SourcePart(text)),
                 ),
             ),
             onAction = {},

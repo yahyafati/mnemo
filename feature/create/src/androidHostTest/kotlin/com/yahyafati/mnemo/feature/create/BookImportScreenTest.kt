@@ -17,6 +17,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
@@ -27,6 +28,7 @@ import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
 import kotlinx.coroutines.runBlocking
@@ -60,9 +62,10 @@ class BookImportScreenTest {
         sources = sources,
         deckRepository = decks,
         createBookDecks = CreateBookDecksUseCase(decks),
-        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
+        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         aiProviders = providers,
         bookHandoff = handoff,
+        userSettings = com.yahyafati.mnemo.core.testing.repository.FakeUserSettingsRepository(),
     )
 
     private fun showScreen(closed: () -> Unit = {}) {
@@ -153,6 +156,13 @@ class BookImportScreenTest {
         composeRule.onNodeWithText("2 chapters · 1300 words").assertExists()
         composeRule.onNodeWithText("Sends 2 requests to Ollama (llama3.2).").assertExists()
         composeRule.onNodeWithText("no charge per request", substring = true).assertExists()
+        // The cards the run asks for are chosen here, as in Smart Extract; without a style it can't start.
+        composeRule.onNodeWithText("Concept & definition").performClick()
+        composeRule.onNodeWithText("Cloze deletion").performClick()
+        composeRule.onNodeWithText("Choose at least one card style.").assertExists()
+        composeRule.onNodeWithText("Create and start").assertIsNotEnabled()
+        composeRule.onNodeWithText("Case study").performClick()
+        composeRule.onNodeWithText("Create and start").assertIsEnabled()
         // Showing the numbers made nothing.
         assertTrue(runBlocking { decks.getDecks() }.isEmpty())
 
@@ -164,6 +174,7 @@ class BookImportScreenTest {
         composeRule.waitUntil(5_000) { left }
         assertEquals(2, runBlocking { decks.getDecks() }.count { it.parentId != null })
         assertEquals(listOf(0, 1), handoff.offer.value?.batch)
+        assertEquals(setOf(com.yahyafati.mnemo.core.model.CardArchetype.CaseStudy), handoff.offer.value?.options?.archetypes)
     }
 
     @Test

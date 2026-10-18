@@ -13,11 +13,15 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.yahyafati.mnemo.core.data.repository.PageImages
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.ui.card.LocalMediaImageLoader
 import com.yahyafati.mnemo.core.ui.card.MediaImageLoader
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.model.AiCapabilities
+import com.yahyafati.mnemo.core.model.ContextSummary
+import com.yahyafati.mnemo.core.model.ExtractOptions
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
@@ -289,12 +293,12 @@ class CreateScreenshotTest {
                         queue = listOf(
                             QueueItem(
                                 GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
-                                source = "",
+                                part = SourcePart(""),
                                 pages = pages,
                             ),
                             QueueItem(
                                 GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4),
-                                source = "",
+                                part = SourcePart(""),
                                 pages = pages,
                             ),
                         ),
@@ -325,7 +329,7 @@ class CreateScreenshotTest {
                     ReviewCard(
                         item = QueueItem(
                             GeneratedCard("1", NoteKind.Basic, "What does the arrow from the nucleus to the ribosome show?", "mRNA leaving the nucleus", listOf("cells"), page = 2),
-                            source = "",
+                            part = SourcePart(""),
                             pages = pages,
                             figure = QueueFigure(2, PageRegion(0.1f, 0.2f, 0.9f, 0.7f), FigureSide.Back, java.io.File("fig-p2.png")),
                         ),
@@ -336,7 +340,7 @@ class CreateScreenshotTest {
                         canOpenPage = true,
                     )
                     ReviewCard(
-                        item = QueueItem(GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4), source = "", pages = pages),
+                        item = QueueItem(GeneratedCard("2", NoteKind.Cloze, "{{c1::Ribosomes}} build proteins from amino acids.", "", page = 4), part = SourcePart(""), pages = pages),
                         number = 2,
                         editing = false,
                         modelId = "llama-4-scout",
@@ -424,6 +428,73 @@ class CreateScreenshotTest {
         }
     }
 
+    @Test
+    fun advancedOpenAndNothingToLearn() = captureRoboImage("src/androidHostTest/screenshots/create_extract_advanced_light.png") { AdvancedOpen() }
+
+    @Test
+    fun advancedChangedAndClosed() = captureRoboImage("src/androidHostTest/screenshots/create_extract_advanced_changed_light.png") { AdvancedOpen(open = false, changed = true) }
+
+    /** Smart Extract with its Advanced options open (ADR 0015) after a run on a story that had nothing to learn; or closed with settings changed (C5). */
+    @androidx.compose.runtime.Composable
+    private fun AdvancedOpen(open: Boolean = true, changed: Boolean = false) {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        MnemoTheme {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Novels::Prologue")),
+                    deckId = "d",
+                    text = "The ferry to Vaasa left at six in the evening, and by half past five the queue of cars already reached back past the petrol station.",
+                    showAdvanced = open,
+                    options = if (changed) {
+                        ExtractOptions(language = "Spanish", overlap = Overlap.Always, contextSummary = ContextSummary.Off)
+                    } else {
+                        ExtractOptions()
+                    },
+                    generation = GenerationState.Done(0),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
+    }
+
+    @Test
+    fun contextSummaryLight() = captureRoboImage("src/androidHostTest/screenshots/create_extract_context_light.png") { ContextSummaryCard() }
+
+    /** Smart Extract after a run on a long chapter: the summary that went with every part, open above the queue (ADR 0015, C4). */
+    @androidx.compose.runtime.Composable
+    private fun ContextSummaryCard() {
+        val provider = AiProvider(id = "p", name = "Groq", baseUrl = "https://api.groq.com/openai/v1", defaultModel = "llama-3.3-70b", createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+        val text = "Loss aversion is the tendency to feel a loss more strongly than an equal gain."
+        MnemoTheme {
+            SmartExtractScreen(
+                uiState = SmartExtractUiState(
+                    isLoading = false,
+                    route = AiRoute(AiTask.Extract, provider, "llama-3.3-70b", AiCapabilities(), usesDefault = true),
+                    decks = listOf(DeckOption("d", "Psychology::Decisions")),
+                    deckId = "d",
+                    text = text,
+                    title = "Choices under risk",
+                    parts = 5,
+                    generation = GenerationState.Done(2),
+                    context = SourceContext(
+                        "A chapter on how people decide under risk. It builds up prospect theory: losses weigh more than gains, and the reference point decides what counts as a loss. " +
+                            "The shipwreck story illustrates loss aversion; the taxi-driver study illustrates the reference point.",
+                        expanded = true,
+                    ),
+                    queue = listOf(
+                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What is loss aversion?", "Feeling a loss more strongly than an equal gain.", listOf("decisions")), SourcePart(text)),
+                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "The {{c1::reference point}} decides what counts as a loss.", ""), SourcePart(text)),
+                    ),
+                ),
+                onAction = {},
+                onSetUpAi = {},
+            )
+        }
+    }
+
     /** Smart Extract in the middle of a book run: chapter 3 of 8 is done and waits for its review. */
     @androidx.compose.runtime.Composable
     private fun BatchRun(dark: Boolean) {
@@ -443,8 +514,8 @@ class CreateScreenshotTest {
                     batch = BookBatch(chapters, position = 2),
                     generation = GenerationState.Done(2),
                     queue = listOf(
-                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What does natural selection act on?", "The variation that already exists in a population.", listOf("selection")), text),
-                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "Natural selection acts on {{c1::existing variation}}.", ""), text),
+                        QueueItem(GeneratedCard("1", NoteKind.Basic, "What does natural selection act on?", "The variation that already exists in a population.", listOf("selection")), SourcePart(text)),
+                        QueueItem(GeneratedCard("2", NoteKind.Cloze, "Natural selection acts on {{c1::existing variation}}.", ""), SourcePart(text)),
                     ),
                 ),
                 onAction = {},

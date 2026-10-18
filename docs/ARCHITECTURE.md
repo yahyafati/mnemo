@@ -223,13 +223,16 @@ The interval labels on the rating buttons ("< 1m", "12h", "2d", "5d") come from 
 SmartExtractViewModel
   1. SourceRepository (:core:ingest) → text in the editable text box (a link as Markdown; PDF / link / dictation / paste)
   2. AiProviderRepository effective route for AiTask.Extract → provider + model + capabilities
-  3. GenerateCardsUseCase(route, ExtractRequest(parts, options, deckId))
-       parts = TextChunker (≤ 1,200 words each), one request per part, in order
+  3. GenerateCardsUseCase(route, ExtractRequest(parts, options, deckId, context, summarize))
+       parts = SourcePlanner along the headings (≤ 1,200 words each, each with its path and, per the Overlap
+       setting, the end of the part before it), one request per part, in order. A source of three or more parts
+       is first summarised by one request on the same route (SummarizeSourceUseCase); the summary goes with every
+       part (ADR 0015)
   4. CardGenerationRepository → ProviderConfigs (decrypted key) → CardGenerationClient (:core:ai)
        POST {baseUrl}/chat/completions: streamed if supported, response_format = json_schema if
        supported, format always in the prompt too; a rejected feature is dropped and retried
   5. Text deltas    → GeneratedCardParser (incremental) → each card as soon as its object closes;
-                       no readable card → one repair request
+                       no readable card → one repair request; an empty `cards` array is a valid answer (no repair)
   6. Validation     → GeneratedCardValidator (fields, cloze syntax), dedupe against the deck (locally)
                        and the queue
   7. UI             → review queue (accept / edit / regenerate / discard / Accept All)

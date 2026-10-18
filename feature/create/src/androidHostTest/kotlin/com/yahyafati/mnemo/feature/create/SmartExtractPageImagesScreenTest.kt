@@ -20,6 +20,7 @@ import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
 import com.yahyafati.mnemo.core.designsystem.theme.MnemoTheme
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -34,6 +35,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
@@ -84,7 +86,7 @@ class SmartExtractPageImagesScreenTest {
         runBlocking { settings.setPdfReadOptions(PdfReadMode.PageImages, com.yahyafati.mnemo.core.model.PdfQuality.Standard) }
         SmartExtractViewModel(
             providers, FakeDeckRepository(), sources,
-            GenerateCardsUseCase(generation, cards), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()), BookHandoff(),
+            GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository())), RegenerateCardUseCase(generation, cards), AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()), BookHandoff(),
             settings, ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
         )
     }
@@ -127,7 +129,7 @@ class SmartExtractPageImagesScreenTest {
         composeRule.onNodeWithText("2-3").assertExists() // the Pages field says the same
 
         // Nothing is sent until the user has agreed to the request and, once, to the notice about images.
-        composeRule.onNodeWithText("Generate ~8 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 8 cards").performClick()
         composeRule.onNodeWithText("Make cards from page images?").assertExists()
         assertEquals(0, generation.requests.size)
         composeRule.onNodeWithText("Make cards").performClick()
@@ -159,7 +161,7 @@ class SmartExtractPageImagesScreenTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Page 2").performClick()
-        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 4 cards").performClick()
         composeRule.onNodeWithText("Make cards").performClick()
         composeRule.onNodeWithText("Continue").performClick()
         composeRule.onNodeWithText("What is on the slide?").assertExists()
@@ -200,7 +202,7 @@ class SmartExtractPageImagesScreenTest {
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Page 2").performClick()
-        composeRule.onNodeWithText("Generate ~4 cards").performClick()
+        composeRule.onNodeWithText("Generate up to 4 cards").performClick()
         composeRule.onNodeWithText("Make cards").performClick()
         composeRule.onNodeWithText("Continue").performClick()
         composeRule.onNodeWithText("Add figure").performClick()

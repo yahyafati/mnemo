@@ -150,6 +150,24 @@ Note what read well, token use and timing in the log.
       chapters.
 - [ ] The AI disclosure still matches what each source sends (the source text or page images, and the queue's
       fronts; the deck's notes stay local).
+- [ ] **Card quality** (ADR 0015): `scripts/qa/extract-checks.py run --url <base> --model <id>` sends the texts in
+      `scripts/qa/extract` exactly as Smart Extract would (key in `MNEMO_QA_API_KEY`), and writes `cards.csv`. Label
+      each card `idea`, `illustration` or `bad`, then `extract-checks.py summary <cards.csv>`. With every step on
+      (C7), run it three times with the same model and density, so the changes can be told apart:
+      1. `--summary off --overlap Off` (headings and paths only: C1 and C2), the baseline;
+      2. the defaults (`--summary auto`; only `essay-with-headings.md` has the three parts that earn a summary);
+      3. `--summary always --overlap Always`, which shows what the summary and the overlap do for the short texts.
+      Record cards per text and the illustration share for each, and read the `*.summary.txt` files the run leaves:
+      each should say what the text is about and what its examples illustrate, in at most 150 words.
+      `--no-skip-illustrations` once on `narrative-chapter.md` should bring the anecdote cards back.
+- [ ] **Long sources** (ADR 0015, C7): a book run on a real book (a chapter with a story-heavy opening, one that is
+      a dense section, and a prologue), and a long Wikipedia article, in the app with a real provider. Check that
+      the Context card shows a summary that is right about the chapter, that a part made of a story alone gives a
+      card about its idea or none, that a prologue ends with "nothing worth remembering" and the banner's Next
+      works, that Resume and Regenerate don't ask for the summary again, and that the request counts shown
+      (hint, book confirmation) match the requests sent (the provider's usage log). Note any part whose path was
+      wrong or missing and any summary that made a card worse; they decide whether the numbers in the ADR change
+      (overlap size, three parts for a summary, its 3,000-word budget, the half-full rule).
 
 ## 3. Release smoke test (R8)
 
@@ -244,6 +262,10 @@ Build = `versionName (versionCode)` and how it was installed.
 | 2.1 PDFs (list which) | | | | | |
 | 2.1 Links (list which) | | | | | |
 | 2.1 Books (list which) | | | | | |
+| 2.1 Card quality after C1 (model, density) | | | | | |
+| 2.1 Card quality after C2: parts and paths (model, density) | | | | | |
+| 2.1 Card quality with every step on, three runs (model, density) | | | | | |
+| 2.1 Book run and a long article with summaries | | | | | |
 | 3 Fresh install and onboarding | | | | | |
 | 3 Import real `.apkg` | | | | | |
 | 3 Study, every card type | | | | | |

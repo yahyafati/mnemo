@@ -3,8 +3,11 @@ package com.yahyafati.mnemo.core.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
@@ -62,6 +65,7 @@ class UserPreferencesDataSourceTest {
         source.setAutoPlayAudio(false)
         source.setOnboardingCompleted(true)
         source.setPdfReadOptions(PdfReadMode.ReadWithAi, PdfQuality.High)
+        source.setExtractAdvanced(ExtractAdvanced(skipIllustrations = false, contextSummary = ContextSummary.Off, overlap = Overlap.Always, language = "Spanish"))
         source.acceptImageDisclosure("provider-a")
         source.acceptImageDisclosure("provider-b")
         source.acceptImageDisclosure("provider-a")
@@ -84,6 +88,7 @@ class UserPreferencesDataSourceTest {
                 imageDisclosureProviders = setOf("provider-a", "provider-b"),
                 pdfReadMode = PdfReadMode.ReadWithAi,
                 pdfQuality = PdfQuality.High,
+                extractAdvanced = ExtractAdvanced(skipIllustrations = false, contextSummary = ContextSummary.Off, overlap = Overlap.Always, language = "Spanish"),
             ),
             source.settings.first(),
         )
@@ -95,6 +100,19 @@ class UserPreferencesDataSourceTest {
         source.setFsrsWeights(weights)
         source.setFsrsWeights(null)
         assertNull(source.settings.first().fsrsWeights)
+    }
+
+    @Test
+    fun theExtractAdvancedOptionsAreRememberedAndTheLanguageCanGoBackToTheSource() = testScope.runTest {
+        val source = dataSource()
+        assertEquals(ExtractAdvanced(), source.settings.first().extractAdvanced)
+
+        source.setExtractAdvanced(ExtractAdvanced(overlap = Overlap.Off, language = "Japanese"))
+        assertEquals(ExtractAdvanced(overlap = Overlap.Off, language = "Japanese"), source.settings.first().extractAdvanced)
+
+        // Null is "same as the source", not a language that is remembered.
+        source.setExtractAdvanced(ExtractAdvanced(overlap = Overlap.Off, language = null))
+        assertEquals(ExtractAdvanced(overlap = Overlap.Off), source.settings.first().extractAdvanced)
     }
 
     private val weights = FsrsWeights(

@@ -21,6 +21,7 @@ import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteType
 import com.yahyafati.mnemo.core.model.RewriteOutcome
 import com.yahyafati.mnemo.core.model.SavedAssistAnswer
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.StudyAssist
 import com.yahyafati.mnemo.core.model.StudyCard
 import com.yahyafati.mnemo.core.security.FileSecretStore
@@ -96,7 +97,7 @@ class AiGenerationRepositoriesTest : PlatformTest() {
     fun cardsCarryTheirPartAndUsageIsLogged() = runTest {
         secrets.put("local", "secret-key-123")
         server.enqueue(completion("""{"cards":[{"type":"basic","front":"Q","back":"A","tags":["t"]},{"type":"cloze","front":"{{c1::X}} y","back":"","tags":[]}]}"""))
-        val updates = generation.generate(route(), GenerationRequest("Source text", ExtractOptions(), part = 2, parts = 3, title = "Notes")).toList()
+        val updates = generation.generate(route(), GenerationRequest(SourcePart("Source text", listOf("Notes", "Cells"), continued = true), ExtractOptions(), part = 2, parts = 3, title = "Notes")).toList()
 
         val cards = updates.filterIsInstance<GenerationUpdate.Card>().map { it.card }
         assertEquals(listOf(NoteKind.Basic, NoteKind.Cloze), cards.map { it.kind })
@@ -107,6 +108,7 @@ class AiGenerationRepositoriesTest : PlatformTest() {
         assertEquals("Bearer secret-key-123", request.headers["Authorization"])
         assertEquals("1", request.headers["X-Test"])
         assertTrue("Source \\\"Notes\\\" (part 3 of 3)" in request.body!!.utf8())
+        assertTrue("Where this part is: Notes › Cells (continued)" in request.body!!.utf8())
 
         val usage = providers.usage.value.single()
         assertEquals(AiTask.Extract, usage.task)
@@ -120,7 +122,7 @@ class AiGenerationRepositoriesTest : PlatformTest() {
         // Corrupt the stored ciphertext, as after a restore onto another device.
         directories.secrets.listFiles()!!.forEach { it.writeBytes(byteArrayOf(1, 2, 3)) }
 
-        val updates = generation.generate(route(), GenerationRequest("Source", ExtractOptions())).toList()
+        val updates = generation.generate(route(), GenerationRequest(SourcePart("Source"), ExtractOptions())).toList()
         assertEquals(listOf(GenerationUpdate.Done(AiFailure(AiProblem.KeyUnavailable))), updates)
         assertEquals(0, server.requestCount)
     }

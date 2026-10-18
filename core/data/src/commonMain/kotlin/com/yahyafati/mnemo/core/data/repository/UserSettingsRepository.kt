@@ -2,6 +2,7 @@ package com.yahyafati.mnemo.core.data.repository
 
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
@@ -47,6 +48,9 @@ interface UserSettingsRepository {
 
     /** What the PDF source did last time (ADR 0014, P5): remembered for the next PDF. */
     suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality)
+
+    /** Smart Extract's Advanced options, remembered for the next source (ADR 0015, C5). */
+    suspend fun setExtractAdvanced(value: ExtractAdvanced)
 
     /** The user accepted sending page images to [providerId] (ADR 0014); asked once per provider. */
     suspend fun acceptImageDisclosure(providerId: String)

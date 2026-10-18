@@ -5,6 +5,7 @@ import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.ChapterDeckRequest
 import com.yahyafati.mnemo.core.domain.CreateBookDecksUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.model.AiFailure
@@ -13,6 +14,9 @@ import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.BookChapter
 import com.yahyafati.mnemo.core.model.BookResult
 import com.yahyafati.mnemo.core.model.BookSource
+import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ExtractDensity
+import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.SourceInput
 import com.yahyafati.mnemo.core.testing.MainDispatcherRule
 import com.yahyafati.mnemo.core.testing.PlatformTest
@@ -20,6 +24,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
@@ -72,7 +77,7 @@ class SmartExtractBatchTest : PlatformTest() {
             aiProviders = providers,
             deckRepository = decks,
             sources = sources,
-            generateCards = GenerateCardsUseCase(generation, cards),
+            generateCards = GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository())),
             regenerateCard = RegenerateCardUseCase(generation, cards),
             acceptCards = AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()),
             bookHandoff = handoff,
@@ -109,6 +114,18 @@ class SmartExtractBatchTest : PlatformTest() {
         assertTrue(!state.showChapters, "the run chooses the chapters, so the list stays closed")
         assertEquals(1, vm.uiState.value.queue.size)
         assertTrue(cards.notes.value.isEmpty(), "nothing is saved before Accept")
+    }
+
+    @Test
+    fun theRunUsesTheCardSettingsChosenForIt() = runTest {
+        generation.answer(card("What varies?", "Animals."))
+        val vm = viewModel()
+        val chosen = ExtractOptions(density = ExtractDensity.Concise, archetypes = setOf(CardArchetype.MultipleChoice), language = "French")
+        handoff.offer(book, "Origin", batch = listOf(0, 1), deckIds = makeDecks().chapterDeckIds, options = chosen)
+        vm.uiState.first { it.batch != null }
+
+        assertEquals(chosen, vm.uiState.value.options)
+        assertEquals(chosen, generation.requests.single().options)
     }
 
     @Test

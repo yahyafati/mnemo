@@ -21,6 +21,7 @@ import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateResult
 import com.yahyafati.mnemo.core.domain.SkipReason
+import com.yahyafati.mnemo.core.domain.SourceSummaryCache
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.BookChapter
@@ -29,8 +30,10 @@ import com.yahyafati.mnemo.core.model.BookSource
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
 import com.yahyafati.mnemo.core.model.CardFigure
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DisclosureStep
 import com.yahyafati.mnemo.core.model.FigureSide
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
 import com.yahyafati.mnemo.core.model.PageImageBatches
@@ -47,6 +50,7 @@ import com.yahyafati.mnemo.core.model.PdfPageTextsResult
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceSections
@@ -119,7 +123,7 @@ class SmartExtractViewModel(
 
     /** The source being generated from, kept so Retry can resume it. */
     private class Run(
-        val parts: List<String>,
+        val parts: List<SourcePart>,
         val options: ExtractOptions,
         val title: String?,
         val deckId: String?,
@@ -127,6 +131,13 @@ class SmartExtractViewModel(
         val route: AiRoute? = null,
         /** Cards from page images: the group of pages of each part. */
         val pages: PageBatches? = null,
+        /** The whole text the parts came from, and the model asked, which a context summary of it is made and cached by (ADR 0015, C4). */
+        val source: String = "",
+        val modelId: String = "",
+        /** The summary sent with every part; blank for none. */
+        var context: String = "",
+        /** The summary is still to be written, before the first part. */
+        var summarize: Boolean = false,
     ) {
         fun pagesOf(part: Int): List<Int> = pages?.batches?.getOrNull(part).orEmpty()
     }
@@ -142,6 +153,9 @@ class SmartExtractViewModel(
 
     /** What the AI modes transcribed in this session, and the read waiting for the user's agreement or going on. */
     private val transcriptions = PageTranscriptionCache()
+
+    /** The context summaries made in this session (ADR 0015, C4), so Resume, Regenerate and a second Generate on the same text don't ask again. */
+    private val summaries = SourceSummaryCache()
 
     private class PdfRun(val route: AiRoute, val plan: PdfReadPlan, var failedAt: Int = 0)
 
@@ -200,8 +214,8 @@ class SmartExtractViewModel(
     /** The deck path of the chosen chapter, until the decks list has it (the first emission may come later). */
     private var preferredDeckPath: String? = null
 
-    /** The run waiting for the user to agree to discard the queue before it starts. */
-    private class PendingBatch(val chapterIds: List<Int>, val deckIds: Map<Int, String>)
+    /** The run waiting for the user to agree to discard the queue before it starts, with the card settings chosen for it. */
+    private class PendingBatch(val chapterIds: List<Int>, val deckIds: Map<Int, String>, val options: ExtractOptions?)
 
     private var pendingBatch: PendingBatch? = null
 
@@ -232,7 +246,14 @@ class SmartExtractViewModel(
     private val imageDisclosed = mutableSetOf<String>()
     private var disclosureSteps: List<DisclosureStep> = emptyList()
 
+    /** The user changed an Advanced option before the remembered ones arrived: theirs wins. */
+    private var advancedChosen = false
+
     init {
+        viewModelScope.launch {
+            val remembered = userSettings.settings.first().extractAdvanced
+            if (!advancedChosen) updateOptions { it.withAdvanced(remembered) }
+        }
         viewModelScope.launch {
             combine(aiProviders.observeEffectiveRoutes(), deckRepository.observeDeckSummaries()) { routes, decks ->
                 Triple(routes[AiTask.Extract], routes[AiTask.ReadPages], decks.map { DeckOption(it.deck.id, it.path, it.totalCount) }.sortedBy { it.path.lowercase() })
@@ -261,7 +282,7 @@ class SmartExtractViewModel(
                     // A run generates at once, which needs the provider route: wait for the first load when this
                     // ViewModel was made by the handoff itself.
                     _uiState.first { !it.isLoading }
-                    startBatch(offer.batch, offer.deckIds)
+                    startBatch(offer.batch, offer.deckIds, offer.options)
                 }
             }
         }
@@ -284,7 +305,7 @@ class SmartExtractViewModel(
                 if (aiReading) readJob?.cancel()
                 releasePdf()
                 _uiState.update {
-                    it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null, reading = it.reading && !aiReading)
+                    it.withText("").copy(title = null, truncated = false, disambiguation = false, chapterId = null, sourceProblem = null, reading = it.reading && !aiReading, context = null)
                 }
             }
             is SmartExtractAction.LinkChanged -> _uiState.update { it.copy(link = action.link, sourceProblem = null) }
@@ -422,7 +443,17 @@ class SmartExtractViewModel(
             is SmartExtractAction.ToggleArchetype -> updateOptions {
                 it.copy(archetypes = if (action.archetype in it.archetypes) it.archetypes - action.archetype else it.archetypes + action.archetype)
             }
-            is SmartExtractAction.SetLanguage -> updateOptions { it.copy(language = action.language) }
+            is SmartExtractAction.SetLanguage -> updateAdvanced { it.copy(language = action.language) }
+            SmartExtractAction.ToggleAdvanced -> _uiState.update { it.copy(showAdvanced = !it.showAdvanced) }
+            is SmartExtractAction.SetSkipIllustrations -> updateAdvanced { it.copy(skipIllustrations = action.skip) }
+            is SmartExtractAction.SetOverlap -> updateAdvanced { it.copy(overlap = action.overlap) }
+            is SmartExtractAction.SetContextSummary -> updateAdvanced { it.copy(contextSummary = action.summary) }
+            SmartExtractAction.ToggleContext -> updateContext { it.copy(expanded = !it.expanded) }
+            // Editing waits for a run to end: the parts still to be sent read the summary as it is when they start.
+            SmartExtractAction.EditContext -> if (!_uiState.value.isGenerating) updateContext { it.copy(expanded = true, editing = true) }
+            is SmartExtractAction.ContextChanged -> editContext(action.text)
+            SmartExtractAction.DoneEditingContext -> updateContext { it.copy(editing = false) }
+            SmartExtractAction.GenerateWithoutContext -> generateWithoutContext()
             SmartExtractAction.Generate -> generate()
             SmartExtractAction.Stop -> {
                 generationJob?.cancel()
@@ -450,8 +481,29 @@ class SmartExtractViewModel(
         }
     }
 
+    private fun updateContext(transform: (SourceContext) -> SourceContext) =
+        _uiState.update { state -> state.context?.let { state.copy(context = transform(it)) } ?: state }
+
+    /** An edit of the summary is what later parts, Regenerate and a second Generate on the same text send. */
+    private fun editContext(text: String) {
+        if (_uiState.value.context == null) return
+        updateContext { it.copy(text = text) }
+        run?.takeIf { it.source.isNotEmpty() }?.let {
+            it.context = text
+            summaries[it.source, it.modelId, it.options.language] = text
+        }
+    }
+
     private fun updateOptions(transform: (ExtractOptions) -> ExtractOptions) =
         _uiState.update { it.copy(options = transform(it.options)) }
+
+    /** Changes one of the Advanced options and remembers the lot for the next source (ADR 0015, C5). */
+    private fun updateAdvanced(transform: (ExtractAdvanced) -> ExtractAdvanced) {
+        advancedChosen = true
+        updateOptions { it.withAdvanced(transform(it.advanced)) }
+        val advanced = _uiState.value.options.advanced
+        viewModelScope.launch { userSettings.setExtractAdvanced(advanced) }
+    }
 
     private fun read(source: SourceInput) {
         endBatch()
@@ -960,14 +1012,15 @@ class SmartExtractViewModel(
     }
 
     /**
-     * Starts a run over [chapterIds] (book order, chapters without text left out) with their decks [deckIds].
-     * A queue that still has cards, or a generation under way, is the user's: they are asked before it is discarded.
+     * Starts a run over [chapterIds] (book order, chapters without text left out) with their decks [deckIds] and the
+     * card settings [options] the user chose for it (null keeps this screen's). A queue that still has cards, or a
+     * generation under way, is the user's: they are asked before it is discarded.
      */
-    private fun startBatch(chapterIds: List<Int>, deckIds: Map<Int, String>) {
+    private fun startBatch(chapterIds: List<Int>, deckIds: Map<Int, String>, options: ExtractOptions? = null) {
         val book = book ?: return
         val ids = chapterIds.distinct().filter { id -> book.chapters.any { it.id == id && it.text.isNotBlank() } }
         if (ids.isEmpty()) return
-        val plan = PendingBatch(ids, deckIds)
+        val plan = PendingBatch(ids, deckIds, options)
         val state = _uiState.value
         if (state.queue.isNotEmpty() || state.isGenerating) {
             pendingBatch = plan
@@ -983,6 +1036,11 @@ class SmartExtractViewModel(
         generationJob?.cancel()
         run = null
         batchDecks = plan.deckIds
+        plan.options?.let { options ->
+            // Chosen just now in the book's dialog, which also remembered its Advanced part: the remembered ones arriving late mustn't undo it.
+            advancedChosen = true
+            updateOptions { options }
+        }
         val chapters = plan.chapterIds.mapNotNull { id -> book.chapters.firstOrNull { it.id == id }?.option() }
         _uiState.update { it.withoutQueue().copy(batch = BookBatch(chapters, position = 0), batchConfirmation = null) }
         enterBatchChapter()
@@ -1028,6 +1086,7 @@ class SmartExtractViewModel(
         duplicatesSkipped = 0,
         invalidSkipped = 0,
         generation = GenerationState.Idle,
+        context = null,
     )
 
     /** The deck waiting to be selected, if [decks] has it now; asking for it uses it up. */
@@ -1038,9 +1097,21 @@ class SmartExtractViewModel(
         return deck
     }
 
+    /**
+     * Where the box's text is, the start of every part's path (ADR 0015, C2): the book and the chapter, else the page's
+     * or document's title (a PDF without one is named by its file); nothing for pasted or dictated text, which has no
+     * title. Emptying the box forgets the title, so text typed afterwards has no root either.
+     */
+    private fun SmartExtractUiState.pathRoot(): List<String> {
+        val title = title?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val book = book
+        val chapter = chapterId?.let { id -> book?.chapters?.firstOrNull { it.id == id } }
+        return if (book != null && chapter != null) listOf(book.title, chapter.title) else listOf(title)
+    }
+
     /** Sets the text and how many requests it takes (one per part), which the screen says when there are several. */
     private fun SmartExtractUiState.withText(text: String) =
-        copy(text = text, requests = if (text.isBlank()) 0 else generateCards.split(text).size)
+        copy(text = text, parts = if (text.isBlank()) 0 else generateCards.split(text).size)
 
     private fun startDictation() {
         if (dictationJob?.isActive == true) return
@@ -1088,9 +1159,16 @@ class SmartExtractViewModel(
         stopDictation()
         withDisclosure(route) {
             val current = _uiState.value
-            val parts = generateCards.split(current.text)
+            val parts = generateCards.split(current.text, current.pathRoot(), current.options.overlap)
             if (parts.isEmpty()) return@withDisclosure
-            run = Run(parts, current.options, current.title, current.deckId)
+            // A long source is summarised first (ADR 0015, C4), unless this session already did it for this text and model.
+            val summarise = current.options.makesSummary(parts.size)
+            val cached = if (summarise) summaries[current.text, route.modelId, current.options.language] else null
+            run = Run(
+                parts, current.options, current.title, current.deckId,
+                source = current.text, modelId = route.modelId, context = cached.orEmpty(), summarize = summarise && cached == null,
+            )
+            _uiState.update { it.copy(context = cached?.let(::SourceContext)) }
             launchGeneration(route, fromPart = 0)
         }
     }
@@ -1122,11 +1200,13 @@ class SmartExtractViewModel(
     private fun startPageRun(pageRun: PageRun) {
         val current = _uiState.value
         generationJob?.cancel()
-        _uiState.update { it.copy(generation = GenerationState.Running(0, pageRun.batches.size, pageRun.batches.first())) }
+        // The text of a page-image run is only the pages' text layer: there is nothing to summarise.
+        _uiState.update { it.copy(generation = GenerationState.Running(0, pageRun.batches.size, pageRun.batches.first()), context = null) }
         generationJob = viewModelScope.launch {
             val layers = (sources.pageTexts(pageRun.handle, pageRun.batches.flatten()) as? PdfPageTextsResult.Success)?.texts.orEmpty()
+            val root = current.pathRoot()
             val parts = pageRun.batches.map { batch ->
-                batch.filter { PdfPageText.hasText(layers[it].orEmpty()) }.joinToString("\n\n") { "[Page $it]\n${layers.getValue(it).trim()}" }
+                SourcePart(batch.filter { PdfPageText.hasText(layers[it].orEmpty()) }.joinToString("\n\n") { "[Page $it]\n${layers.getValue(it).trim()}" }, root)
             }
             val run = Run(
                 parts = parts,
@@ -1145,16 +1225,31 @@ class SmartExtractViewModel(
         val failedPart = when (val failed = _uiState.value.generation) {
             is GenerationState.Failed -> failed.part
             is GenerationState.PageUnreadable -> failed.part
+            // The summary comes before the first part, so asking again starts from there.
+            is GenerationState.SummaryFailed -> 0
             else -> return
         }
         val route = run?.route ?: _uiState.value.route ?: return
         launchGeneration(route, failedPart)
     }
 
+    /** After a failed summary: the parts are sent without one. */
+    private fun generateWithoutContext() {
+        if (_uiState.value.generation !is GenerationState.SummaryFailed) return
+        val run = run ?: return
+        val route = run.route ?: _uiState.value.route ?: return
+        run.summarize = false
+        run.context = ""
+        _uiState.update { it.copy(context = null) }
+        launchGeneration(route, fromPart = 0)
+    }
+
     private fun launchGeneration(route: AiRoute, fromPart: Int) {
         val run = run ?: return
         generationJob?.cancel()
-        _uiState.update { it.copy(generation = GenerationState.Running(fromPart, run.parts.size, run.pagesOf(fromPart))) }
+        _uiState.update {
+            it.copy(generation = if (run.summarize) GenerationState.Summarizing else GenerationState.Running(fromPart, run.parts.size, run.pagesOf(fromPart)))
+        }
         generationJob = viewModelScope.launch { collectGeneration(route, run, fromPart) }
     }
 
@@ -1169,9 +1264,19 @@ class SmartExtractViewModel(
             fromPart = fromPart,
             known = _uiState.value.queue.map { it.card },
             pages = run.pages,
+            context = run.context,
+            summarize = run.source.takeIf { run.summarize },
         )
         generateCards(route, request).collect { event ->
             when (event) {
+                ExtractEvent.SummaryStarted -> _uiState.update { it.copy(generation = GenerationState.Summarizing) }
+                is ExtractEvent.SummaryReady -> {
+                    run.context = event.text
+                    run.summarize = false
+                    summaries[run.source, run.modelId, run.options.language] = event.text
+                    _uiState.update { it.copy(context = SourceContext(event.text)) }
+                }
+                is ExtractEvent.SummaryFailed -> _uiState.update { it.copy(generation = GenerationState.SummaryFailed(event.failure)) }
                 is ExtractEvent.PartStarted -> {
                     part = event.part
                     _uiState.update { it.copy(generation = GenerationState.Running(event.part, event.parts, run.pagesOf(event.part))) }
@@ -1207,17 +1312,18 @@ class SmartExtractViewModel(
                 val result = regenerateCard(
                     route = route,
                     card = item.card,
-                    source = item.source,
+                    source = item.part,
                     options = run?.options ?: current.options,
                     deckId = current.deckId,
                     title = run?.title ?: current.title,
                     known = current.queue.map { it.card },
                     pages = images,
+                    context = current.context?.text.orEmpty(),
                 )
                 _uiState.update { s ->
                     when (result) {
                         is RegenerateResult.Replaced -> s.copy(
-                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.source, pages = images) else it },
+                            queue = s.queue.map { if (it.card.id == id) QueueItem(result.card, item.part, pages = images) else it },
                             editingId = s.editingId.takeIf { it != id },
                         )
                         RegenerateResult.NothingNew -> s.copy(queue = s.queue.withRegenerating(id, false), message = ExtractMessage.NothingNew)

@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.core.data.repository
 import com.yahyafati.mnemo.core.datastore.UserPreferencesDataSource
 import com.yahyafati.mnemo.core.model.CardFontSize
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.FsrsWeights
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
@@ -46,6 +47,8 @@ internal class DefaultUserSettingsRepository(
     override suspend fun setOnboardingCompleted(value: Boolean) = dataSource.setOnboardingCompleted(value)
 
     override suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) = dataSource.setPdfReadOptions(mode, quality)
+
+    override suspend fun setExtractAdvanced(value: ExtractAdvanced) = dataSource.setExtractAdvanced(value)
 
     override suspend fun acceptImageDisclosure(providerId: String) = dataSource.acceptImageDisclosure(providerId)
 }

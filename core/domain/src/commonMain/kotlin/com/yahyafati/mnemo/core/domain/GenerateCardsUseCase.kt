@@ -5,13 +5,16 @@ import com.yahyafati.mnemo.core.data.repository.CardRepository
 import com.yahyafati.mnemo.core.data.repository.GenerationRequest
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
 import com.yahyafati.mnemo.core.data.repository.PageImages
+import com.yahyafati.mnemo.core.data.repository.SummaryResult
 import com.yahyafati.mnemo.core.data.repository.UnreadablePage
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.ExtractOptions
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfQuality
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -24,9 +27,9 @@ data class PageBatches(val handle: PdfHandle, val quality: PdfQuality, val batch
     fun images(part: Int) = PageImages(handle, quality, batches[part])
 }
 
-/** A Smart Extract run: a source split into [parts], generated from [fromPart] on. */
+/** A Smart Extract run: a source split into [parts] (each with its path), generated from [fromPart] on. */
 data class ExtractRequest(
-    val parts: List<String>,
+    val parts: List<SourcePart>,
     val options: ExtractOptions,
     /** The destination deck, whose notes aren't repeated; null skips that check. */
     val deckId: String?,
@@ -37,6 +40,13 @@ data class ExtractRequest(
     val known: List<GeneratedCard> = emptyList(),
     /** Cards from page images: each of [parts] goes with its group of pages; null for a text source. */
     val pages: PageBatches? = null,
+    /** The summary of the whole source, sent as context with every part (ADR 0015, C4); blank for none. */
+    val context: String = "",
+    /**
+     * The whole source, to summarise before the first part; null asks for no summary. The summary then replaces
+     * [context], and a failed one ends the run before any part is sent.
+     */
+    val summarize: String? = null,
 ) {
     init {
         require(pages == null || pages.batches.size == parts.size) { "Every part needs its group of pages" }
@@ -44,6 +54,15 @@ data class ExtractRequest(
 }
 
 sealed interface ExtractEvent {
+    /** The context summary is being written; the first part follows it. */
+    data object SummaryStarted : ExtractEvent
+
+    /** The context summary is written: [text] goes with every part. */
+    data class SummaryReady(val text: String) : ExtractEvent
+
+    /** The summary request failed, so no part was sent; a retry starts again, or goes on without a summary. */
+    data class SummaryFailed(val failure: AiFailure) : ExtractEvent
+
     data class PartStarted(val part: Int, val parts: Int) : ExtractEvent
 
     /** A valid, new card for the review queue. */
@@ -75,11 +94,29 @@ enum class SkipReason { Invalid, Duplicate }
 class GenerateCardsUseCase(
     private val generation: CardGenerationRepository,
     private val cardRepository: CardRepository,
+    private val summarizeSource: SummarizeSourceUseCase,
 ) {
-    /** [text] split into the parts sent one request each. */
-    fun split(text: String): List<String> = generation.split(text)
+    /** [text] split into the parts sent one request each; [root] begins their paths and [overlap] gives some the end of the part before (see [CardGenerationRepository.split]). */
+    fun split(text: String, root: List<String> = emptyList(), overlap: Overlap = Overlap.WithinSections): List<SourcePart> = generation.split(text, root, overlap)
+
+    /** How many requests a source of [parts] parts takes with [options], the summary's included. */
+    fun requests(parts: Int, options: ExtractOptions): Int = options.requests(parts)
 
     operator fun invoke(route: AiRoute, request: ExtractRequest): Flow<ExtractEvent> = flow {
+        var context = request.context
+        request.summarize?.let { source ->
+            emit(ExtractEvent.SummaryStarted)
+            when (val result = summarizeSource(route, source, request.title, request.options.language)) {
+                is SummaryResult.Success -> {
+                    context = result.text
+                    emit(ExtractEvent.SummaryReady(result.text))
+                }
+                is SummaryResult.Failure -> {
+                    emit(ExtractEvent.SummaryFailed(result.failure))
+                    return@flow
+                }
+            }
+        }
         val seen = HashSet<String>()
         request.deckId?.let { deckId -> cardRepository.getNoteFields(deckId).forEach { seen += GeneratedCardValidator.key(it.firstOrNull().orEmpty()) } }
         request.known.forEach { seen += GeneratedCardValidator.key(it.front) }
@@ -90,13 +127,14 @@ class GenerateCardsUseCase(
             var failure: AiFailure? = null
             var unreadable: UnreadablePage? = null
             val generationRequest = GenerationRequest(
-                text = request.parts[part],
+                source = request.parts[part],
                 options = request.options,
                 part = part,
                 parts = request.parts.size,
                 title = request.title,
                 avoid = avoid.takeLast(MAX_AVOID),
                 pages = request.pages?.images(part),
+                context = context,
             )
             generation.generate(route, generationRequest).collect { update ->
                 when (update) {
@@ -148,8 +186,8 @@ sealed interface RegenerateResult {
 
 /**
  * "Regenerate" on one queued card: one new card from [source], the part of the source the card
- * came from. The queue keeps each card's part, since the text box may have changed since. A card made from page images
- * keeps its group of pages ([pages]) too, and the same images are sent again.
+ * came from, with its path. The queue keeps each card's part, since the text box may have changed since. A card made
+ * from page images keeps its group of pages ([pages]) too, and the same images are sent again.
  */
 class RegenerateCardUseCase(
     private val generation: CardGenerationRepository,
@@ -158,12 +196,13 @@ class RegenerateCardUseCase(
     suspend operator fun invoke(
         route: AiRoute,
         card: GeneratedCard,
-        source: String,
+        source: SourcePart,
         options: ExtractOptions,
         deckId: String?,
         title: String? = null,
         known: List<GeneratedCard> = emptyList(),
         pages: PageImages? = null,
+        context: String = "",
     ): RegenerateResult {
         val seen = HashSet<String>()
         deckId?.let { id -> cardRepository.getNoteFields(id).forEach { seen += GeneratedCardValidator.key(it.firstOrNull().orEmpty()) } }
@@ -174,13 +213,14 @@ class RegenerateCardUseCase(
         var failure: AiFailure? = null
         var unreadable: UnreadablePage? = null
         val request = GenerationRequest(
-            text = source,
+            source = source,
             options = options,
             part = card.chunkIndex,
             title = title,
             avoid = known.map { it.front }.takeLast(MAX_AVOID),
             replacing = card,
             pages = pages,
+            context = context,
         )
         generation.generate(route, request).collect { update ->
             when (update) {

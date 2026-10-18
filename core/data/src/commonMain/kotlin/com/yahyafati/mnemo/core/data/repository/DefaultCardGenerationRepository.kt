@@ -5,13 +5,15 @@ import com.yahyafati.mnemo.core.ai.generate.CardEvent
 import com.yahyafati.mnemo.core.ai.generate.CardGenerationClient
 import com.yahyafati.mnemo.core.ai.prompt.CardGenerationPrompt
 import com.yahyafati.mnemo.core.data.mapper.toAiFailure
-import com.yahyafati.mnemo.core.ingest.TextChunker
+import com.yahyafati.mnemo.core.ingest.SourcePlanner
 import com.yahyafati.mnemo.core.model.AiFailure
 import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiRoute
 import com.yahyafati.mnemo.core.model.GeneratedCard
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PageImageBatches
 import com.yahyafati.mnemo.core.model.PdfPageResult
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceText
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,7 +30,7 @@ internal class DefaultCardGenerationRepository(
     private val sources: SourceRepository,
     private val ioDispatcher: CoroutineDispatcher,
 ) : CardGenerationRepository {
-    override fun split(text: String): List<String> = TextChunker.chunk(text)
+    override fun split(text: String, root: List<String>, overlap: Overlap): List<SourcePart> = splitSource(text, root, overlap)
 
     override fun generate(route: AiRoute, request: GenerationRequest): Flow<GenerationUpdate> = flow {
         val config = configs.forProvider(route.provider)
@@ -36,7 +38,6 @@ internal class DefaultCardGenerationRepository(
             emit(GenerationUpdate.Done(AiFailure(AiProblem.KeyUnavailable)))
             return@flow
         }
-        val replacing = request.replacing
         val pages = request.pages?.let { renderPages(it) }
         if (pages != null) {
             pages.unreadable?.let {
@@ -49,23 +50,7 @@ internal class DefaultCardGenerationRepository(
                 return@flow
             }
         }
-        val words = SourceText.countWords(request.text)
-        val prompt = CardGenerationPrompt(
-            source = request.text,
-            options = request.options,
-            targetCards = when {
-                replacing != null -> 1
-                pages != null -> request.options.targetCards(PageImageBatches.words(pages.images.size, words))
-                else -> request.options.targetCards(words)
-            },
-            avoid = request.avoid,
-            title = request.title,
-            part = request.part + 1,
-            parts = request.parts,
-            replacing = replacing?.let { it.front to it.back },
-            pages = pages?.numbers.orEmpty(),
-            images = pages?.images.orEmpty(),
-        )
+        val prompt = cardsPrompt(request, pages?.numbers.orEmpty(), pages?.images.orEmpty())
         client.generate(config, route.modelId, route.capabilities, prompt).collect { event ->
             when (event) {
                 is CardEvent.Card -> emit(
@@ -122,4 +107,37 @@ internal class DefaultCardGenerationRepository(
     }
 
     private class RenderedPages(val numbers: List<Int>, val images: List<ContentPart.Image>, val unreadable: UnreadablePage?)
+}
+
+/** How Smart Extract splits a source into the parts sent one request each, along its headings (ADR 0015, C2). */
+internal fun splitSource(text: String, root: List<String> = emptyList(), overlap: Overlap = Overlap.WithinSections): List<SourcePart> =
+    SourcePlanner.plan(text, root, overlap = overlap)
+
+/**
+ * The prompt for one [request]; with page images, [pageNumbers] are the pages that rendered and [images] their pictures.
+ * Shared with the QA request dump (`ExtractRequestDump`), so `scripts/qa/extract-checks.py` sends what the app sends.
+ */
+internal fun cardsPrompt(request: GenerationRequest, pageNumbers: List<Int> = emptyList(), images: List<ContentPart.Image> = emptyList()): CardGenerationPrompt {
+    val words = SourceText.countWords(request.text)
+    val replacing = request.replacing
+    return CardGenerationPrompt(
+        source = request.text,
+        options = request.options,
+        targetCards = when {
+            replacing != null -> 1
+            images.isNotEmpty() -> request.options.targetCards(PageImageBatches.words(images.size, words))
+            else -> request.options.targetCards(words)
+        },
+        avoid = request.avoid,
+        title = request.title,
+        part = request.part + 1,
+        parts = request.parts,
+        path = request.source.path,
+        continued = request.source.continued,
+        overlap = request.source.overlap,
+        context = request.context,
+        replacing = replacing?.let { it.front to it.back },
+        pages = pageNumbers,
+        images = images,
+    )
 }

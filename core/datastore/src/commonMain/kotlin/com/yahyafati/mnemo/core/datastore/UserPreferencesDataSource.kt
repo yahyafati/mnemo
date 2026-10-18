@@ -12,8 +12,11 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.yahyafati.mnemo.core.model.BackupSettings
 import com.yahyafati.mnemo.core.model.CardFontSize
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DarkThemeConfig
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.FsrsWeights
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfQuality
 import com.yahyafati.mnemo.core.model.PdfReadMode
 import com.yahyafati.mnemo.core.model.ReminderSettings
@@ -59,6 +62,12 @@ class UserPreferencesDataSource(
             imageDisclosureProviders = prefs[Keys.ImageDisclosureProviders] ?: defaults.imageDisclosureProviders,
             pdfReadMode = PdfReadMode.entries.firstOrNull { it.name == prefs[Keys.PdfReadMode] },
             pdfQuality = prefs[Keys.PdfQuality].toEnum(defaults.pdfQuality),
+            extractAdvanced = ExtractAdvanced(
+                skipIllustrations = prefs[Keys.ExtractSkipIllustrations] ?: defaults.extractAdvanced.skipIllustrations,
+                contextSummary = prefs[Keys.ExtractContextSummary].toEnum(defaults.extractAdvanced.contextSummary),
+                overlap = prefs[Keys.ExtractOverlap].toEnum(defaults.extractAdvanced.overlap),
+                language = prefs[Keys.ExtractLanguage]?.takeIf { it.isNotBlank() },
+            ),
         )
     }
 
@@ -74,6 +83,13 @@ class UserPreferencesDataSource(
     suspend fun setPdfReadOptions(mode: PdfReadMode, quality: PdfQuality) = edit {
         it[Keys.PdfReadMode] = mode.name
         it[Keys.PdfQuality] = quality.name
+    }
+
+    suspend fun setExtractAdvanced(value: ExtractAdvanced) = edit {
+        it[Keys.ExtractSkipIllustrations] = value.skipIllustrations
+        it[Keys.ExtractContextSummary] = value.contextSummary.name
+        it[Keys.ExtractOverlap] = value.overlap.name
+        if (value.language == null) it.remove(Keys.ExtractLanguage) else it[Keys.ExtractLanguage] = value.language!!
     }
 
     suspend fun acceptImageDisclosure(providerId: String) = edit {
@@ -162,6 +178,10 @@ class UserPreferencesDataSource(
         val ImageDisclosureProviders = stringSetPreferencesKey("image_disclosure_providers")
         val PdfReadMode = stringPreferencesKey("pdf_read_mode")
         val PdfQuality = stringPreferencesKey("pdf_quality")
+        val ExtractSkipIllustrations = booleanPreferencesKey("extract_skip_illustrations")
+        val ExtractContextSummary = stringPreferencesKey("extract_context_summary")
+        val ExtractOverlap = stringPreferencesKey("extract_overlap")
+        val ExtractLanguage = stringPreferencesKey("extract_language")
     }
 
     private companion object {

@@ -3,6 +3,7 @@ package com.yahyafati.mnemo.feature.create
 import com.yahyafati.mnemo.core.data.repository.GenerationUpdate
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.GeneratedCardProblem
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
@@ -11,15 +12,19 @@ import com.yahyafati.mnemo.core.model.AiProblem
 import com.yahyafati.mnemo.core.model.AiProvider
 import com.yahyafati.mnemo.core.model.AiTask
 import com.yahyafati.mnemo.core.model.CardArchetype
+import com.yahyafati.mnemo.core.model.ContextSummary
 import com.yahyafati.mnemo.core.model.DictationEvent
 import com.yahyafati.mnemo.core.model.DictationProblem
+import com.yahyafati.mnemo.core.model.ExtractAdvanced
 import com.yahyafati.mnemo.core.model.ExtractDensity
 import com.yahyafati.mnemo.core.model.NoteKind
 import com.yahyafati.mnemo.core.model.NoteSource
+import com.yahyafati.mnemo.core.model.Overlap
 import com.yahyafati.mnemo.core.model.PdfHandle
 import com.yahyafati.mnemo.core.model.PdfInfo
 import com.yahyafati.mnemo.core.model.PdfOpenResult
 import com.yahyafati.mnemo.core.model.SourceInput
+import com.yahyafati.mnemo.core.model.SourcePart
 import com.yahyafati.mnemo.core.model.SourceProblem
 import com.yahyafati.mnemo.core.model.SourceResult
 import com.yahyafati.mnemo.core.model.SourceText
@@ -28,6 +33,7 @@ import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository.Companion.card
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeSourceRepository
@@ -63,15 +69,17 @@ class SmartExtractViewModelTest {
         disclosureAcceptedAt = Instant.EPOCH, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH,
     )
 
+    private val settings = FakeUserSettingsRepository()
+
     private fun viewModel() = SmartExtractViewModel(
         aiProviders = providers,
         deckRepository = decks,
         sources = sources,
-        generateCards = GenerateCardsUseCase(generation, cards),
+        generateCards = GenerateCardsUseCase(generation, cards, SummarizeSourceUseCase(FakeSourceContextRepository())),
         regenerateCard = RegenerateCardUseCase(generation, cards),
         acceptCards = AcceptGeneratedCardsUseCase(cards, FakeMediaRepository()),
         bookHandoff = handoff,
-        userSettings = FakeUserSettingsRepository(),
+        userSettings = settings,
         readPdfPages = ReadPdfPagesUseCase(sources, FakePdfReadRepository()),
     )
 
@@ -95,6 +103,92 @@ class SmartExtractViewModelTest {
         providers.addProvider(provider)
         assertEquals(AiTask.Extract, assertNotNull(vm.state.route).task)
         assertEquals("llama-3.3-70b", vm.state.route?.modelId)
+    }
+
+    @Test
+    fun aRunThatProposesNothingSaysThereWasNothingToLearn() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        assertFalse(vm.state.nothingToLearn)
+        vm.onAction(SmartExtractAction.Generate)
+
+        assertEquals(GenerationState.Done(added = 0), vm.state.generation)
+        assertTrue(vm.state.nothingToLearn)
+    }
+
+    @Test
+    fun aRunWhoseCardsWereAllDroppedIsNotNothingToLearn() = runTest {
+        val vm = readyViewModel()
+        // The model proposed a card, which was dropped as unusable: the text did have something in it.
+        generation.respond = { flowOf(GenerationUpdate.Card(card("", "A")), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        assertEquals(GenerationState.Done(added = 0), vm.state.generation)
+        assertEquals(1, vm.state.invalidSkipped)
+        assertFalse(vm.state.nothingToLearn)
+    }
+
+    @Test
+    fun skippingIllustrationsIsOnUntilTheUserTurnsItOff() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        assertFalse(vm.state.showAdvanced)
+        vm.onAction(SmartExtractAction.Generate)
+        assertTrue(generation.requests.last().options.skipIllustrations)
+
+        vm.onAction(SmartExtractAction.ToggleAdvanced)
+        assertTrue(vm.state.showAdvanced)
+        vm.onAction(SmartExtractAction.SetSkipIllustrations(false))
+        vm.onAction(SmartExtractAction.Generate)
+        assertFalse(generation.requests.last().options.skipIllustrations)
+
+        vm.onAction(SmartExtractAction.ToggleAdvanced)
+        assertFalse(vm.state.showAdvanced)
+    }
+
+    @Test
+    fun theAdvancedOptionsAreRememberedForTheNextSource() = runTest {
+        val first = readyViewModel()
+        first.onAction(SmartExtractAction.SetSkipIllustrations(false))
+        first.onAction(SmartExtractAction.SetOverlap(Overlap.Always))
+        first.onAction(SmartExtractAction.SetContextSummary(ContextSummary.Off))
+        first.onAction(SmartExtractAction.SetLanguage("Spanish"))
+        // Density and card styles are choices for this screen only.
+        first.onAction(SmartExtractAction.SetDensity(ExtractDensity.Concise))
+        first.onAction(SmartExtractAction.ToggleArchetype(CardArchetype.CaseStudy))
+
+        assertEquals(
+            ExtractAdvanced(skipIllustrations = false, contextSummary = ContextSummary.Off, overlap = Overlap.Always, language = "Spanish"),
+            settings.settings.value.extractAdvanced,
+        )
+
+        val second = viewModel()
+        val options = second.state.options
+        assertEquals(settings.settings.value.extractAdvanced, options.advanced)
+        assertEquals(ExtractDensity.Balanced, options.density)
+        assertFalse(CardArchetype.CaseStudy in options.archetypes)
+        assertFalse(second.state.showAdvanced)
+
+        // Back to the defaults is remembered too, the language included.
+        second.onAction(SmartExtractAction.SetLanguage(null))
+        second.onAction(SmartExtractAction.SetSkipIllustrations(true))
+        second.onAction(SmartExtractAction.SetOverlap(Overlap.WithinSections))
+        second.onAction(SmartExtractAction.SetContextSummary(ContextSummary.Auto))
+        assertEquals(ExtractAdvanced(), settings.settings.value.extractAdvanced)
+        assertEquals(ExtractAdvanced(), viewModel().state.options.advanced)
+    }
+
+    @Test
+    fun rememberedOptionsReachTheRequest() = runTest {
+        settings.setExtractAdvanced(ExtractAdvanced(skipIllustrations = false, overlap = Overlap.Off, language = "German"))
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        val options = generation.requests.last().options
+        assertFalse(options.skipIllustrations)
+        assertEquals(Overlap.Off, options.overlap)
+        assertEquals("German", options.language)
     }
 
     @Test
@@ -159,7 +253,7 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.Generate)
         assertEquals(GenerationState.Failed(AiFailure(AiProblem.Unreachable), part = 1, parts = 2), vm.state.generation)
         assertEquals(listOf("Q1", "Q2"), vm.state.queue.map { it.card.front })
-        assertEquals(listOf("Part one", "Part two"), vm.state.queue.map { it.source })
+        assertEquals(listOf("Part one", "Part two"), vm.state.queue.map { it.part.text })
 
         vm.onAction(SmartExtractAction.Retry)
         assertEquals(listOf(0, 1, 1), generation.requests.map { it.part })
@@ -290,6 +384,78 @@ class SmartExtractViewModelTest {
     }
 
     @Test
+    fun theOverlapSettingGoesToTheSplitAndTheRequests() = runTest {
+        val vm = readyViewModel()
+        generation.respond = { flowOf(GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.WithinSections, generation.overlaps.last())
+        assertEquals(Overlap.WithinSections, generation.requests.last().options.overlap)
+
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Always))
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.Always, generation.overlaps.last())
+        assertEquals(Overlap.Always, generation.requests.last().options.overlap)
+
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Off))
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(Overlap.Off, generation.overlaps.last())
+    }
+
+    @Test
+    fun regenerateSendsTheSameOverlapAsTheFirstRequest() = runTest {
+        val vm = readyViewModel(text = "One\n---\nTwo")
+        generation.splitter = { text, root ->
+            text.split("\n---\n").mapIndexed { i, part -> SourcePart(part, root, continued = i > 0, overlap = if (i > 0) "End of part ${i}." else "") }
+        }
+        generation.respond = { request -> flowOf(GenerationUpdate.Card(card("What does ${request.text} say?", "A").copy(id = "part-${request.part}", chunkIndex = request.part)), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+        val second = vm.state.queue.last()
+        assertEquals("End of part 1.", second.part.overlap)
+        assertEquals("End of part 1.", generation.requests.last().source.overlap)
+
+        // The setting and the box change afterwards; the card is still regenerated from its own part, overlap included.
+        vm.onAction(SmartExtractAction.SetOverlap(Overlap.Off))
+        vm.onAction(SmartExtractAction.TextChanged("Something else entirely."))
+        generation.answer(card("Why does it matter?", "Because."))
+        vm.onAction(SmartExtractAction.Regenerate(second.card.id))
+        assertEquals("End of part 1.", generation.requests.last().source.overlap)
+        assertEquals("End of part 1.", vm.state.queue.last().part.overlap)
+    }
+
+    @Test
+    fun regenerateAsksWithTheCardsPartAndItsPath() = runTest {
+        val vm = readyViewModel(text = "")
+        sources.results[SourceInput.Link("example.com/nash")] = SourceResult.Success(SourceText("Part one\n---\nPart two", title = "Game Theory"))
+        generation.splitter = { text, root ->
+            text.split("\n---\n").mapIndexed { i, part -> SourcePart(part, root + "1.5 Nash Equilibrium", continued = i > 0) }
+        }
+        vm.onAction(SmartExtractAction.SelectSource(SourceKind.Link))
+        vm.onAction(SmartExtractAction.LinkChanged("example.com/nash"))
+        vm.onAction(SmartExtractAction.FetchLink)
+        generation.respond = { request -> flowOf(GenerationUpdate.Card(card("What does ${request.text} say?", "A").copy(id = "part-${request.part}", chunkIndex = request.part)), GenerationUpdate.Done()) }
+        vm.onAction(SmartExtractAction.Generate)
+
+        val second = SourcePart("Part two", listOf("Game Theory", "1.5 Nash Equilibrium"), continued = true)
+        assertEquals(listOf(SourcePart("Part one", listOf("Game Theory", "1.5 Nash Equilibrium")), second), generation.requests.map { it.source })
+        val fromSecond = vm.state.queue.last()
+        assertEquals(second, fromSecond.part)
+
+        // The box changes; the card is still regenerated from its own part, path and all.
+        vm.onAction(SmartExtractAction.TextChanged("Something else entirely."))
+        generation.answer(card("Why is a Nash equilibrium stable?", "Nobody gains by deviating alone."))
+        vm.onAction(SmartExtractAction.Regenerate(fromSecond.card.id))
+        assertEquals(second, generation.requests.last().source)
+        assertEquals(second, vm.state.queue.last().part)
+    }
+
+    @Test
+    fun pastedTextHasNoRoot() = runTest {
+        val vm = readyViewModel()
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(emptyList(), generation.requests.single().source.path)
+    }
+
+    @Test
     fun aDisambiguationPageIsFlaggedUntilTheNextReadOrClear() = runTest {
         val vm = readyViewModel(text = "")
         sources.results[SourceInput.Link("example.com/m")] = SourceResult.Success(SourceText("- Mercury (planet)", disambiguation = true))
@@ -308,6 +474,28 @@ class SmartExtractViewModelTest {
         vm.onAction(SmartExtractAction.FetchLink)
         vm.onAction(SmartExtractAction.ClearText)
         assertFalse(vm.state.disambiguation)
+    }
+
+    @Test
+    fun aPdfsBookmarkHeadingsStayInTheBoxAndTheSplitterGetsTheTitleAsRoot() = runTest {
+        // What the text layer read gives for a PDF with bookmarks (ADR 0015, C6): the bookmarks as headings in the text.
+        // The real planner turns them into paths (PdfPagesTest); here the box and the root it is given.
+        val text = "## Part I\n\n### Chapter 1\n\nOne.\n\n### Chapter 2\n\nTwo."
+        val vm = readyViewModel(text = "")
+        sources.pdfs["content://doc/1"] = PdfOpenResult.Success(PdfHandle("1", PdfInfo(pageCount = 4, title = "Lecture 3")))
+        sources.pdfText = { _, _ -> SourceResult.Success(SourceText(text, title = "Lecture 3")) }
+        val seen = mutableListOf<Pair<String, List<String>>>()
+        generation.splitter = { whole, root ->
+            seen += whole to root
+            listOf(SourcePart(whole, root))
+        }
+        vm.onAction(SmartExtractAction.SelectSource(SourceKind.Pdf))
+        vm.onAction(SmartExtractAction.PdfPicked("content://doc/1"))
+        assertEquals(text, vm.state.text) // the headings are in the box, editable like any other text
+
+        vm.onAction(SmartExtractAction.Generate)
+        assertEquals(text to listOf("Lecture 3"), seen.last())
+        assertEquals(text, generation.requests.single().text)
     }
 
     @Test
@@ -331,6 +519,7 @@ class SmartExtractViewModelTest {
 
         vm.onAction(SmartExtractAction.Generate)
         assertEquals("Lecture 3", generation.requests.single().title)
+        assertEquals(listOf("Lecture 3"), generation.requests.single().source.path)
 
         vm.onAction(SmartExtractAction.ClearText)
         assertEquals("", vm.state.text)

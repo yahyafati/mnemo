@@ -23,7 +23,7 @@ object TextChunker {
     private val STRUCTURE = Regex("""^\s*(?:>\s*)*(?:`{3,}|~{3,})|^\s*\|(?:\s*:?-+:?\s*\|)+\s*$""", RegexOption.MULTILINE)
 
     // After . ! ? and a space (the space is the break), or after 。！？ (no space) with closing quotes kept on the sentence.
-    private val SENTENCE_END = Regex("""(?<=[.!?])\s+|(?<=[。！？][」』）)”’]{0,2})(?![」』）)”’])""")
+    internal val SENTENCE_END = Regex("""(?<=[.!?])\s+|(?<=[。！？][」』）)”’]{0,2})(?![」』）)”’])""")
     private const val CJK_TERMINATORS = "。！？"
 
     fun chunk(text: String, maxWords: Int = DEFAULT_MAX_WORDS): List<String> {

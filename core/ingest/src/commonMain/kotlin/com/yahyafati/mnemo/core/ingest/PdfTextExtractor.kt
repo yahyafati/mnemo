@@ -71,6 +71,46 @@ internal fun pdfSourceResult(rawText: String, cut: Boolean, title: String?, file
     )
 }
 
+/**
+ * The text layer of [selection], read by [read] (the raw text of a run of consecutive pages, 1-based and inclusive), with
+ * the bookmarks of [outline] written in as Markdown headings (ADR 0015, C6): `## <title>` for a top-level bookmark, `###`
+ * for the next level and so on, at the start of its page, a page with several in outline order. A bookmark whose page was
+ * not selected is left out, and a PDF without bookmarks reads exactly as before. A run is cut where a bookmarked page
+ * starts, so a sentence never joins across a heading, and a PDF with no text at all is still [SourceProblem.NoText]
+ * (headings alone are not text).
+ */
+internal fun pdfTextResult(
+    selection: PdfSelection,
+    outline: List<PdfOutlineItem>,
+    title: String?,
+    fileName: String?,
+    read: (IntRange) -> String,
+): SourceResult {
+    val bookmarked = outline.groupBy { it.page }
+    if (selection.runs.none { run -> bookmarked.keys.any { it in run } }) {
+        return pdfSourceResult(selection.runs.joinToString("\n\n") { read(it) }, selection.cut, title, fileName)
+    }
+    val parts = mutableListOf<Pair<List<PdfOutlineItem>, String>>()
+    for (run in selection.runs) {
+        val starts = (run.first..run.last).filter { it == run.first || it in bookmarked }
+        for ((index, start) in starts.withIndex()) {
+            val end = starts.getOrNull(index + 1)?.minus(1) ?: run.last
+            parts += bookmarked[start].orEmpty() to pdfPageText(read(start..end))
+        }
+    }
+    if (parts.all { it.second.isBlank() }) return SourceResult.Failure(SourceProblem.NoText)
+    val text = parts.joinToString("\n\n") { (headings, body) ->
+        (headings.map { "#".repeat(it.level + 1) + " " + it.title } + listOfNotNull(body.takeIf { it.isNotBlank() })).joinToString("\n\n")
+    }
+    return SourceResult.Success(
+        SourceText(
+            text = text.take(PdfTextExtractor.MAX_CHARS),
+            title = title?.trim()?.takeIf { it.isNotEmpty() } ?: fileName,
+            truncated = selection.cut || text.length > PdfTextExtractor.MAX_CHARS,
+        ),
+    )
+}
+
 /** A bookmark as a PDF library reports it: [page] is 1-based, null when it leads nowhere. */
 internal class RawBookmark(val title: String?, val level: Int, val page: Int?)
 

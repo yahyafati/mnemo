@@ -4,6 +4,7 @@ import com.yahyafati.mnemo.core.data.repository.PageReadFailure
 import com.yahyafati.mnemo.core.data.repository.PageTranscription
 import com.yahyafati.mnemo.core.domain.AcceptGeneratedCardsUseCase
 import com.yahyafati.mnemo.core.domain.GenerateCardsUseCase
+import com.yahyafati.mnemo.core.domain.SummarizeSourceUseCase
 import com.yahyafati.mnemo.core.domain.ReadPdfPagesUseCase
 import com.yahyafati.mnemo.core.domain.RegenerateCardUseCase
 import com.yahyafati.mnemo.core.model.AiCapabilities
@@ -26,6 +27,7 @@ import com.yahyafati.mnemo.core.testing.PlatformTest
 import com.yahyafati.mnemo.core.testing.repository.FakeAiProviderRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardGenerationRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeCardRepository
+import com.yahyafati.mnemo.core.testing.repository.FakeSourceContextRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeDeckRepository
 import com.yahyafati.mnemo.core.testing.repository.FakeMediaRepository
 import com.yahyafati.mnemo.core.testing.repository.FakePdfReadRepository
@@ -66,7 +68,7 @@ class SmartExtractPdfReadTest : PlatformTest() {
         aiProviders = providers,
         deckRepository = FakeDeckRepository(),
         sources = sources,
-        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
+        generateCards = GenerateCardsUseCase(FakeCardGenerationRepository(), FakeCardRepository(), SummarizeSourceUseCase(FakeSourceContextRepository())),
         regenerateCard = RegenerateCardUseCase(FakeCardGenerationRepository(), FakeCardRepository()),
         acceptCards = AcceptGeneratedCardsUseCase(FakeCardRepository(), FakeMediaRepository()),
         bookHandoff = BookHandoff(),

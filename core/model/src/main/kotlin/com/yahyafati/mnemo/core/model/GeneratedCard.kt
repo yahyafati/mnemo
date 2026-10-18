@@ -28,20 +28,83 @@ enum class ExtractDensity(
     Comprehensive(40),
 }
 
+/** Which parts of a source are sent with the end of the part before them (ADR 0015, C3). */
+enum class Overlap {
+    /** Only a part that goes on with a section an earlier part started. */
+    WithinSections,
+
+    /** Every part after the first, across headings too. */
+    Always,
+
+    /** None. */
+    Off,
+}
+
+/** Whether a long source is summarised before its parts are sent (ADR 0015, C4). */
+enum class ContextSummary {
+    /** One request writes a summary when the source has at least [ExtractOptions.MIN_PARTS_FOR_SUMMARY] parts. */
+    Auto,
+
+    /** Never. */
+    Off,
+}
+
+/**
+ * The Smart Extract options that are preferences rather than choices per source (ADR 0015, C5): remembered in
+ * [UserSettings.extractAdvanced] and shown under *Advanced*. Density and card styles stay per screen.
+ */
+data class ExtractAdvanced(
+    val skipIllustrations: Boolean = true,
+    val contextSummary: ContextSummary = ContextSummary.Auto,
+    val overlap: Overlap = Overlap.WithinSections,
+    /** The cards' language, as an English name ("Spanish"); null keeps the source's language. */
+    val language: String? = null,
+)
+
 /** What the user asked Smart Extract for. */
 data class ExtractOptions(
     val density: ExtractDensity = ExtractDensity.Balanced,
     val archetypes: Set<CardArchetype> = setOf(CardArchetype.Definition, CardArchetype.Cloze),
     /** The cards' language, as an English name ("Spanish"); null keeps the source's language. */
     val language: String? = null,
+    /**
+     * Cards are about the ideas, not about the examples, anecdotes and stories that illustrate them (ADR 0015, C1).
+     * Off for readers who want the stories, as in history, law or medicine.
+     */
+    val skipIllustrations: Boolean = true,
+    /** Which parts are sent with the end of the part before them, as context only (ADR 0015, C3). */
+    val overlap: Overlap = Overlap.WithinSections,
+    /** Whether a long source gets a short summary that is sent with every part (ADR 0015, C4). */
+    val contextSummary: ContextSummary = ContextSummary.Auto,
 ) {
-    /** About how many cards [words] of source should give. */
+    /** The part of the options that is remembered. */
+    val advanced: ExtractAdvanced
+        get() = ExtractAdvanced(skipIllustrations, contextSummary, overlap, language)
+
+    /** These options with the remembered part replaced by [value]. */
+    fun withAdvanced(value: ExtractAdvanced): ExtractOptions = copy(
+        skipIllustrations = value.skipIllustrations,
+        contextSummary = value.contextSummary,
+        overlap = value.overlap,
+        language = value.language,
+    )
+
+    /** At most how many cards [words] of source should give: a ceiling, since a part may hold fewer ideas (ADR 0015). */
     fun targetCards(words: Int): Int =
         (words / density.wordsPerCard).coerceIn(MIN_CARDS_PER_REQUEST, MAX_CARDS_PER_REQUEST)
+
+    /** A source of [parts] parts gets a summary: it is on, and a one- or two-part source is its own context. */
+    fun makesSummary(parts: Int): Boolean = contextSummary == ContextSummary.Auto && parts >= MIN_PARTS_FOR_SUMMARY
+
+    /** How many requests a source of [parts] parts takes, the summary's included; 0 for no parts. */
+    fun requests(parts: Int): Int = if (parts <= 0) 0 else parts + if (makesSummary(parts)) 1 else 0
 
     companion object {
         const val MIN_CARDS_PER_REQUEST = 3
         const val MAX_CARDS_PER_REQUEST = 40
+
+        /** The fewest parts for which Auto writes a summary (ADR 0015, C4). */
+        const val MIN_PARTS_FOR_SUMMARY = 3
 
         /** Languages offered in the picker, besides "same as the source". */
         val Languages = listOf(
