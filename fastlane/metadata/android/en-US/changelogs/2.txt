@@ -1,0 +1,9 @@
+Fixed: sync and zstd Anki imports crashed the release build.
+
+Smart Extract:
+- Fewer filler cards; it may say a text has nothing worth learning
+- Splits long texts along their headings and tells the AI where each part is
+- Gives each part the end of the one before, and a summary of the whole source
+- Remembers the Advanced options, now with the card language
+- PDF bookmarks become headings
+- Books: a chapter opens in the box for editing; a book run asks for its card settings
